@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=28"></script>
+<script src="config.js?v=29"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=28"></script>
+<script src="nexus-sb.js?v=29"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -425,6 +425,15 @@ const PAGES = [
   {k:'about', t:'About NEXUS'}
 ];
 const TABS = ['home','tenders','projects','reports','more'];
+/* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
+const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
+const MONEY_PAGES=['certs','report'];
+const navPages=()=>PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k));
+const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
+const PROJ_MONEY=['contract_sum','budget'], VO_MONEY=['value_claimed','value_approved'];
+const projFields=()=>PROJECT_FIELDS.filter(f=>money()||!PROJ_MONEY.includes(f.k));
+const voFields=()=>VO_FIELDS.filter(f=>money()||!VO_MONEY.includes(f.k));
+const tenderEdit=()=>TENDER_EDIT.filter(f=>isAdmin||f.k!=='md_decision');
 
 /* ---------- toast / confirm / lightbox ---------- */
 let toastT;
@@ -504,7 +513,7 @@ function computeAlerts(){
   S.compliance.forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
   S.tasks.filter(t=>t.status!=='Done' && t.due && daysLeft(t.due+'T23:59')<0).forEach(t=>A.push({lvl:'bad', kind:'Overdue task', text:t.title, sub:`${staffName(t.assignee)} · due ${fmtD(t.due)}`, go:['route','tasks'], sort:5, at:t.due?t.due+'T23:59:00+03:00':''}));
   S.reports.filter(r=>r.hse && r.hse.trim() && !/^(none|nil|no)\b/i.test(r.hse.trim()) && daysLeft(r.date)>-7).forEach(r=>A.push({lvl:'bad', kind:'HSE', text:`HSE note on ${projName(r.project_id)}`, sub:r.hse.slice(0,90), go:['report',r.id], sort:2, at:r.updated_at||r.date}));
-  (S.certificates||[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
+  (money()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
   if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3});
@@ -770,7 +779,7 @@ function tenderDrawer(t){
       <div class="toolbar" style="margin-top:8px"><button class="btn dark" data-act="saveF02">Save score</button>${t.ai?.scores?'<button class="btn" data-act="applyAiScores">Fill with AI suggestions</button>':''}</div></div></div>
     ${checklistHtml(t)}
     ${outcomeHtml(t)}
-    <div class="card"><div class="hd"><h2>Tracking</h2></div><div class="bd"><div class="form">${TENDER_EDIT.map(fl=>field(fl,t[fl.k])).join('')}</div>
+    <div class="card"><div class="hd"><h2>Tracking</h2></div><div class="bd"><div class="form">${tenderEdit().map(fl=>field(fl,t[fl.k])).join('')}${isAdmin?'':`<div class="small muted" style="grid-column:1/-1">MD decision: <b>${esc(t.md_decision||'not decided yet')}</b> – only administrators change it.</div>`}</div>
       <div class="toolbar" style="margin-top:10px"><button class="btn dark" data-act="saveTender">Save tracking</button></div></div></div>
     <div class="card"><div class="hd"><h2>Tender documents</h2><div class="sp"></div>${assets?'<label class="btn sm" for="tdocFile" style="cursor:pointer">Attach PDF</label><input type="file" id="tdocFile" accept="application/pdf,image/*" multiple hidden>':''}</div>
       <div class="bd small">${docs.length?docs.map(d=>`<div><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a> <span class="sub">· ${esc(d.by||'')} · ${fmtD(d.at)}</span></div>`).join(''):`<span class="muted">No documents attached yet.${assets?'':' Attaching files needs editor access.'}</span>`}</div></div>`;
@@ -882,13 +891,13 @@ function pageProjects(){
       <h3>${esc(p.name)}</h3><div class="sub">${esc(p.client||'')}${p.location?' · '+esc(p.location):''}</div>
       <div><div class="toolbar small"><span>Progress</span><div class="sp"></div><span class="num">${prog}%</span></div><div class="bar"><i style="width:${prog}%"></i></div>
       ${tl!=null?`<div class="sub" style="margin-top:3px">Time elapsed ${tl.toFixed(0)}% ${tl-prog>15?'<span class="chip bad">behind</span>':''}</div>`:''}</div>
-      <div class="small muted">${reps.length} site reports${last?' · last '+fmtD(last.date):''}${isAdmin&&p.budget?` · spent ${tzsShort(spent)} of ${tzsShort(p.budget)}`:''}</div>
+      <div class="small muted">${reps.length} site reports${last?' · last '+fmtD(last.date):''}${money()&&p.budget?` · spent ${tzsShort(spent)} of ${tzsShort(p.budget)}`:''}</div>
     </div></div>`}).join('')||'<div class="empty card">No projects yet.</div>'}</div>`;
 }
 function projectDrawer(p){
   const reps=S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const tasks=S.tasks.filter(t=>t.project_id===p.id&&t.status!=='Done'), prs=S.procurement.filter(x=>x.project_id===p.id);
-  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
+  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',money()&&p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
     <div class="card"><div class="hd"><h2>Site reports</h2><div class="sp"></div><button class="btn sm pri" data-act="newReport" data-proj="${esc(p.id)}">New report</button></div><div class="list">${reps.slice(0,6).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div><span class="sub">${(r.photos||[]).length} photos</span></div>`).join('')||'<div class="empty">No reports yet.</div>'}</div></div>
     <div class="grid g2"><div class="card"><div class="hd"><h2>Open tasks</h2></div><div class="list">${tasks.map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`).join('')||'<div class="empty">None</div>'}</div></div>
@@ -940,7 +949,7 @@ function pageQs(){
   ${UI.qtab==='boqs'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>BoQ</th><th>For</th><th class="r">Items</th><th class="r">Grand total</th><th class="hide-m">Updated</th></tr></thead><tbody>
     ${S.boqs.map(b=>{const t=boqTotals(b);return `<tr class="click" data-boq="${esc(b.id)}"><td class="ttl2">${esc(b.title)}</td><td class="small">${esc(b.tender_id?('Tender: '+(byId('tenders',b.tender_id)?.title||'')):b.project_id?projName(b.project_id):'—')}</td><td class="r num">${(b.bills||[]).reduce((a,x)=>a+(x.items||[]).length,0)}</td><td class="r num">${tzs(t.grand)}</td><td class="hide-m sub">${fmtD(b.updated_at)} ${esc(b.updated_by||'')}</td></tr>`}).join('')||'<tr><td colspan="5"><div class="empty">No BoQs yet. Start one from a tender or press New BoQ.</div></td></tr>'}</tbody></table></div></div>`
   :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Description</th><th>Unit</th><th class="r">Rate (TZS)</th><th class="hide-m">Source / date</th><th></th></tr></thead><tbody>
-    ${S.rates.map(r=>`<tr><td>${esc(r.desc)}</td><td>${esc(r.unit)}</td><td class="r num">${tzs(r.rate).replace('TZS ','')}</td><td class="hide-m sub">${esc(r.source||'')} ${fmtD(r.updated_at)}</td><td>${canWrite?`<button class="btn sm danger" data-delrate="${esc(r.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No rates yet. Add rates from recent priced BoQs; NEXUS then fills matching items automatically.</div></td></tr>'}</tbody></table></div></div>`}`;
+    ${S.rates.map(r=>`<tr><td>${esc(r.desc)}</td><td>${esc(r.unit)}</td><td class="r num">${tzs(r.rate).replace('TZS ','')}</td><td class="hide-m sub">${esc(r.source||'')} ${fmtD(r.updated_at)}</td><td>${isAdmin?`<button class="btn sm danger" data-delrate="${esc(r.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No rates yet. Add rates from recent priced BoQs; NEXUS then fills matching items automatically.</div></td></tr>'}</tbody></table></div></div>`}`;
 }
 function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
@@ -1068,7 +1077,7 @@ const TSTAGES=['To do','In progress','Waiting','Done'];
 function pageTasks(){
   return `<div class="toolbar"><span class="muted">${S.tasks.filter(t=>t.status!=='Done').length} open</span><div class="sp"></div><button class="btn pri" data-act="addTask">New task</button></div>
   <div class="cols">${TSTAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.tasks.filter(t=>(t.status||'To do')===s).length}</span></h3>${S.tasks.filter(t=>(t.status||'To do')===s).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(t=>{const od=t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="tcard"><div class="toolbar">${t.priority&&t.priority!=='Normal'?`<span class="chip ${t.priority==='Urgent'?'bad':'amb'}">${esc(t.priority)}</span>`:''}${od?'<span class="chip bad">overdue</span>':''}</div><b>${esc(t.title)}</b><span class="sub">${esc(staffName(t.assignee))}${t.project_id?' · '+esc(projName(t.project_id)):''}</span>${t.due?`<span class="sub">Due ${fmtD(t.due)}</span>`:''}
-    <div class="toolbar"><select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-tstat="${esc(t.id)}" aria-label="Move task">${TSTAGES.map(x=>`<option ${x===(t.status||'To do')?'selected':''}>${x}</option>`).join('')}</select><button class="btn sm" data-deltask="${esc(t.id)}" aria-label="Delete task">✕</button></div></div>`}).join('')}</div>`).join('')}</div>`;
+    <div class="toolbar"><select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-tstat="${esc(t.id)}" aria-label="Move task">${TSTAGES.map(x=>`<option ${x===(t.status||'To do')?'selected':''}>${x}</option>`).join('')}</select>${isAdmin?`<button class="btn sm" data-deltask="${esc(t.id)}" aria-label="Delete task">✕</button>`:''}</div></div>`}).join('')}</div>`).join('')}</div>`;
 }
 
 /* ===================== COMPLIANCE ===================== */
@@ -1296,6 +1305,7 @@ function certState(c){
   return {cls:'',label:c.status||'Draft'};
 }
 function pageCerts(){
+  if(!money()) return noMoney('Payment Certificates');
   const cs=[...S.certificates].sort((a,b)=>(b.certified||b.submitted||'').localeCompare(a.certified||a.submitted||''));
   const outstanding=cs.filter(c=>c.status==='Certified'), overdue=outstanding.filter(c=>certState(c).cls==='bad');
   const sum=a=>a.reduce((x,c)=>x+(+c.amount||0),0), yr=new Date().getFullYear();
@@ -1354,6 +1364,7 @@ function reportBody(w, forDoc){
   <p>Purchase requests awaiting approval: <b>${w.pendingPR.length}</b>${w.pendingPR.length?` (${tzs(w.pendingPR.reduce((a,p)=>a+(+p.est_cost||0),0))})`:''} · overdue tasks: <b>${w.overdueTasks.length}</b> · compliance documents expiring within 45 days: <b>${w.compliance.length}</b>${w.compliance.length?' – '+w.compliance.map(c=>esc(c.name)+' '+fmtD(c.expiry)).join(', '):''}.</p>`;
 }
 function pageReport(){
+  if(!money()) return noMoney('The weekly management report');
   const w=weekData();
   return `<div class="card"><div class="hd"><h2>Weekly management report</h2><span class="sub">${esc(w.period)}</span><div class="sp"></div>
     <button class="btn" data-act="aiWeekly" ${UI.busy.weekly?'disabled':''}>${spin('weekly')}Write summary with AI</button><button class="btn pri" data-act="downloadWeekly">Download for MD (Word)</button></div>
@@ -1444,7 +1455,7 @@ function pageProject(){
     const pr=F.prog, gap=pr?pr.actual-pr.planned:null;
     body=`<div class="grid g4">
       <div class="card kpi ${gap==null?'blu':gap>=-5?'grn':'hot'}"><span class="label">Progress · actual / planned</span><span class="v num">${pr?pr.actual.toFixed(0)+'% / '+pr.planned.toFixed(0)+'%':(+p.progress||0)+'%'}</span><span class="s">${pr?(gap>=0?'Ahead':'Behind')+' by '+Math.abs(gap).toFixed(0)+' points':'Add a programme to compare with plan'}</span></div>
-      <div class="card kpi blu"><span class="label">Revised contract sum</span><span class="v num">${F.revSum?tzsShort(F.revSum):'—'}</span><span class="s">${F.voVal?'incl. '+tzsShort(F.voVal)+' approved variations':'no approved variations'}</span></div>
+      ${money()?`<div class="card kpi blu"><span class="label">Revised contract sum</span><span class="v num">${F.revSum?tzsShort(F.revSum):'—'}</span><span class="s">${F.voVal?'incl. '+tzsShort(F.voVal)+' approved variations':'no approved variations'}</span></div>`:`<div class="card kpi blu"><span class="label">Variations & claims</span><span class="v num">${F.vos.length}</span><span class="s">${F.pending.length} waiting for approval</span></div>`}
       <div class="card kpi ${F.revEnd&&daysLeft(F.revEnd)<0&&!/complet|close/i.test(p.status||'')?'hot':'amb'}"><span class="label">Completion date</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(F.revEnd):'—'}</span><span class="s">${F.eot?F.eot+' days EOT granted':'original date'}${F.revEnd?' · '+(daysLeft(F.revEnd)>=0?Math.ceil(daysLeft(F.revEnd))+' days left':Math.ceil(-daysLeft(F.revEnd))+' days late'):''}</span></div>
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
@@ -1465,13 +1476,14 @@ function pageProject(){
   } else if(tab==='variations'){
     const vos=[...F.vos].sort((a,b)=>(a.ref||'').localeCompare(b.ref||''));
     body=`<div class="grid g4">
-      <div class="card kpi blu"><span class="label">Original contract sum</span><span class="v num">${p.contract_sum?tzsShort(p.contract_sum):'—'}</span><span class="s">from project details</span></div>
+${money()?`      <div class="card kpi blu"><span class="label">Original contract sum</span><span class="v num">${p.contract_sum?tzsShort(p.contract_sum):'—'}</span><span class="s">from project details</span></div>
       <div class="card kpi grn"><span class="label">Approved variations</span><span class="v num">${tzsShort(F.voVal)}</span><span class="s">${F.vos.filter(v=>v.status==='Approved').length} approved</span></div>
       <div class="card kpi amb"><span class="label">Pending (not yet approved)</span><span class="v num">${tzsShort(F.pending.reduce((a,v)=>a+(+v.value_claimed||0),0))}</span><span class="s">${F.pending.length} items – chase the consultant</span></div>
+`:''}
       <div class="card kpi blu"><span class="label">Extension of time</span><span class="v num">${F.eot} days</span><span class="s">${F.vos.reduce((a,v)=>a+(+v.days_claimed||0),0)} days claimed</span></div></div>
       <div class="toolbar"><span class="muted">Record every instruction the day it is given – unrecorded instructions are the most common cause of lost money on site.</span><div class="sp"></div><button class="btn pri" data-act="addVo">Record instruction / claim</button></div>
       <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Description</th><th>Status</th><th class="r">Claimed</th><th class="r">Approved</th><th class="hide-m">EOT days</th><th class="hide-m">Instructed</th></tr></thead><tbody>
-      ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
+      ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${money()&&v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${money()&&v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
       </tbody></table></div></div>`;
   } else if(tab==='risks'){
     const rs=S.risks.filter(r=>r.project_id===p.id).sort((a,b)=>(a.status==='Closed')-(b.status==='Closed')||(+b.likelihood*+b.impact)-(+a.likelihood*+a.impact));
@@ -1498,15 +1510,15 @@ function pageProject(){
 }
 async function aiProject(p){
   const F=projectFacts(p);
-  const data={project:p.name,client:p.client,status:p.status,contract_sum:p.contract_sum,start:p.start,completion:p.end,revised_completion:F.revEnd,eot_days:F.eot,
+  const data={project:p.name,client:p.client,status:p.status,contract_sum:money()?p.contract_sum:undefined,start:p.start,completion:p.end,revised_completion:F.revEnd,eot_days:F.eot,
     programme:F.prog&&{planned_pct:+F.prog.planned.toFixed(1),actual_pct:+F.prog.actual.toFixed(1)},
     activities:S.milestones.filter(m=>m.project_id===p.id).map(m=>({n:m.name,finish:m.planned_finish,progress:m.progress,weight:m.weight})),
-    variations:F.vos.map(v=>({ref:v.ref,d:v.description,status:v.status,claimed:v.value_claimed,approved:v.value_approved,instructed:v.date_instructed})),
+    variations:F.vos.map(v=>({ref:v.ref,d:v.description,status:v.status,claimed:money()?v.value_claimed:undefined,approved:money()?v.value_approved:undefined,instructed:v.date_instructed})),
     risks:F.risks.map(r=>({t:r.title,score:(+r.likelihood||0)*(+r.impact||0),action:r.mitigation,due:r.due})),
     certificates:S.certificates.filter(c=>c.project_id===p.id).map(c=>({no:c.no,status:c.status,amount:c.amount,state:certState(c).label})),
     recent_site_reports:S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,8).map(r=>({date:r.date,work:r.work_done,issues:r.issues,hse:r.hse,workers:r.workforce,weather:r.weather})),
     open_snags:F.openSn.length};
-  const r=await ai('proj',()=>sample(`You are a senior construction project manager in Tanzania reviewing a project for Nordic Construction's management. Today is ${new Date().toDateString()}.\nGive: first line "Status: RED/AMBER/GREEN – <one-sentence reason>"; then up to 4 short lines on time, cost/cash, quality/HSE and contract (variations/EOT); then "Top actions this week:" with 3 numbered actions, each naming who should act (PM, QS, site engineer, MD). Max 160 words, plain text. Use only this data; say what data is missing if it limits the review.\nDATA:${JSON.stringify(data)}`,{modelTier:'default'}));
+  const r=await ai('proj',()=>sample(`You are a senior construction project manager in Tanzania reviewing a project for Nordic Construction's management. Today is ${new Date().toDateString()}. All site staff read this review, so never write money amounts (no TZS figures, contract sums or certificate values) – describe payments only as on time, late or overdue.\nGive: first line "Status: RED/AMBER/GREEN – <one-sentence reason>"; then up to 4 short lines on time, cost/cash, quality/HSE and contract (variations/EOT); then "Top actions this week:" with 3 numbered actions, each naming who should act (PM, QS, site engineer, MD). Max 160 words, plain text. Use only this data; say what data is missing if it limits the review.\nDATA:${JSON.stringify(data)}`,{modelTier:'default'}));
   if(r){ await patch('projects',p.id,{ai_health:{text:r.text,at:new Date().toISOString()}}); logAct(`AI health review for ${p.name}`); }
 }
 
@@ -1543,7 +1555,7 @@ function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object
 let pendingView=false;
 function renderNav(){
   const alerts=nsUnread();
-  $('#nav').innerHTML=PAGES.map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}</button>`).join('');
+  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}</button>`).join('');
   $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span></button>`}).join('');
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
@@ -1570,7 +1582,7 @@ function renderDrawer(){
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?'<div style="flex:1"></div><button class="btn danger" data-act="delForm">Delete</button>':''}`); drawer.form=true; }
   else if(t==='ask'){ html=askDrawer(); }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
-  else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${PAGES.filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
+  else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
   o.innerHTML=html; document.body.style.overflow='hidden';
   restoreInputs(o,snap,true);
   if(t==='ask'){ const l=o.querySelector('.db'); if(l) l.scrollTop=l.scrollHeight; }
@@ -1581,7 +1593,7 @@ function go(k,arg=null){ route=k; routeArg=arg; closeDrawer(); $('#side').classL
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
 /* ===================== FORM DRAWERS ===================== */
-function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:opts.onDelete}); }
+function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:isAdmin?opts.onDelete:null}); }
 function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
@@ -1599,7 +1611,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
   if(el.dataset.editms){ recEdit('milestones',el.dataset.editms,'Programme activity',MS_FIELDS,'Programme'); return; }
-  if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',VO_FIELDS,'Variations & EOT'); return; }
+  if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFields(),'Variations & EOT'); return; }
   if(el.dataset.editrisk){ recEdit('risks',el.dataset.editrisk,'Risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),'Risks & issues'); return; }
   if(el.dataset.editsnag){ recEdit('snags',el.dataset.editsnag,'Snag',SNAG_FIELDS,'Snags & close-out'); return; }
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
@@ -1635,12 +1647,12 @@ document.addEventListener('click', async e=>{
     case 'aiTender': if(T) aiTender(T); break;
     case 'saveF02': if(T){ const f02={gates:GATES.map((_,i)=>$('#g'+i).value),scores:F02.map((_,i)=>{const v=$('#s'+i).value; return v===''?'':+v;})}; f02.gates=Object.fromEntries(f02.gates.map((g,i)=>[i,g])); const r=f02Result(f02); await patch('tenders',T.id,{f02,f02_result:r?.label||''}); logAct(`F-02 score saved for "${T.title}": ${r?.label}`); toast('Score saved: '+(r?.label||'')); drawer.form=false; renderDrawer(); } break;
     case 'applyAiScores': if(T?.ai?.scores){ T.ai.scores.forEach((s,i)=>{ const el=$('#s'+i); if(el) el.value=String(s); }); (T.ai.gates||[]).forEach((g,i)=>{ const el=$('#g'+i); if(el&&['Pass','Fail','TBC'].includes(g.status)) el.value=g.status; }); toast('AI suggestions filled in. Review each score, then save.'); } break;
-    case 'saveTender': if(T){ const v=readForm(TENDER_EDIT); if(!v) return; await patch('tenders',T.id,v); logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
+    case 'saveTender': if(T){ const v=readForm(tenderEdit()); if(!v) return; await patch('tenders',T.id,v); logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
     case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ await remove('tenders',T.id); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
     case 'copyAlert': if(T){ const txt=alertText(T); try{ await navigator.clipboard.writeText(txt); toast('Alert text copied. Paste it into WhatsApp, SMS or email.'); }catch(_){ toast('Copy is blocked here. Select the text shown instead.'); } } break;
     case 'tenderToBoq': if(T){ const id=await put('boqs',null,{title:'BoQ – '+T.title,tender_id:T.id,bills:[],vat:18,contingency:0,scope:T.scope||''}); if(id){ logAct(`Started BoQ for tender "${T.title}"`); go('qs',id); } } break;
-    case 'addProject': formDrawer('New project',PROJECT_FIELDS.map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
-    case 'editProject': { const p=byId('projects',drawer.id); formDrawer('Edit project',PROJECT_FIELDS.map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
+    case 'addProject': formDrawer('New project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
+    case 'editProject': { const p=byId('projects',drawer.id); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'delProject': { const p=byId('projects',drawer.id); if(await confirmBox(`Delete project ${p.name}? Its site reports stay but lose their project link.`,'Delete',true)){ await remove('projects',p.id); logAct(`Deleted project ${p.name}`); closeDrawer(); } } break;
     case 'newReport': openDrawer('report-form',null,{proj:el.dataset.proj||(UI.rproj!=='All'?UI.rproj:'')}); break;
     case 'editReport': openDrawer('report-form',drawer.id); break;
@@ -1678,11 +1690,11 @@ document.addEventListener('click', async e=>{
       logAct('Updated the email alert list for the cloud scanner');
       toast(copied?'Staff list copied. In GitHub: click in the Value box, press Ctrl+V, then “Update secret”.':'Copy the text shown, then paste it in GitHub and press “Update secret”.'); } break;
     case 'addMs': formDrawer('Add programme activity',MS_FIELDS,{progress:0},async v=>{ await put('milestones',null,{...v,project_id:routeArg}); logAct(`Programme activity added: ${v.name} – ${projName(routeArg)}`); },{sub:'Programme'}); break;
-    case 'addVo': formDrawer('Record instruction / claim',VO_FIELDS,{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
+    case 'addVo': formDrawer('Record instruction / claim',voFields(),{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
     case 'addRisk': formDrawer('Add risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),{kind:'Risk',status:'Open'},async v=>{ await put('risks',null,{...v,project_id:routeArg}); logAct(`Risk logged: ${v.title} – ${projName(routeArg)}`); },{sub:'Risks & issues'}); break;
     case 'addSnag': formDrawer('Add snag',SNAG_FIELDS,{status:'Open'},async v=>{ await put('snags',null,{...v,project_id:routeArg,found:today()}); },{sub:'Snags & close-out'}); break;
     case 'addPlant': formDrawer('Add plant or equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),{ownership:'Owned',status:'Working'},async v=>{ await put('plant',null,v); logAct(`Plant added: ${v.name}`); },{sub:'Plant & equipment'}); break;
-    case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',PROJECT_FIELDS.map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
+    case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual)}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
     case 'aiProject': aiProject(byId('projects',routeArg)); break;
     case 'delForm': if(drawer?.onDelete && await confirmBox('Delete this record? This cannot be undone.','Delete',true)){ await drawer.onDelete(); closeDrawer(); toast('Deleted.'); } break;
