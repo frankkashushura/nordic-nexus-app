@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=29"></script>
+<script src="config.js?v=30"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=29"></script>
+<script src="nexus-sb.js?v=30"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -427,7 +427,7 @@ const PAGES = [
 const TABS = ['home','tenders','projects','reports','more'];
 /* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
 const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
-const MONEY_PAGES=['certs','report'];
+const MONEY_PAGES=['certs','report','finance'];
 const navPages=()=>PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k));
 const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
 const PROJ_MONEY=['contract_sum','budget'], VO_MONEY=['value_claimed','value_approved'];
