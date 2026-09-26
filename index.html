@@ -507,6 +507,7 @@ function computeAlerts(){
   (S.certificates||[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
+  if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Your name (top right) → Manage logins → Approve or Reject', go:['route','settings'], sort:3});
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
   return A.sort((a,b)=>a.sort-b.sort);
@@ -1089,7 +1090,7 @@ function pageSettings(){
     <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'<p class="sub" style="margin-top:8px">Only administrators can change company details.</p>':''}</div></div>
   <div style="display:flex;flex-direction:column;gap:14px">
     <div class="card"><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
-      <li><b>Sign-in required.</b> Every person has their own NEXUS login, created by an administrator. There is no public sign-up.</li>
+      <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff request access from the sign-in page; an administrator approves each request and chooses the role before they see anything.</li>
       <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
       <li><b>Finance is sealed.</b> Ledger records are invisible to everyone except Finance users and administrators, enforced by the database, not just hidden on screen.</li>
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
