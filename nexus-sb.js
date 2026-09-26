@@ -273,7 +273,7 @@
           options: { data: { name: v('name'), position: v('position'), phone: v('phone') } } });
         b.disabled = false; b.textContent = 'Sign up';
         if (error) { er.textContent = /registered|exists/i.test(error.message) ? 'This email is already signed up. Sign in, or ask an administrator.' : /signups? not allowed|disabled/i.test(error.message) ? 'Self-registration is switched off. Ask an administrator.' : error.message; return; }
-        if (data.session) await sb.auth.signOut();
+        if (data.session) await sb.auth.signOut({ scope: 'local' });
         waitingScreen(v('name'));
       };
     });
@@ -282,7 +282,7 @@
     const f = screen(`<p><b>${name ? 'Thank you, ' + h(name.split(' ')[0]) + '.' : 'Sign-up received.'}</b></p>
       <p>Your sign-up has been sent to the administrators. You will be able to sign in with your email and password as soon as it is approved.</p>
       <button class="pri" type="button">Back to sign in</button>`);
-    f.querySelector('button').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    f.querySelector('button').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); };
   }
   function newPasswordScreen(first) {
     return new Promise(res => {
@@ -307,7 +307,7 @@
   }
   function blockedScreen(text) {
     const f = screen(`<p>${h(text)}</p><button class="pri" type="button">Sign out</button>`);
-    f.querySelector('button').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    f.querySelector('button').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); };
   }
 
   async function loadProfile() {
@@ -321,6 +321,9 @@
     // hide the app until signed in
     screen('<p>Connecting…</p>');
     let { data: { session: s } } = await sb.auth.getSession();
+    if (s) { // a login ended elsewhere (signed out, switched off) must not leave a half-working page
+      try { const { error: ge } = await sb.auth.getUser(); if (ge && [401, 403].includes(ge.status)) { await sb.auth.signOut({ scope: 'local' }); s = null; } } catch (_) {}
+    }
     if (!s) s = await loginScreen();
     session = s;
     try { await loadProfile(); } catch (e) { blockedScreen('Could not reach the NEXUS server. Check the internet connection and reload.'); throw e; }
@@ -354,7 +357,7 @@
         <button data-m="pw">Change my password</button><button data-m="out">Sign out</button>`;
       m.onclick = async ev => {
         const k = ev.target.closest('[data-m]')?.dataset.m; if (!k) return; m.remove();
-        if (k === 'out') { await sb.auth.signOut(); location.reload(); }
+        if (k === 'out') { await sb.auth.signOut({ scope: 'local' }); location.reload(); }
         if (k === 'pw') { if (await newPasswordScreen(false)) window.toast?.('Password changed.'); }
         if (k === 'users') openUsers();
       };

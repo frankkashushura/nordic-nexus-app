@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=26"></script>
+<script src="config.js?v=28"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=26"></script>
+<script src="nexus-sb.js?v=28"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -507,7 +507,7 @@ function computeAlerts(){
   (S.certificates||[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
-  if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Your name (top right) → Manage logins → Approve or Reject', go:['route','settings'], sort:3});
+  if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3});
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
   return A.sort((a,b)=>a.sort-b.sort);
@@ -1095,7 +1095,7 @@ function pageSettings(){
       <li><b>Finance is sealed.</b> Ledger records are invisible to everyone except Finance users and administrators, enforced by the database, not just hidden on screen.</li>
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
       <li><b>No passwords stored.</b> NeST and bank logins never go into NEXUS.</li></ul>
-      <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.</p></div></div>
+      <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.${isAdmin?' <button class="btn sm pri" data-go="logins" style="margin-left:6px">Manage logins</button>':''}</p></div></div>
     <div class="card"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:420px;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
     <div class="card"><div class="hd"><h2>Appearance</h2></div><div class="bd toolbar"><div class="seg">${['System','Light','Dark'].map(t=>`<button data-thm="${t}" aria-pressed="${(UI.theme||'System')===t}">${t}</button>`).join('')}</div></div></div>
   </div></div>`;
@@ -1593,7 +1593,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.nf){ if(el.dataset.nf==='markall') nsMarkRead(inbox().filter(a=>a.st!=='read').map(a=>a.key)); else { UI.nf=el.dataset.nf; renderAll(); } return; }
   if(el.dataset.nk) nsMarkRead([el.dataset.nk]);
   if(el.dataset.go==='alerts'&&route!=='alerts') nsOpened();
-  if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } go(el.dataset.go); return; }
+  if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } if(el.dataset.go==='logins'){ try{ closeDrawer(); }catch(_){} if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); return; } go(el.dataset.go); return; }
   if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else openDrawer(k,id); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
