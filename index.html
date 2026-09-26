@@ -507,7 +507,7 @@ function computeAlerts(){
   (S.certificates||[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
-  if(isAdmin && recipStale()) A.push({lvl:'warn', kind:'Email alerts', text:'Staff contacts changed – update the email alert list', sub:'Open Alerts & Notifications and press “Update alert list” (one paste in GitHub)', go:['route','alerts'], sort:4, at:S.staffChangedAt||''});
+  { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
   return A.sort((a,b)=>a.sort-b.sort);
 }
@@ -680,7 +680,7 @@ function scannerCard(last){
   const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
     <div class="bd small" style="display:flex;flex-direction:column;gap:6px">
-      <div>The Tender Scanner runs in the cloud on GitHub every 5–15 minutes, day and night – no office PC needed (NeST every 5 min, DDO and TANROADS every 15, World Bank every 30, other sites hourly). NEXUS copies new tenders and changed deadlines from it every hour, 06:35–22:35, so the times below can lag the scanner by up to an hour. Nobody needs to import.</div>
+      <div>The Tender Scanner runs in the cloud on GitHub every 5–15 minutes, day and night – no office PC needed (NeST every 5 min, DDO and TANROADS every 15, World Bank every 30, other sites hourly). NEXUS copies new tenders and changed deadlines from it every 10 minutes, 06:00–23:00, so the times below can lag the scanner by a few minutes. Nobody needs to import.</div>
       <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · ${sy.added} new, ${sy.updated} updated`:'—'}</dd></dl>
       ${src.length?`<div class="toolbar">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>`:''}
       <div class="muted">Manual import still works as a backup${last?' · last data change '+fmtDT(last):''}.</div>
@@ -841,20 +841,17 @@ function pageAlerts(){
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card"><div class="hd"><h2>Delivery channels</h2></div><div class="list">
         ${chan('app','In-app alerts','Bell icon and this page, for everyone signed in, updated the moment data changes','Live')}
-        ${chan('email','Email','One digest per person: new tenders and 7 / 3 / 1-day deadline reminders, from a mailbox on mail.nordictz.co.tz','Ready – needs mailbox')}
+        ${chan('email','Email','Sent by NEXUS itself (Gmail) to everyone on the Staff page with Email alerts = Yes: new Pursue/Check tenders and 7 / 3 / 1-day deadline reminders, each once','Live')}
         ${chan('sms','SMS','Short digest by Beem Africa, sender name NORDIC once approved','Ready – needs Beem account')}
         ${chan('wa','WhatsApp','WhatsApp Business Cloud API with the approved "tender_alert" template','Ready – needs Meta account')}
       </div></div>
-      <div class="card"><div class="hd"><h2>Switching them on</h2></div><div class="bd small"><ol class="clean" style="padding-left:18px">
-        <li><b>Staff page:</b> fill every person's email and mobile, and choose Email / SMS / WhatsApp and which tender alerts they want. Then press <b>Update alert list</b> below (NEXUS reminds administrators whenever contacts change).</li>
-        <li><b>Email:</b> create a mailbox such as <b>tenders@nordictz.co.tz</b> in the website hosting control panel, then on the office PC run <b>3 - Save alert keys</b> → option 1.</li>
-        <li><b>SMS:</b> open a Beem Africa account, buy SMS credit, apply for sender name NORDIC, copy the API key and secret → option 2.</li>
-        <li><b>WhatsApp:</b> create a Meta Business account, add a WhatsApp number not used on a phone, get the template <b>tender_alert</b> approved → option 3.</li>
-        <li>Option 4 sends a test to everyone; option 5 switches alerts on.</li></ol>
-        <p class="muted" style="margin-top:8px">Passwords and keys stay in Windows Credential Manager on the office PC, or in GitHub Secrets for the cloud scanner – never in NEXUS.</p>
-        <div class="toolbar" style="margin-top:10px">${recipStale()?'<span class="chip amb">Staff contacts changed</span> ':'<span class="chip good">Alert list up to date</span> '}<button class="btn ${recipStale()?'pri':''}" data-act="copyRecipients">Update alert list</button></div>
-        <textarea class="inp mono" id="recipOut" readonly hidden style="margin-top:8px;min-height:90px;font-size:11px"></textarea>
-        <p class="sub" style="margin-top:6px">NEXUS watches the Staff page. When anyone adds or changes an email, administrators get a notification; <b>Update alert list</b> copies the list and opens GitHub – press <b>Ctrl+V</b> in the Value box and <b>Update secret</b>. Emails stay private (never stored in the public repository).</p></div></div>
+      <div class="card"><div class="hd"><h2>Email alerts – automatic</h2><span class="chip good">No copy / paste</span></div><div class="bd small"><ul class="clean">
+        <li><b>Who:</b> everyone on the <b>Staff</b> page with an email, <b>Email alerts = Yes</b> and alert type <b>All tender alerts</b> or <b>Deadlines only</b>. Changes count from the next check.</li>
+        <li><b>What:</b> new Pursue / Check tenders, and reminders 7, 3 and 1 day(s) before closing. Each item is sent once, one email per person.</li>
+        <li><b>When:</b> NEXUS checks every 10 minutes, 06:00–23:00. The cloud scanner feeds it new tenders every 5–15 minutes.</li>
+        <li><b>Stop someone:</b> set Email alerts = No, alert type None, or status Left.</li></ul>
+        ${(()=>{ const em=S.sync&&S.sync.email||{}; const last=S.sync&&S.sync.last_sync; const line=em.configured===false?'<span class="chip bad">Gmail password missing</span>':(em.sent||[]).length?`<span class="chip good">Last emails: ${em.sent.length} sent</span>`:'<span class="chip good">Ready</span>'; return `<div class="toolbar" style="margin-top:10px">${line}<span class="sub">Last check ${last?esc(fmtDT(last)):'—'} · ${recipList().filter(x=>x.email&&x.n_email!=='No'&&x.alert_types!=='None').length} people on the list</span>${isAdmin?'<div class="sp"></div><button class="btn sm" data-act="testEmail">Send test email</button>':''}</div>${(em.failed||[]).length?`<p class="sub" style="color:var(--bad)">Not delivered: ${esc(em.failed.join('; '))}</p>`:''}`; })()}
+        <p class="muted" style="margin-top:8px">SMS and WhatsApp can be added later (Beem Africa / Meta WhatsApp Business). Passwords and keys stay in Supabase and GitHub secrets – never in NEXUS pages.</p></div></div>
     </div>
   </div>
   <div class="card"><div class="hd"><h2>Who gets what</h2><div class="sp"></div><button class="btn sm" data-go="staff">Edit on Staff page</button></div><div class="tbl-wrap"><table>
@@ -1028,7 +1025,7 @@ function pageFinance(){
     <div class="card kpi grn"><span class="label">Income this month</span><span class="v num">${tzsShort(inc)}</span><span class="s">${mr.filter(f=>f.type==='Income').length} receipts</span></div>
     <div class="card kpi hot"><span class="label">Spending this month</span><span class="v num">${tzsShort(exp)}</span><span class="s">${mr.filter(f=>f.type==='Expense').length} payments</span></div>
     <div class="card kpi ${inc-exp>=0?'grn':'hot'}"><span class="label">Net</span><span class="v num">${tzsShort(inc-exp)}</span><span class="s">${m}</span></div>
-    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${S.finance.length}</span><span class="s">${S.finance.filter(f=>f.example).length} examples</span></div></div>
+    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${S.finance.length}</span><span class="s">${S.finance.filter(f=>f.example).length?S.finance.filter(f=>f.example).length+' examples':'in the ledger'}</span></div></div>
   ${S.finance.some(f=>f.example)?`<div class="banner warn"><div><b>Example records are showing.</b> They illustrate the ledger and the AI risk check. Remove them before entering real figures.</div><button class="btn sm" data-act="clearFinEx">Remove examples</button></div>`:''}
   <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn pri sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Run check</button></div><div class="bd">
     ${risk?`<div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
@@ -1106,9 +1103,9 @@ function pageSettings(){
 /* ===================== ABOUT ===================== */
 function pageAbout(){
   const c=company();
-  const ph=[['1','Now','Working system (this release)','Tender Radar with AI bid advice and F-02 scoring, cloud Tender Scanner (GitHub) checking every 5–15 minutes, with email, SMS and WhatsApp alerts and a document folder per tender, Projects, Site Reports with photos, QS Studio with AI BoQ drafting and Excel export, Procurement approvals, Finance ledger with AI risk check, Staff, Tasks, Compliance, live alerts. Installs on Android, iPhone and Windows from the browser.'],
-    ['2','Next','Automation server','Cloud server (a Tanzanian or EU VPS) so scanning and alerts no longer depend on one office PC, writing straight into NEXUS without importing the workbook; nightly encrypted backups; a company domain such as nexus.nordictz.co.tz.'],
-    ['3','Then','Store apps','Google Play and Apple App Store apps and a signed Windows installer built from the same code. Needs the phase 2 server, a Google Play developer account and an Apple Developer Program membership. Adds offline site reports that send when signal returns, GPS-stamped photos and push notifications.'],
+  const ph=[['1','Now','Working system (this release)','Own server and database (Supabase) with personal logins and roles, Tender Radar with AI bid advice (Groq) and F-02 scoring, cloud Tender Scanner (GitHub) checking every 5–15 minutes, automatic email alerts straight from the Staff page, a document folder per tender, Projects, Site Reports with photos, QS Studio with AI BoQ drafting and Excel export, Procurement approvals, Finance ledger with AI risk check, Staff, Tasks, Compliance, live alerts. Installs on Android, iPhone and Windows from the browser.'],
+    ['2','Next','Installers and domain','Windows setup and Android app (APK) that open NEXUS like a normal program; a company address such as nexus.nordictz.co.tz; nightly backups of the database to the office.'],
+    ['3','Then','Store apps','Google Play and Apple App Store listings and a signed Windows installer built from the same code. Needs a Google Play developer account and an Apple Developer Program membership. Adds offline site reports that send when signal returns, GPS-stamped photos and push notifications.'],
     ['4','Later','Deeper integration','Payment certificates and valuations, stock and plant tracking, payroll link, TRA EFD receipts, bank statement import, dashboards for clients and consultants.']];
   return `<section class="blueprint"><div class="toolbar"><img alt="Nordic Construction logo" src="${LOGO}" style="height:44px"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
     <p class="muted">Built for ${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</p></section>
@@ -1116,7 +1113,7 @@ function pageAbout(){
     <div><div class="label">Android · Chrome</div><p>Open the NEXUS link, tap <b>⋮</b> → <b>Add to Home screen</b> → <b>Install</b>. NEXUS gets its own icon.</p></div>
     <div><div class="label">iPhone · Safari</div><p>Open the link, tap <b>Share</b> → <b>Add to Home Screen</b> → <b>Add</b>.</p></div>
     <div><div class="label">Windows · Edge</div><p>Open the link, click <b>⋯</b> → <b>Apps</b> → <b>Install this site as an app</b>. It opens from the Start menu and taskbar like a program.</p></div>
-  </div><div class="bd small muted" style="padding-top:0">Staff sign in with their claude.ai account the first time. Store versions (Google Play, App Store, Windows installer) are phase 3 below.</div></div>
+  </div><div class="bd small muted" style="padding-top:0">Each person signs in with their own NEXUS login, created by an administrator (your name at the top right → Manage logins). A Windows setup and an Android app are phase 2 below.</div></div>
   <div class="grid g2">
     <div class="card"><div class="hd"><h2>Roadmap</h2></div><div class="bd">${ph.map(([n,w,t,d])=>`<div class="phase"><div><div class="n">${n}</div><div class="label">${w}</div></div><div><h3>${t}</h3><p class="small muted" style="margin-top:4px">${d}</p></div></div>`).join('')}</div></div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -1126,7 +1123,7 @@ function pageAbout(){
       <div class="card"><div class="hd"><h2>Company</h2></div><div class="bd small"><dl class="kv">
         <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd class="mono">${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
         <dt>Vision</dt><dd>${esc(c.vision)}</dd><dt>Core values</dt><dd>${esc(c.values)}</dd></dl></div></div>
-      <div class="card"><div class="hd"><h2>How the scanner connects</h2></div><div class="bd small muted">The cloud Tender Scanner (GitHub Actions) runs every 5–15 minutes and checks 11 sources – NeST every 5 minutes, DDO and TANROADS every 15, World Bank every 30 and the rest hourly: NeST (every Mainland public entity, including TANESCO, TAA and NHC), World Bank, AfDB (Tanzania), DDO Tenders (newspaper, private, donor and NGO tenders), TANROADS, TARURA, TPA, RUWASA, Bank of Tanzania, TEITI and CRDB. ZPPDA Zanzibar and NMB are switched off until their sites can be read, updates the Pipeline workbook, creates a folder per new Pursue/Check tender and sends the alerts. Every hour from 06:35 to 22:35 an automatic sync copies new tenders and changed deadlines from that workbook into NEXUS, keeping all edits made in NEXUS.</div></div>
+      <div class="card"><div class="hd"><h2>How the scanner connects</h2></div><div class="bd small muted">The cloud Tender Scanner (GitHub Actions) runs every 5–15 minutes and checks 11 sources – NeST every 5 minutes, DDO and TANROADS every 15, World Bank every 30 and the rest hourly: NeST (every Mainland public entity, including TANESCO, TAA and NHC), World Bank, AfDB (Tanzania), DDO Tenders (newspaper, private, donor and NGO tenders), TANROADS, TARURA, TPA, RUWASA, Bank of Tanzania, TEITI and CRDB. ZPPDA Zanzibar and NMB are switched off until their sites can be read, updates the Pipeline workbook, creates a folder per new Pursue/Check tender and sends the alerts. Every 10 minutes from 06:00 to 23:00 NEXUS copies new tenders and changed deadlines from the scanner, keeping all edits made in NEXUS, writes AI bid advice and sends the email alerts.</div></div>
     </div></div>`;
 }
 
@@ -1673,6 +1670,7 @@ document.addEventListener('click', async e=>{
     case 'saveOutcome': if(T){ const v=readForm(OUTCOME_FIELDS.map(f=>({...f,k:'o_'+f.k}))); if(!v) return; const up={}; OUTCOME_FIELDS.forEach(f=>{ up[f.k]=v['o_'+f.k]; }); await patch('tenders',T.id,up); logAct(`Recorded bid result for "${T.title}"`); toast('Result saved.'); } break;
     case 'addCert': formDrawer('New payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),{status:'Submitted',submitted:today(),terms:28},async v=>{ await put('certificates',null,v); logAct(`Recorded ${v.no} for ${projName(v.project_id)} – ${tzs(v.amount)}`); },{sub:'Payment certificates',saveLabel:'Save certificate'}); break;
     case 'aiWeekly': aiWeekly(); break;
+    case 'testEmail': { if(!window.NX_SB){ toast('Available in the standalone NEXUS only.'); break; } toast('Sending test email…'); try{ const tok=(await NX_SB.auth.getSession()).data.session?.access_token; const r=await fetch(NEXUS_CONFIG.url+'/functions/v1/tender-sync?test=1',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:'{}'}); const j=await r.json(); if(!r.ok) toast(j.message||j.error||'Test failed'); else if(j.configured===false) toast('Gmail password missing in Supabase secrets.'); else toast(`Test sent to ${j.sent.length} of ${j.recipients.length}${j.failed.length?' – '+j.failed.length+' failed':''}.`); logAct('Sent a test email alert'); }catch(e){ toast('Test failed: '+e.message); } } break;
     case 'copyRecipients': { const txt=JSON.stringify(recipList()); const ta=$('#recipOut'); let copied=false; try{ await navigator.clipboard.writeText(txt); copied=true; }catch(_){ if(ta){ ta.value=txt; ta.hidden=false; ta.focus(); ta.select(); } }
       try{ window.open(GH_RECIP_URL,'_blank','noopener'); }catch(_){}
       try{ await db.doc('system/recipients').set({hash:recipHash(),count:recipList().filter(x=>x.email).length,at:new Date().toISOString(),by:me.name||''}); }catch(e){ console.warn(e); }
