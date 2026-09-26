@@ -233,7 +233,7 @@
         <div class="err" role="alert">${h(msg || '')}</div>
         <button class="pri" type="submit">Sign in</button>
         <button class="lnk" type="button" data-forgot>Forgot password?</button>
-        <p style="border-top:1px solid #D4DAE3;padding-top:10px;margin-top:4px">New to NEXUS? <button class="lnk" type="button" data-register>Request access</button></p>`);
+        <p style="border-top:1px solid #D4DAE3;padding-top:10px;margin-top:4px">New to NEXUS? <button class="lnk" type="button" data-register>Sign up</button></p>`);
       f.email.focus();
       f.querySelector('[data-register]').onclick = () => registerScreen().then(res);
       f.querySelector('[data-forgot]').onclick = () => { f.querySelector('.err').textContent = 'Ask a NEXUS administrator to set a new temporary password for you.'; };
@@ -249,7 +249,7 @@
   }
   function registerScreen() {
     return new Promise(res => {
-      const f = screen(`<p><b>Request access.</b> Fill in your details and choose a password. An administrator approves your request before you can open NEXUS.</p>
+      const f = screen(`<p><b>Sign up.</b> Fill in your details and choose a password. An administrator approves your sign-up before you can open NEXUS.</p>
         <label>Full name<input name="name" required autocomplete="name"></label>
         <label>Work email<input name="email" type="email" required autocomplete="email"></label>
         <label>Position<input name="position" placeholder="e.g. Site Engineer, QS, Storekeeper"></label>
@@ -257,7 +257,7 @@
         <label>Choose a password (10+)<input name="p1" type="password" autocomplete="new-password" required minlength="10"></label>
         <label>Repeat password<input name="p2" type="password" autocomplete="new-password" required></label>
         <div class="err" role="alert"></div>
-        <button class="pri" type="submit">Send request</button>
+        <button class="pri" type="submit">Sign up</button>
         <button class="lnk" type="button" data-back>Back to sign in</button>`);
       f.elements.namedItem('name').focus();
       f.querySelector('[data-back]').onclick = () => loginScreen().then(res);
@@ -271,16 +271,16 @@
         const b = f.querySelector('button.pri'); b.disabled = true; b.textContent = 'Sending…';
         const { data, error } = await sb.auth.signUp({ email: v('email').toLowerCase(), password: f.p1.value,
           options: { data: { name: v('name'), position: v('position'), phone: v('phone') } } });
-        b.disabled = false; b.textContent = 'Send request';
-        if (error) { er.textContent = /registered|exists/i.test(error.message) ? 'This email already has a login or a request. Sign in, or ask an administrator.' : /signups? not allowed|disabled/i.test(error.message) ? 'Self-registration is switched off. Ask an administrator.' : error.message; return; }
+        b.disabled = false; b.textContent = 'Sign up';
+        if (error) { er.textContent = /registered|exists/i.test(error.message) ? 'This email is already signed up. Sign in, or ask an administrator.' : /signups? not allowed|disabled/i.test(error.message) ? 'Self-registration is switched off. Ask an administrator.' : error.message; return; }
         if (data.session) await sb.auth.signOut();
         waitingScreen(v('name'));
       };
     });
   }
   function waitingScreen(name) {
-    const f = screen(`<p><b>${name ? 'Thank you, ' + h(name.split(' ')[0]) + '.' : 'Request received.'}</b></p>
-      <p>Your request to use NEXUS has been sent to the administrators. You will be able to sign in with your email and password as soon as it is approved.</p>
+    const f = screen(`<p><b>${name ? 'Thank you, ' + h(name.split(' ')[0]) + '.' : 'Sign-up received.'}</b></p>
+      <p>Your sign-up has been sent to the administrators. You will be able to sign in with your email and password as soon as it is approved.</p>
       <button class="pri" type="button">Back to sign in</button>`);
     f.querySelector('button').onclick = async () => { await sb.auth.signOut(); location.reload(); };
   }
@@ -387,7 +387,7 @@
             <td><select data-aprole="${h(u.user_id)}" aria-label="Role">${Object.keys(ROLE_TXT).map(k => `<option value="${k}"${k === 'staff' ? ' selected' : ''}>${ROLE_TXT[k]}</option>`).join('')}</select></td>
             <td style="white-space:nowrap"><button class="btn sm pri" data-approve="${h(u.user_id)}">Approve</button> <button class="btn sm danger" data-reject="${h(u.user_id)}">Reject</button></td></tr>`).join('')}
           </tbody></table></div></div>` : ''; })()}
-        <p class="small muted">Only administrators see this. Staff can request access themselves from the sign-in page (Request access); you approve them above. You can also add a login directly below with a temporary password – give it in person or by phone, not by email.</p>
+        <p class="small muted">Only administrators see this. Staff can sign up themselves from the sign-in page (Sign up); you approve them above. You can also add a login directly below with a temporary password – give it in person or by phone, not by email.</p>
         <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last sign-in</th><th></th></tr></thead><tbody>
         ${users.filter(u => !u.pending).map(u => `<tr style="${u.active ? '' : 'opacity:.55'}"><td>${h(u.name || '')}</td><td>${h(u.email || '')}</td><td>${roleSel(u.user_id, u.role)}</td>
           <td class="small">${u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</td>
@@ -409,7 +409,7 @@
       });
       box.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
         if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Click again to reject'; return; }
-        try { await adminCall({ action: 'reject', id: b.dataset.reject }); await render(); say('Request rejected and removed.'); window.NX_PENDING = Math.max(0, (window.NX_PENDING || 1) - 1); window.renderAll?.(); } catch (e) { say(e.message); }
+        try { await adminCall({ action: 'reject', id: b.dataset.reject }); await render(); say('Sign-up rejected and removed.'); window.NX_PENDING = Math.max(0, (window.NX_PENDING || 1) - 1); window.renderAll?.(); } catch (e) { say(e.message); }
       });
       box.querySelectorAll('[data-role]').forEach(s => s.onchange = async () => {
         try { await adminCall({ action: 'set_role', id: s.dataset.role, role: s.value }); say('Role updated.'); } catch (e) { say(e.message); render(); }

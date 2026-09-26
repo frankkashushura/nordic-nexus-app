@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js"></script>
+<script src="config.js?v=26"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js"></script>
+<script src="nexus-sb.js?v=26"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1090,7 +1090,7 @@ function pageSettings(){
     <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'<p class="sub" style="margin-top:8px">Only administrators can change company details.</p>':''}</div></div>
   <div style="display:flex;flex-direction:column;gap:14px">
     <div class="card"><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
-      <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff request access from the sign-in page; an administrator approves each request and chooses the role before they see anything.</li>
+      <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff sign up from the sign-in page; an administrator approves each sign-up and chooses the role before they see anything.</li>
       <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
       <li><b>Finance is sealed.</b> Ledger records are invisible to everyone except Finance users and administrators, enforced by the database, not just hidden on screen.</li>
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
