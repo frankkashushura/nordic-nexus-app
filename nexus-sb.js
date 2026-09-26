@@ -160,7 +160,7 @@
 
   /* ---------------- AI (Gemini through the "ai" server function) ---------------- */
   async function callAI(payload) {
-    const { data, error } = await sb.functions.invoke('ai', { body: payload });
+    const { data, error } = await sb.functions.invoke('ai', { body: { ...payload, kind: window.NX_AI_KIND || '' } });
     if (error) {
       let body = null; try { body = await error.context?.json(); } catch (_) {}
       const e = new Error(body?.message || body?.error || error.message);

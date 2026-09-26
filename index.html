@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=30"></script>
+<script src="config.js?v=31"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=30"></script>
+<script src="nexus-sb.js?v=31"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -566,7 +566,8 @@ Facts: ${c.facts}.
 Current projects: ${S.projects.map(p=>`${p.name} (${p.client||'client ?'}, ${p.location||''}, ${p.status||''})`).join('; ')||'none recorded'}.`;
 }
 async function ai(kind, fn){
-  if(kind==='fin'){ toast('Finance AI is switched off in this version of NEXUS.'); return null; }
+  if(kind==='fin' && !(isAdmin||isFin)){ toast('The risk & loss check is for administrators and Finance users.'); return null; }
+  window.NX_AI_KIND=kind;
   if(!sample){ toast('AI is not available in this view.'); return null; }
   UI.busy[kind]=true; renderAll();
   try{ return await fn(); }
