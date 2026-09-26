@@ -492,12 +492,13 @@ function photoTag(ref, cls=''){
 
 /* ---------- alerts engine (computed live, no manual work) ---------- */
 function openTenders(){ return S.tenders.filter(t => { const d=daysLeft(t.deadline); return d!=null && d>0 && !/closed|cancel|won|lost|submitted/i.test(t.status||''); }); }
+const firstSeen=t=>t.found_at||t.date_found||t.imported_at||'';
 function computeAlerts(){
   const A=[];
   openTenders().forEach(t=>{
     const d=daysLeft(t.deadline);
     if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)});
-    const f=daysLeft(t.date_found); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:t.imported_at||t.date_found});
+    const f=daysLeft(t.date_found); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   S.compliance.forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
@@ -817,8 +818,8 @@ async function importXlsx(file){
       const o={}; hdr.forEach((h,i)=>{ const k=XMAP[h]; let v=r[i]; if(!k||v==null||v==='') return; if(v instanceof Date){ v=new Date(Math.round(v.getTime()/60000)*60000).toISOString(); } if(typeof v==='string'&&v.startsWith('=')) return; o[k]=v; });
       if(!o.no && !o.title) continue;
       const id=tenderId(o), ex=byId('tenders',id);
-      if(ex){ const up={}; for(const [k,v] of Object.entries(o)){ if(k==='deadline'||ex[k]==null||ex[k]==='') up[k]=v; } if(Object.keys(up).length){ await patch('tenders',id,{...up,imported_at:now}); updated++; } }
-      else { await put('tenders',id,{...o,imported_at:now,status:o.status||'Watching'}); added++; }
+      if(ex){ const up={}; for(const [k,v] of Object.entries(o)){ if(k==='deadline'||ex[k]==null||ex[k]==='') up[k]=v; } if(Object.keys(up).length){ await patch('tenders',id,{...up,source_updated_at:now}); updated++; } }
+      else { await put('tenders',id,{...o,imported_at:now,found_at:now,status:o.status||'Watching'}); added++; }
     }
     toast(`Import finished: ${added} new, ${updated} updated.`); logAct(`Imported pipeline workbook: ${added} new, ${updated} updated tenders`);
   }catch(e){ toast('Import failed: '+e.message); }
@@ -1162,7 +1163,7 @@ const WORK = [
 function pageHome(){
   const c=company(), open=openTenders();
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
-  const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(b.imported_at||b.date_found)||0)-(Date.parse(a.imported_at||a.date_found)||0));
+  const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(firstSeen(b))||0)-(Date.parse(firstSeen(a))||0));
   return `
   <section class="home-hero">
     <div class="hh-photo" role="img" aria-label="NHC Clock Tower building, built by Nordic Construction"></div>
