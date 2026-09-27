@@ -1,0 +1,20 @@
+# NEXUS page backgrounds - name  unsplash-photo-id  (free Unsplash licence; edit this list to change a photo)
+dash      photo-1599707254554-027aeb4deacd  Frames For Your Heart
+alerts    photo-1541888946425-d81bb19240f5  Scott Blake
+report    photo-1712711649566-16c7cfcf341c  Ray Donnelly
+tenders   photo-1603901622056-0a5bee231395  Lucas Kepner
+qs        photo-1503387762-592deb58ef4e     Daniel McCullough
+projects  photo-1569169513673-2cecbfc943a9  Heye Jensen
+project   photo-1636362556682-11231883c01c  Paul Becker
+pm        photo-1485083269755-a7b559a4fe5e  EJ Yao
+reports   photo-1504307651254-35680f356dfd  Etienne Girardet
+certs     photo-1640101086894-7d70c3e70179  Fons Heijnsbroek
+procure   photo-1582540730843-f4418d96ccbe  Ricardo Gomez Angel
+plant     photo-1622082679766-c5912d9416eb  Abdul Zreika
+tasks     photo-1531834685032-c34bf0d84c77  Josue Isai Ramos Figueroa
+meetings  photo-1778074762022-c33cc42f79ae  alan boyce
+finance   photo-1694521787162-5373b598945c  Glenov Brankovic
+staff     photo-1626885930974-4b69aa21bbf9  Joe Holland
+docs      photo-1646608220368-c604d8e8130f  Etienne Girardet
+settings  photo-1649587345666-0f4ad68aa723  david Griffiths
+about     photo-1706752095478-4d759dc68846  Tom Shamberger
