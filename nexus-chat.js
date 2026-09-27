@@ -100,9 +100,10 @@
   /* ---------- sending ---------- */
   async function sendText(txt) {
     const tid = st.cur; if (!tid || !txt.trim()) return;
-    const tmp = { id: 'tmp' + uuid(), tmp: true, thread_id: tid, sender: st.me, kind: 'text', body: txt.trim(), created_at: new Date().toISOString() };
+    const rt = st.reply || null; if (st.reply) { st.reply = null; renderComposer(); }
+    const tmp = { id: 'tmp' + uuid(), tmp: true, thread_id: tid, sender: st.me, kind: 'text', body: txt.trim(), reply_to: rt, created_at: new Date().toISOString() };
     (st.msgs[tid] = st.msgs[tid] || []).push(tmp); renderMsgs(true);
-    const { data, error } = await sb.from('chat_messages').insert({ thread_id: tid, kind: 'text', body: txt.trim() }).select().single();
+    const { data, error } = await sb.from('chat_messages').insert({ thread_id: tid, kind: 'text', body: txt.trim(), reply_to: rt }).select().single();
     const list = st.msgs[tid]; const i = list.findIndex(x => x.id === tmp.id);
     if (error) { if (i >= 0) list[i] = { ...tmp, failed: true }; say('Message not sent – check your connection.'); }
     else if (i >= 0) { if (list.some(x => x.id === data.id)) list.splice(i, 1); else list[i] = data; }
@@ -140,6 +141,129 @@
     if (!ok) return;
     const { error } = await sb.from('chat_messages').update({ deleted: true }).eq('id', id);
     if (error) say('Could not delete: ' + error.message);
+  }
+
+  /* ---------- WhatsApp-style message actions ---------- */
+  const vis = m => !(m.hidden_for || []).includes(st.me);
+  const findMsg = id => (st.msgs[st.cur] || []).find(x => x.id === id);
+  const canEdit = m => m.sender === st.me && m.kind === 'text' && !m.deleted && !m.tmp && Date.now() - Date.parse(m.created_at) < 15 * 60e3;
+  const canDelAll = m => m.sender === st.me && !m.deleted && !m.tmp && Date.now() - Date.parse(m.created_at) < 48 * 3600e3;
+  const EMO = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  function closeMenu() { document.querySelectorAll('.nxc-back-drop').forEach(x => x.remove()); }
+  function sheet(html, anchor) {
+    closeMenu();
+    const bd = document.createElement('div'); bd.className = 'nxc-back-drop'; bd.innerHTML = `<div class="nxc-menu">${html}</div>`;
+    bd.addEventListener('click', e => { if (e.target === bd) closeMenu(); });
+    st.root.append(bd); const m = bd.firstChild;
+    if (anchor && !mobile() && anchor.getBoundingClientRect().width) { const r = anchor.getBoundingClientRect(), W = m.offsetWidth, H = m.offsetHeight;
+      m.style.position = 'fixed'; m.style.left = Math.max(8, Math.min(window.innerWidth - W - 8, r.right - W)) + 'px'; m.style.top = Math.max(8, Math.min(window.innerHeight - H - 8, r.bottom + 4)) + 'px'; }
+    return m;
+  }
+  function openMenu(id, anchor) {
+    const m = findMsg(id); if (!m || m.tmp) return;
+    const mine = (m.reactions || {})[st.me];
+    const items = [];
+    if (!m.deleted) items.push(['reply', '↩️', 'Reply']);
+    if (!m.deleted && m.kind === 'text' && m.body) items.push(['copy', '📋', 'Copy']);
+    if (!m.deleted && !m.uploading) items.push(['forward', '↪️', 'Forward']);
+    if (canEdit(m)) items.push(['edit', '✏️', 'Edit']);
+    items.push(['delask', '🗑️', 'Delete']);
+    sheet(`${m.deleted ? '' : `<div class="nxc-emo">${EMO.map(e => `<button data-c="react" data-v="${m.id}" data-e="${e}" class="${mine === e ? 'on' : ''}">${e}</button>`).join('')}</div>`}
+      ${items.map(([a, i, t]) => `<button class="nxc-mi ${a === 'delask' ? 'bad' : ''}" data-c="${a}" data-v="${m.id}"><span>${i}</span>${t}</button>`).join('')}`, anchor);
+  }
+  function askDelete(id) {
+    const m = findMsg(id); if (!m) return;
+    sheet(`<div class="nxc-mh">Delete message?</div>
+      ${canDelAll(m) ? `<button class="nxc-mi bad" data-c="delall" data-v="${m.id}"><span>🗑️</span>Delete for everyone</button>` : ''}
+      <button class="nxc-mi bad" data-c="delme" data-v="${m.id}"><span>🙈</span>Delete for me</button>
+      <button class="nxc-mi" data-c="menuclose"><span>✕</span>Cancel</button>
+      ${m.sender === st.me && !m.deleted && !canDelAll(m) ? '<div class="nxc-mh" style="font-weight:400">Older than 48 hours – it can only be deleted for you.</div>' : ''}`);
+  }
+  async function delMe(id) {
+    const m = findMsg(id); if (!m) return; closeMenu();
+    const h = [...new Set([...(m.hidden_for || []), st.me])];
+    const { error } = await sb.from('chat_messages').update({ hidden_for: h }).eq('id', id);
+    if (error) return say('Could not delete: ' + error.message);
+    m.hidden_for = h; renderMsgs(false);
+  }
+  async function delAll(id) {
+    closeMenu(); const { error } = await sb.from('chat_messages').update({ deleted: true }).eq('id', id);
+    if (error) return say('Could not delete: ' + error.message);
+    const m = findMsg(id); if (m) { m.deleted = true; m.body = null; m.file_path = null; renderMsgs(false); }
+  }
+  async function react(id, e) {
+    const m = findMsg(id); if (!m) return; closeMenu();
+    const r = { ...(m.reactions || {}) }; if (r[st.me] === e) delete r[st.me]; else r[st.me] = e;
+    const { error } = await sb.from('chat_messages').update({ reactions: r }).eq('id', id);
+    if (error) return say('Could not react: ' + error.message);
+    m.reactions = r; renderMsgs(false);
+  }
+  function startCtx(kind, id) {
+    const m = findMsg(id); if (!m) return; closeMenu();
+    st.reply = kind === 'reply' ? id : null; st.edit = kind === 'edit' ? id : null;
+    renderComposer(); const t = st.root.querySelector('#nxcText');
+    if (kind === 'edit') { t.value = m.body || ''; t.dispatchEvent(new Event('input', { bubbles: true })); }
+    t.focus();
+  }
+  async function saveEdit(id, txt) {
+    const m = findMsg(id); st.edit = null; renderComposer();
+    if (!m || txt.trim() === (m.body || '').trim()) return;
+    const { data, error } = await sb.from('chat_messages').update({ body: txt.trim() }).eq('id', id).select().single();
+    if (error) return say(error.message);
+    Object.assign(m, data); renderMsgs(false);
+  }
+  function snippet(m) { return !m ? 'Original message' : m.deleted ? '🚫 This message was deleted' : m.kind === 'text' ? String(m.body || '').slice(0, 90) : preview(m); }
+  function ctxBar() {
+    const id = st.reply || st.edit; if (!id) return ''; const m = findMsg(id);
+    return `<div class="nxc-ctx"><div class="q"><b>${st.edit ? '✏️ Edit message' : esc(m && m.sender === st.me ? 'You' : pName(m && m.sender))}</b><span>${esc(snippet(m))}</span></div><button class="nxc-ib" data-c="ctxclose" title="Cancel">✕</button></div>`;
+  }
+  function forwardPick(id) {
+    const m = findMsg(id); if (!m) return; st.fwd = { id, to: new Set() };
+    const ppl = [...st.people.values()];
+    sheet(`<div class="nxc-mh">Forward message to… <span class="nxc-sub">(up to 5)</span></div>
+      <div class="nxc-fl">${ppl.map(p => `<label class="nxc-fp"><input type="checkbox" data-fwto="${p.user_id}">${av(p.name).replace('nxc-av', 'nxc-av sm')}<span>${esc(p.name)}<br><small>${esc(p.job || '')}</small></span></label>`).join('') || '<div class="nxc-mh">No colleagues yet.</div>'}</div>
+      <div style="display:flex;justify-content:flex-end;padding:8px"><button class="nxc-round" data-c="fwdsend" title="Forward">${IC.send}</button></div>`)
+      .addEventListener('change', e => { const u = e.target.dataset.fwto; if (!u) return; if (e.target.checked) { if (st.fwd.to.size >= 5) { e.target.checked = false; say('You can forward to up to 5 people at a time.'); return; } st.fwd.to.add(u); } else st.fwd.to.delete(u); });
+  }
+  async function forwardSend() {
+    const f = st.fwd, m = f && findMsg(f.id); if (!m || !f.to.size) return say('Choose at least one person.');
+    closeMenu(); let n = 0;
+    for (const u of f.to) {
+      try {
+        const { data: tid, error } = await sb.rpc('chat_open', { other: u }); if (error) throw error;
+        const row = { thread_id: tid, kind: m.kind, fwd: true, body: m.kind === 'text' ? m.body : null };
+        if (m.file_path) { const dst = `${tid}/${uuid()}-${String(m.file_name || m.kind).replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80)}`;
+          const cp = await sb.storage.from('chat').copy(m.file_path, dst); if (cp.error) throw cp.error;
+          Object.assign(row, { file_path: dst, file_name: m.file_name, file_size: m.file_size, mime: m.mime }); }
+        const ins = await sb.from('chat_messages').insert(row); if (ins.error) throw ins.error; n++;
+      } catch (e) { say('Forward failed: ' + (e.message || e)); }
+    }
+    st.fwd = null; await loadThreads().catch(() => {}); renderList(); if (n) say(`Forwarded to ${n} ${n > 1 ? 'people' : 'person'}.`);
+  }
+  function jump(id) {
+    const el = st.root.querySelector(`.nxc-b[data-id="${id}"]`); if (!el) return say('Scroll up / load earlier messages to see the original.');
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1400);
+  }
+  /* presence (online) + typing… */
+  function presence() {
+    try {
+      st.pres = sb.channel('nx-online', { config: { presence: { key: st.me } } });
+      st.pres.on('presence', { event: 'sync' }, () => { st.online = new Set(Object.keys(st.pres.presenceState())); headStatus(); })
+        .subscribe(async s => { if (s === 'SUBSCRIBED') { try { await st.pres.track({ at: Date.now() }); } catch (_) {} } });
+    } catch (_) {}
+  }
+  function typingChannel(tid) {
+    try { if (st.tch) sb.removeChannel(st.tch); } catch (_) {}
+    st.typing = 0;
+    st.tch = sb.channel('nx-typing-' + tid).on('broadcast', { event: 'typing' }, p => { if (p.payload && p.payload.u !== st.me) { st.typing = Date.now(); headStatus(); setTimeout(headStatus, 3200); } }).subscribe();
+  }
+  function sendTyping() { if (!st.tch || Date.now() - (st.lastType || 0) < 2000) return; st.lastType = Date.now(); try { st.tch.send({ type: 'broadcast', event: 'typing', payload: { u: st.me } }); } catch (_) {} }
+  function headStatus() {
+    const el = st.root && st.root.querySelector('.nxc-st'); const t = st.threads.find(x => x.id === st.cur); if (!el || !t) return;
+    const o = other(t), p = st.people.get(o) || {};
+    if (Date.now() - (st.typing || 0) < 3000) { el.textContent = 'typing…'; el.classList.add('live'); }
+    else if (st.online && st.online.has(o)) { el.textContent = 'online'; el.classList.add('live'); }
+    else { el.textContent = `${p.job || (p.role === 'admin' ? 'Administrator' : 'Staff')} · 🔒 private chat`; el.classList.remove('live'); }
   }
 
   /* ---------- voice notes ---------- */
@@ -241,6 +365,28 @@
   .nxc-empty{margin:auto;text-align:center;color:var(--wa-sub);padding:24px;max-width:380px;font-size:14px;line-height:1.5}
   .nxc-empty b{color:var(--wa-ink);font-size:18px;font-weight:500}
   .nxc-older{align-self:center;background:var(--wa-day);border:0;border-radius:8px;padding:6px 14px;color:var(--wa-sub);cursor:pointer;box-shadow:0 1px .5px rgba(0,0,0,.13);margin-bottom:6px}
+  .nxc-k{flex-direction:column;align-items:stretch;gap:0} .nxc-row{display:flex;align-items:flex-end;gap:6px}
+  .nxc-ctx{display:flex;align-items:center;gap:6px;background:var(--wa-panel);border-radius:12px 12px 0 0;margin:0 54px -4px 0;padding:6px 6px 10px 8px}
+  .nxc-ctx .q,.nxc-q{flex:1;min-width:0;border-left:4px solid var(--wa-green);background:rgba(0,0,0,.05);border-radius:6px;padding:5px 8px;display:flex;flex-direction:column;font-size:13px;line-height:1.3}
+  .nxc-ctx .q b,.nxc-q b{color:var(--wa-green);font-weight:600;font-size:12.5px} .nxc-ctx .q span,.nxc-q span{color:var(--wa-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nxc-q{margin:0 0 5px;cursor:pointer} .nxc-b.me .nxc-q{background:rgba(0,0,0,.06)}
+  .nxc-fw{font-size:12.5px;font-style:italic;color:var(--wa-sub);margin:0 0 2px}
+  .nxc-b .meta i{font-style:italic;margin-right:2px}
+  .nxc-mn{position:absolute;top:2px;right:2px;width:24px;height:22px;border:0;border-radius:0 8px 0 12px;background:inherit;color:var(--wa-sub);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:2;padding:0}
+  .nxc-b:hover .nxc-mn{display:flex} @media (hover:none){.nxc-mn{display:none!important}}
+  .nxc-b.hasrx{margin-bottom:16px}
+  .nxc-rx{position:absolute;bottom:-15px;left:8px;background:var(--wa-panel);border-radius:12px;padding:1px 6px;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;white-space:nowrap;color:var(--wa-sub)} .nxc-b.me .nxc-rx{left:auto;right:8px}
+  .nxc-b.flash{animation:nxcfl 1.4s} @keyframes nxcfl{0%,60%{box-shadow:0 0 0 3px var(--wa-green)}}
+  .nxc-back-drop{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center}
+  .nxc-menu{background:var(--wa-panel);color:var(--wa-ink);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);min-width:220px;max-width:340px;padding:6px 0;overflow:hidden}
+  .nxc-mi{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:11px 18px;font-size:15px;color:inherit;cursor:pointer;text-align:left}
+  .nxc-mi:hover{background:var(--wa-hover)} .nxc-mi span{width:22px;text-align:center} .nxc-mi.bad{color:#ea0038}
+  .nxc-mh{padding:10px 18px 6px;font-size:14px;font-weight:600;color:var(--wa-sub)} .nxc-sub{font-weight:400;font-size:12px}
+  .nxc-emo{display:flex;justify-content:space-around;padding:4px 8px 8px;border-bottom:1px solid var(--wa-line);margin-bottom:4px}
+  .nxc-emo button{font-size:24px;border:0;background:none;cursor:pointer;border-radius:50%;width:40px;height:40px;transition:transform .1s} .nxc-emo button:hover{transform:scale(1.2)} .nxc-emo button.on{background:var(--wa-panel2)}
+  .nxc-fl{max-height:50vh;overflow:auto} .nxc-fp{display:flex;align-items:center;gap:12px;padding:8px 16px;cursor:pointer;font-size:15px} .nxc-fp:hover{background:var(--wa-hover)} .nxc-fp small{color:var(--wa-sub)} .nxc-fp input{width:18px;height:18px;accent-color:var(--wa-green)}
+  .nxc-st.live{opacity:1;font-weight:500}
+  @media (max-width:760px){.nxc-back-drop{background:rgba(0,0,0,.35);display:flex;align-items:flex-end} .nxc-menu{width:100%;max-width:none;border-radius:16px 16px 0 0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))} .nxc-mi{padding:14px 22px;font-size:16px}}
   @media (max-width:760px){
     .nxchat{grid-template-columns:1fr;height:calc(100vh - 190px);height:calc(100dvh - 190px);border-radius:8px}
     .nxchat.conv{position:fixed;inset:0;z-index:200;height:auto;border-radius:0;box-shadow:none}
@@ -261,7 +407,10 @@
     for (const id of ['#nxcFile', '#nxcCam']) st.root.querySelector(id).addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await sendFile(f); });
     st.root.addEventListener('click', onClick);
     st.root.addEventListener('keydown', e => { if (e.target.id === 'nxcText' && e.key === 'Enter' && !e.shiftKey && !('ontouchstart' in window)) { e.preventDefault(); doSend(); } });
-    st.root.addEventListener('input', e => { if (e.target.id === 'nxcText') { e.target.style.height = 'auto'; e.target.style.height = Math.min(130, e.target.scrollHeight) + 'px'; roundBtn(); } });
+    st.root.addEventListener('input', e => { if (e.target.id === 'nxcText') { e.target.style.height = 'auto'; e.target.style.height = Math.min(130, e.target.scrollHeight) + 'px'; roundBtn(); sendTyping(); } });
+    let lp; st.root.addEventListener('touchstart', e => { const b = e.target.closest('.nxc-b[data-id]'); if (!b || e.target.closest('audio,video,a,button')) return; lp = setTimeout(() => { openMenu(b.dataset.id, b); if (navigator.vibrate) navigator.vibrate(20); }, 480); }, { passive: true });
+    for (const ev of ['touchend', 'touchmove', 'touchcancel']) st.root.addEventListener(ev, () => clearTimeout(lp), { passive: true });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
     st.root.querySelector('.nxc-m').addEventListener('scroll', e => { const m = e.target; st.stick = m.scrollHeight - m.scrollTop - m.clientHeight < 80; });
     window.addEventListener('popstate', () => { if (st.pushed) { st.pushed = false; closeConv(); } });
   }
@@ -270,7 +419,7 @@
     const has = !!t.value.trim(); if ((b.dataset.c === 'send') === has) return;
     b.dataset.c = has ? 'send' : 'mic'; b.title = has ? 'Send' : 'Record a voice note'; b.innerHTML = has ? IC.send : IC.mic;
   }
-  function doSend() { const t = st.root.querySelector('#nxcText'); if (!t || !t.value.trim()) return; const v = t.value; t.value = ''; t.style.height = 'auto'; roundBtn(); sendText(v); if (!('ontouchstart' in window)) t.focus(); }
+  function doSend() { const t = st.root.querySelector('#nxcText'); if (!t || !t.value.trim()) return; const v = t.value; t.value = ''; t.style.height = 'auto'; roundBtn(); if (st.edit) saveEdit(st.edit, v); else sendText(v); if (!('ontouchstart' in window)) t.focus(); }
   function closeConv() { st.cur = null; st.root.classList.remove('conv'); renderList(); renderConv(); }
   async function onClick(e) {
     const b = e.target.closest('[data-c]'); if (!b) { const im = e.target.closest('img[data-sp]'); if (im && im.src && window.lightbox) window.lightbox(im.src); return; }
@@ -286,10 +435,21 @@
     else if (a === 'reccancel') recStop(false);
     else if (a === 'older') { await loadMsgs(st.cur, true).catch(() => {}); renderMsgs(false); }
     else if (a === 'file') openFile(v, b.dataset.n);
-    else if (a === 'del') delMsg(v);
+    else if (a === 'menu') openMenu(v, b);
+    else if (a === 'react') react(v, b.dataset.e);
+    else if (a === 'reply' || a === 'edit') startCtx(a, v);
+    else if (a === 'copy') { const m = findMsg(v); closeMenu(); try { await navigator.clipboard.writeText(m.body || ''); say('Message copied.'); } catch (_) { say('Copy is not allowed in this browser.'); } }
+    else if (a === 'forward') forwardPick(v);
+    else if (a === 'fwdsend') forwardSend();
+    else if (a === 'delask') askDelete(v);
+    else if (a === 'delall') delAll(v);
+    else if (a === 'delme') delMe(v);
+    else if (a === 'menuclose') closeMenu();
+    else if (a === 'ctxclose') { st.reply = st.edit = null; const t = st.root.querySelector('#nxcText'); const keep = t ? t.value : ''; renderComposer(); }
+    else if (a === 'jump') jump(v);
   }
   async function openThread(tid) {
-    const was = st.cur; st.cur = tid; st.root.classList.add('conv'); st.stick = true;
+    const was = st.cur; st.cur = tid; st.root.classList.add('conv'); st.stick = true; st.reply = st.edit = null; typingChannel(tid);
     if (mobile() && !was && !st.pushed) { history.pushState(Object.assign({}, history.state, { nxchat: 1 }), ''); st.pushed = true; }
     renderList(); renderConv();
     if (!st.msgs[tid]) { renderMsgs(true); await loadMsgs(tid).catch(er => say('Could not load messages: ' + er.message)); }
@@ -312,13 +472,13 @@
     if (!t) { h.innerHTML = ''; h.style.visibility = 'hidden'; st.root.querySelector('.nxc-m').innerHTML = `<div class="nxc-empty"><div style="font-size:54px;line-height:1">💬</div><b>NEXUS Chat</b><br>Choose a colleague to start chatting.<br>Only the two of you can read your messages – not even administrators. Send text, photos, documents, voice notes and videos (up to 25 MB).</div>`; st.root.querySelector('.nxc-k').innerHTML = ''; return; }
     h.style.visibility = ''; const p = st.people.get(other(t)) || {};
     h.innerHTML = `<button class="nxc-back" data-c="back" aria-label="Back to chats">${IC.back}</button>${av(pName(other(t))).replace('nxc-av', 'nxc-av sm')}<div class="nxc-who"><div class="nxc-nm">${esc(pName(other(t)))}</div><div class="nxc-st">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))} · 🔒 private chat</div></div>`;
-    renderComposer();
+    renderComposer(); headStatus();
   }
   function renderComposer() {
     const k = st.root?.querySelector('.nxc-k'); if (!k || !st.cur) return;
-    if (st.rec) { k.innerHTML = `<div class="nxc-pill"><button class="nxc-ib" data-c="reccancel" title="Cancel recording" style="color:#ea0038">${IC.trash}</button><div class="nxc-rec"><span class="nxc-dot"></span><span class="rt nxc-rt">0:00</span><span style="color:var(--wa-sub)">Recording…</span></div></div><button class="nxc-round" data-c="recsend" title="Send voice note">${IC.send}</button>`; return; }
+    if (st.rec) { k.innerHTML = `<div class="nxc-row"><div class="nxc-pill"><button class="nxc-ib" data-c="reccancel" title="Cancel recording" style="color:#ea0038">${IC.trash}</button><div class="nxc-rec"><span class="nxc-dot"></span><span class="rt nxc-rt">0:00</span><span style="color:var(--wa-sub)">Recording…</span></div></div><button class="nxc-round" data-c="recsend" title="Send voice note">${IC.send}</button></div>`; return; }
     const keep = k.querySelector('#nxcText')?.value || '';
-    k.innerHTML = `<div class="nxc-pill"><button class="nxc-ib" data-c="attach" title="Photo, video or document">${IC.clip}</button><textarea id="nxcText" rows="1" placeholder="Message"></textarea><button class="nxc-ib" data-c="cam" title="Take a photo">${IC.cam}</button></div><button class="nxc-round" data-c="mic" title="Record a voice note">${IC.mic}</button>`;
+    k.innerHTML = `${ctxBar()}<div class="nxc-row"><div class="nxc-pill"><button class="nxc-ib" data-c="attach" title="Photo, video or document">${IC.clip}</button><textarea id="nxcText" rows="1" placeholder="Message"></textarea><button class="nxc-ib" data-c="cam" title="Take a photo">${IC.cam}</button></div><button class="nxc-round" data-c="mic" title="Record a voice note">${IC.mic}</button></div>`;
     k.querySelector('#nxcText').value = keep; roundBtn();
   }
   function body(m) {
@@ -337,10 +497,12 @@
     if (!st.root || !st.cur) return; const box = st.root.querySelector('.nxc-m'), list = st.msgs[st.cur];
     if (!list) { box.innerHTML = '<div class="nxc-empty">Loading…</div>'; return; }
     const prevH = box.scrollHeight, prevT = box.scrollTop; let day = '', prev = null, html = st.more[st.cur] ? `<button class="nxc-older" data-c="older">Load earlier messages</button>` : '';
-    for (const m of list) { const d = dayLabel(m.created_at); let tail = !prev || prev.sender !== m.sender; if (d !== day) { day = d; tail = true; html += `<div class="nxc-day">${d}</div>`; }
+    for (const m of list.filter(vis)) { const d = dayLabel(m.created_at); let tail = !prev || prev.sender !== m.sender; if (d !== day) { day = d; tail = true; html += `<div class="nxc-day">${d}</div>`; }
       const mine = m.sender === st.me, media = !m.deleted && !m.uploading && (m.kind === 'image' || m.kind === 'video');
       const tick = mine ? (m.failed ? ' <span style="color:#ea0038">not sent</span>' : m.tmp ? ' ' + IC.clock : m.read_at ? ` <span class="rd" title="Read">${IC.t2}</span>` : ` <span title="Delivered">${IC.t1}</span>`) : '';
-      html += `<div class="nxc-b ${mine ? 'me' : ''} ${tail ? 'tail' : ''} ${media ? 'media' : ''}">${mine && !m.deleted && !m.tmp ? `<button class="nxc-x" data-c="del" data-v="${m.id}" title="Delete for everyone">${IC.trash}</button>` : ''}${body(m)}<span class="meta">${hhmm(m.created_at)}${tick}</span></div>`; prev = m; }
+      const q = m.reply_to ? (list.find(x => x.id === m.reply_to) || null) : null;
+      const rx = Object.values(m.reactions || {}); const rxs = [...new Set(rx)];
+      html += `<div class="nxc-b ${mine ? 'me' : ''} ${tail ? 'tail' : ''} ${media ? 'media' : ''} ${rx.length ? 'hasrx' : ''}" data-id="${m.id}">${!m.tmp ? `<button class="nxc-mn" data-c="menu" data-v="${m.id}" title="Message options"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M3.3 4.6L9 10.3l5.7-5.7 1.6 1.6L9 13.4 1.7 6.2z"/></svg></button>` : ''}${m.fwd && !m.deleted ? '<div class="nxc-fw">↪ Forwarded</div>' : ''}${m.reply_to && !m.deleted ? `<div class="nxc-q" data-c="jump" data-v="${m.reply_to}"><b>${esc(q ? (q.sender === st.me ? 'You' : pName(q.sender)) : 'Reply')}</b><span>${esc(snippet(q))}</span></div>` : ''}${body(m)}<span class="meta">${m.edited_at && !m.deleted ? '<i>Edited</i> ' : ''}${hhmm(m.created_at)}${tick}</span>${rx.length ? `<div class="nxc-rx" data-c="menu" data-v="${m.id}">${rxs.join('')}${rx.length > 1 ? ' ' + rx.length : ''}</div>` : ''}</div>`; prev = m; }
     box.innerHTML = html || '<div class="nxc-empty">No messages yet – say hello 👋</div>';
     if (toBottom || st.stick !== false) box.scrollTop = box.scrollHeight; else box.scrollTop = prevT + (box.scrollHeight - prevH);
     fillMedia().catch(() => {});
@@ -361,7 +523,7 @@
       const { data } = await sb.auth.getSession(); const s = data && data.session;
       if (!s) { setTimeout(() => init(tries), 4000); return; }
       st.me = s.user.id; await loadPeople(); await loadThreads(); await loadUnread(); subscribe();
-      st.ready = true; st.err = ''; setInterval(poll, 4000); build(); renderList(); renderConv(); st.rendered = true;
+      st.ready = true; st.err = ''; setInterval(poll, 4000); presence(); build(); renderList(); renderConv(); st.rendered = true;
       if ((window.NX_ROUTE && window.NX_ROUTE()) === 'chat') { const h = document.getElementById('chatHost'); if (h) window.NX_CHAT_MOUNT(h); }
     } catch (e) { st.err = e.message || String(e); if (tries < 20) setTimeout(() => init(tries + 1), 6000); }
   }
