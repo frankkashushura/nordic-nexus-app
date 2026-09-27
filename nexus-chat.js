@@ -509,6 +509,8 @@
   }
 
   /* ---------- page hooks (called by the NEXUS app) ---------- */
+  // open one conversation (used when a chat notification is tapped); false until chat has loaded
+  window.NX_CHAT_OPEN = tid => { if (!st.ready || !st.root || !st.root.isConnected || !(st.threads || []).some(t => t.id === tid)) return false; openThread(tid); return true; };
   window.NX_CHAT_MOUNT = host => {
     if (!host) return; build();
     if (!st.ready) { host.innerHTML = `<div class="card empty">${st.err ? 'Chat could not start: ' + esc(st.err) : '<span class="spin"></span> Loading chat…'}</div>`; return; }

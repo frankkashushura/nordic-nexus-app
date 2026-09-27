@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=52"></script>
+<script src="config.js?v=53"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=52"></script>
-<script src="nexus-chat.js?v=52"></script>
+<script src="nexus-sb.js?v=53"></script>
+<script src="nexus-chat.js?v=53"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -694,9 +694,16 @@ function nsMarkRead(keys){ const now=new Date().toISOString(); keys.forEach(k=>{
 function ago(iso){ const m=(Date.now()-Date.parse(iso))/6e4; if(!(m>=0)) return fmtD(iso); if(m<1) return 'just now'; if(m<60) return Math.round(m)+' min ago'; if(m<1440) return Math.round(m/60)+' h ago'; if(m<10080) return Math.round(m/1440)+' d ago'; return fmtD(iso); }
 function alertRow(a){ const [k,v]=a.go, st=a.st||'unread';
   return `<div class="li nt-${st}" style="cursor:pointer" data-nk="${esc(a.key||'')}" ${k==='route'?`data-go="${v}"`:`data-open="${k}:${esc(v)}"`}><div class="stripe ${a.lvl}"></div><div class="grow"><div class="toolbar" style="gap:6px"><span class="label">${esc(a.kind)}</span>${st==='new'?'<span class="chip blue">New</span>':st==='unread'?'<span class="ndot" title="Unread"></span>':'<span class="sub">Read</span>'}<div class="sp"></div>${a.at?`<span class="sub">${ago(a.at)}</span>`:''}<button class="iconbtn" data-nclear="${esc(a.key||'')}" title="Clear this notification" aria-label="Clear this notification" style="width:26px;height:26px;margin:-4px -4px -4px 2px;font-size:15px;line-height:1">✕</button></div><div class="ttl2">${esc(a.text)}</div><div class="sub">${esc(a.sub)}</div></div></div>`; }
+function pushBar(){ const st=window.NX_PUSH_STATE?window.NX_PUSH_STATE():'setup'; if(st==='setup') return ''; const busy=window.NX_PUSH_BUSY&&window.NX_PUSH_BUSY(), sp=busy?'<span class="spin"></span> ':'';
+  const line=(ico,txt,btn)=>`<div class="toolbar" style="padding:9px 12px;gap:8px;border-bottom:1px solid var(--line);background:var(--panel2,transparent)"><span aria-hidden="true">${ico}</span><span class="small grow" style="flex:1">${txt}</span>${btn||''}</div>`;
+  if(st==='on') return line('🔔','Notifications <b>on</b> for this device – chats, tenders, approvals and meetings arrive even when NEXUS is closed.',`<button class="btn sm" data-act="pushOff" ${busy?'disabled':''}>${sp}Turn off</button>`);
+  if(st==='wait') return line('🔔','Connecting this phone for notifications…','');
+  if(st==='blocked') return line('🔕','Notifications are blocked for NEXUS in this browser. Click the icon left of the web address → Notifications → Allow, then reload.','');
+  if(st==='unsupported') return line('🔕','This browser cannot show notifications. Use Chrome or Edge, or the NEXUS Android app.','');
+  return line('🔕','Get chats, new tenders, approvals and meetings on this device even when NEXUS is closed.',`<button class="btn sm pri" data-act="pushOn" ${busy?'disabled':''}>${sp}Turn on</button>`); }
 function inboxHtml(){ const L=inbox(), c={new:0,unread:0,read:0}; L.forEach(a=>c[a.st]++);
   const F=UI.nf, show=F==='all'?L:L.filter(a=>a.st===F), open=L.filter(a=>a.st!=='read');
-  return `<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
+  return `${pushBar()}<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
   <div class="list">${show.map(alertRow).join('')||`<div class="empty">${F==='all'?'Nothing needs attention right now.':'No '+F+' notifications.'}</div>`}</div>`; }
 function nsUnread(){ return inbox().filter(a=>a.st!=='read').length; }
 function barChart(rows,max){
@@ -1780,6 +1787,8 @@ document.addEventListener('click', async e=>{
   const T=drawer?.type==='tender'?byId('tenders',drawer.id):null;
   switch(act){
     case 'close': closeDrawer(); break;
+    case 'pushOn': window.NX_PUSH_ON&&window.NX_PUSH_ON(); break;
+    case 'pushOff': window.NX_PUSH_OFF&&window.NX_PUSH_OFF(); break;
     case 'brief': runBriefing(); break;
     case 'addTender': formDrawer('Add tender',TENDER_FIELDS,{source:'NeST',screen:'Check',category:'building',client_type:'government'},async v=>{ const id=safeId(v.no||v.title); if(byId('tenders',id)){ toast('A tender with this number is already on the radar.'); return false; } await put('tenders',id,{...v,deadline:v.deadline?new Date(v.deadline).toISOString():'',status:'Watching',date_found:new Date().toISOString(),found_by:'Manual – '+(me.name||''),owner:me.name||''}); logAct(`Added tender "${v.title}"`); },{saveLabel:'Add to radar'}); break;
     case 'importXlsx': $('#xlsxFile').click(); break;
@@ -1899,6 +1908,14 @@ window.addEventListener('popstate', e=>{
   const st=e.state;
   if(st&&st.nx) go(st.route, st.arg??null, true); else go('home', null, true);
 });
+/* ---------- open a page from a notification ---------- */
+window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
+  if(k==='alerts'){ nsOpened(); openDrawer('alerts'); }
+  else if(k==='logins'){ if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); }
+  else if(k==='chat'){ go('chat'); if(v){ let n=0; const t=setInterval(()=>{ if((window.NX_CHAT_OPEN&&window.NX_CHAT_OPEN(v))||++n>40) clearInterval(t); },250); } }
+  else if(k==='tender'&&v){ go('tenders'); let n=0; const t=setInterval(()=>{ if(byId('tenders',v)){ clearInterval(t); openTender(v); } else if(++n>40) clearInterval(t); },250); }
+  else if(PAGE_FN[k]) go(k);
+};
 /* ===================== START ===================== */
 (async function start(){
   try{ UI.theme=localStorage.getItem('nx_theme')||'System';  }catch(_){}
@@ -1919,6 +1936,7 @@ window.addEventListener('popstate', e=>{
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('settings/company').onSnapshot(s=>{ S.company=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('activity/'+new Date().toISOString().slice(0,7)).onSnapshot(s=>{ S.activity=s.exists?(s.data().entries||[]):[]; if(route==='settings') renderAll(); }, ()=>{});
+  { const op=new URLSearchParams(location.search).get('open'); if(op){ try{ history.replaceState(null,'',location.pathname); }catch(_){} setTimeout(()=>window.NX_OPEN(op),1200); } }
 })();
 
 </script>

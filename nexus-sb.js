@@ -347,6 +347,77 @@
     }
   })();
   window.NX_OPEN_USERS = () => openUsers();
+
+  /* ---------------- notifications on this phone / computer (Firebase Cloud Messaging) ---------------- */
+  (() => {
+    const FB = CFG.firebase || null;                       // public web config + web-push key (config.js)
+    const droid = () => window.NexusAndroid && typeof window.NexusAndroid.getPushToken === 'function';
+    const LS = 'nx_push';
+    const saved = () => { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (_) { return null; } };
+    const keep = v => { try { v ? localStorage.setItem(LS, JSON.stringify(v)) : localStorage.removeItem(LS); } catch (_) {} };
+    let signedIn = false, pendingDroid = '', busy = false;
+    const say = m => (window.toast ? window.toast(m) : alert(m));
+    const register = async (tok, plat) => {
+      if (!tok) return false;
+      const { error } = await sb.rpc('push_register', { tok, plat, ua: navigator.userAgent.slice(0, 200) });
+      if (error) throw error;
+      keep({ tok, plat, on: true }); return true;
+    };
+    // the Android app hands over its push address here (before or after sign-in)
+    window.NX_PUSH_TOKEN = (tok, plat) => { if (plat !== 'android' || !tok) return; if (!signedIn) { pendingDroid = tok; return; } register(tok, 'android').then(() => window.renderAll?.()).catch(() => {}); };
+    const load = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = () => no(new Error('Could not load ' + src)); document.head.append(el); });
+    async function webToken(ask) {
+      if (!FB || !FB.apiKey) throw new Error('Device notifications are not set up yet.');
+      if (!('serviceWorker' in navigator) || !('Notification' in window) || !('PushManager' in window))
+        throw new Error('This browser cannot show notifications. Use Chrome or Edge (on iPhone: Share → Add to Home Screen, then open NEXUS from there).');
+      let perm = Notification.permission;
+      if (perm === 'default' && ask) perm = await Notification.requestPermission();
+      if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Notifications are blocked for NEXUS in this browser. Click the icon left of the web address → Notifications → Allow, then try again.' : 'Notifications were not allowed.');
+      if (!window.firebase) { await load('https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js'); await load('https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js'); }
+      if (!firebase.apps.length) firebase.initializeApp(FB);
+      const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js?v=1', { scope: './' });
+      const m = firebase.messaging();
+      if (!m.__nx) { m.__nx = 1; m.onMessage(() => {}); }   // NEXUS open on screen: it shows the message itself
+      return m.getToken({ vapidKey: FB.vapidKey, serviceWorkerRegistration: reg });
+    }
+    // what the bell drawer shows: on / off / blocked / unsupported / setup
+    window.NX_PUSH_STATE = () => {
+      if (droid()) { const p = window.NexusAndroid.pushPermission ? window.NexusAndroid.pushPermission() : 'granted';
+        return p === 'granted' ? (saved()?.on ? 'on' : 'wait') : 'off'; }
+      if (!FB || !FB.apiKey) return 'setup';
+      if (!('serviceWorker' in navigator) || !('Notification' in window) || !('PushManager' in window)) return 'unsupported';
+      if (Notification.permission === 'denied') return 'blocked';
+      return saved()?.on && Notification.permission === 'granted' ? 'on' : 'off';
+    };
+    window.NX_PUSH_BUSY = () => busy;
+    window.NX_PUSH_ON = async () => {
+      if (busy) return; busy = true; window.renderAll?.();
+      try {
+        if (droid()) { if (window.NexusAndroid.pushPermission() !== 'granted') window.NexusAndroid.askPush(); const t = window.NexusAndroid.getPushToken(); if (t) await register(t, 'android'); }
+        else { await register(await webToken(true), 'web'); say('Notifications are on for this device.'); }
+      } catch (e) { say(e.message || String(e)); }
+      finally { busy = false; window.renderAll?.(); }
+    };
+    window.NX_PUSH_OFF = async () => {
+      if (busy) return; busy = true; window.renderAll?.();
+      try { const s = saved(); if (s?.tok) await sb.rpc('push_unregister', { tok: s.tok }); keep(null);
+        if (!droid() && window.firebase?.apps?.length) { try { await firebase.messaging().deleteToken(); } catch (_) {} }
+        say(droid() ? 'Notifications off for this phone. To switch them on again, tap Turn on.' : 'Notifications are off for this device.'); }
+      catch (e) { say(e.message || String(e)); }
+      finally { busy = false; window.renderAll?.(); }
+    };
+    // after sign-in: register the Android app automatically; keep a browser's address fresh (they change from time to time)
+    window.NX_READY.then(async () => {
+      signedIn = true;
+      try {
+        if (droid()) { const t = pendingDroid || window.NexusAndroid.getPushToken(); if (t && saved()?.on !== false) await register(t, 'android'); }
+        else { const s = saved(); if (s?.on && 'Notification' in window && Notification.permission === 'granted') { const t = await webToken(false); if (t && t !== s.tok) { if (s.tok) sb.rpc('push_unregister', { tok: s.tok }); } await register(t, 'web'); } }
+      } catch (_) {}
+      window.renderAll?.();
+    }).catch(() => {});
+    // ask the server to send due notifications now (after approvals, orders, meetings …)
+    window.NX_PUSH_SWEEP = () => fetch(CFG.url + '/functions/v1/push', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{"type":"sweep"}' }).catch(() => {});
+  })();
   // tell people when a newer NEXUS has been published (browsers keep the old page for a while)
   (() => {
     const mine = ((document.querySelector('script[src*="nexus-sb.js"]') || {}).src || '').match(/[?&]v=(\d+)/)?.[1];
@@ -378,6 +449,7 @@
   };
   // email the approvers straight away when a purchase request is sent
   window.NX_NOTIFY_PR = async () => {
+    setTimeout(() => window.NX_PUSH_SWEEP?.(), 4000);
     try { const r = await fetch(CFG.url + '/functions/v1/tender-sync?pr=1', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{}' }); return r.ok ? r.json() : null; } catch (_) { return null; }
   };
 
