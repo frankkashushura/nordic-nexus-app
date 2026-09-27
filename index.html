@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=43"></script>
+<script src="config.js?v=44"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=43"></script>
+<script src="nexus-sb.js?v=44"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -327,7 +327,7 @@ ul.clean li{margin:3px 0}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -398,6 +398,7 @@ const ICON = {
   finance:'<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
   procure:'<path d="M3 3h2l2.5 12h11L21 7H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>',
   staff:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M16 4a3.5 3.5 0 010 7M22 21c0-3-1.5-5-4-5.7"/>',
+  meetings:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="9" cy="15" r="1.3"/><circle cx="15" cy="15" r="1.3"/>',
   tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/>',
   docs:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
   alerts:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
@@ -425,6 +426,7 @@ const PAGES = [
   {k:'procure', t:'Procurement'},
   {k:'plant', t:'Plant & Equipment'},
   {k:'tasks', t:'Tasks'},
+  {k:'meetings', t:'Meetings'},
   {g:'Running the office'},
   {k:'finance', t:'Finance'},
   {k:'staff', t:'Staff'},
@@ -518,6 +520,10 @@ function computeAlerts(){
     const f=daysLeft(t.date_found); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
+  // meetings I am invited to / organising
+  { const sid=myStaffId(), now=Date.now(); (S.meetings||[]).filter(m=>m.status!=='Cancelled'&&meetEnd(m)>now&&((sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id)).forEach(m=>{ const t=meetStart(m), inv=sid&&(m.invitees||[]).includes(sid), ans=inv?(m.responses||{})[sid]:null;
+    if(t-now<=864e5) A.push({lvl:t-now<=36e5?'warn':'blue', kind:'Meeting', text:`${m.title}`, sub:`${t<=now?'Happening now':'Starts '+fmtDT(m.start_iso)}${m.venue?' · '+m.venue:''}`, go:['route','meetings'], sort:t-now<=36e5?4:12, at:new Date(t-864e5).toISOString()});
+    else if(inv&&!ans) A.push({lvl:'blue', kind:'Meeting invite', text:m.title, sub:`${fmtDT(m.start_iso)} · from ${m.organizer||''} – please confirm`, go:['route','meetings'], sort:25, at:m.created_at||m.updated_at}); }); }
   // feedback to the person who raised a purchase request (last 7 days)
   S.procurement.filter(p=>p.status!=='Requested' && !p.example && (p.requested_uid?p.requested_uid===me.id:(p.requested_by&&p.requested_by===me.name))).forEach(p=>{
     const at=p.status==='Delivered'?p.delivered_at:p.status==='Ordered'?p.ordered_at:p.approved_at, by=p.status==='Delivered'?p.delivered_by:p.status==='Ordered'?p.ordered_by:p.approved_by;
@@ -548,6 +554,7 @@ function recipStale(){ return loaded.has('staff') && S.staff.length>0 && S.recip
 function field(f, v){
   const id='f_'+f.k, val = v ?? f.def ?? '';
   let ctl;
+  if(f.type==='checks'){ const sel=Array.isArray(val)?val:[]; ctl=`<div class="checks" id="${id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px">${f.options.map(([ov,ol])=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" value="${esc(ov)}" ${sel.includes(ov)?'checked':''}> ${esc(ol)}</label>`).join('')||'<span class="sub">No staff with an email address yet – add them on the Staff page.</span>'}</div>`; return `<div class="fld full"><label>${esc(f.label)}${f.req?' *':''}</label>${ctl}${f.help?`<span class="sub">${esc(f.help)}</span>`:''}</div>`; }
   if(f.type==='select') ctl=`<select class="inp" id="${id}">${f.options.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
   else if(f.type==='textarea') ctl=`<textarea class="inp" id="${id}" placeholder="${esc(f.ph||'')}">${esc(val)}</textarea>`;
   else ctl=`<input class="inp" id="${id}" type="${f.type||'text'}" value="${esc(val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'step="any"':''}>`;
@@ -555,7 +562,7 @@ function field(f, v){
 }
 function readForm(fields, root){
   root=root||($('#overlay').firstChild?$('#overlay'):document);
-  const o={}; for(const f of fields){ const el=root.querySelector('#f_'+f.k); if(!el) continue; let v=el.value.trim(); if(f.type==='number') v = v===''? null : +v; o[f.k]=v; }
+  const o={}; for(const f of fields){ const el=root.querySelector('#f_'+f.k); if(!el) continue; if(f.type==='checks'){ o[f.k]=[...el.querySelectorAll('input:checked')].map(x=>x.value); if(f.req&&!o[f.k].length){ toast(`${f.label}: choose at least one.`); return null; } continue; } let v=el.value.trim(); if(f.type==='number') v = v===''? null : +v; o[f.k]=v; }
   for(const f of fields){ if(f.req && (o[f.k]===''||o[f.k]==null)){ toast(`${f.label} is required.`); root.querySelector('#f_'+f.k)?.focus(); return null; } }
   return o;
 }
@@ -1085,6 +1092,57 @@ async function aiFinance(){
   if(r){ UI.finRisk={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI finance risk check: '+r.level); }
 }
 
+/* ===================== MEETINGS ===================== */
+const MEET_DUR=['30 min','1 hour','1.5 hours','2 hours','Half day','Full day'], MEET_MIN={'30 min':30,'1 hour':60,'1.5 hours':90,'2 hours':120,'Half day':240,'Full day':480};
+const meetFields=()=>[{k:'title',label:'Meeting title',req:1,full:1,ph:'e.g. Weekly site progress meeting – Mount Carmel'},{k:'start',label:'Date & start time',type:'datetime-local',req:1},{k:'duration',label:'Duration',type:'select',options:MEET_DUR,def:'1 hour'},
+  {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'link',label:'Online link (optional)',ph:'Google Meet / Zoom / Teams link',full:1},
+  {k:'project_id',label:'Project (optional)',type:'select',options:projOpts('— not project specific —')},{k:'agenda',label:'Agenda',type:'textarea',ph:'1. Progress\n2. Issues\n3. AOB'},
+  {k:'invitees',label:'Invite staff (they get an email with a calendar invite and a NEXUS alert)',type:'checks',req:1,options:S.staff.filter(x=>x.status!=='Left'&&x.email).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>[x.id,`${x.name}${x.position?' – '+x.position:''}`])}];
+const myStaffId=()=>{ const e=(me.email||'').toLowerCase(), n=(me.name||'').toLowerCase(); return (S.staff.find(x=>e&&(x.email||'').toLowerCase()===e)||S.staff.find(x=>n&&(x.name||'').toLowerCase()===n))?.id||null; };
+const meetStart=m=>Date.parse(m.start_iso||m.start||'');
+const meetEnd=m=>meetStart(m)+(MEET_MIN[m.duration]||60)*6e4;
+const canEditMeet=m=>isAdmin||(m.organizer_uid&&m.organizer_uid===me.id);
+function meetCard(m){
+  const t=meetStart(m), d=new Date(t), sid=myStaffId(), inv=m.invitees||[], resp=m.responses||{}, cancelled=m.status==='Cancelled', past=meetEnd(m)<Date.now();
+  const soon=!cancelled&&!past&&t-Date.now()<864e5, live=!cancelled&&t<=Date.now()&&!past;
+  const yes=inv.filter(i=>resp[i]==='Yes').length, no=inv.filter(i=>resp[i]==='No').length;
+  return `<div class="card" style="${cancelled?'opacity:.6':''}"><div class="bd" style="display:flex;gap:14px;align-items:flex-start">
+    <div style="min-width:62px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 4px"><div class="label">${d.toLocaleDateString('en-GB',{month:'short'})}</div><div style="font-size:24px;font-weight:700;line-height:1.1">${d.getDate()}</div><div class="sub">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div></div>
+    <div class="grow" style="display:flex;flex-direction:column;gap:5px;min-width:0">
+      <div class="toolbar" style="gap:6px">${cancelled?'<span class="chip bad">Cancelled</span>':live?'<span class="chip good">Happening now</span>':soon?'<span class="chip amb">Soon</span>':''}<span class="chip">${esc(m.mode||'In person')}</span>${m.project_id?`<span class="sub">${esc(projName(m.project_id))}</span>`:''}</div>
+      <h3 style="margin:0">${esc(m.title)}</h3>
+      <div class="small"><b>${d.toTimeString().slice(0,5)}</b> · ${esc(m.duration||'1 hour')}${m.venue?' · '+esc(m.venue):''}</div>
+      <div class="sub">Organiser: ${esc(m.organizer||'')} · ${inv.length} invited${yes?` · ✓ ${yes} attending`:''}${no?` · ✗ ${no} can't`:''}${m.version>1&&!cancelled?' · <span class="chip amb">updated</span>':''}</div>
+      <div class="sub" style="display:flex;flex-wrap:wrap;gap:4px">${inv.map(i=>`<span class="chip ${resp[i]==='Yes'?'good':resp[i]==='No'?'bad':''}" title="${resp[i]==='Yes'?'Attending':resp[i]==='No'?'Cannot attend':'No answer yet'}">${resp[i]==='Yes'?'✓ ':resp[i]==='No'?'✗ ':''}${esc(staffName(i))}</span>`).join('')}</div>
+      ${m.agenda?`<details><summary class="small" style="cursor:pointer">Agenda</summary><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(m.agenda)}</div></details>`:''}
+      ${cancelled?`<div class="sub">Cancelled by ${esc(m.cancelled_by||'')}</div>`:`<div class="toolbar" style="gap:6px">
+        ${m.link&&!past?`<a class="btn sm pri" href="${esc(m.link)}" target="_blank" rel="noopener">Join online</a>`:''}
+        ${sid&&inv.includes(sid)&&!past?`<button class="btn sm ${resp[sid]==='Yes'?'pri':''}" data-mrsvp="${esc(m.id)}:Yes">✓ I'll attend</button><button class="btn sm ${resp[sid]==='No'?'danger':''}" data-mrsvp="${esc(m.id)}:No">✗ Can't attend</button>`:''}
+        ${canEditMeet(m)&&!past?`<div class="sp"></div><button class="btn sm" data-medit="${esc(m.id)}">Edit</button><button class="btn sm danger" data-mcancel="${esc(m.id)}">Cancel meeting</button>`:''}</div>`}
+    </div></div></div>`;
+}
+function pageMeetings(){
+  const all=[...(S.meetings||[])].filter(m=>meetStart(m)), now=Date.now(), tab=UI.mtab||'up', sid=myStaffId();
+  let list=tab==='up'?all.filter(m=>meetEnd(m)>=now).sort((a,b)=>meetStart(a)-meetStart(b)):all.filter(m=>meetEnd(m)<now).sort((a,b)=>meetStart(b)-meetStart(a));
+  if(UI.mmine) list=list.filter(m=>(sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id);
+  const upc=all.filter(m=>meetEnd(m)>=now&&m.status!=='Cancelled');
+  return `<div class="toolbar"><div class="seg">${[['up',`Upcoming (${upc.length})`],['past','Past']].map(([k,l])=>`<button data-mtab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>
+    <label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="mmine" ${UI.mmine?'checked':''} onchange="UI.mmine=this.checked;renderAll()"> Only my meetings</label><div class="sp"></div>
+    <button class="btn pri" data-act="addMeeting">Schedule meeting</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px">${list.map(meetCard).join('')||`<div class="card empty">${tab==='up'?'No upcoming meetings. Click <b>Schedule meeting</b> to invite staff.':'No past meetings yet.'}</div>`}</div>`;
+}
+function meetDrawer(m){
+  const f=meetFields(); const vals=m?{...m}:{duration:'1 hour',mode:'In person',invitees:[]};
+  formDrawer(m?'Edit meeting':'Schedule meeting',f,vals,async v=>{
+    const iso=new Date(v.start).toISOString();
+    if(!m){ if(Date.parse(iso)<Date.now()-6e4&&!await confirmBox('This start time is in the past. Save anyway?','Save')) return false;
+      await put('meetings',null,{...v,start_iso:iso,status:'Scheduled',version:1,organizer:me.name||'',organizer_uid:me.id||'',organizer_email:me.email||'',created_at:new Date().toISOString(),responses:{}});
+      logAct(`Scheduled meeting "${v.title}" ${fmtDT(iso)}`); toast(`Meeting scheduled – invitations are being emailed to ${v.invitees.length} staff.`); }
+    else { const changed=iso!==m.start_iso||v.duration!==m.duration||v.venue!==m.venue||v.link!==m.link||v.mode!==m.mode||v.title!==m.title;
+      await patch('meetings',m.id,{...v,start_iso:iso,version:(+m.version||1)+(changed?1:0)}); logAct(`Updated meeting "${v.title}"`); toast(changed?'Meeting updated – invited staff are being told about the change.':'Meeting updated – new invitees are being emailed.'); }
+    window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR();
+  },{saveLabel:m?'Save changes':'Schedule & send invitations'});
+}
 /* ===================== STAFF ===================== */
 const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Position',req:1},{k:'department',label:'Department',type:'select',options:['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT']},
   {k:'email',label:'Email',type:'email',help:'Tender alerts go here'},{k:'phone',label:'Mobile for SMS / WhatsApp',type:'tel',ph:'+255 7xx xxx xxx'},{k:'station',label:'Station',type:'select',options:['Head Office – Dar es Salaam','Bulyanhulu Branch','Site']},
@@ -1588,7 +1646,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -1637,7 +1695,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -1664,6 +1722,10 @@ document.addEventListener('click', async e=>{
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
   if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
+  if(el.dataset.mtab){ UI.mtab=el.dataset.mtab; renderAll(); return; }
+  if(el.dataset.mrsvp){ const [id,a]=el.dataset.mrsvp.split(':'), m=byId('meetings',id), sid=myStaffId(); if(!m||!sid) return; await patch('meetings',id,{responses:{...(m.responses||{}),[sid]:a}}); toast(a==='Yes'?'Thanks – marked as attending.':'Marked as cannot attend.'); return; }
+  if(el.dataset.medit){ const m=byId('meetings',el.dataset.medit); if(m&&canEditMeet(m)) meetDrawer(m); return; }
+  if(el.dataset.mcancel){ const m=byId('meetings',el.dataset.mcancel); if(!m||!canEditMeet(m)) return; if(await confirmBox(`Cancel "${m.title}" on ${fmtDT(m.start_iso)}? Everyone invited will get a cancellation email.`,'Cancel meeting',true)){ await patch('meetings',m.id,{status:'Cancelled',cancelled_by:me.name||'',cancelled_at:new Date().toISOString()}); logAct(`Cancelled meeting "${m.title}"`); toast('Meeting cancelled – invited staff are being told.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); } return; }
   if(el.dataset.paypr){ const p=byId('procurement',el.dataset.paypr); if(!p||!money()) return; const y=prPay(p);
     formDrawer(`Record payment – ${p.pr_no||''} ${p.item}`,FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),
       {date:today(),type:'Expense',category:prCat(p),amount:y.left||'',project_id:p.project_id||'',party:p.supplier||'',ref:p.pr_no||'',method:'Bank transfer',note:`${p.item}${p.qty?' – '+p.qty+' '+(p.unit||''):''} (purchase ${p.pr_no||''}, approved by ${p.approved_by||''})`},
@@ -1715,6 +1777,7 @@ document.addEventListener('click', async e=>{
     case 'exportBoq': exportBoq(byId('boqs',routeArg)); break;
     case 'delBoq': if(await confirmBox('Delete this BoQ?','Delete',true)){ await remove('boqs',routeArg); go('qs'); } break;
     case 'addRate': formDrawer('Add rate',[{k:'desc',label:'Item description',req:1,full:1},{k:'unit',label:'Unit',req:1},{k:'rate',label:'Rate (TZS)',type:'number',req:1},{k:'source',label:'Source (project / supplier quote)'}],{},async v=>{ await put('rates',null,v); }); break;
+    case 'addMeeting': meetDrawer(null); break;
     case 'addPR': formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / general')}:f),{},async v=>{ const n=S.procurement.length+1; await put('procurement',null,{...v,status:'Requested',pr_no:`PR-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`,requested_by:me.name||'',requested_uid:me.id||'',requested_at:new Date().toISOString()}); logAct(`Raised purchase request "${v.item}" ${tzs(v.est_cost)}`); toast('Request sent – approvers are being emailed.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); },{saveLabel:'Send for approval'}); break;
     case 'addSupplier': formDrawer('Add supplier',[{k:'name',label:'Supplier name',req:1},{k:'category',label:'Supplies'},{k:'phone',label:'Phone'},{k:'email',label:'Email'},{k:'tin',label:'TIN'},{k:'rating',label:'Rating',type:'select',options:['3','1','2','4','5']}],{},async v=>{ await put('suppliers',null,v); }); break;
     case 'exportProc': exportCsv('nordic-procurement.csv',['PR no','Item','Project','Qty','Unit','Est cost','Supplier','Status','Requested by','Approved by','Needed by'],S.procurement.map(p=>[p.pr_no,p.item,projName(p.project_id),p.qty,p.unit,p.est_cost,p.supplier,p.status,p.requested_by,p.approved_by,p.needed_by])); break;
