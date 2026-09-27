@@ -373,6 +373,10 @@
     const r = await fetch(CFG.url + '/functions/v1/tender-sync?force=1', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{}' });
     return r.ok ? r.json() : null;
   };
+  // email the approvers straight away when a purchase request is sent
+  window.NX_NOTIFY_PR = async () => {
+    try { const r = await fetch(CFG.url + '/functions/v1/tender-sync?pr=1', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{}' }); return r.ok ? r.json() : null; } catch (_) { return null; }
+  };
 
   /* ---------------- backups (administrators) ---------------- */
   const BK_URL = CFG.url + '/functions/v1/nexus-backup';
