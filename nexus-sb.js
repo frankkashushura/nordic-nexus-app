@@ -341,6 +341,30 @@
     }
   })();
   window.NX_OPEN_USERS = () => openUsers();
+  // tell people when a newer NEXUS has been published (browsers keep the old page for a while)
+  (() => {
+    const mine = ((document.querySelector('script[src*="nexus-sb.js"]') || {}).src || '').match(/[?&]v=(\d+)/)?.[1];
+    if (!mine) return;
+    let shown = false;
+    const check = async () => {
+      if (shown || document.hidden) return;
+      try {
+        const html = await fetch('index.html?check=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '');
+        const live = html.match(/nexus-sb\.js\?v=(\d+)/)?.[1];
+        if (live && +live > +mine) {
+          shown = true;
+          const bar = document.createElement('div');
+          bar.setAttribute('role', 'status');
+          bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:120;background:#182340;color:#fff;padding:10px 14px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center;font:14px Arial,sans-serif;max-width:calc(100vw - 32px)';
+          bar.innerHTML = '<span>A new version of NEXUS is ready.</span><button type="button" style="background:#539FDC;color:#0E1830;border:0;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer">Reload</button>';
+          bar.querySelector('button').onclick = async () => { try { await fetch('index.html', { cache: 'reload' }); await fetch('./', { cache: 'reload' }); } catch (_) {} location.reload(); };
+          document.body.append(bar);
+        }
+      } catch (_) {}
+    };
+    setTimeout(check, 20e3); setInterval(check, 5 * 60e3);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  })();
   // run the cloud tender sync straight away (used after a manual pipeline import)
   window.NX_SYNC_NOW = async () => {
     const r = await fetch(CFG.url + '/functions/v1/tender-sync?force=1', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{}' });
