@@ -233,7 +233,8 @@
         <div class="err" role="alert">${h(msg || '')}</div>
         <button class="pri" type="submit">Sign in</button>
         <button class="lnk" type="button" data-forgot>Forgot password?</button>
-        <p style="border-top:1px solid #D4DAE3;padding-top:10px;margin-top:4px">New to NEXUS? <button class="lnk" type="button" data-register>Sign up</button></p>`);
+        <p style="border-top:1px solid #D4DAE3;padding-top:10px;margin-top:4px">New to NEXUS? <button class="lnk" type="button" data-register>Sign up</button></p>
+        ${/NordicNexusAndroid/.test(navigator.userAgent) ? '' : '<p class="small" style="margin:0;color:#5A6580">Get the app: <a href="downloads/NORDIC-NEXUS.apk" download>Android</a> · <a href="downloads/NORDIC-NEXUS-Setup.exe" download>Windows</a></p>'}`);
       f.email.focus();
       f.querySelector('[data-register]').onclick = () => registerScreen().then(res);
       f.querySelector('[data-forgot]').onclick = () => { f.querySelector('.err').textContent = 'Ask a NEXUS administrator to set a new temporary password for you.'; };
@@ -382,8 +383,7 @@
       if (k === 'download') {
         const r = await bkCall('download=1'); const blob = await r.blob();
         const name = (r.headers.get('content-disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'nexus-backup.json.gz';
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
-        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        await downloads.save({ filename: name, data: blob });
         bkSay('Backup downloaded: ' + name);
       } else {
         const j = await (await bkCall('run=1')).json();

@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=32"></script>
+<script src="config.js?v=33"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=32"></script>
+<script src="nexus-sb.js?v=33"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1123,10 +1123,10 @@ function pageAbout(){
   return `<section class="blueprint"><div class="toolbar"><img alt="Nordic Construction logo" src="${LOGO}" style="height:44px"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
     <p class="muted">Built for ${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</p></section>
   <div class="card"><div class="hd"><h2>Install NEXUS as an app</h2><span class="chip good">Free · no store needed</span></div><div class="bd grid g3 small">
-    <div><div class="label">Android · Chrome</div><p>Open the NEXUS link, tap <b>⋮</b> → <b>Add to Home screen</b> → <b>Install</b>. NEXUS gets its own icon.</p></div>
+    <div><div class="label">Android</div><p><a href="downloads/NORDIC-NEXUS.apk" download><b>Download the NEXUS app (APK)</b></a>, open it and tap <b>Install</b> (allow “install unknown apps” for your browser if asked). Or in Chrome: <b>⋮</b> → <b>Add to Home screen</b>.</p></div>
     <div><div class="label">iPhone · Safari</div><p>Open the link, tap <b>Share</b> → <b>Add to Home Screen</b> → <b>Add</b>.</p></div>
-    <div><div class="label">Windows · Edge</div><p>Open the link, click <b>⋯</b> → <b>Apps</b> → <b>Install this site as an app</b>. It opens from the Start menu and taskbar like a program.</p></div>
-  </div><div class="bd small muted" style="padding-top:0">Each person signs in with their own NEXUS login, created by an administrator (your name at the top right → Manage logins). A Windows setup and an Android app are phase 2 below.</div></div>
+    <div><div class="label">Windows</div><p><a href="downloads/NORDIC-NEXUS-Setup.exe" download><b>Download NEXUS Setup</b></a> and run it: NEXUS gets its own icon on the Desktop and Start menu. If Windows shows “Windows protected your PC”, click <b>More info</b> → <b>Run anyway</b>.</p></div>
+  </div><div class="bd small muted" style="padding-top:0">Each person has their own NEXUS login: tap <b>Sign up</b> on the sign-in screen and an administrator approves you. The apps always open the latest NEXUS, so there is nothing to update.</div></div>
   <div class="grid g2">
     <div class="card"><div class="hd"><h2>Roadmap</h2></div><div class="bd">${ph.map(([n,w,t,d])=>`<div class="phase"><div><div class="n">${n}</div><div class="label">${w}</div></div><div><h3>${t}</h3><p class="small muted" style="margin-top:4px">${d}</p></div></div>`).join('')}</div></div>
     <div style="display:flex;flex-direction:column;gap:14px">
