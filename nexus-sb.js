@@ -382,6 +382,7 @@
     }
     // what the bell drawer shows: on / off / blocked / unsupported / setup
     window.NX_PUSH_STATE = () => {
+      if (window.NexusAndroid && !droid()) return 'oldapp';   // Android app older than v1.2 (no notification support)
       if (droid()) { const p = window.NexusAndroid.pushPermission ? window.NexusAndroid.pushPermission() : 'granted';
         return p === 'granted' ? (saved()?.on ? 'on' : 'wait') : 'off'; }
       if (!FB || !FB.apiKey) return 'setup';

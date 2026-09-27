@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=53"></script>
+<script src="config.js?v=54"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=53"></script>
-<script src="nexus-chat.js?v=53"></script>
+<script src="nexus-sb.js?v=54"></script>
+<script src="nexus-chat.js?v=54"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -699,6 +699,7 @@ function pushBar(){ const st=window.NX_PUSH_STATE?window.NX_PUSH_STATE():'setup'
   if(st==='on') return line('🔔','Notifications <b>on</b> for this device – chats, tenders, approvals and meetings arrive even when NEXUS is closed.',`<button class="btn sm" data-act="pushOff" ${busy?'disabled':''}>${sp}Turn off</button>`);
   if(st==='wait') return line('🔔','Connecting this phone for notifications…','');
   if(st==='blocked') return line('🔕','Notifications are blocked for NEXUS in this browser. Click the icon left of the web address → Notifications → Allow, then reload.','');
+  if(st==='oldapp') return line('📲','Update the NEXUS app to get notifications on this phone: open NEXUS in Chrome, tap <b>Get the app</b> on the sign-in page (or About), install version 1.2 over this one.','');
   if(st==='unsupported') return line('🔕','This browser cannot show notifications. Use Chrome or Edge, or the NEXUS Android app.','');
   return line('🔕','Get chats, new tenders, approvals and meetings on this device even when NEXUS is closed.',`<button class="btn sm pri" data-act="pushOn" ${busy?'disabled':''}>${sp}Turn on</button>`); }
 function inboxHtml(){ const L=inbox(), c={new:0,unread:0,read:0}; L.forEach(a=>c[a.st]++);
