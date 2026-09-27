@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=40"></script>
+<script src="config.js?v=41"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=40"></script>
+<script src="nexus-sb.js?v=41"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -510,6 +510,12 @@ function computeAlerts(){
     const f=daysLeft(t.date_found); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
+  // feedback to the person who raised a purchase request (last 7 days)
+  S.procurement.filter(p=>p.status!=='Requested' && !p.example && (p.requested_uid?p.requested_uid===me.id:(p.requested_by&&p.requested_by===me.name))).forEach(p=>{
+    const at=p.status==='Delivered'?p.delivered_at:p.status==='Ordered'?p.ordered_at:p.approved_at, by=p.status==='Delivered'?p.delivered_by:p.status==='Ordered'?p.ordered_by:p.approved_by;
+    if(!at || Date.now()-Date.parse(at)>7*864e5) return;
+    A.push({lvl:p.status==='Rejected'?'bad':'blue', kind:'Your purchase', text:`${p.pr_no||''} ${p.item} – ${p.status.toLowerCase()}`, sub:`${by?'by '+by+' · ':''}${fmtDT(at)}`, go:['route','procure'], sort:15, at});
+  });
   S.compliance.forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
   S.tasks.filter(t=>t.status!=='Done' && t.due && daysLeft(t.due+'T23:59')<0).forEach(t=>A.push({lvl:'bad', kind:'Overdue task', text:t.title, sub:`${staffName(t.assignee)} · due ${fmtD(t.due)}`, go:['route','tasks'], sort:5, at:t.due?t.due+'T23:59:00+03:00':''}));
   S.reports.filter(r=>r.hse && r.hse.trim() && !/^(none|nil|no)\b/i.test(r.hse.trim()) && daysLeft(r.date)>-7).forEach(r=>A.push({lvl:'bad', kind:'HSE', text:`HSE note on ${projName(r.project_id)}`, sub:r.hse.slice(0,90), go:['report',r.id], sort:2, at:r.updated_at||r.date}));
@@ -1640,7 +1646,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
   if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
-  if(el.dataset.pr){ const [id,st]=el.dataset.pr.split(':'); const p=byId('procurement',id); const up={status:st}; if(st==='Approved'||st==='Rejected'){ if(!await confirmBox(`${st==='Approved'?'Approve':'Reject'} ${p?.pr_no||''} "${p?.item||''}" (${tzs(p?.est_cost)})? After this the record is locked – nobody can edit or delete it.`,st==='Approved'?'Approve':'Reject',st==='Rejected')) return; up.approved_by=me.name||''; up.approved_at=new Date().toISOString(); } if(st==='Ordered'){ up.ordered_by=me.name||''; up.ordered_at=new Date().toISOString(); } if(st==='Delivered'){ up.delivered_by=me.name||''; up.delivered_at=new Date().toISOString(); } await patch('procurement',id,up); logAct(`Purchase request ${p?.pr_no||''} "${p?.item}" → ${st}`); toast(`Marked ${st.toLowerCase()}.`); return; }
+  if(el.dataset.pr){ const [id,st]=el.dataset.pr.split(':'); const p=byId('procurement',id); const up={status:st}; if(st==='Approved'||st==='Rejected'){ if(!await confirmBox(`${st==='Approved'?'Approve':'Reject'} ${p?.pr_no||''} "${p?.item||''}" (${tzs(p?.est_cost)})? After this the record is locked – nobody can edit or delete it.`,st==='Approved'?'Approve':'Reject',st==='Rejected')) return; up.approved_by=me.name||''; up.approved_at=new Date().toISOString(); } if(st==='Ordered'){ up.ordered_by=me.name||''; up.ordered_at=new Date().toISOString(); } if(st==='Delivered'){ up.delivered_by=me.name||''; up.delivered_at=new Date().toISOString(); } await patch('procurement',id,up); logAct(`Purchase request ${p?.pr_no||''} "${p?.item}" → ${st}`); toast(`Marked ${st.toLowerCase()} – ${esc(p?.requested_by||'the requester')} is being notified.`); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); return; }
   if(el.dataset.delrate){ await remove('rates',el.dataset.delrate); return; }
   if(el.dataset.delsup){ if(await confirmBox('Remove this supplier?','Remove',true)) await remove('suppliers',el.dataset.delsup); return; }
   if(el.dataset.delfin){ const f=byId('finance',el.dataset.delfin); if(await confirmBox(`Delete this ${f?.type?.toLowerCase()} of ${tzs(f?.amount)}? This cannot be undone.`,'Delete',true)){ await remove('finance',el.dataset.delfin); logAct(`Deleted finance record ${f?.category} ${tzs(f?.amount)}`);} return; }
@@ -1683,7 +1689,7 @@ document.addEventListener('click', async e=>{
     case 'exportBoq': exportBoq(byId('boqs',routeArg)); break;
     case 'delBoq': if(await confirmBox('Delete this BoQ?','Delete',true)){ await remove('boqs',routeArg); go('qs'); } break;
     case 'addRate': formDrawer('Add rate',[{k:'desc',label:'Item description',req:1,full:1},{k:'unit',label:'Unit',req:1},{k:'rate',label:'Rate (TZS)',type:'number',req:1},{k:'source',label:'Source (project / supplier quote)'}],{},async v=>{ await put('rates',null,v); }); break;
-    case 'addPR': formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / general')}:f),{},async v=>{ const n=S.procurement.length+1; await put('procurement',null,{...v,status:'Requested',pr_no:`PR-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`,requested_by:me.name||'',requested_at:new Date().toISOString()}); logAct(`Raised purchase request "${v.item}" ${tzs(v.est_cost)}`); toast('Request sent – approvers are being emailed.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); },{saveLabel:'Send for approval'}); break;
+    case 'addPR': formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / general')}:f),{},async v=>{ const n=S.procurement.length+1; await put('procurement',null,{...v,status:'Requested',pr_no:`PR-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`,requested_by:me.name||'',requested_uid:me.id||'',requested_at:new Date().toISOString()}); logAct(`Raised purchase request "${v.item}" ${tzs(v.est_cost)}`); toast('Request sent – approvers are being emailed.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); },{saveLabel:'Send for approval'}); break;
     case 'addSupplier': formDrawer('Add supplier',[{k:'name',label:'Supplier name',req:1},{k:'category',label:'Supplies'},{k:'phone',label:'Phone'},{k:'email',label:'Email'},{k:'tin',label:'TIN'},{k:'rating',label:'Rating',type:'select',options:['3','1','2','4','5']}],{},async v=>{ await put('suppliers',null,v); }); break;
     case 'exportProc': exportCsv('nordic-procurement.csv',['PR no','Item','Project','Qty','Unit','Est cost','Supplier','Status','Requested by','Approved by','Needed by'],S.procurement.map(p=>[p.pr_no,p.item,projName(p.project_id),p.qty,p.unit,p.est_cost,p.supplier,p.status,p.requested_by,p.approved_by,p.needed_by])); break;
     case 'addFin': formDrawer('Record transaction',FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),{date:today(),type:'Expense',method:'Bank transfer'},async v=>{ await put('finance',null,v); logAct(`Recorded ${v.type.toLowerCase()} ${tzs(v.amount)} – ${v.category}`); }); break;
