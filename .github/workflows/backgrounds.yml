@@ -1,0 +1,29 @@
+name: Page background photos
+# Downloads the HD construction photos listed in img/bg/sources.txt (free Unsplash licence)
+# and saves them as img/bg/<name>.jpg (1920x1080, web-optimised). Runs when the list changes.
+on:
+  push:
+    paths: ['img/bg/sources.txt']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download photos
+        run: |
+          set -e
+          grep -v '^#' img/bg/sources.txt | while read -r name id rest; do
+            [ -z "$name" ] && continue
+            curl -fsSL "https://images.unsplash.com/${id}?w=1920&h=1080&fit=crop&crop=entropy&q=75&fm=jpg" -o "img/bg/${name}.jpg"
+            echo "$name $(stat -c %s img/bg/${name}.jpg) bytes"
+          done
+      - name: Save to repository
+        run: |
+          git config user.name "nexus-bot"
+          git config user.email "nexus-bot@users.noreply.github.com"
+          git add img/bg/*.jpg
+          git diff --cached --quiet || git commit -m "Page background photos (HD, Unsplash)"
+          git push
