@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=50"></script>
+<script src="config.js?v=51"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=50"></script>
-<script src="nexus-chat.js?v=50"></script>
+<script src="nexus-sb.js?v=51"></script>
+<script src="nexus-chat.js?v=51"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -520,8 +520,8 @@ function computeAlerts(){
   const A=[];
   openTenders().forEach(t=>{
     const d=daysLeft(t.deadline);
-    if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)});
-    const f=daysLeft(t.date_found); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
+    const f=daysLeft(t.date_found);
+    if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:(f!=null&&f>-2)?'New tender':'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)}); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
@@ -678,7 +678,8 @@ function inbox(){
   const now=new Date().toISOString(), base=UI.nsBase||NS.lastOpen||now; let dirty=false;
   const L=computeAlerts().map(a=>{ const key=nsKeyOf(a);
     if(nsReady&&!NS.seen[key]){ NS.seen[key]=now; dirty=true; }
-    let at=nsIso(a.at); if(!at||at>now) at=NS.seen[key]||now;
+    // time = when it happened, or when it first reached this person if later (e.g. a tender added today that closes in 5 days)
+    let at=nsIso(a.at); const sn=NS.seen[key]||now; if(!at||at>now||sn>at) at=sn;
     const st=NS.read[key]?'read':(at>base?'new':'unread');
     return {...a,key,at,st}; });
   if(dirty) nsSave();
