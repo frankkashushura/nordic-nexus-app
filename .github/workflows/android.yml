@@ -1,0 +1,33 @@
+# Builds the NORDIC NEXUS Android app (unsigned). The company release key never goes to GitHub:
+# the APK is downloaded from the "android-build" release, signed on a company computer and then published in downloads/.
+name: Android app
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build release APK (unsigned)
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+      - name: Publish unsigned APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/build/outputs/apk/release/app-release-unsigned.apk NORDIC-NEXUS-unsigned.apk
+          ls -la NORDIC-NEXUS-unsigned.apk
+          gh release delete android-build -y --cleanup-tag || true
+          gh release create android-build NORDIC-NEXUS-unsigned.apk --target "$GITHUB_SHA" --prerelease \
+            --title "Android build (unsigned – sign before publishing)" --notes "Built from $GITHUB_SHA. Not installable until signed with the company key."
