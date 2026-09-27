@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=49"></script>
+<script src="config.js?v=50"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=49"></script>
-<script src="nexus-chat.js?v=49"></script>
+<script src="nexus-sb.js?v=50"></script>
+<script src="nexus-chat.js?v=50"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -542,7 +542,9 @@ function computeAlerts(){
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
   if(isAdmin && window.NX_BACKUP_CARD && S.backup!==undefined){ const bk=S.backup, age=bk&&bk.last_ok?(Date.now()-Date.parse(bk.last_ok))/36e5:1e9; if(age>48||bk?.error) A.push({lvl:'bad', kind:'Backup', text:bk?.error?'The last automatic backup failed':'No backup in the last 2 days', sub:bk?.error?String(bk.error).slice(0,90):'Company & Security → Backups → Back up now', go:['route','settings'], sort:2}); else if(bk?.mail_error) A.push({lvl:'warn', kind:'Backup', text:'Backup saved, but the email copy was not sent', sub:String(bk.mail_error).slice(0,90), go:['route','settings'], sort:6}); }
   if(isAdmin && window.NX_FILES_BK!==undefined && S.backup && (+S.backup.files||0)>0){ const f=window.NX_FILES_BK, fa=f&&f.last_at?(Date.now()-Date.parse(f.last_at))/864e5:1e9; if(fa>7) A.push({lvl:'warn', kind:'Backup', text:f&&f.last_at?`Photos & documents last backed up ${Math.floor(fa)} days ago`:'Photos & documents have never been backed up', sub:'Company & Security → Backups → Download photos & documents (.zip), then save it in Google Drive', go:['route','settings'], sort:7}); }
-  if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3});
+  if(isAdmin && window.NX_PENDING>0){ const PL=window.NX_PENDING_LIST;
+    if(Array.isArray(PL)&&PL.length) PL.forEach(u=>A.push({lvl:'warn', kind:'Access request', text:`${u.name||(u.email||'').split('@')[0]||'Someone'}${u.position?' ('+u.position+')':''} asked to join NEXUS`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3, at:u.requested_at, nk:'access|'+u.user_id}));
+    else A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3}); }
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
   return A.sort((a,b)=>a.sort-b.sort);
@@ -671,7 +673,7 @@ function nsSave(){ clearTimeout(nsSaveT); nsSaveT=setTimeout(async()=>{
   try{ localStorage.setItem('nx_notif',JSON.stringify(body)); }catch(_){}
   try{ if(db&&nsPath()) await db.doc(nsPath()).set(body); }catch(_){}
 },700); }
-const nsKeyOf=a=>(a.kind+'|'+a.go.join(':')+'|'+a.text).slice(0,180);
+const nsKeyOf=a=>a.nk||(a.kind+'|'+a.go.join(':')+'|'+a.text).slice(0,180);
 function inbox(){
   const now=new Date().toISOString(), base=UI.nsBase||NS.lastOpen||now; let dirty=false;
   const L=computeAlerts().map(a=>{ const key=nsKeyOf(a);

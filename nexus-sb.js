@@ -338,8 +338,11 @@
     sb.auth.onAuthStateChange((ev, s2) => { if (ev === 'SIGNED_OUT') location.reload(); if (s2) session = s2; });
     setTimeout(attachMenu, 300);
     if (profile.role === 'admin') {
-      const count = async () => { try { const { count: n } = await sb.from('profiles').select('user_id', { count: 'exact', head: true }).eq('pending', true); if (window.NX_PENDING !== (n || 0)) { window.NX_PENDING = n || 0; window.renderAll?.(); } } catch (_) {} };
-      count(); setInterval(count, 5 * 60e3);
+      // who is waiting for approval – one notification per person (so a new sign-up is always a NEW alert)
+      const count = async () => { try { const { data } = await sb.from('profiles').select('user_id,name,email,position,requested_at').eq('pending', true).order('requested_at', { ascending: false }); const L = data || [], sig = L.map(u => u.user_id).join(',');
+        if (window.NX_PENDING !== L.length || window.NX_PENDING_SIG !== sig) { window.NX_PENDING = L.length; window.NX_PENDING_SIG = sig; window.NX_PENDING_LIST = L; window.renderAll?.(); } } catch (_) {} };
+      window.NX_PENDING_REFRESH = count; count(); setInterval(count, 60e3);
+      addEventListener('focus', count); document.addEventListener('visibilitychange', () => { if (!document.hidden) count(); });
       loadFilesBk();
     }
   })();
@@ -569,11 +572,11 @@
       box.querySelector('[data-close]').onclick = () => w.remove();
       box.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => {
         const id = b.dataset.approve, role = box.querySelector(`[data-aprole="${id}"]`).value;
-        try { await adminCall({ action: 'approve', id, role }); await render(); say(`Approved as ${ROLE_TXT[role]}. They can sign in now.`); window.NX_PENDING = Math.max(0, (window.NX_PENDING || 1) - 1); window.renderAll?.(); } catch (e) { say(e.message); }
+        try { await adminCall({ action: 'approve', id, role }); await render(); say(`Approved as ${ROLE_TXT[role]}. They can sign in now.`); window.NX_PENDING_REFRESH?.(); } catch (e) { say(e.message); }
       });
       box.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
         if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Click again to reject'; return; }
-        try { await adminCall({ action: 'reject', id: b.dataset.reject }); await render(); say('Sign-up rejected and removed.'); window.NX_PENDING = Math.max(0, (window.NX_PENDING || 1) - 1); window.renderAll?.(); } catch (e) { say(e.message); }
+        try { await adminCall({ action: 'reject', id: b.dataset.reject }); await render(); say('Sign-up rejected and removed.'); window.NX_PENDING_REFRESH?.(); } catch (e) { say(e.message); }
       });
       box.querySelectorAll('[data-role]').forEach(s => s.onchange = async () => {
         try { await adminCall({ action: 'set_role', id: s.dataset.role, role: s.value }); say('Role updated.'); } catch (e) { say(e.message); render(); }
