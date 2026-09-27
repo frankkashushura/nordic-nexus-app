@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=46"></script>
+<script src="config.js?v=47"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=46"></script>
+<script src="nexus-sb.js?v=47"></script>
+<script src="nexus-chat.js?v=47"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -293,6 +294,7 @@ ul.clean li{margin:3px 0}
   .tabbar button{all:unset;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--steel-muted);font-size:10.5px;cursor:pointer}
   .tabbar button[aria-current="page"]{color:var(--accent)}
   .tabbar svg{width:20px;height:20px}
+  .tabbar button{position:relative} .tabbar .tcnt{position:absolute;top:2px;left:calc(50% + 6px);background:var(--good);color:#fff;border-radius:9px;padding:0 5px;font:600 10px var(--f-mono)}
   .hide-m{display:none}
   .kv{grid-template-columns:1fr}
   .kv dt{margin-top:6px}
@@ -333,7 +335,7 @@ COLS.forEach(c => S[c] = []);
 const loaded = new Set();
 let db=null, assets=null, sample=null, user=null, downloads=null;
 let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, canWrite=true;
-let route = 'home', routeArg = null;
+let route = 'home', routeArg = null; window.NX_ROUTE=()=>route;
 let drawer = null;           // {type, id, form:bool}
 const UI = {tq:'', tscreen:'Open', tcat:'All', rproj:'All', fproj:'All', ftype:'All', ptab:'board', qtab:'boqs', staffq:'', chat:[], busy:{}};
 
@@ -398,6 +400,7 @@ const ICON = {
   finance:'<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
   procure:'<path d="M3 3h2l2.5 12h11L21 7H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>',
   staff:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M16 4a3.5 3.5 0 010 7M22 21c0-3-1.5-5-4-5.7"/>',
+  chat:'<path d="M21 12a8 8 0 01-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1121 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>',
   meetings:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="9" cy="15" r="1.3"/><circle cx="15" cy="15" r="1.3"/>',
   tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/>',
   docs:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
@@ -415,6 +418,7 @@ const PAGES = [
   {k:'home', t:'Home'},
   {k:'dash', t:'Command Centre'},
   {k:'alerts', t:'Alerts & Notifications'},
+  {k:'chat', t:'Chat'},
   {k:'report', t:'Weekly Report'},
   {g:'Winning work'},
   {k:'tenders', t:'Tender Radar'},
@@ -434,7 +438,7 @@ const PAGES = [
   {k:'settings', t:'Company & Security'},
   {k:'about', t:'About NEXUS'}
 ];
-const TABS = ['home','tenders','projects','reports','more'];
+const TABS = ['home','chat','projects','reports','more'];
 /* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
 const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
 const MONEY_PAGES=['certs','report','finance'];
@@ -1093,6 +1097,8 @@ async function aiFinance(){
   if(r){ UI.finRisk={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI finance risk check: '+r.level); }
 }
 
+/* ===================== CHAT (private 1-to-1; module in nexus-chat.js) ===================== */
+function pageChat(){ return window.NX_CHAT_MOUNT?'<div id="chatHost"></div>':'<div class="card empty">Chat is available in the NEXUS app (sign in online).</div>'; }
 /* ===================== MEETINGS ===================== */
 const MEET_PLAT=[{k:'zoom',n:'Zoom',re:/zoom\.us|zoom\.com/i,make:'https://zoom.us/meeting/schedule',btn:'Create Zoom meeting'},{k:'meet',n:'Google Meet',re:/meet\.google\.com/i,make:'https://meet.google.com/new',btn:'New Google Meet'},
   {k:'teams',n:'Microsoft Teams',re:/teams\.microsoft\.com|teams\.live\.com/i,make:'https://teams.microsoft.com/l/meeting/new',btn:'New Teams meeting'},{k:'jitsi',n:'NEXUS video room (Jitsi)',re:/meet\.jit\.si|8x8\.vc/i,make:'jitsi',btn:'Free NEXUS room'},
@@ -1655,18 +1661,19 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
 function renderNav(){
   const alerts=nsUnread();
-  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}</button>`).join('');
-  $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span></button>`}).join('');
+  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
+  $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join('');
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
 function renderView(force=false){
   const v=$('#view'), a=document.activeElement;
+  if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
   if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
@@ -1675,6 +1682,7 @@ function renderView(force=false){
   const banner = !db ? `<div class="banner warn"><div><b>Working offline.</b> The NEXUS database is not connected in this view, so nothing you enter is saved.</div></div>` : '';
   v.innerHTML=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
   restoreInputs(v,snap, false);
+  if(route==='chat'&&window.NX_CHAT_MOUNT) window.NX_CHAT_MOUNT($('#chatHost'));
 }
 function renderDrawer(){
   const o=$('#overlay'); if(!drawer){ o.innerHTML=''; return; }
