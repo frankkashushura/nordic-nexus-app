@@ -1,0 +1,19 @@
+{
+  "project_info": {
+    "project_number": "246973686083",
+    "project_id": "nordic-nexus",
+    "storage_bucket": "nordic-nexus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:246973686083:android:4b19207d5d41bffeb14ff6",
+        "android_client_info": { "package_name": "tz.co.nordictz.nexus" }
+      },
+      "oauth_client": [],
+      "api_key": [ { "current_key": "AIzaSyBAGm6mcJ_vAVKRuF5drdIzEIu0PdYHRjE" } ],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    }
+  ],
+  "configuration_version": "1"
+}

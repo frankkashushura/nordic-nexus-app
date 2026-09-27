@@ -1,0 +1,38 @@
+// NORDIC NEXUS Android app (WebView of the live NEXUS + push notifications). Built by .github/workflows/android.yml.
+plugins {
+    id 'com.android.application' version '8.5.2'
+    id 'com.google.gms.google-services' version '4.4.2'
+}
+android {
+    namespace 'tz.co.nordictz.nexus'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'tz.co.nordictz.nexus'
+        minSdk 21
+        targetSdk 34
+        versionCode 3
+        versionName '1.2'
+    }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['.']
+            java.includes = ['*.java']
+            res.srcDirs = ['res']
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // not signed here: the company release key never goes to GitHub – the APK is signed afterwards
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false; checkReleaseBuilds false }
+}
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
+}
