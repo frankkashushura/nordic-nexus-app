@@ -26,7 +26,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/build/outputs/apk/release/app-release-unsigned.apk NORDIC-NEXUS-unsigned.apk
+          find android -name '*.apk' -print
+          APK=$(find android -name '*.apk' -path '*release*' | head -1)
+          cp "$APK" NORDIC-NEXUS-unsigned.apk
           ls -la NORDIC-NEXUS-unsigned.apk
           gh release delete android-build -y --cleanup-tag || true
           gh release create android-build NORDIC-NEXUS-unsigned.apk --target "$GITHUB_SHA" --prerelease \
