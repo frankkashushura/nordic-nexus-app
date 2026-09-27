@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=51"></script>
+<script src="config.js?v=52"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=51"></script>
-<script src="nexus-chat.js?v=51"></script>
+<script src="nexus-sb.js?v=52"></script>
+<script src="nexus-chat.js?v=52"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -657,19 +657,20 @@ function pageDash(){
   </div>`;
 }
 /* ---------- notification inbox: newest first, New / Unread / Read, remembered per person ---------- */
-const NS={lastOpen:'',seen:{},read:{}}; let nsReady=false, nsSaveT=null; UI.nf=UI.nf||'all';
+const NS={lastOpen:'',seen:{},read:{},hid:{}}; let nsReady=false, nsSaveT=null; UI.nf=UI.nf||'all';
 const nsIso=v=>{ const t=Date.parse(v); return isNaN(t)?'':new Date(t).toISOString(); };
 const nsPath=()=>me&&me.id?`data/users/${me.id}/notif`:'';
 async function nsLoad(){ let d=null;
   try{ if(db&&nsPath()){ const sn=await db.doc(nsPath()).get(); if(sn.exists) d=sn.data(); } }catch(_){}
   if(!d){ try{ d=JSON.parse(localStorage.getItem('nx_notif')||'null'); }catch(_){} }
-  if(d){ NS.lastOpen=d.lastOpen||''; NS.seen=d.seen||{}; NS.read=d.read||{}; }
+  if(d){ NS.lastOpen=d.lastOpen||''; NS.seen=d.seen||{}; NS.read=d.read||{}; NS.hid=d.hid||{}; }
   if(!NS.lastOpen) NS.lastOpen=new Date(0).toISOString();
   nsReady=true; renderAll(); }
 function nsSave(){ clearTimeout(nsSaveT); nsSaveT=setTimeout(async()=>{
   const live=new Set(computeAlerts().map(nsKeyOf)), cut=Date.now()-60*864e5;
   for(const m of [NS.seen,NS.read]) for(const k of Object.keys(m)) if(!live.has(k)&&Date.parse(m[k])<cut) delete m[k];
-  const body={lastOpen:NS.lastOpen,seen:NS.seen,read:NS.read};
+  for(const k of Object.keys(NS.hid)) if(!live.has(k)&&Date.parse(NS.hid[k].at)<cut) delete NS.hid[k];
+  const body={lastOpen:NS.lastOpen,seen:NS.seen,read:NS.read,hid:NS.hid};
   try{ localStorage.setItem('nx_notif',JSON.stringify(body)); }catch(_){}
   try{ if(db&&nsPath()) await db.doc(nsPath()).set(body); }catch(_){}
 },700); }
@@ -677,22 +678,25 @@ const nsKeyOf=a=>a.nk||(a.kind+'|'+a.go.join(':')+'|'+a.text).slice(0,180);
 function inbox(){
   const now=new Date().toISOString(), base=UI.nsBase||NS.lastOpen||now; let dirty=false;
   const L=computeAlerts().map(a=>{ const key=nsKeyOf(a);
+    // cleared by this person: stays hidden unless it has become more urgent (e.g. deadline now very close)
+    if(NS.hid[key]){ const R={bad:3,warn:2}; if((R[a.lvl]||1)<=(R[NS.hid[key].l]||1)) return null; delete NS.hid[key]; delete NS.read[key]; NS.seen[key]=now; dirty=true; }
     if(nsReady&&!NS.seen[key]){ NS.seen[key]=now; dirty=true; }
     // time = when it happened, or when it first reached this person if later (e.g. a tender added today that closes in 5 days)
     let at=nsIso(a.at); const sn=NS.seen[key]||now; if(!at||at>now||sn>at) at=sn;
     const st=NS.read[key]?'read':(at>base?'new':'unread');
-    return {...a,key,at,st}; });
+    return {...a,key,at,st}; }).filter(Boolean);
   if(dirty) nsSave();
   return L.sort((x,y)=>y.at.localeCompare(x.at));
 }
 function nsOpened(){ UI.nsBase=NS.lastOpen; NS.lastOpen=new Date().toISOString(); nsSave(); }
+function nsHide(keys){ const now=new Date().toISOString(), lv={}; computeAlerts().forEach(a=>lv[nsKeyOf(a)]=a.lvl); keys.forEach(k=>{ NS.hid[k]={l:lv[k]||'',at:now}; }); nsSave(); renderAll(); toast(keys.length>1?`${keys.length} notifications cleared.`:'Notification cleared.'); }
 function nsMarkRead(keys){ const now=new Date().toISOString(); keys.forEach(k=>{ if(!NS.read[k]) NS.read[k]=now; }); nsSave(); renderAll(); }
 function ago(iso){ const m=(Date.now()-Date.parse(iso))/6e4; if(!(m>=0)) return fmtD(iso); if(m<1) return 'just now'; if(m<60) return Math.round(m)+' min ago'; if(m<1440) return Math.round(m/60)+' h ago'; if(m<10080) return Math.round(m/1440)+' d ago'; return fmtD(iso); }
 function alertRow(a){ const [k,v]=a.go, st=a.st||'unread';
-  return `<div class="li nt-${st}" style="cursor:pointer" data-nk="${esc(a.key||'')}" ${k==='route'?`data-go="${v}"`:`data-open="${k}:${esc(v)}"`}><div class="stripe ${a.lvl}"></div><div class="grow"><div class="toolbar" style="gap:6px"><span class="label">${esc(a.kind)}</span>${st==='new'?'<span class="chip blue">New</span>':st==='unread'?'<span class="ndot" title="Unread"></span>':'<span class="sub">Read</span>'}<div class="sp"></div>${a.at?`<span class="sub">${ago(a.at)}</span>`:''}</div><div class="ttl2">${esc(a.text)}</div><div class="sub">${esc(a.sub)}</div></div></div>`; }
+  return `<div class="li nt-${st}" style="cursor:pointer" data-nk="${esc(a.key||'')}" ${k==='route'?`data-go="${v}"`:`data-open="${k}:${esc(v)}"`}><div class="stripe ${a.lvl}"></div><div class="grow"><div class="toolbar" style="gap:6px"><span class="label">${esc(a.kind)}</span>${st==='new'?'<span class="chip blue">New</span>':st==='unread'?'<span class="ndot" title="Unread"></span>':'<span class="sub">Read</span>'}<div class="sp"></div>${a.at?`<span class="sub">${ago(a.at)}</span>`:''}<button class="iconbtn" data-nclear="${esc(a.key||'')}" title="Clear this notification" aria-label="Clear this notification" style="width:26px;height:26px;margin:-4px -4px -4px 2px;font-size:15px;line-height:1">✕</button></div><div class="ttl2">${esc(a.text)}</div><div class="sub">${esc(a.sub)}</div></div></div>`; }
 function inboxHtml(){ const L=inbox(), c={new:0,unread:0,read:0}; L.forEach(a=>c[a.st]++);
   const F=UI.nf, show=F==='all'?L:L.filter(a=>a.st===F), open=L.filter(a=>a.st!=='read');
-  return `<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}</div>
+  return `<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
   <div class="list">${show.map(alertRow).join('')||`<div class="empty">${F==='all'?'Nothing needs attention right now.':'No '+F+' notifications.'}</div>`}</div>`; }
 function nsUnread(){ return inbox().filter(a=>a.st!=='read').length; }
 function barChart(rows,max){
@@ -1715,11 +1719,12 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
-  if(el.dataset.nf){ if(el.dataset.nf==='markall') nsMarkRead(inbox().filter(a=>a.st!=='read').map(a=>a.key)); else { UI.nf=el.dataset.nf; renderAll(); } return; }
+  if(el.dataset.nclear!==undefined){ e.stopPropagation(); if(el.dataset.nclear) nsHide([el.dataset.nclear]); return; }
+  if(el.dataset.nf){ if(el.dataset.nf==='clearread'){ nsHide(inbox().filter(a=>a.st==='read').map(a=>a.key)); return; } if(el.dataset.nf==='markall') nsMarkRead(inbox().filter(a=>a.st!=='read').map(a=>a.key)); else { UI.nf=el.dataset.nf; renderAll(); } return; }
   if(el.dataset.nk) nsMarkRead([el.dataset.nk]);
   if(el.dataset.go==='alerts'&&route!=='alerts') nsOpened();
   if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } if(el.dataset.go==='logins'){ try{ closeDrawer(); }catch(_){} if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); return; } go(el.dataset.go); return; }
