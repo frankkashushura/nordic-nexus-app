@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=58"></script>
+<script src="config.js?v=59"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=58"></script>
-<script src="nexus-chat.js?v=58"></script>
+<script src="nexus-sb.js?v=59"></script>
+<script src="nexus-chat.js?v=59"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1333,7 +1333,7 @@ function pageAbout(){
         <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd class="mono">${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
         <dt>Vision</dt><dd>${esc(c.vision)}</dd><dt>Core values</dt><dd>${esc(c.values)}</dd></dl></div></div>
       <div class="card"><div class="hd"><h2>How the scanner connects</h2></div><div class="bd small muted">The cloud Tender Scanner (GitHub Actions) runs every 5–15 minutes and checks 11 sources – NeST every 5 minutes, DDO and TANROADS every 15, World Bank every 30 and the rest hourly: NeST (every Mainland public entity, including TANESCO, TAA and NHC), World Bank, AfDB (Tanzania), DDO Tenders (newspaper, private, donor and NGO tenders), TANROADS, TARURA, TPA, RUWASA, Bank of Tanzania, TEITI and CRDB. ZPPDA Zanzibar and NMB are switched off until their sites can be read, updates the Pipeline workbook, creates a folder per new Pursue/Check tender and sends the alerts. Every 10 minutes from 06:00 to 23:00 NEXUS copies new tenders and changed deadlines from the scanner, keeping all edits made in NEXUS, writes AI bid advice and sends the email alerts.</div></div>
-    </div></div>`;
+    </div><p class="small muted" style="margin-top:12px">Page background photos: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> (free licence) – photographers listed in img/bg/sources.txt.</p></div>`;
 }
 
 /* ===================== ASK NEXUS ===================== */
@@ -2221,7 +2221,7 @@ $('#askBtn').onclick=()=>openDrawer('ask');
 $('#menuBtn').onclick=()=>{ $('#side').classList.add('open'); const s=document.createElement('div'); s.className='scrim'; s.onclick=()=>{ $('#side').classList.remove('open'); s.remove(); }; document.body.append(s); };
 
 /* v58: realistic page backgrounds – a Nordic project photo behind the top of each page */
-const PG_PHOTO={dash:'flyover',alerts:'scaffold',report:'tower',tenders:'nmb-loliondo',qs:'crdb-tegeta',projects:'flyover',pm:'gabion',reports:'scaffold',certs:'tower',procure:'uyole',plant:'gabion',tasks:'msomera',meetings:'crdb-tegeta',finance:'nmb-loliondo',staff:'msomera',docs:'tower',settings:'uyole',about:'flyover',project:'uyole'};
+const PG_PHOTO=new Set(['dash','alerts','report','tenders','qs','projects','project','pm','reports','certs','procure','plant','tasks','meetings','finance','staff','docs','settings','about']);   // img/bg/<page>.jpg – HD photos from Unsplash (list: img/bg/sources.txt)
 function pgPhotoUrl(){
   if(route==='home'||route==='chat') return '';
   if(route==='project'&&routeArg){   // the project's own latest site photo
@@ -2229,7 +2229,7 @@ function pgPhotoUrl(){
     const ref=r&&r.photos[0];
     if(ref){ if(ref.startsWith('asset:')) return ref.slice(6); const id=ref.slice(3); if(photoCache[id]) return photoCache[id]; photoTag(ref); }
   }
-  return PG_PHOTO[route]?`img/${PG_PHOTO[route]}.jpg`:'';
+  return PG_PHOTO.has(route)?`img/bg/${route}.jpg`:'';
 }
 let pgLast=null;
 function setPageBg(){
