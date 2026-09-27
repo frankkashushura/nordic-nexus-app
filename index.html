@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=31"></script>
+<script src="config.js?v=32"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=31"></script>
+<script src="nexus-sb.js?v=32"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -516,6 +516,7 @@ function computeAlerts(){
   (money()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
+  if(isAdmin && window.NX_BACKUP_CARD && S.backup!==undefined){ const bk=S.backup, age=bk&&bk.last_ok?(Date.now()-Date.parse(bk.last_ok))/36e5:1e9; if(age>48||bk?.error) A.push({lvl:'bad', kind:'Backup', text:bk?.error?'The last automatic backup failed':'No backup in the last 2 days', sub:bk?.error?String(bk.error).slice(0,90):'Company & Security → Backups → Back up now', go:['route','settings'], sort:2}); else if(bk?.mail_error) A.push({lvl:'warn', kind:'Backup', text:'Backup saved, but the email copy was not sent', sub:String(bk.mail_error).slice(0,90), go:['route','settings'], sort:6}); }
   if(isAdmin && window.NX_PENDING>0) A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3});
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
@@ -1106,6 +1107,7 @@ function pageSettings(){
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
       <li><b>No passwords stored.</b> NeST and bank logins never go into NEXUS.</li></ul>
       <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.${isAdmin?' <button class="btn sm pri" data-go="logins" style="margin-left:6px">Manage logins</button>':''}</p></div></div>
+    ${isAdmin&&window.NX_BACKUP_CARD?window.NX_BACKUP_CARD(S.backup):''}
     <div class="card"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:420px;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
     <div class="card"><div class="hd"><h2>Appearance</h2></div><div class="bd toolbar"><div class="seg">${['System','Light','Dark'].map(t=>`<button data-thm="${t}" aria-pressed="${(UI.theme||'System')===t}">${t}</button>`).join('')}</div></div></div>
   </div></div>`;
@@ -1759,6 +1761,7 @@ function applyTheme(){ const t=UI.theme||'System'; if(t==='System') document.doc
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
   for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('settings/company').onSnapshot(s=>{ S.company=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('activity/'+new Date().toISOString().slice(0,7)).onSnapshot(s=>{ S.activity=s.exists?(s.data().entries||[]):[]; if(route==='settings') renderAll(); }, ()=>{});

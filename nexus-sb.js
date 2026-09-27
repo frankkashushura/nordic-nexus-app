@@ -340,6 +340,59 @@
   })();
   window.NX_OPEN_USERS = () => openUsers();
 
+  /* ---------------- backups (administrators) ---------------- */
+  const BK_URL = CFG.url + '/functions/v1/nexus-backup';
+  const bkEsc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const bkWhen = v => { const t = Date.parse(v || ''); return t ? new Date(t).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'; };
+  const bkSay = m => (window.toast ? window.toast(m) : alert(m));
+  let bkBusy = '';
+  window.NX_BACKUP_CARD = bk => {
+    const age = bk && bk.last_ok ? (Date.now() - Date.parse(bk.last_ok)) / 36e5 : 1e9;
+    const chip = !bk ? '<span class="chip amb">No backup yet</span>' : bk.error ? '<span class="chip bad">Last backup failed</span>'
+      : age > 48 ? '<span class="chip bad">Late</span>' : '<span class="chip good">Protected</span>';
+    const b = (k, t, pri) => `<button class="btn sm ${pri ? 'pri' : ''}" data-nxbk="${k}" ${bkBusy ? 'disabled' : ''}>${bkBusy === k ? '<span class="spin"></span> ' : ''}${t}</button>`;
+    return `<div class="card"><div class="hd"><h2>Backups</h2>${chip}</div><div class="bd small">
+      <p>Every night at 02:15 NEXUS saves a full copy of all records and logins, keeps it for 35 days (plus the 1st of every month for good), and emails the file to the administrators.</p>
+      <p>Last backup: <b>${bkWhen(bk && bk.last_ok)}</b>${bk && bk.records ? ` · ${bk.records} records · ${Math.max(1, Math.round((bk.size || 0) / 1024))} KB · ${bk.stored || 0} copies kept · ${bk.emailed ? 'emailed' : '<b>not emailed</b>'}` : ''}${bk && bk.error ? `<br><span style="color:var(--bad)">${bkEsc(bk.error)}</span>` : ''}</p>
+      <p class="muted">Photos and documents stay in NEXUS file storage and are not inside the backup file.</p>
+      <div class="toolbar">${b('download', 'Download backup now', true)}${b('run', 'Back up + email now')}${b('restore', 'Restore from file…')}</div></div></div>`;
+  };
+  async function bkCall(q, body) {
+    const { data: { session: s } } = await sb.auth.getSession();
+    const r = await fetch(BK_URL + '?' + q, { method: 'POST', headers: { Authorization: 'Bearer ' + (s && s.access_token), apikey: CFG.key }, body: body || '{}' });
+    if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (_) {} throw new Error(m || 'Backup service error ' + r.status); }
+    return r;
+  }
+  async function bkDo(k) {
+    if (bkBusy) return;
+    if (k === 'restore') {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.gz,.json,application/gzip,application/json';
+      inp.onchange = async () => {
+        const f = inp.files && inp.files[0]; if (!f) return;
+        const ok = window.confirmBox ? await window.confirmBox(`Restore NEXUS from "${f.name}"? Every record in the file is put back as it was in the backup. Records created after the backup are kept. A safety copy of today's data is saved first.`, 'Restore', true) : confirm('Restore NEXUS from ' + f.name + '?');
+        if (!ok) return;
+        bkBusy = 'restore'; window.renderAll?.();
+        try { const r = await bkCall('restore=1', await f.arrayBuffer()); const j = await r.json(); bkSay(`Restored ${j.restored} records from the backup of ${bkWhen(j.from)}.`); }
+        catch (e) { bkSay(e.message); } finally { bkBusy = ''; window.renderAll?.(); }
+      };
+      inp.click(); return;
+    }
+    bkBusy = k; window.renderAll?.();
+    try {
+      if (k === 'download') {
+        const r = await bkCall('download=1'); const blob = await r.blob();
+        const name = (r.headers.get('content-disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'nexus-backup.json.gz';
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        bkSay('Backup downloaded: ' + name);
+      } else {
+        const j = await (await bkCall('run=1')).json();
+        bkSay(j.ok ? `Backup saved (${j.records} records)${j.emailed ? ' and emailed' : ''}.` : 'Backup failed: ' + j.error);
+      }
+    } catch (e) { bkSay(e.message); } finally { bkBusy = ''; window.renderAll?.(); }
+  }
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-nxbk]'); if (b) { e.preventDefault(); bkDo(b.dataset.nxbk); } });
+
   /* ================= account menu + login management ================= */
   const ROLE_TXT = { admin: 'Administrator', finance: 'Finance', staff: 'Staff', viewer: 'Viewer (read only)' };
   window.NX_ROLE = () => ROLE_TXT[profile?.role] || '';
