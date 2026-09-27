@@ -337,6 +337,7 @@
     if (profile.role === 'admin') {
       const count = async () => { try { const { count: n } = await sb.from('profiles').select('user_id', { count: 'exact', head: true }).eq('pending', true); if (window.NX_PENDING !== (n || 0)) { window.NX_PENDING = n || 0; window.renderAll?.(); } } catch (_) {} };
       count(); setInterval(count, 5 * 60e3);
+      loadFilesBk();
     }
   })();
   window.NX_OPEN_USERS = () => openUsers();
@@ -346,8 +347,14 @@
   const bkEsc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const bkWhen = v => { const t = Date.parse(v || ''); return t ? new Date(t).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'; };
   const bkSay = m => (window.toast ? window.toast(m) : alert(m));
-  let bkBusy = '';
+  let bkBusy = '', bkProg = '';
+  const bkSize = n => { n = +n || 0; return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; };
+  window.NX_FILES_BK = undefined;   // status of the last photo/document download (system/files_backup)
+  async function loadFilesBk() {
+    try { const { data } = await sb.from('docs').select('data').eq('col', 'system').eq('id', 'files_backup').maybeSingle(); window.NX_FILES_BK = data ? data.data : null; window.renderAll?.(); } catch (_) {}
+  }
   window.NX_BACKUP_CARD = bk => {
+    const fb = window.NX_FILES_BK;
     const age = bk && bk.last_ok ? (Date.now() - Date.parse(bk.last_ok)) / 36e5 : 1e9;
     const chip = !bk ? '<span class="chip amb">No backup yet</span>' : bk.error ? '<span class="chip bad">Last backup failed</span>'
       : age > 48 ? '<span class="chip bad">Late</span>' : '<span class="chip good">Protected</span>';
@@ -355,8 +362,9 @@
     return `<div class="card"><div class="hd"><h2>Backups</h2>${chip}</div><div class="bd small">
       <p>Every night at 02:15 NEXUS saves a full copy of all records and logins, keeps it for 35 days (plus the 1st of every month for good), and emails the file to the administrators.</p>
       <p>Last backup: <b>${bkWhen(bk && bk.last_ok)}</b>${bk && bk.records ? ` · ${bk.records} records · ${Math.max(1, Math.round((bk.size || 0) / 1024))} KB · ${bk.stored || 0} copies kept · ${bk.emailed ? 'emailed' : '<b>not emailed</b>'}` : ''}${bk && bk.error ? `<br><span style="color:var(--bad)">${bkEsc(bk.error)}</span>` : ''}</p>
-      <p class="muted">Photos and documents stay in NEXUS file storage and are not inside the backup file.</p>
-      <div class="toolbar">${b('download', 'Download backup now', true)}${b('run', 'Back up + email now')}${b('restore', 'Restore from file…')}</div></div></div>`;
+      <p>Photos &amp; documents: <b>${bk && bk.files != null ? bk.files + ' file' + (bk.files === 1 ? '' : 's') : '—'}</b> in NEXUS storage · last downloaded <b>${bkWhen(fb && fb.last_at)}</b>${fb && fb.files ? ` (${fb.files} files, ${bkSize(fb.bytes)})` : ''}. They are not inside the nightly file – download them once a week and save the zip in the Google Drive folder.</p>
+      ${bkProg ? `<p><span class="spin"></span> ${bkEsc(bkProg)}</p>` : ''}
+      <div class="toolbar">${b('download', 'Download backup now', true)}${b('run', 'Back up + email now')}${b('files', 'Download photos & documents (.zip)')}${b('restore', 'Restore from file…')}</div></div></div>`;
   };
   async function bkCall(q, body) {
     const { data: { session: s } } = await sb.auth.getSession();
@@ -364,8 +372,72 @@
     if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (_) {} throw new Error(m || 'Backup service error ' + r.status); }
     return r;
   }
+  // minimal ZIP writer (stored, no compression – photos and PDFs are already compressed)
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function makeZip(entries) { // [{name, data: Uint8Array}]
+    const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+    const now = new Date(), dt = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF,
+      dd = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+    for (const e of entries) {
+      const nm = enc.encode(e.name), c = crc32(e.data), sz = e.data.length;
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, c, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true);
+      h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), nm, e.data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dt, true); ch.setUint16(14, dd, true); ch.setUint32(16, c, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true);
+      ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+      central.push(new Uint8Array(ch.buffer), nm);
+      off += 30 + nm.length + sz;
+    }
+    const cdSize = central.reduce((a, x) => a + x.length, 0), end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
+    return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+  }
+  async function listAllFiles(prefix = '') {
+    const out = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await sb.storage.from('files').list(prefix, { limit: 1000, offset });
+      if (error) throw new Error(error.message);
+      for (const f of data || []) { const p = prefix ? prefix + '/' + f.name : f.name; if (f.id === null) out.push(...await listAllFiles(p)); else out.push({ path: p, size: f.metadata?.size || 0 }); }
+      if (!data || data.length < 1000) break;
+    }
+    return out;
+  }
+  async function downloadFilesZip() {
+    bkProg = 'Listing files…'; window.renderAll?.();
+    const list = await listAllFiles();
+    const total = list.reduce((a, f) => a + f.size, 0);
+    if (total > 1.5 * 1073741824) throw new Error('More than 1.5 GB of files – ask the developer to split the download by year.');
+    const entries = [], failed = []; let bytes = 0;
+    for (const [i, f] of list.entries()) {
+      bkProg = `Downloading ${i + 1} of ${list.length} (${bkSize(bytes)})…`; if (i % 5 === 0) window.renderAll?.();
+      const { data, error } = await sb.storage.from('files').download(f.path);
+      if (error || !data) { failed.push(f.path); continue; }
+      const u8 = new Uint8Array(await data.arrayBuffer()); bytes += u8.length; entries.push({ name: f.path, data: u8 });
+    }
+    const manifest = ['path,size_bytes', ...list.map(f => `"${f.path}",${f.size}`)].join('\r\n') + (failed.length ? '\r\n\r\nNOT DOWNLOADED:\r\n' + failed.join('\r\n') : '');
+    entries.push({ name: 'NEXUS-files-list.csv', data: new TextEncoder().encode(manifest) });
+    bkProg = 'Saving zip…'; window.renderAll?.();
+    const day = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+    await downloads.save({ filename: `nexus-photos-documents-${day}.zip`, data: makeZip(entries) });
+    const status = { last_at: new Date().toISOString(), files: list.length - failed.length, failed: failed.length, bytes, by: profile?.email || '' };
+    await sb.from('docs').upsert({ col: 'system', id: 'files_backup', data: status }, { onConflict: 'col,id' });
+    window.NX_FILES_BK = status;
+    return status;
+  }
   async function bkDo(k) {
     if (bkBusy) return;
+    if (k === 'files') {
+      bkBusy = 'files'; window.renderAll?.();
+      try { const st = await downloadFilesZip(); bkSay(st.files ? `Saved ${st.files} photos/documents (${bkSize(st.bytes)})${st.failed ? ` – ${st.failed} could not be read` : ''}. Put the zip in the Google Drive folder.` : 'No photos or documents are stored yet – nothing to download.'); }
+      catch (e) { bkSay('Photo backup failed: ' + e.message); } finally { bkBusy = ''; bkProg = ''; window.renderAll?.(); }
+      return;
+    }
     if (k === 'restore') {
       const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.gz,.json,application/gzip,application/json';
       inp.onchange = async () => {
