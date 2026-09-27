@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=56"></script>
+<script src="config.js?v=57"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=56"></script>
-<script src="nexus-chat.js?v=56"></script>
+<script src="nexus-sb.js?v=57"></script>
+<script src="nexus-chat.js?v=57"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -434,6 +434,7 @@ function daysChip(v){
 const screenChip = s => s ? `<span class="chip ${s==='Pursue'?'good':s==='Check'?'amb':'bad'}">${esc(s)}</span>` : '';
 const verdictCls = v => /^bid/i.test(v||'') ? 'good' : /cond/i.test(v||'') ? 'warn' : /no/i.test(v||'') ? 'bad' : '';
 const ICON = {
+  pm:'<path d="M3 4v16h18"/><path d="M7 7h6M9 11h8M11 15h6"/>',
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
   dash:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
   tenders:'<path d="M9 3h6l1 2h3v16H5V5h3z"/><path d="M9 12h6M9 16h4"/>',
@@ -468,6 +469,7 @@ const PAGES = [
   {k:'qs', t:'QS Studio'},
   {g:'Delivering work'},
   {k:'projects', t:'Projects'},
+  {k:'pm', t:'Programme Overview'},
   {k:'reports', t:'Site Reports'},
   {k:'certs', t:'Payment Certificates'},
   {k:'procure', t:'Procurement'},
@@ -604,7 +606,7 @@ function field(f, v){
   const id='f_'+f.k, val = v ?? f.def ?? '';
   let ctl;
   if(f.type==='linktools') return `<div class="fld full"><label>Create the online meeting</label><div class="toolbar" style="gap:6px;flex-wrap:wrap">${MEET_PLAT.filter(p=>p.make).map(p=>`<button type="button" class="btn sm" data-mkroom="${p.k}">${esc(p.btn)}</button>`).join('')}</div><span class="sub">Zoom / Google Meet / Teams open in a new tab: create the meeting there, copy its link and paste it in "Online link". <b>Free NEXUS room</b> makes a link instantly (Jitsi – no cost; the first person to open it signs in with Google or Microsoft to start the room, everyone else just joins).</span></div>`;
-  if(f.type==='checks'){ const sel=Array.isArray(val)?val:[]; ctl=`<div class="checks" id="${id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px">${f.options.map(([ov,ol])=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" value="${esc(ov)}" ${sel.includes(ov)?'checked':''}> ${esc(ol)}</label>`).join('')||'<span class="sub">No staff with an email address yet – add them on the Staff page.</span>'}</div>`; return `<div class="fld full"><label>${esc(f.label)}${f.req?' *':''}</label>${ctl}${f.help?`<span class="sub">${esc(f.help)}</span>`:''}</div>`; }
+  if(f.type==='checks'){ const sel=Array.isArray(val)?val:[]; ctl=`<div class="checks" id="${id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px">${f.options.map(([ov,ol])=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" value="${esc(ov)}" ${sel.includes(ov)?'checked':''}> ${esc(ol)}</label>`).join('')||`<span class="sub">${esc(f.empty||'No staff with an email address yet – add them on the Staff page.')}</span>`}</div>`; return `<div class="fld full"><label>${esc(f.label)}${f.req?' *':''}</label>${ctl}${f.help?`<span class="sub">${esc(f.help)}</span>`:''}</div>`; }
   if(f.type==='select') ctl=`<select class="inp" id="${id}">${f.options.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
   else if(f.type==='textarea') ctl=`<textarea class="inp" id="${id}" placeholder="${esc(f.ph||'')}">${esc(val)}</textarea>`;
   else ctl=`<input class="inp" id="${id}" type="${f.type||'text'}" value="${esc(val)}" placeholder="${esc(f.ph||'')}" ${f.type==='number'?'step="any"':''}>`;
@@ -1020,6 +1022,7 @@ function pageReports(){
 function reportForm(r={}, projId){
   const fields=REPORT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f);
   const body=`<div class="form">${fields.map(f=>field(f, r[f.k] ?? (f.k==='date'?today():f.k==='project_id'?projId:''))).join('')}
+    <div class="fld full"><label>Programme progress <span class="sub">– update the % of activities worked on</span></label><div id="rpProg">${pmReportRows(r.project_id||projId, r.date||today())}</div></div>
     <div class="fld full"><label for="rphotos">Photos</label><input class="inp" id="rphotos" type="file" accept="image/*" multiple><span class="sub">Photos are resized before upload so they send quickly over mobile data.</span></div></div>
     ${(r.photos||[]).length?`<div class="photos">${r.photos.map(p=>photoTag(p)).join('')}</div>`:''}`;
   return drawerShell(r.id?'Edit site report':'New site report', 'Site report', body, `<button class="btn pri" data-act="saveReport">${spin('saveReport')}Submit report</button><button class="btn" data-act="close">Cancel</button>`);
@@ -1635,13 +1638,7 @@ function pageProject(){
       <div class="card"><div class="hd"><h2>Open tasks & purchases</h2></div><div class="list">${[...S.tasks.filter(t=>t.project_id===p.id&&t.status!=='Done').map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">Task · ${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`),...S.procurement.filter(x=>x.project_id===p.id&&x.status!=='Delivered').map(x=>`<div class="li"><div class="grow">${esc(x.item)}<div class="sub">Purchase · ${esc(x.status)} · ${tzs(x.est_cost)}</div></div></div>`)].join('')||'<div class="empty">Nothing open.</div>'}</div></div></div>
     ${p.pc_date?`<div class="banner"><div><b>Close-out:</b> practical completion ${fmtD(p.pc_date)} · defects liability ${+p.dlp_months||12} months · retention release due <b>${fmtD(F.rel)}</b>.</div></div>`:''}`;
   } else if(tab==='programme'){
-    const ms=S.milestones.filter(m=>m.project_id===p.id).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')), pr=F.prog;
-    body=`<div class="toolbar"><span class="muted">${ms.length} activities${pr?` · weights total ${pr.weight}%${pr.weight!==100?' (should be 100)':''}`:''}</span><div class="sp"></div>${pr?`<button class="btn" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}<button class="btn pri" data-act="addMs">Add activity</button></div>
-      ${pr?`<div class="card"><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
-      <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Activity</th><th>Planned</th><th class="r">Weight</th><th style="min-width:150px">Progress</th><th>Status</th></tr></thead><tbody>
-      ${ms.map(m=>{const pl=planned(m,new Date())*100, pg=+m.progress||0, late=pg<100&&daysLeft(m.planned_finish)<0, behind=pg+10<pl;
-        return `<tr class="click" data-editms="${esc(m.id)}"><td class="ttl2">${esc(m.name)}</td><td class="small">${fmtD(m.planned_start)} → ${fmtD(m.planned_finish)}</td><td class="r num">${esc(m.weight)}%</td><td><div class="bar"><i style="width:${Math.min(100,pg)}%;background:${late||behind?'var(--bad)':'var(--accent)'}"></i></div><span class="sub num">${pg}% done · ${pl.toFixed(0)}% planned</span></td><td>${pg>=100?'<span class="chip good">Complete</span>':late?'<span class="chip bad">Late</span>':behind?'<span class="chip amb">Behind</span>':'<span class="chip blue">On track</span>'}</td></tr>`}).join('')||'<tr><td colspan="5"><div class="empty">Add the main activities from the work programme with their dates and value weights. NEXUS then draws the S-curve and flags late activities.</div></td></tr>'}
-      </tbody></table></div></div>`;
+    body=pmProgrammeTab(p);
   } else if(tab==='variations'){
     const vos=[...F.vos].sort((a,b)=>(a.ref||'').localeCompare(b.ref||''));
     body=`<div class="grid g4">
@@ -1691,6 +1688,246 @@ async function aiProject(p){
   if(r){ await patch('projects',p.id,{ai_health:{text:r.text,at:new Date().toISOString()}}); logAct(`AI health review for ${p.name}`); }
 }
 
+/* ===================== PROGRAMME TOOLS: Gantt, links, critical path, baseline, forecast, look-ahead, portfolio ===================== */
+const DAY=864e5;
+const pd=v=>{ if(!v) return null; const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); const d=new Date(v); return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); };
+const ymd=d=>d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
+const addD=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const dDiff=(a,b)=>Math.round((a-b)/DAY);
+const today0=()=>pd(ymd(new Date()));
+const msOf=pid=>S.milestones.filter(m=>m.project_id===pid);
+const msPg=m=>Math.max(0,Math.min(100,+m.progress||0));
+const msStart=m=>pd(m.planned_start), msFinish=m=>m.kind==='milestone'?pd(m.planned_start):(pd(m.planned_finish)||pd(m.planned_start));
+const msPreds=m=>Array.isArray(m.preds)?m.preds.filter(Boolean):[];
+
+function msFields(pid, selfId){
+  const others=msOf(pid).filter(m=>m.id!==selfId).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')).map(m=>[m.id,`${m.name} (${fmtD(m.planned_finish||m.planned_start)})`]);
+  return [{k:'name',label:'Activity / milestone',req:1,full:1},
+    {k:'kind',label:'Type',type:'select',options:[['activity','Activity (bar on the Gantt chart)'],['milestone','Milestone ◆ (key date, e.g. handover)']]},
+    {k:'resp',label:'Responsible / trade',ph:'e.g. Masons – Juma'},
+    {k:'planned_start',label:'Planned start',type:'date',req:1},{k:'planned_finish',label:'Planned finish',type:'date',help:'Not needed for a milestone'},
+    {k:'weight',label:'Weight (% of contract value)',type:'number',help:'Weights of all activities should add up to 100 (milestones: 0)'},
+    {k:'progress',label:'Actual progress %',type:'number',def:0},
+    {k:'preds',label:'Starts after (predecessors) – moving these moves this one automatically',type:'checks',full:1,options:others,empty:'No other activities in this programme yet.'},
+    {k:'lag',label:'Gap after predecessors (days)',type:'number',def:0},
+    {k:'actual_start',label:'Actual start',type:'date'},{k:'actual_finish',label:'Actual finish',type:'date'}];
+}
+function msNormalise(v){
+  if(v.kind==='milestone'||!v.planned_finish) v.planned_finish=v.planned_start;
+  if(pd(v.planned_finish)<pd(v.planned_start)) v.planned_finish=v.planned_start;
+  v.progress=Math.max(0,Math.min(100,+v.progress||0)); v.weight=+v.weight||0; v.lag=+v.lag||0; v.preds=Array.isArray(v.preds)?v.preds:[];
+  if(v.progress>0&&!v.actual_start) v.actual_start=today();
+  if(v.progress>=100&&!v.actual_finish) v.actual_finish=today();
+  if(v.progress<100&&v.actual_finish) v.actual_finish='';
+  return v;
+}
+// order activities so every predecessor comes first (null if the links loop back)
+function msOrder(ms){
+  const by=new Map(ms.map(m=>[m.id,m])), indeg=new Map(ms.map(m=>[m.id,0])), succ=new Map(ms.map(m=>[m.id,[]]));
+  ms.forEach(m=>msPreds(m).forEach(p=>{ if(by.has(p)){ indeg.set(m.id,indeg.get(m.id)+1); succ.get(p).push(m.id); } }));
+  const q=ms.filter(m=>!indeg.get(m.id)).map(m=>m.id), out=[];
+  while(q.length){ const id=q.shift(); out.push(by.get(id)); succ.get(id).forEach(s=>{ indeg.set(s,indeg.get(s)-1); if(!indeg.get(s)) q.push(s); }); }
+  return out.length===ms.length?{order:out,succ,by}:null;
+}
+// automatic scheduling: an activity that has not started is pushed later if a predecessor now finishes later
+async function pmReschedule(pid){
+  const ms=msOf(pid).map(m=>({...m})), o=msOrder(ms); if(!o){ toast('These links make a loop (A after B after A). Please remove one link.'); return 0; }
+  const moved=[];
+  for(const m of o.order){ const P=msPreds(m).map(id=>o.by.get(id)).filter(Boolean); if(!P.length||msPg(m)>0) continue;
+    const req=addD(new Date(Math.max(...P.map(p=>(p.actual_finish&&msPg(p)>=100?pd(p.actual_finish):msFinish(p)).getTime()))),1+(+m.lag||0));
+    const s=msStart(m), f=msFinish(m); if(!s||s>=req) continue;
+    const dur=dDiff(f,s); m.planned_start=ymd(req); m.planned_finish=m.kind==='milestone'?m.planned_start:ymd(addD(req,dur)); moved.push(m); }
+  for(const m of moved) await patch('milestones',m.id,{planned_start:m.planned_start,planned_finish:m.planned_finish});
+  if(moved.length) toast(`${moved.length} following ${moved.length>1?'activities were':'activity was'} moved to keep the links.`);
+  return moved.length;
+}
+// critical path (CPM backward pass on the current dates): float in days, critical = no float
+function pmCpm(pid){
+  const ms=msOf(pid), o=msOrder(ms), res=new Map(); if(!ms.length) return {res,end:null};
+  const end=new Date(Math.max(...ms.map(m=>(msFinish(m)||new Date(0)).getTime())));
+  const order=o?o.order:ms, succ=o?o.succ:new Map(ms.map(m=>[m.id,[]])), by=new Map(ms.map(m=>[m.id,m]));
+  for(const m of [...order].reverse()){
+    const s=msStart(m), f=msFinish(m); if(!s) continue;
+    const S2=(succ.get(m.id)||[]).map(id=>({m:by.get(id),r:res.get(id)})).filter(x=>x.r);
+    const lf=S2.length?new Date(Math.min(...S2.map(x=>addD(x.r.ls,-1-(+x.m.lag||0)).getTime()))):end;
+    const ls=addD(lf,-dDiff(f,s)), fl=dDiff(lf,f);
+    res.set(m.id,{ls,lf,float:fl,crit:fl<=0&&msPg(m)<100});
+  }
+  return {res,end};
+}
+// forecast completion from progress so far (schedule performance index)
+function pmForecast(p){
+  const ms=msOf(p.id); if(!ms.length) return null;
+  const pr=programme(p.id), F=projectFacts(p), start=new Date(Math.min(...ms.map(m=>(msStart(m)||new Date(8.64e15)).getTime()))), end=new Date(Math.max(...ms.map(m=>(msFinish(m)||new Date(0)).getTime())));
+  const t=today0(); let spi=null, fc=end;
+  if(pr&&pr.actual>=99.5) fc=new Date(Math.max(...ms.map(m=>(pd(m.actual_finish)||msFinish(m)).getTime())));
+  else if(pr&&pr.planned>=3&&t>start){ spi=Math.max(.2,Math.min(2,pr.actual/pr.planned)); const f2=addD(start,Math.ceil(dDiff(end,start)/spi)); fc=f2>end||spi<1?new Date(Math.max(f2,end)):end; }
+  ms.forEach(m=>{ if(msPg(m)<100&&msFinish(m)&&msFinish(m)<t){ const rem=Math.max(1,Math.ceil(dDiff(msFinish(m),msStart(m)||msFinish(m))*(1-msPg(m)/100))); const f3=addD(t,rem); if(f3>fc) fc=f3; } });
+  const contract=F.revEnd?pd(ymd(F.revEnd)):(p.end?pd(p.end):null);
+  const slip=contract?dDiff(fc,contract):null;
+  const late=ms.filter(m=>msPg(m)<100&&msFinish(m)&&msFinish(m)<t).length;
+  const status=pr&&pr.actual>=99.5?'done':slip!=null&&slip>0?'late':(spi!=null&&spi<.9)||(slip!=null&&slip>-14)||late?'risk':'ok';
+  return {spi,fc,contract,slip,late,status,pr,start,end,base:ms.some(m=>m.baseline_finish)};
+}
+const PM_ST={ok:['good','On time'],risk:['amb','At risk'],late:['bad','Late'],done:['blue','Complete']};
+const pmChip=f=>f?`<span class="chip ${PM_ST[f.status][0]}">${PM_ST[f.status][1]}</span>`:'<span class="chip">No programme</span>';
+
+function pmGantt(pid, opt={}){
+  const ms=msOf(pid).filter(m=>msStart(m)).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')||(a.name||'').localeCompare(b.name||''));
+  if(!ms.length) return '<div class="empty">No activities yet. Add the first activity – NEXUS draws the Gantt chart automatically.</div>';
+  const cpm=pmCpm(pid).res, t=today0();
+  const dates=ms.flatMap(m=>[msStart(m),msFinish(m),pd(m.baseline_start),pd(m.baseline_finish),pd(m.actual_start)]).filter(Boolean).concat(opt.fc?[opt.fc]:[]);
+  let s=addD(new Date(Math.min(...dates.map(d=>d.getTime()))),-3), e=addD(new Date(Math.max(...dates.map(d=>d.getTime()))),6);
+  const D=Math.max(14,dDiff(e,s)), ppd=D<=45?22:D<=120?9:D<=300?4.2:D<=700?2.2:1.2, LW=240, RH=30, TOP=44, W=Math.round(LW+D*ppd+20), H=TOP+ms.length*RH+24;
+  const X=d=>LW+dDiff(d,s)*ppd, row=new Map(ms.map((m,i)=>[m.id,i])), Y=i=>TOP+i*RH;
+  let g='';
+  // month bands + labels
+  for(let d=new Date(s.getFullYear(),s.getMonth(),1); d<=e; d=new Date(d.getFullYear(),d.getMonth()+1,1)){
+    const x=Math.max(LW,X(d)), nx=Math.min(W-20,X(new Date(d.getFullYear(),d.getMonth()+1,1)));
+    g+=`<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--line)"/>${nx-x>34?`<text x="${x+5}" y="15" font-size="11" font-weight="600" fill="var(--ink)">${d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}</text>`:''}`; }
+  // week ticks (or days when zoomed in)
+  if(ppd>=4){ for(let d=new Date(s); d<=e; d=addD(d,1)){ const x=X(d);
+      if(ppd>=18&&(d.getDay()===0)) g+=`<rect x="${x}" y="${TOP-6}" width="${ppd}" height="${H-TOP+6}" fill="var(--line)" opacity=".35"/>`;
+      if(d.getDay()===1) g+=`<line x1="${x}" x2="${x}" y1="24" y2="${H}" stroke="var(--line)" stroke-dasharray="2 3" opacity=".7"/><text x="${x+3}" y="34" font-size="9.5" fill="var(--muted)">${d.getDate()}</text>`; } }
+  g+=`<line x1="0" x2="${W}" y1="${TOP-4}" y2="${TOP-4}" stroke="var(--line)"/>`;
+  // rows
+  ms.forEach((m,i)=>{ const y=Y(i), c=cpm.get(m.id)||{}, pg=msPg(m), crit=c.crit, sm=msStart(m), fm=msFinish(m), lateNow=pg<100&&fm<t, mile=m.kind==='milestone';
+    const col=pg>=100?'var(--good)':crit?'#C0392B':'#1F5FA8', soft=pg>=100?'var(--good-soft)':crit?'#F5C6C1':'#CFE2F6';
+    if(i%2) g+=`<rect x="0" y="${y}" width="${W}" height="${RH}" fill="var(--line)" opacity=".18"/>`;
+    g+=`<g data-editms="${esc(m.id)}" style="cursor:pointer"><title>${esc(m.name)}\n${fmtD(m.planned_start)} → ${fmtD(fm)} · ${pg}% done${c.float!=null?`\nFloat: ${c.float} days${crit?' – CRITICAL':''}`:''}${m.baseline_finish?`\nBaseline finish: ${fmtD(m.baseline_finish)}`:''}${m.resp?`\nResponsible: ${m.resp}`:''}</title>
+      <rect x="0" y="${y}" width="${W}" height="${RH}" fill="transparent"/>
+      <text x="8" y="${y+19}" font-size="12" fill="${lateNow?'#C0392B':'var(--ink)'}" font-weight="${crit?700:500}">${esc((mile?'◆ ':'')+(m.name.length>30?m.name.slice(0,29)+'…':m.name))}</text>
+      <text x="${LW-8}" y="${y+19}" font-size="10.5" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${mile?'':pg+'%'}</text>`;
+    if(m.baseline_start&&m.baseline_finish){ const bx=X(pd(m.baseline_start)), bw=Math.max(3,(dDiff(pd(m.baseline_finish),pd(m.baseline_start))+1)*ppd); g+=`<rect x="${bx}" y="${y+22}" width="${bw}" height="4" rx="2" fill="var(--muted)" opacity=".55"/>`; }
+    if(mile){ const cx=X(sm)+ppd/2; g+=`<path d="M${cx} ${y+6} l9 9 l-9 9 l-9 -9z" fill="${pg>=100?'var(--good)':crit?'#C0392B':'#F2A900'}" stroke="var(--panel)" stroke-width="1.5"/>`; }
+    else { const x=X(sm), w=Math.max(4,(dDiff(fm,sm)+1)*ppd);
+      g+=`<rect x="${x}" y="${y+6}" width="${w}" height="15" rx="4" fill="${soft}" stroke="${lateNow?'#C0392B':col}" stroke-width="${lateNow?2:1}"/><rect x="${x}" y="${y+6}" width="${w*pg/100}" height="15" rx="4" fill="${col}"/>`;
+      if(c.float>0&&pg<100&&ppd>=2) g+=`<line x1="${x+w}" x2="${x+w+c.float*ppd}" y1="${y+13.5}" y2="${y+13.5}" stroke="${col}" stroke-dasharray="2 3" opacity=".6"/>`;
+      if(w>70) g+=`<text x="${x+6}" y="${y+17.5}" font-size="10" fill="${pg>45?'#fff':'var(--ink)'}">${esc(m.resp?m.resp.slice(0,Math.floor(w/7)):'')}</text>`; }
+    g+='</g>'; });
+  // dependency arrows
+  ms.forEach(m=>msPreds(m).forEach(pid2=>{ const p=ms.find(x=>x.id===pid2); if(!p) return; const i1=row.get(p.id), i2=row.get(m.id);
+    const x1=X(msFinish(p))+(p.kind==='milestone'?ppd/2+9:(1)*ppd), y1=Y(i1)+13.5, x2=X(msStart(m))+(m.kind==='milestone'?ppd/2-9:0), y2=Y(i2)+13.5, mx=Math.max(x1+6,Math.min(x2-6,x1+10));
+    g+=`<path d="M${x1} ${y1} H${mx} V${y2} H${x2-1}" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#pmArr)" opacity=".85"/>`; }));
+  // today + forecast
+  if(t>=s&&t<=e){ const x=X(t)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4 3"/><rect x="${x-18}" y="${H-17}" width="36" height="14" rx="3" fill="#C0392B"/><text x="${x}" y="${H-6.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Today</text>`; }
+  if(opt.fc&&opt.fc>=s&&opt.fc<=e){ const x=X(opt.fc)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6 3"/><text x="${x+4}" y="${H-22}" font-size="10" fill="#7B1FA2" font-weight="700">Forecast finish</text>`; }
+  if(opt.contract&&opt.contract>=s&&opt.contract<=e){ const x=X(opt.contract)+ppd; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="var(--good)" stroke-width="2"/><text x="${x-4}" y="${TOP-10}" text-anchor="end" font-size="10" fill="var(--good)" font-weight="700">Contract completion</text>`; }
+  return `<div class="pm-gantt" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gantt chart" style="display:block;font-family:inherit">
+    <defs><marker id="pmArr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--muted)"/></marker></defs>
+    <rect x="0" y="0" width="${LW}" height="${H}" fill="var(--panel)"/>${g}<line x1="${LW}" x2="${LW}" y1="0" y2="${H}" stroke="var(--line)"/></svg></div>
+    <div class="toolbar small" style="gap:14px;flex-wrap:wrap;margin-top:6px"><span><i style="display:inline-block;width:18px;height:9px;border-radius:3px;background:#1F5FA8"></i> Activity (dark part = % done)</span><span><i style="display:inline-block;width:18px;height:9px;border-radius:3px;background:#C0392B"></i> Critical path – any delay moves completion</span><span><i style="display:inline-block;width:18px;height:3px;background:var(--muted)"></i> Baseline</span><span>- - Float (spare days)</span><span>→ Link (starts after)</span><span style="color:#F2A900">◆ Milestone</span><span class="sub">Tap a bar to edit.</span></div>`;
+}
+function pmLookahead(pids, days=14){
+  const t=today0(), to=addD(t,days), rows=[];
+  pids.forEach(pid=>msOf(pid).forEach(m=>{ const s=msStart(m), f=msFinish(m), pg=msPg(m); if(!s||pg>=100) return;
+    if(f<t) rows.push({m,k:'late',d:f,txt:`Should have finished ${fmtD(f)} – ${pg}% done`});
+    else if(pg===0&&s<t) rows.push({m,k:'late',d:s,txt:`Should have started ${fmtD(s)}`});
+    else if(pg===0&&s<=to) rows.push({m,k:'start',d:s,txt:`Starts ${fmtD(s)}${m.resp?' · '+m.resp:''}`});
+    else if(f<=to) rows.push({m,k:'finish',d:f,txt:`Must finish ${fmtD(f)} – ${pg}% done`}); }));
+  const G=[['late','⚠️ Overdue – act now','bad'],['start','▶ Starting in the next '+days+' days','blue'],['finish','🏁 Finishing in the next '+days+' days','warn']];
+  if(!rows.length) return `<div class="empty">Nothing starts, finishes or is overdue in the next ${days} days.</div>`;
+  return G.map(([k,l,c])=>{ const L=rows.filter(r=>r.k===k).sort((a,b)=>a.d-b.d); return L.length?`<div class="label" style="padding:10px 14px 4px">${l} (${L.length})</div><div class="list">${L.map(r=>{ const crit=(pmCpm(r.m.project_id).res.get(r.m.id)||{}).crit;
+    return `<div class="li" style="cursor:pointer" data-editms="${esc(r.m.id)}"><div class="stripe ${c}"></div><div class="grow"><div class="ttl2">${esc(r.m.name)}${crit?' <span class="chip bad">Critical</span>':''}</div><div class="sub">${pids.length>1?esc(projName(r.m.project_id))+' · ':''}${esc(r.txt)}</div></div></div>`; }).join('')}</div>`:''; }).join('');
+}
+function pmKpis(p){
+  const f=pmForecast(p), cpm=pmCpm(p.id).res, crit=[...cpm.values()].filter(x=>x.crit).length; if(!f) return '';
+  return `<div class="grid g4">
+    <div class="card kpi ${f.status==='late'?'hot':f.status==='risk'?'amb':'grn'}"><span class="label">Programme status</span><span class="v num" style="font-size:22px">${PM_ST[f.status][1]}</span><span class="s">${f.pr?`${f.pr.actual.toFixed(0)}% done vs ${f.pr.planned.toFixed(0)}% planned`:'add weights to measure progress'}</span></div>
+    <div class="card kpi ${f.spi==null?'blu':f.spi>=.95?'grn':f.spi>=.85?'amb':'hot'}"><span class="label">Speed (SPI)</span><span class="v num">${f.spi==null?'—':f.spi.toFixed(2)}</span><span class="s">${f.spi==null?'measured once work starts':f.spi>=1?'working faster than planned':'1.00 = on plan · below 1 = slower'}</span></div>
+    <div class="card kpi ${f.slip>0?'hot':f.slip>-14&&f.slip!=null?'amb':'grn'}"><span class="label">Forecast completion</span><span class="v num" style="font-size:22px">${fmtD(f.fc)}</span><span class="s">${f.contract?(f.slip>0?`${f.slip} days AFTER contract date ${fmtD(f.contract)}`:`${-f.slip} days before contract date`):'enter the completion date in Edit project'}</span></div>
+    <div class="card kpi ${f.late?'hot':crit?'amb':'grn'}"><span class="label">Critical / overdue</span><span class="v num">${crit} / ${f.late}</span><span class="s">critical activities · activities past their finish date</span></div></div>`;
+}
+function pmProgrammeTab(p){
+  const ms=msOf(p.id).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')), pr=programme(p.id), f=pmForecast(p), view=UI.pmView||'gantt', cpm=pmCpm(p.id).res, t=today0();
+  const base=ms.some(m=>m.baseline_finish);
+  return `${pmKpis(p)}
+  <div class="toolbar" style="flex-wrap:wrap"><div class="seg" role="group" aria-label="View"><button data-act="pmView" data-v="gantt" aria-pressed="${view==='gantt'}">Gantt chart</button><button data-act="pmView" data-v="table" aria-pressed="${view==='table'}">Table</button><button data-act="pmView" data-v="ahead" aria-pressed="${view==='ahead'}">2-week look-ahead</button></div>
+    <span class="muted small">${ms.length} activities${pr?` · weights ${pr.weight}%${pr.weight!==100?' (should be 100)':''}`:''}${base?` · baseline ${fmtD(p.baseline_at)}`:''}</span><div class="sp"></div>
+    ${pr?`<button class="btn sm" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}
+    ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
+    ${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
+  ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
+  ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
+  ${view==='table'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Activity</th><th>Planned</th><th class="r hide-m">Weight</th><th style="min-width:130px">Progress</th><th class="r">Float</th><th class="hide-m">vs baseline</th><th>Status</th></tr></thead><tbody>
+      ${ms.map(m=>{const pl=planned(m,new Date())*100, pg=msPg(m), late=pg<100&&msFinish(m)&&msFinish(m)<t, behind=pg+10<pl, c=cpm.get(m.id)||{}, sl=m.baseline_finish?dDiff(msFinish(m),pd(m.baseline_finish)):null;
+        return `<tr class="click" data-editms="${esc(m.id)}"><td><div class="ttl2">${m.kind==='milestone'?'◆ ':''}${esc(m.name)}</div><div class="sub">${msPreds(m).length?'after '+msPreds(m).map(id=>esc((byId('milestones',id)||{}).name||'?')).join(', '):''}${m.resp?(msPreds(m).length?' · ':'')+esc(m.resp):''}</div></td><td class="small">${fmtD(m.planned_start)}${m.kind==='milestone'?'':' → '+fmtD(m.planned_finish)}</td><td class="r num hide-m">${esc(m.weight||0)}%</td>
+          <td><div class="bar"><i style="width:${pg}%;background:${late||behind?'var(--bad)':'var(--accent)'}"></i></div><span class="small num">${pg}% · plan ${pl.toFixed(0)}%</span></td>
+          <td class="r num">${c.float==null?'—':c.crit?'<span class="chip bad">0 – critical</span>':c.float+' d'}</td><td class="small hide-m">${sl==null?'—':sl>0?`<span style="color:var(--bad)">${sl} d late</span>`:sl<0?`${-sl} d early`:'on baseline'}</td>
+          <td>${pg>=100?'<span class="chip good">Done</span>':late?'<span class="chip bad">Late</span>':behind?'<span class="chip amb">Behind</span>':pg>0?'<span class="chip blue">In progress</span>':'<span class="chip">Not started</span>'}</td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No activities yet.</td></tr>'}
+      </tbody></table></div></div>`:''}
+  ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2><span class="sub">planned vs actual progress</span></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
+  <div class="banner small"><div><b>How it works:</b> add activities with dates and link them with <i>Starts after</i>. When an activity is moved or delayed, every activity after it moves automatically. The <b style="color:#C0392B">red critical path</b> shows the activities that decide the completion date. Site reports can update progress. An administrator sets the <b>baseline</b> (the approved programme) to see slippage.</div></div>`;
+}
+async function pmSetBaseline(pid){
+  const ms=msOf(pid); if(!ms.length) return;
+  if(!await confirmBox(`${ms.some(m=>m.baseline_finish)?'Replace the current baseline':'Save the current programme as the baseline'} for ${projName(pid)}? Slippage is measured against it from now on.`,'Set baseline')) return;
+  for(const m of ms) await patch('milestones',m.id,{baseline_start:m.planned_start,baseline_finish:msFinish(m)?ymd(msFinish(m)):m.planned_finish});
+  await patch('projects',pid,{baseline_at:new Date().toISOString(),baseline_by:me.name||''}); logAct(`Programme baseline set – ${projName(pid)}`); toast('Baseline saved.');
+}
+async function pmSaveActivity(pid, id, v){
+  msNormalise(v);
+  if(id){ const own=msPreds(v); if(own.includes(id)) v.preds=own.filter(x=>x!==id); await patch('milestones',id,v); }
+  else id=await put('milestones',null,{...v,project_id:pid});
+  // links must not loop
+  const test=msOf(pid).map(m=>m.id===id?{...m,...v}:m); if(!msOrder(test)){ await patch('milestones',id,{preds:[]}); toast('Those links made a loop, so they were removed. Choose different predecessors.'); return; }
+  setTimeout(()=>pmReschedule(pid),600);
+  logAct(`Programme activity ${id?'saved':'added'}: ${v.name} – ${projName(pid)}`);
+}
+function pmExcel(pids, name){
+  if(typeof XLSX==='undefined'){ toast('Excel export is not available.'); return; }
+  const wb=XLSX.utils.book_new(), sum=[['NORDIC CONSTRUCTION – PROGRAMME REPORT'],['Printed '+new Date().toLocaleString('en-GB')],[],['Project','Status','Actual %','Planned %','SPI','Contract completion','Forecast completion','Days late','Overdue activities']];
+  pids.forEach(pid=>{ const p=byId('projects',pid); const f=p&&pmForecast(p); if(!p) return; sum.push([p.name,f?PM_ST[f.status][1]:'No programme',f&&f.pr?+f.pr.actual.toFixed(1):null,f&&f.pr?+f.pr.planned.toFixed(1):null,f&&f.spi!=null?+f.spi.toFixed(2):null,f&&f.contract?ymd(f.contract):'',f?ymd(f.fc):'',f&&f.slip>0?f.slip:0,f?f.late:0]);
+    const cpm=pmCpm(pid).res, rows=[[p.name],[],['Activity','Type','Responsible','Planned start','Planned finish','Baseline finish','Weight %','Progress %','Float (days)','Critical','Starts after']];
+    msOf(pid).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')).forEach(m=>{ const c=cpm.get(m.id)||{}; rows.push([m.name,m.kind==='milestone'?'Milestone':'Activity',m.resp||'',m.planned_start||'',msFinish(m)?ymd(msFinish(m)):'',m.baseline_finish||'',+m.weight||0,msPg(m),c.float??null,c.crit?'YES':'',msPreds(m).map(id=>(byId('milestones',id)||{}).name||'').join('; ')]); });
+    const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:44},{wch:10},{wch:18},{wch:12},{wch:12},{wch:12},{wch:9},{wch:10},{wch:10},{wch:8},{wch:40}]; XLSX.utils.book_append_sheet(wb,ws,safeId(p.name).slice(0,28)||'Project'); });
+  const ws0=XLSX.utils.aoa_to_sheet(sum); ws0['!cols']=[{wch:40},{wch:12},{wch:9},{wch:10},{wch:6},{wch:18},{wch:18},{wch:9},{wch:10}]; XLSX.utils.book_append_sheet(wb,ws0,'Summary');
+  wb.SheetNames.unshift(wb.SheetNames.pop());
+  const data=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  if(!downloads){ toast('Downloads are not available in this view.'); return; }
+  downloads.save({filename:`${name}-${today()}.xlsx`,data:new Uint8Array(data)}).catch(e=>{ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); });
+}
+function pagePm(){
+  const P=S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')), rows=P.map(p=>({p,f:pmForecast(p)})), n=k=>rows.filter(r=>r.f&&r.f.status===k).length;
+  const withMs=rows.filter(r=>r.f), t=today0();
+  let bars='';
+  if(withMs.length){ const s=addD(new Date(Math.min(...withMs.map(r=>r.f.start.getTime()))),-7), e=addD(new Date(Math.max(...withMs.map(r=>Math.max(r.f.fc,r.f.contract||0,r.f.end)))),10), D=Math.max(30,dDiff(e,s)), LW=210, W=Math.max(720,LW+D*2.4), RH=34, H=40+withMs.length*RH, X=d=>LW+dDiff(d,s)/D*(W-LW-12);
+    let g=''; for(let d=new Date(s.getFullYear(),s.getMonth(),1); d<=e; d=new Date(d.getFullYear(),d.getMonth()+1,1)){ const x=Math.max(LW,X(d)); g+=`<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--line)"/><text x="${x+4}" y="14" font-size="10.5" fill="var(--muted)">${d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}</text>`; }
+    withMs.forEach((r,i)=>{ const y=28+i*RH, x=X(r.f.start), w=Math.max(4,X(r.f.end)-x), c=r.f.status==='late'?'#C0392B':r.f.status==='risk'?'#E67E22':r.f.status==='done'?'var(--good)':'#1F5FA8', a=r.f.pr?r.f.pr.actual:0;
+      g+=`<g data-go-proj="${esc(r.p.id)}" style="cursor:pointer"><title>${esc(r.p.name)} · ${a.toFixed(0)}% done · forecast ${fmtD(r.f.fc)}</title><text x="8" y="${y+17}" font-size="12" fill="var(--ink)" font-weight="600">${esc(r.p.name.length>27?r.p.name.slice(0,26)+'…':r.p.name)}</text>
+        <rect x="${x}" y="${y+5}" width="${w}" height="16" rx="5" fill="${c}" opacity=".22"/><rect x="${x}" y="${y+5}" width="${w*a/100}" height="16" rx="5" fill="${c}"/>
+        ${r.f.contract?`<line x1="${X(r.f.contract)}" x2="${X(r.f.contract)}" y1="${y+1}" y2="${y+25}" stroke="var(--good)" stroke-width="2.5"/>`:''}
+        <path d="M${X(r.f.fc)} ${y+4} l7 9 l-7 9 l-7 -9z" fill="${r.f.slip>0?'#C0392B':'#7B1FA2'}"/></g>`; });
+    const tx=X(t); g+=`<line x1="${tx}" x2="${tx}" y1="18" y2="${H}" stroke="#C0392B" stroke-dasharray="4 3"/><text x="${tx+3}" y="26" font-size="10" fill="#C0392B" font-weight="700">Today</text>`;
+    bars=`<div style="overflow-x:auto"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="All projects timeline" style="display:block">${g}</svg></div><div class="toolbar small" style="gap:14px;flex-wrap:wrap"><span>Bar = programme, dark part = % done</span><span style="color:var(--good)">▌ Contract completion</span><span style="color:#7B1FA2">◆ Forecast finish (red = late)</span></div>`; }
+  return `<div class="grid g4">
+    <div class="card kpi blu"><span class="label">Active projects</span><span class="v num">${P.length}</span><span class="s">${withMs.length} with a programme</span></div>
+    <div class="card kpi grn"><span class="label">On time</span><span class="v num">${n('ok')}</span><span class="s">forecast before contract date</span></div>
+    <div class="card kpi amb"><span class="label">At risk</span><span class="v num">${n('risk')}</span><span class="s">slower than plan or overdue activities</span></div>
+    <div class="card kpi ${n('late')?'hot':'grn'}"><span class="label">Late</span><span class="v num">${n('late')}</span><span class="s">forecast after contract completion</span></div></div>
+  <div class="toolbar"><span class="muted">Updates itself from each project's programme and site reports.</span><div class="sp"></div>${withMs.length?'<button class="btn" data-act="pmExportAll">Weekly programme report (Excel)</button>':''}</div>
+  <div class="card"><div class="hd"><h2>All projects timeline</h2></div><div class="bd" style="padding:8px">${bars||'<div class="empty">No project has a programme yet. Open a project → Programme → Add activity.</div>'}</div></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Project</th><th>Status</th><th>Done / planned</th><th class="r">SPI</th><th>Contract completion</th><th>Forecast</th><th class="r">Overdue</th></tr></thead><tbody>
+    ${rows.map(({p,f})=>`<tr class="click" data-go-proj="${esc(p.id)}"><td><div class="ttl2">${esc(p.name)}</div><div class="sub">${esc(p.client||'')}</div></td><td>${pmChip(f)}</td><td>${f&&f.pr?`<div class="bar"><i style="width:${f.pr.actual}%;background:${f.status==='late'?'var(--bad)':'var(--accent)'}"></i></div><span class="small num">${f.pr.actual.toFixed(0)}% / ${f.pr.planned.toFixed(0)}%</span>`:'<span class="sub">—</span>'}</td>
+      <td class="r num">${f&&f.spi!=null?f.spi.toFixed(2):'—'}</td><td class="small">${f&&f.contract?fmtD(f.contract):fmtD(p.end)}</td><td class="small">${f?`${fmtD(f.fc)}${f.slip>0?` <span style="color:var(--bad);font-weight:700">+${f.slip} d</span>`:''}`:'—'}</td><td class="r num">${f?f.late:'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No active projects.</td></tr>'}
+  </tbody></table></div></div>
+  <div class="card"><div class="hd"><h2>Look-ahead – all projects, next 14 days</h2></div>${withMs.length?pmLookahead(withMs.map(r=>r.p.id)):'<div class="empty">No programmes yet.</div>'}</div>`;
+}
+// site report ⇄ programme: update activity progress while writing the report
+function pmReportRows(pid, rDate){
+  if(!pid) return '<span class="sub">Choose the project to update its programme progress.</span>';
+  const d=pd(rDate)||today0(), L=msOf(pid).filter(m=>m.kind!=='milestone'&&msPg(m)<100&&msStart(m)&&msStart(m)<=addD(d,7)).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||''));
+  if(!L.length) return '<span class="sub">No programme activities are running for this project right now.</span>';
+  return `<div style="display:grid;gap:6px">${L.map(m=>`<label style="display:flex;align-items:center;gap:10px"><span class="grow small">${esc(m.name)} <span class="sub">(plan ${fmtD(m.planned_finish)})</span></span><input class="inp" type="number" min="0" max="100" step="5" style="width:86px" data-rpms="${esc(m.id)}" value="${msPg(m)}"> %</label>`).join('')}</div>`;
+}
+async function pmApplyReport(){
+  const ins=[...document.querySelectorAll('[data-rpms]')]; let n=0;
+  for(const el of ins){ const m=byId('milestones',el.dataset.rpms); if(!m) continue; const v=Math.max(0,Math.min(100,+el.value||0)); if(v===msPg(m)) continue;
+    const up={progress:v}; if(v>0&&!m.actual_start) up.actual_start=today(); if(v>=100&&!m.actual_finish) up.actual_finish=today(); await patch('milestones',m.id,up); n++; }
+  if(n) logAct(`Programme progress updated from a site report (${n} activit${n>1?'ies':'y'})`);
+  return n;
+}
+
 /* ===================== PLANT & EQUIPMENT ===================== */
 const PLANT_FIELDS=[{k:'name',label:'Item',req:1,ph:'e.g. Concrete mixer 350L'},{k:'category',label:'Category',type:'select',options:['Heavy plant','Light plant','Vehicle','Scaffolding & formwork','Tools','Surveying equipment','Generator / pump']},
   {k:'reg_no',label:'Registration / serial no.'},{k:'ownership',label:'Ownership',type:'select',options:['Owned','Hired']},{k:'supplier',label:'Hired from'},
@@ -1711,6 +1948,7 @@ function pagePlant(){
   </tbody></table></div></div>`;
 }
 function pmAlerts(A){
+  S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')).forEach(p=>{ const f=pmForecast(p); if(f&&f.status==='late') A.push({lvl:'bad',kind:'Programme late',text:`${p.name} – forecast finish ${fmtD(f.fc)}`,sub:`${f.slip} days after contract completion ${fmtD(f.contract)} · speed ${f.spi!=null?f.spi.toFixed(2):'—'}`,go:['project',p.id],sort:7}); });
   S.milestones.forEach(m=>{ if((+m.progress||0)<100&&m.planned_finish&&daysLeft(m.planned_finish+'T23:59')<0) A.push({lvl:'warn',kind:'Activity late',text:`${m.name}`,sub:`${projName(m.project_id)} · planned finish ${fmtD(m.planned_finish)} · ${+m.progress||0}% done`,go:['project',m.project_id],sort:12}); });
   S.variations.forEach(v=>{ if(v.status==='Instructed'&&v.date_instructed&&daysLeft(v.date_instructed)<-14) A.push({lvl:'warn',kind:'Variation not submitted',text:`${v.ref} – ${v.description}`,sub:`${projName(v.project_id)} · instructed ${fmtD(v.date_instructed)}`,go:['project',v.project_id],sort:14}); });
   S.risks.forEach(r=>{ if(r.status!=='Closed'&&(+r.likelihood||0)*(+r.impact||0)>=15) A.push({lvl:'bad',kind:'High risk',text:r.title,sub:`${projName(r.project_id)} · owner ${staffName(r.owner)}`,go:['project',r.project_id],sort:6}); });
@@ -1718,7 +1956,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -1782,7 +2020,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
-  if(el.dataset.editms){ recEdit('milestones',el.dataset.editms,'Programme activity',MS_FIELDS,'Programme'); return; }
+  if(el.dataset.editms){ const m=byId('milestones',el.dataset.editms); if(!m) return; formDrawer('Programme activity',msFields(m.project_id,m.id),m,async v=>{ await pmSaveActivity(m.project_id,m.id,v); },{sub:'Programme · '+projName(m.project_id),onDelete:async()=>{ await remove('milestones',m.id); for(const o of msOf(m.project_id).filter(x=>msPreds(x).includes(m.id))) await patch('milestones',o.id,{preds:msPreds(o).filter(x=>x!==m.id)}); logAct(`Deleted programme activity – ${projName(m.project_id)}`); }}); return; }
   if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFields(),'Variations & EOT'); return; }
   if(el.dataset.editrisk){ recEdit('risks',el.dataset.editrisk,'Risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),'Risks & issues'); return; }
   if(el.dataset.editsnag){ recEdit('snags',el.dataset.editsnag,'Snag',SNAG_FIELDS,'Snags & close-out'); return; }
@@ -1885,7 +2123,11 @@ document.addEventListener('click', async e=>{
       try{ await db.doc('system/recipients').set({hash:recipHash(),count:recipList().filter(x=>x.email).length,at:new Date().toISOString(),by:me.name||''}); }catch(e){ console.warn(e); }
       logAct('Updated the email alert list for the cloud scanner');
       toast(copied?'Staff list copied. In GitHub: click in the Value box, press Ctrl+V, then “Update secret”.':'Copy the text shown, then paste it in GitHub and press “Update secret”.'); } break;
-    case 'addMs': formDrawer('Add programme activity',MS_FIELDS,{progress:0},async v=>{ await put('milestones',null,{...v,project_id:routeArg}); logAct(`Programme activity added: ${v.name} – ${projName(routeArg)}`); },{sub:'Programme'}); break;
+    case 'addMs': formDrawer('Add programme activity',msFields(routeArg),{progress:0,kind:'activity',lag:0,weight:0},async v=>{ await pmSaveActivity(routeArg,null,v); },{sub:'Programme'}); break;
+    case 'pmView': UI.pmView=el.dataset.v; renderView(true); break;
+    case 'pmBaseline': await pmSetBaseline(routeArg); break;
+    case 'pmExport': pmExcel([routeArg],safeId(projName(routeArg))+'-programme'); break;
+    case 'pmExportAll': pmExcel(S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')&&msOf(p.id).length).map(p=>p.id),'NEXUS-programme-report'); break;
     case 'addVo': formDrawer('Record instruction / claim',voFields(),{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
     case 'addRisk': formDrawer('Add risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),{kind:'Risk',status:'Open'},async v=>{ await put('risks',null,{...v,project_id:routeArg}); logAct(`Risk logged: ${v.title} – ${projName(routeArg)}`); },{sub:'Risks & issues'}); break;
     case 'addSnag': formDrawer('Add snag',SNAG_FIELDS,{status:'Open'},async v=>{ await put('snags',null,{...v,project_id:routeArg,found:today()}); },{sub:'Snags & close-out'}); break;
@@ -1906,7 +2148,8 @@ async function saveReport(){
     for(const [i,f] of files.entries()){ if(btn) btn.innerHTML=`<span class="spin"></span> Photo ${i+1} of ${files.length}…`; try{ photos.push(await storePhoto(f)); }catch(e){ toast('One photo could not be uploaded.'); } }
     if(ex) await patch('reports',ex.id,{...v,photos}); else await put('reports',null,{...v,photos,author:me.name||'',created_at:new Date().toISOString()});
     logAct(`${ex?'Updated':'Filed'} site report for ${projName(v.project_id)} (${v.date}, ${photos.length} photos)`);
-    UI.busy.saveReport=false; closeDrawer(); toast('Site report saved.');
+    const nProg=await pmApplyReport();
+    UI.busy.saveReport=false; closeDrawer(); toast('Site report saved.'+(nProg?` Programme updated (${nProg}).`:''));
   }finally{ UI.busy.saveReport=false; }
 }
 document.addEventListener('input', e=>{
@@ -1925,6 +2168,7 @@ document.addEventListener('change', async e=>{
   const el=e.target;
   if(el.id==='tcat'){ UI.tcat=el.value; renderView(true); }
   else if(el.id==='rproj'){ UI.rproj=el.value; renderView(true); }
+  else if((el.id==='f_project_id'||el.id==='f_date')&&drawer?.type==='report-form'){ const b=$('#rpProg'); if(b) b.innerHTML=pmReportRows($('#f_project_id')?.value, $('#f_date')?.value); }
   else if(el.id==='fproj'){ UI.fproj=el.value; renderView(true); }
   else if(el.id==='xlsxFile'&&el.files[0]){ await importXlsx(el.files[0]); el.value=''; }
   else if(el.id&&el.id.startsWith('ck_')&&drawer?.type==='tender'){ const t=byId('tenders',drawer.id); const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); t.checklist=cl; const s=checklistState(t); const c=$('#ckCount'), b=$('#ckBar'); if(c){ c.textContent=`${s.done}/${s.total}`; c.className='chip '+(s.pct===100?'good':s.pct>=50?'amb':''); } if(b) b.style.width=s.pct+'%'; await patch('tenders',t.id,{checklist:cl}); }
@@ -2052,6 +2296,7 @@ document.addEventListener('click',async e=>{
   else if(k==='seen') annSeenBox(id);
   else if(k==='del'){ const a=byId('announcements',id); if(a&&await confirmBox(`Remove the announcement "${a.title}"? It disappears for everyone.`,'Remove',true)){ await remove('announcements',id); toast('Announcement removed.'); } }
 }, true);
+document.addEventListener('click',e=>{ const g=e.target.closest('[data-go-proj]'); if(!g) return; e.stopPropagation(); UI.ptabw='programme'; go('project',g.dataset.goProj); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ANN.showing){ ANN.later.add(ANN.showing); annClose(); } });
 /* ---------- open a page from a notification ---------- */
 window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
