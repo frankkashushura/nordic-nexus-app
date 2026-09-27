@@ -348,6 +348,15 @@
   })();
   window.NX_OPEN_USERS = () => openUsers();
 
+  /* ---------------- announcements: who has seen what ---------------- */
+  window.NX_ANN = {
+    role: () => profile?.role || '',
+    uid: () => session?.user?.id || '',
+    async mySeen() { const { data, error } = await sb.from('announce_seen').select('ann_id').eq('user_id', session.user.id); if (error) throw error; return new Set((data || []).map(r => r.ann_id)); },
+    async markSeen(id) { const { error } = await sb.from('announce_seen').insert({ ann_id: id }); if (error && error.code !== '23505') throw error; },
+    async seenList(id) { const { data, error } = await sb.rpc('ann_seen_list', { ann: id }); if (error) throw error; return data || []; }
+  };
+
   /* ---------------- notifications on this phone / computer (Firebase Cloud Messaging) ---------------- */
   (() => {
     const FB = CFG.firebase || null;                       // public web config + web-push key (config.js)

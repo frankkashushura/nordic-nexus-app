@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=55"></script>
+<script src="config.js?v=56"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=55"></script>
-<script src="nexus-chat.js?v=55"></script>
+<script src="nexus-sb.js?v=56"></script>
+<script src="nexus-chat.js?v=56"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -303,6 +303,48 @@ ul.clean li{margin:3px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+.ann{position:relative;border-radius:16px;padding:18px 20px;color:#fff;overflow:hidden;box-shadow:0 10px 28px rgba(10,20,45,.22);isolation:isolate}
+.ann::before{content:'';position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.12);z-index:-1}
+.ann::after{content:'';position:absolute;left:-40px;bottom:-70px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.07);z-index:-1}
+.ann.t-ocean{background:linear-gradient(135deg,#182340 0%,#1F5FA8 55%,#539FDC 100%)}
+.ann.t-sunrise{background:linear-gradient(135deg,#A8381A 0%,#E67E22 55%,#F4C542 100%)}
+.ann.t-forest{background:linear-gradient(135deg,#0B4232 0%,#1E8449 55%,#52BE80 100%)}
+.ann.t-royal{background:linear-gradient(135deg,#2A1656 0%,#6C3FC5 55%,#A57CF0 100%)}
+.ann.t-alert{background:linear-gradient(135deg,#5C0E0E 0%,#C0392B 55%,#EC7063 100%)}
+.ann.t-gold{background:linear-gradient(135deg,#2E2408 0%,#8C6D0B 50%,#E5B83A 100%)}
+.ann.t-celebrate{background:linear-gradient(135deg,#B0125B 0%,#7B1FA2 45%,#1E88E5 100%)}
+.ann.t-celebrate::before{background:radial-gradient(circle,rgba(255,255,255,.28) 2px,transparent 3px) 0 0/22px 22px;border-radius:0;width:100%;height:100%;right:0;top:0;opacity:.5}
+.ann .ann-top{display:flex;gap:12px;align-items:flex-start}
+.ann .ann-ic{font-size:34px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.ann .ann-lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-weight:700}
+.ann h3{margin:3px 0 0;font-size:19px;line-height:1.25;color:#fff}
+.ann .ann-body{white-space:pre-wrap;margin:10px 0 0;color:rgba(255,255,255,.95);font-size:14.5px;line-height:1.5}
+.ann .ann-meta{font-size:12px;opacity:.85;margin-top:10px}
+.ann .ann-img{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:12px;margin-top:12px;cursor:zoom-in;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.ann .ann-file{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;margin-top:12px;font-weight:600}
+.ann .ann-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ann .ann-acts button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+.ann .ann-acts button:hover{background:rgba(255,255,255,.28)}
+.ann .ann-got{background:#fff;color:#182340;border:0;font:inherit;font-weight:800;padding:11px 22px;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.ann-list{display:grid;gap:12px;margin-bottom:14px}
+.ann-pop{position:fixed;inset:0;z-index:130;background:rgba(6,12,28,.62);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px;animation:annfade .2s ease}
+.ann-pop .ann{max-width:540px;width:100%;max-height:88vh;overflow:auto;animation:annpop .35s cubic-bezier(.2,.9,.3,1.25);padding:24px}
+.ann-pop .ann h3{font-size:22px}
+.ann-pop .ann-count{position:absolute;top:14px;right:16px;font-size:12px;opacity:.8}
+@keyframes annpop{from{transform:translateY(24px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+@keyframes annfade{from{opacity:0}to{opacity:1}}
+.ann-ed{position:fixed;inset:0;z-index:125;background:rgba(6,12,28,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+.ann-ed>.card{max-width:640px;width:100%;padding:18px;display:grid;gap:12px;margin:auto 0}
+.ann-sw{display:flex;gap:8px;flex-wrap:wrap}
+.ann-sw label,.ann-ics label{cursor:pointer;position:relative}.ann-sw input,.ann-ics input{position:absolute;opacity:0;pointer-events:none}
+.ann-sw span{width:78px;height:42px;border-radius:10px;border:3px solid transparent;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:flex-end;padding:4px 6px}
+.ann-sw input:checked+span{border-color:#539FDC;box-shadow:0 0 0 2px #fff inset}
+.ann-ics{display:flex;gap:6px;flex-wrap:wrap}
+.ann-ics span{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;border:2px solid var(--line);font-size:20px}
+.ann-ics input:checked+span{border-color:#539FDC;background:rgba(83,159,220,.14)}
+.ann-seen{list-style:none;margin:0;padding:0;max-height:55vh;overflow:auto}
+.ann-seen li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+@media (max-width:600px){.ann-pop .ann{padding:20px 18px}.ann h3{font-size:18px}}
 </style>
 
 <div class="app" id="app">
@@ -329,7 +371,7 @@ ul.clean li{margin:3px 0}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -1297,7 +1339,7 @@ function pageHome(){
   const c=company(), open=openTenders();
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(firstSeen(b))||0)-(Date.parse(firstSeen(a))||0));
-  return `
+  return `${annHome()}
   <section class="home-hero">
     <div class="hh-photo" role="img" aria-label="NHC Clock Tower building, built by Nordic Construction"></div>
     <div class="hh-diamond d1"></div><div class="hh-diamond d2"></div><div class="hh-diamond d3"></div>
@@ -1716,7 +1758,7 @@ function renderDrawer(){
   if(t==='ask'){ const l=o.querySelector('.db'); if(l) l.scrollTop=l.scrollHeight; }
 }
 let rq=false;
-function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); }); }
+function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); annMaybePop(); }); }
 function go(k,arg=null,fromHistory=false){ if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
@@ -1908,10 +1950,113 @@ window.addEventListener('popstate', e=>{
   const st=e.state;
   if(st&&st.nx) go(st.route, st.arg??null, true); else go('home', null, true);
 });
+/* ===================== ANNOUNCEMENTS (pop-up once per person, then a card on Home) ===================== */
+const ANN_THEMES=[['ocean','Ocean'],['sunrise','Sunrise'],['forest','Safety green'],['royal','Royal'],['alert','Urgent'],['gold','Gold'],['celebrate','Celebration']];
+const ANN_ICONS=['📢','🎉','⚠️','🦺','🏆','📅','🛠️','💡','🏗️','🤝','❤️','⭐'];
+const ANN={seen:null, showing:null, later:new Set(), busy:false};
+const annCanPost=()=>{ const r=window.NX_ANN?window.NX_ANN.role():''; return isAdmin||r==='admin'||r==='finance'; };
+const annMyUid=()=>window.NX_ANN?window.NX_ANN.uid():(me.id||'');
+const annEnd=a=>a.expires?Date.parse(a.expires+'T23:59:59+03:00'):Infinity;
+const annActive=()=>(S.announcements||[]).filter(a=>!a.example&&annEnd(a)>=Date.now()).sort((x,y)=>(y.created_at||'').localeCompare(x.created_at||''));
+const annFileIco=n=>/\.pdf$/i.test(n||'')?'📄':/\.(xlsx?|csv)$/i.test(n||'')?'📊':/\.(docx?)$/i.test(n||'')?'📝':'📎';
+function annCard(a,pop,idx,total){
+  const at=a.attach||null, own=annCanPost();
+  const when=a.created_at?new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+  return `<article class="ann t-${esc(ANN_THEMES.some(t=>t[0]===a.theme)?a.theme:'ocean')}" ${pop?'role="dialog" aria-modal="true" aria-labelledby="annTtl"':''}>
+    ${pop&&total>1?`<span class="ann-count">${idx+1} of ${total}</span>`:''}
+    <div class="ann-top"><div class="ann-ic" aria-hidden="true">${esc(a.icon||'📢')}</div><div style="flex:1;min-width:0"><div class="ann-lbl">Announcement</div><h3 ${pop?'id="annTtl"':''}>${esc(a.title||'')}</h3></div></div>
+    ${a.body?`<div class="ann-body">${esc(a.body)}</div>`:''}
+    ${at&&at.kind==='image'?`<img class="ann-img" src="${esc(at.url)}" alt="${esc(at.name||'Announcement picture')}" data-annzoom="${esc(at.url)}">`:''}
+    ${at&&at.kind==='file'?`<a class="ann-file" href="${esc(at.url)}" target="_blank" rel="noopener">${annFileIco(at.name)} ${esc(at.name||'Open attachment')}</a>`:''}
+    <div class="ann-meta">From ${esc(a.by||'the office')}${when?' · '+when:''}${a.expires?' · until '+esc(fmtD(a.expires)):''}</div>
+    ${pop?`<div class="ann-acts" style="margin-top:16px;align-items:center"><button class="ann-got" data-ann="got:${esc(a.id)}">Got it</button><button data-ann="later:${esc(a.id)}">Remind me later</button></div>`
+      :own?`<div class="ann-acts"><button data-ann="seen:${esc(a.id)}">👁 Seen by…</button><button data-ann="edit:${esc(a.id)}">✏️ Edit</button><button data-ann="del:${esc(a.id)}">🗑 Remove</button></div>`:''}
+  </article>`;
+}
+function annHome(){
+  const L=annActive(), post=annCanPost();
+  if(!L.length&&!post) return '';
+  return `<section class="ann-list" aria-label="Announcements">${L.map(a=>annCard(a,false)).join('')}${post?`<div class="toolbar" style="justify-content:flex-end"><button class="btn sm pri" data-ann="new:">📢 New announcement</button></div>`:''}</section>`;
+}
+async function annInit(){ if(!window.NX_ANN) return; try{ ANN.seen=await window.NX_ANN.mySeen(); }catch(_){ ANN.seen=new Set(); } annMaybePop(); }
+function annMaybePop(){
+  if(!ANN.seen||ANN.showing||route!=='home'||document.querySelector('.ann-pop,.ann-ed,.confirm')) return;
+  const uidMe=annMyUid(), L=annActive().filter(a=>!ANN.seen.has(a.id)&&!ANN.later.has(a.id)&&a.by_uid!==uidMe);
+  if(L.length) annShow(L[0].id,L.length);
+}
+function annShow(id,total){
+  const a=byId('announcements',id); if(!a) return;
+  document.querySelector('.ann-pop')?.remove();
+  const w=document.createElement('div'); w.className='ann-pop'; ANN.showing=id;
+  w.innerHTML=annCard(a,true,0,total||1); document.body.append(w);
+  w.querySelector('.ann-got')?.focus();
+}
+function annClose(){ document.querySelector('.ann-pop')?.remove(); ANN.showing=null; setTimeout(annMaybePop,350); }
+function annEditor(a){
+  a=a||{theme:'ocean',icon:'📢'}; let att=a.attach||null, saving=false;
+  const w=document.createElement('div'); w.className='ann-ed';
+  const preview=()=>{ const v=read(); w.querySelector('#annPrev').innerHTML=annCard({...v,id:'preview',by:me.name||'',created_at:new Date().toISOString()},false); };
+  const read=()=>({title:w.querySelector('#annT').value.trim(),body:w.querySelector('#annB').value.trim(),theme:(w.querySelector('input[name=annTh]:checked')||{}).value||'ocean',icon:(w.querySelector('input[name=annIc]:checked')||{}).value||'📢',expires:w.querySelector('#annX').value||'',attach:att});
+  w.innerHTML=`<div class="card" role="dialog" aria-modal="true" aria-label="Announcement">
+    <div class="toolbar"><h2 style="margin:0">${a.id?'Edit announcement':'New announcement'}</h2><div class="sp"></div><button class="iconbtn" data-x="close" aria-label="Close">✕</button></div>
+    <div class="fld"><label for="annT">Title *</label><input class="inp" id="annT" maxlength="120" value="${esc(a.title||'')}" placeholder="e.g. Office closed on Friday for Maulid"></div>
+    <div class="fld"><label for="annB">Message</label><textarea class="inp" id="annB" rows="5" maxlength="2000" placeholder="Write the announcement…">${esc(a.body||'')}</textarea></div>
+    <div class="fld"><label>Theme</label><div class="ann-sw">${ANN_THEMES.map(([k,l])=>`<label><input type="radio" name="annTh" value="${k}" ${a.theme===k?'checked':''}><span class="ann t-${k}" style="padding:4px 6px;box-shadow:none;border-radius:10px">${l}</span></label>`).join('')}</div></div>
+    <div class="fld"><label>Icon</label><div class="ann-ics">${ANN_ICONS.map(i=>`<label><input type="radio" name="annIc" value="${i}" ${a.icon===i?'checked':''}><span>${i}</span></label>`).join('')}</div></div>
+    <div class="form" style="grid-template-columns:1fr 1fr">
+      <div class="fld"><label for="annX">Show until (optional)</label><input class="inp" id="annX" type="date" value="${esc(a.expires||'')}"><span class="sub">Empty = until someone removes it</span></div>
+      <div class="fld"><label>Picture or document (optional)</label><div class="toolbar" style="gap:6px"><label class="btn sm" style="cursor:pointer">📎 Attach<input type="file" id="annF" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden></label><span class="sub" id="annFn">${att?esc(att.name||'Attached'):'Nothing attached'}</span>${att?'<button class="btn sm" data-x="unatt">Remove</button>':''}</div><span class="sub">Poster, circular or letter – max 20 MB</span></div>
+    </div>
+    <div class="label">Preview</div><div id="annPrev"></div>
+    <div class="toolbar"><span class="sub">${a.id?'Changes show at once.':'Everyone sees it as a pop-up and gets a phone/PC notification.'}</span><div class="sp"></div><button class="btn" data-x="close">Cancel</button><button class="btn pri" data-x="save">${a.id?'Save changes':'📢 Publish'}</button></div>
+  </div>`;
+  document.body.append(w); preview(); w.querySelector('#annT').focus();
+  w.addEventListener('input',preview); w.addEventListener('change',async e=>{
+    if(e.target.id!=='annF'||!e.target.files.length) { preview(); return; }
+    const f=e.target.files[0]; if(f.size>20*1048576){ toast('That file is larger than 20 MB.'); return; }
+    if(!assets){ toast('File upload is not available in this view.'); return; }
+    w.querySelector('#annFn').textContent='Uploading…';
+    try{ const img=/^image\//.test(f.type); let blob=f; if(img&&typeof shrink==='function'){ try{ blob=(await shrink(f,1800,.85)).blob; }catch(_){ blob=f; } }
+      const r=await assets.upload(blob,img?{type:'image/jpeg'}:{}); att={kind:img?'image':'file',url:r.url,name:f.name}; w.querySelector('#annFn').textContent=f.name; preview(); }
+    catch(err){ w.querySelector('#annFn').textContent='Upload failed'; toast('Upload failed: '+(err?.message||err)); }
+  });
+  w.addEventListener('click',async e=>{ const b=e.target.closest('[data-x]'); if(!b&&e.target!==w) return; const x=b?b.dataset.x:'';
+    if(x==='close'){ w.remove(); return; }
+    if(x==='unatt'){ att=null; b.remove(); w.querySelector('#annFn').textContent='Nothing attached'; preview(); return; }
+    if(x==='save'&&!saving){ const v=read(); if(!v.title){ toast('Please write a title.'); w.querySelector('#annT').focus(); return; }
+      saving=true; b.disabled=true;
+      const data=a.id?{...v}:{...v,created_at:new Date().toISOString(),by:me.name||'',by_uid:annMyUid()};
+      const id=a.id?(await patch('announcements',a.id,data),a.id):await put('announcements',null,data);
+      if(id){ if(ANN.seen) ANN.seen.add(id); if(!a.id){ try{ window.NX_ANN&&await window.NX_ANN.markSeen(id); }catch(_){} window.NX_PUSH_SWEEP&&setTimeout(()=>window.NX_PUSH_SWEEP(),2500); toast('Announcement published.'); } else toast('Announcement updated.'); w.remove(); renderAll(); }
+      else { saving=false; b.disabled=false; } }
+  });
+}
+async function annSeenBox(id){
+  const a=byId('announcements',id); if(!a) return;
+  const w=document.createElement('div'); w.className='confirm';
+  w.innerHTML=`<div class="card" role="dialog" aria-modal="true"><div class="toolbar"><h3 style="margin:0">Seen by</h3><div class="sp"></div><button class="iconbtn" data-x="0" aria-label="Close">✕</button></div><p class="sub" style="margin:0">${esc(a.title||'')}</p><div id="annSeenL"><span class="spin"></span> Loading…</div></div>`;
+  w.addEventListener('click',e=>{ if(e.target===w||e.target.closest('[data-x]')) w.remove(); }); document.body.append(w);
+  try{ const L=await window.NX_ANN.seenList(id), n=L.filter(r=>r.seen_at).length;
+    w.querySelector('#annSeenL').innerHTML=`<p><b>${n} of ${L.length}</b> people have seen it.</p><ul class="ann-seen">${L.map(r=>`<li><span>${esc(r.name||'')}${r.job?` <span class="sub">· ${esc(r.job)}</span>`:''}</span><span class="${r.seen_at?'':'sub'}">${r.seen_at?'✓ '+esc(fmtDT(r.seen_at)):'Not yet'}</span></li>`).join('')}</ul>`; }
+  catch(err){ w.querySelector('#annSeenL').textContent='Could not load: '+(err?.message||err); }
+}
+document.addEventListener('click',async e=>{
+  const z=e.target.closest('[data-annzoom]'); if(z){ lightbox(z.dataset.annzoom); return; }
+  const b=e.target.closest('[data-ann]'); if(!b) return; e.stopPropagation();
+  const [k,id]=b.dataset.ann.split(/:(.*)/);
+  if(k==='got'){ ANN.seen&&ANN.seen.add(id); try{ window.NX_ANN&&await window.NX_ANN.markSeen(id); }catch(_){} annClose(); }
+  else if(k==='later'){ ANN.later.add(id); annClose(); }
+  else if(k==='new') annEditor(null);
+  else if(k==='edit') annEditor(byId('announcements',id));
+  else if(k==='seen') annSeenBox(id);
+  else if(k==='del'){ const a=byId('announcements',id); if(a&&await confirmBox(`Remove the announcement "${a.title}"? It disappears for everyone.`,'Remove',true)){ await remove('announcements',id); toast('Announcement removed.'); } }
+}, true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ANN.showing){ ANN.later.add(ANN.showing); annClose(); } });
 /* ---------- open a page from a notification ---------- */
 window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   if(k==='alerts'){ nsOpened(); openDrawer('alerts'); }
   else if(k==='logins'){ if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); }
+  else if(k==='ann'&&v){ go('home'); let n=0; const t=setInterval(()=>{ if(byId('announcements',v)){ clearInterval(t); annShow(v,1); } else if(++n>40) clearInterval(t); },250); }
   else if(k==='chat'){ go('chat'); if(v){ let n=0; const t=setInterval(()=>{ if((window.NX_CHAT_OPEN&&window.NX_CHAT_OPEN(v))||++n>40) clearInterval(t); },250); } }
   else if(k==='tender'&&v){ go('tenders'); let n=0; const t=setInterval(()=>{ if(byId('tenders',v)){ clearInterval(t); openTender(v); } else if(++n>40) clearInterval(t); },250); }
   else if(PAGE_FN[k]) go(k);
@@ -1925,7 +2070,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
   if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
     $('#meName').textContent=me.name||''; $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
-  nsLoad();
+  nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
