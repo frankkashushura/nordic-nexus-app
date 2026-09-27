@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=37"></script>
+<script src="config.js?v=38"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=37"></script>
+<script src="nexus-sb.js?v=38"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1597,7 +1597,7 @@ function renderDrawer(){
 }
 let rq=false;
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); }); }
-function go(k,arg=null){ route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
+function go(k,arg=null,fromHistory=false){ if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
 /* ===================== FORM DRAWERS ===================== */
@@ -1751,6 +1751,18 @@ $('#askBtn').onclick=()=>openDrawer('ask');
 $('#menuBtn').onclick=()=>{ $('#side').classList.add('open'); const s=document.createElement('div'); s.className='scrim'; s.onclick=()=>{ $('#side').classList.remove('open'); s.remove(); }; document.body.append(s); };
 function applyTheme(){ const t=UI.theme||'System'; if(t==='System') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t.toLowerCase()); try{localStorage.setItem('nx_theme',t)}catch(_){} }
 
+/* ===================== BACK BUTTON (browser, Android, mouse) ===================== */
+try{ history.replaceState({nx:1,route,arg:routeArg}, ''); }catch(_){}
+window.addEventListener('popstate', e=>{
+  const side=$('#side'), overlayOpen = drawer || document.querySelector('.nxm') || document.querySelector('.lightbox') || (side&&side.classList.contains('open'));
+  if(overlayOpen){   // back first closes whatever is open on top, and stays on the page
+    closeDrawer(); document.querySelectorAll('.nxm,.lightbox').forEach(x=>x.remove()); side&&side.classList.remove('open'); $('.scrim')?.remove();
+    try{ history.pushState({nx:1,route,arg:routeArg}, ''); }catch(_){}
+    return;
+  }
+  const st=e.state;
+  if(st&&st.nx) go(st.route, st.arg??null, true); else go('home', null, true);
+});
 /* ===================== START ===================== */
 (async function start(){
   try{ UI.theme=localStorage.getItem('nx_theme')||'System';  }catch(_){}
