@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=54"></script>
+<script src="config.js?v=55"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=54"></script>
-<script src="nexus-chat.js?v=54"></script>
+<script src="nexus-sb.js?v=55"></script>
+<script src="nexus-chat.js?v=55"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -696,15 +696,14 @@ function alertRow(a){ const [k,v]=a.go, st=a.st||'unread';
   return `<div class="li nt-${st}" style="cursor:pointer" data-nk="${esc(a.key||'')}" ${k==='route'?`data-go="${v}"`:`data-open="${k}:${esc(v)}"`}><div class="stripe ${a.lvl}"></div><div class="grow"><div class="toolbar" style="gap:6px"><span class="label">${esc(a.kind)}</span>${st==='new'?'<span class="chip blue">New</span>':st==='unread'?'<span class="ndot" title="Unread"></span>':'<span class="sub">Read</span>'}<div class="sp"></div>${a.at?`<span class="sub">${ago(a.at)}</span>`:''}<button class="iconbtn" data-nclear="${esc(a.key||'')}" title="Clear this notification" aria-label="Clear this notification" style="width:26px;height:26px;margin:-4px -4px -4px 2px;font-size:15px;line-height:1">✕</button></div><div class="ttl2">${esc(a.text)}</div><div class="sub">${esc(a.sub)}</div></div></div>`; }
 function pushBar(){ const st=window.NX_PUSH_STATE?window.NX_PUSH_STATE():'setup'; if(st==='setup') return ''; const busy=window.NX_PUSH_BUSY&&window.NX_PUSH_BUSY(), sp=busy?'<span class="spin"></span> ':'';
   const line=(ico,txt,btn)=>`<div class="toolbar" style="padding:9px 12px;gap:8px;border-bottom:1px solid var(--line);background:var(--panel2,transparent)"><span aria-hidden="true">${ico}</span><span class="small grow" style="flex:1">${txt}</span>${btn||''}</div>`;
-  if(st==='on') return line('🔔','Notifications <b>on</b> for this device – chats, tenders, approvals and meetings arrive even when NEXUS is closed.',`<button class="btn sm" data-act="pushOff" ${busy?'disabled':''}>${sp}Turn off</button>`);
-  if(st==='wait') return line('🔔','Connecting this phone for notifications…','');
+  if(st==='on'||st==='wait') return '';   // working: no banner (small bell button in the toolbar can turn it off)
   if(st==='blocked') return line('🔕','Notifications are blocked for NEXUS in this browser. Click the icon left of the web address → Notifications → Allow, then reload.','');
   if(st==='oldapp') return line('📲','Update the NEXUS app to get notifications on this phone: open NEXUS in Chrome, tap <b>Get the app</b> on the sign-in page (or About), install version 1.2 over this one.','');
   if(st==='unsupported') return line('🔕','This browser cannot show notifications. Use Chrome or Edge, or the NEXUS Android app.','');
   return line('🔕','Get chats, new tenders, approvals and meetings on this device even when NEXUS is closed.',`<button class="btn sm pri" data-act="pushOn" ${busy?'disabled':''}>${sp}Turn on</button>`); }
 function inboxHtml(){ const L=inbox(), c={new:0,unread:0,read:0}; L.forEach(a=>c[a.st]++);
   const F=UI.nf, show=F==='all'?L:L.filter(a=>a.st===F), open=L.filter(a=>a.st!=='read');
-  return `${pushBar()}<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
+  return `${pushBar()}<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${(window.NX_PUSH_STATE&&NX_PUSH_STATE()==='on')?`<button class="iconbtn" data-act="pushOff" title="Notifications on this device are ON – click to turn off" aria-label="Turn off notifications on this device" style="width:30px;height:30px;font-size:14px">🔔</button>`:''}${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
   <div class="list">${show.map(alertRow).join('')||`<div class="empty">${F==='all'?'Nothing needs attention right now.':'No '+F+' notifications.'}</div>`}</div>`; }
 function nsUnread(){ return inbox().filter(a=>a.st!=='read').length; }
 function barChart(rows,max){
@@ -1789,7 +1788,7 @@ document.addEventListener('click', async e=>{
   switch(act){
     case 'close': closeDrawer(); break;
     case 'pushOn': window.NX_PUSH_ON&&window.NX_PUSH_ON(); break;
-    case 'pushOff': window.NX_PUSH_OFF&&window.NX_PUSH_OFF(); break;
+    case 'pushOff': if(window.NX_PUSH_OFF&&await confirmBox('Turn off NEXUS notifications on this device? Chats, tenders, approvals and meetings will no longer pop up here when NEXUS is closed.','Turn off')) window.NX_PUSH_OFF(); break;
     case 'brief': runBriefing(); break;
     case 'addTender': formDrawer('Add tender',TENDER_FIELDS,{source:'NeST',screen:'Check',category:'building',client_type:'government'},async v=>{ const id=safeId(v.no||v.title); if(byId('tenders',id)){ toast('A tender with this number is already on the radar.'); return false; } await put('tenders',id,{...v,deadline:v.deadline?new Date(v.deadline).toISOString():'',status:'Watching',date_found:new Date().toISOString(),found_by:'Manual – '+(me.name||''),owner:me.name||''}); logAct(`Added tender "${v.title}"`); },{saveLabel:'Add to radar'}); break;
     case 'importXlsx': $('#xlsxFile').click(); break;
