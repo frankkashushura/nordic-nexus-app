@@ -341,6 +341,11 @@
     }
   })();
   window.NX_OPEN_USERS = () => openUsers();
+  // run the cloud tender sync straight away (used after a manual pipeline import)
+  window.NX_SYNC_NOW = async () => {
+    const r = await fetch(CFG.url + '/functions/v1/tender-sync?force=1', { method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: '{}' });
+    return r.ok ? r.json() : null;
+  };
 
   /* ---------------- backups (administrators) ---------------- */
   const BK_URL = CFG.url + '/functions/v1/nexus-backup';

@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=34"></script>
+<script src="config.js?v=35"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=34"></script>
+<script src="nexus-sb.js?v=35"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -694,9 +694,9 @@ function scannerCard(last){
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
     <div class="bd small" style="display:flex;flex-direction:column;gap:6px">
       <div>The Tender Scanner runs in the cloud on GitHub every 5–15 minutes, day and night – no office PC needed (NeST every 5 min, DDO and TANROADS every 15, World Bank every 30, other sites hourly). NEXUS copies new tenders and changed deadlines from it every 10 minutes, 06:00–23:00, so the times below can lag the scanner by a few minutes. Nobody needs to import.</div>
-      <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · ${sy.added} new, ${sy.updated} updated`:'—'}</dd></dl>
+      <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · ${sy.added} new, ${sy.updated} updated`:'—'}</dd><dt>Last manual import</dt><dd>${S.lastImport?fmtDT(S.lastImport.at)+` · ${esc(S.lastImport.by||'')} · ${S.lastImport.added} new, ${S.lastImport.updated} updated`:'—'}</dd></dl>
       ${src.length?`<div class="toolbar">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>`:''}
-      <div class="muted">Manual import still works as a backup${last?' · last data change '+fmtDT(last):''}.</div>
+      <div class="muted">Manual import (Import pipeline) still works as a backup: it adds the workbook's tenders and then runs a sync straight away${last?' · last new tender added '+fmtDT(last):''}.</div>
     </div></div>`;
 }
 const F02 = [
@@ -834,7 +834,11 @@ async function importXlsx(file){
       if(ex){ const up={}; for(const [k,v] of Object.entries(o)){ if(k==='deadline'||ex[k]==null||ex[k]==='') up[k]=v; } if(Object.keys(up).length){ await patch('tenders',id,{...up,source_updated_at:now}); updated++; } }
       else { await put('tenders',id,{...o,imported_at:now,found_at:now,status:o.status||'Watching'}); added++; }
     }
-    toast(`Import finished: ${added} new, ${updated} updated.`); logAct(`Imported pipeline workbook: ${added} new, ${updated} updated tenders`);
+    const rowsRead=rows.slice(hi+1).filter(r=>r&&r.some(v=>v!=null&&v!=='')).length;
+    try{ await db.doc('imports/last').set({at:new Date().toISOString(), by:me.name||'', file:file.name||'', rows:rowsRead, added, updated}); }catch(e){ console.warn(e); }
+    logAct(`Imported pipeline workbook: ${added} new, ${updated} updated tenders`);
+    toast(`Import finished: ${rowsRead} rows read – ${added} new, ${updated} updated${added||updated?'':' (everything was already up to date)'}. Syncing with the cloud scanner…`);
+    if(window.NX_SYNC_NOW){ try{ const r=await window.NX_SYNC_NOW(); toast(r&&r.ok?`Sync done: ${r.added||0} new, ${r.updated||0} updated from the cloud scanner.`:'Import saved. The automatic sync will run within 10 minutes.'); }catch(_){ } }
   }catch(e){ toast('Import failed: '+e.message); }
 }
 async function exportCsv(name, headers, rows){
@@ -1762,6 +1766,7 @@ function applyTheme(){ const t=UI.theme||'System'; if(t==='System') document.doc
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
   for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('settings/company').onSnapshot(s=>{ S.company=s.exists?s.data():null; renderAll(); }, ()=>{});
