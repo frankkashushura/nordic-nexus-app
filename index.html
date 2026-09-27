@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=45"></script>
+<script src="config.js?v=46"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=45"></script>
+<script src="nexus-sb.js?v=46"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -554,6 +554,7 @@ function recipStale(){ return loaded.has('staff') && S.staff.length>0 && S.recip
 function field(f, v){
   const id='f_'+f.k, val = v ?? f.def ?? '';
   let ctl;
+  if(f.type==='linktools') return `<div class="fld full"><label>Create the online meeting</label><div class="toolbar" style="gap:6px;flex-wrap:wrap">${MEET_PLAT.filter(p=>p.make).map(p=>`<button type="button" class="btn sm" data-mkroom="${p.k}">${esc(p.btn)}</button>`).join('')}</div><span class="sub">Zoom / Google Meet / Teams open in a new tab: create the meeting there, copy its link and paste it in "Online link". <b>Free NEXUS room</b> makes a link instantly (Jitsi – no cost; the first person to open it signs in with Google or Microsoft to start the room, everyone else just joins).</span></div>`;
   if(f.type==='checks'){ const sel=Array.isArray(val)?val:[]; ctl=`<div class="checks" id="${id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px">${f.options.map(([ov,ol])=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" value="${esc(ov)}" ${sel.includes(ov)?'checked':''}> ${esc(ol)}</label>`).join('')||'<span class="sub">No staff with an email address yet – add them on the Staff page.</span>'}</div>`; return `<div class="fld full"><label>${esc(f.label)}${f.req?' *':''}</label>${ctl}${f.help?`<span class="sub">${esc(f.help)}</span>`:''}</div>`; }
   if(f.type==='select') ctl=`<select class="inp" id="${id}">${f.options.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
   else if(f.type==='textarea') ctl=`<textarea class="inp" id="${id}" placeholder="${esc(f.ph||'')}">${esc(val)}</textarea>`;
@@ -1093,9 +1094,14 @@ async function aiFinance(){
 }
 
 /* ===================== MEETINGS ===================== */
+const MEET_PLAT=[{k:'zoom',n:'Zoom',re:/zoom\.us|zoom\.com/i,make:'https://zoom.us/meeting/schedule',btn:'Create Zoom meeting'},{k:'meet',n:'Google Meet',re:/meet\.google\.com/i,make:'https://meet.google.com/new',btn:'New Google Meet'},
+  {k:'teams',n:'Microsoft Teams',re:/teams\.microsoft\.com|teams\.live\.com/i,make:'https://teams.microsoft.com/l/meeting/new',btn:'New Teams meeting'},{k:'jitsi',n:'NEXUS video room (Jitsi)',re:/meet\.jit\.si|8x8\.vc/i,make:'jitsi',btn:'Free NEXUS room'},
+  {k:'whatsapp',n:'WhatsApp',re:/whatsapp\.com|wa\.me/i},{k:'webex',n:'Webex',re:/webex\.com/i},{k:'other',n:'Other',re:/./}];
+const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/i.test(String(u||'').trim())?String(u).trim():'';
+const meetPlat=m=>{ const l=safeUrl(m.link); if(!l) return null; return MEET_PLAT.find(p=>p.n===m.platform)||MEET_PLAT.find(p=>p.re.test(l)); };
 const MEET_DUR=['30 min','1 hour','1.5 hours','2 hours','Half day','Full day'], MEET_MIN={'30 min':30,'1 hour':60,'1.5 hours':90,'2 hours':120,'Half day':240,'Full day':480};
 const meetFields=()=>[{k:'title',label:'Meeting title',req:1,full:1,ph:'e.g. Weekly site progress meeting – Mount Carmel'},{k:'start',label:'Date & start time',type:'datetime-local',req:1},{k:'duration',label:'Duration',type:'select',options:MEET_DUR,def:'1 hour'},
-  {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'link',label:'Online link (optional)',ph:'Google Meet / Zoom / Teams link',full:1},
+  {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'platform',label:'Online platform',type:'select',options:['',...MEET_PLAT.map(p=>p.n)]},{k:'tools',type:'linktools'},{k:'link',label:'Online link',ph:'Paste the Zoom / Google Meet / Teams link here (https://…)',full:1},
   {k:'project_id',label:'Project (optional)',type:'select',options:projOpts('— not project specific —')},{k:'agenda',label:'Agenda',type:'textarea',ph:'1. Progress\n2. Issues\n3. AOB'},
   {k:'invitees',label:'Invite staff (they get an email with a calendar invite and a NEXUS alert)',type:'checks',req:1,options:S.staff.filter(x=>x.status!=='Left'&&x.email).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>[x.id,`${x.name}${x.position?' – '+x.position:''}`])}];
 const myStaffId=()=>{ const e=(me.email||'').toLowerCase(), n=(me.name||'').toLowerCase(); return (S.staff.find(x=>e&&(x.email||'').toLowerCase()===e)||S.staff.find(x=>n&&(x.name||'').toLowerCase()===n))?.id||null; };
@@ -1109,14 +1115,14 @@ function meetCard(m){
   return `<div class="card" style="${cancelled?'opacity:.6':''}"><div class="bd" style="display:flex;gap:14px;align-items:flex-start">
     <div style="min-width:62px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 4px"><div class="label">${d.toLocaleDateString('en-GB',{month:'short'})}</div><div style="font-size:24px;font-weight:700;line-height:1.1">${d.getDate()}</div><div class="sub">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div></div>
     <div class="grow" style="display:flex;flex-direction:column;gap:5px;min-width:0">
-      <div class="toolbar" style="gap:6px">${cancelled?'<span class="chip bad">Cancelled</span>':live?'<span class="chip good">Happening now</span>':soon?'<span class="chip amb">Soon</span>':''}<span class="chip">${esc(m.mode||'In person')}</span>${m.project_id?`<span class="sub">${esc(projName(m.project_id))}</span>`:''}</div>
+      <div class="toolbar" style="gap:6px">${cancelled?'<span class="chip bad">Cancelled</span>':live?'<span class="chip good">Happening now</span>':soon?'<span class="chip amb">Soon</span>':''}<span class="chip">${esc(m.mode||'In person')}</span>${meetPlat(m)&&meetPlat(m).k!=='other'?`<span class="chip blue">${esc(meetPlat(m).n)}</span>`:''}${m.project_id?`<span class="sub">${esc(projName(m.project_id))}</span>`:''}</div>
       <h3 style="margin:0">${esc(m.title)}</h3>
       <div class="small"><b>${d.toTimeString().slice(0,5)}</b> · ${esc(m.duration||'1 hour')}${m.venue?' · '+esc(m.venue):''}</div>
       <div class="sub">Organiser: ${esc(m.organizer||'')} · ${inv.length} invited${yes?` · ✓ ${yes} attending`:''}${no?` · ✗ ${no} can't`:''}${m.version>1&&!cancelled?' · <span class="chip amb">updated</span>':''}</div>
       <div class="sub" style="display:flex;flex-wrap:wrap;gap:4px">${inv.map(i=>`<span class="chip ${resp[i]==='Yes'?'good':resp[i]==='No'?'bad':''}" title="${resp[i]==='Yes'?'Attending':resp[i]==='No'?'Cannot attend':'No answer yet'}">${resp[i]==='Yes'?'✓ ':resp[i]==='No'?'✗ ':''}${esc(staffName(i))}</span>`).join('')}</div>
       ${m.agenda?`<details><summary class="small" style="cursor:pointer">Agenda</summary><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(m.agenda)}</div></details>`:''}
       ${cancelled?`<div class="toolbar" style="gap:6px"><span class="sub">Cancelled by ${esc(m.cancelled_by||'')}${m.cancelled_at?' · '+fmtDT(m.cancelled_at):''}</span>${isAdmin?`<div class="sp"></div><button class="btn sm danger" data-mdel="${esc(m.id)}">Delete record</button>`:''}</div>`:`<div class="toolbar" style="gap:6px">
-        ${m.link&&!past?`<a class="btn sm pri" href="${esc(m.link)}" target="_blank" rel="noopener">Join online</a>`:''}
+        ${safeUrl(m.link)&&!past?`<a class="btn sm pri" href="${esc(safeUrl(m.link))}" target="_blank" rel="noopener">Join ${esc(meetPlat(m)&&meetPlat(m).k!=='other'?meetPlat(m).n.replace(' (Jitsi)',''):'online')}</a>`:''}
         ${sid&&inv.includes(sid)&&!past?`<button class="btn sm ${resp[sid]==='Yes'?'pri':''}" data-mrsvp="${esc(m.id)}:Yes">✓ I'll attend</button><button class="btn sm ${resp[sid]==='No'?'danger':''}" data-mrsvp="${esc(m.id)}:No">✗ Can't attend</button>`:''}
         ${canEditMeet(m)&&!past?`<div class="sp"></div><button class="btn sm" data-medit="${esc(m.id)}">Edit</button><button class="btn sm danger" data-mcancel="${esc(m.id)}">Cancel meeting</button>`:''}</div>`}
     </div></div></div>`;
@@ -1135,6 +1141,9 @@ function meetDrawer(m){
   const f=meetFields(); const vals=m?{...m}:{duration:'1 hour',mode:'In person',invitees:[]};
   formDrawer(m?'Edit meeting':'Schedule meeting',f,vals,async v=>{
     const iso=new Date(v.start).toISOString();
+    if(v.link&&!safeUrl(v.link)){ toast('The online link must be a full web address starting with https://'); return false; }
+    if(v.link&&!v.platform){ const pl=MEET_PLAT.find(p=>p.re.test(v.link)); v.platform=pl?pl.n:''; }
+    if(v.link&&v.mode==='In person') v.mode='Online';
     if(!m){ if(Date.parse(iso)<Date.now()-6e4&&!await confirmBox('This start time is in the past. Save anyway?','Save')) return false;
       await put('meetings',null,{...v,start_iso:iso,status:'Scheduled',version:1,organizer:me.name||'',organizer_uid:me.id||'',organizer_email:me.email||'',created_at:new Date().toISOString(),responses:{}});
       logAct(`Scheduled meeting "${v.title}" ${fmtDT(iso)}`); toast(`Meeting scheduled – invitations are being emailed to ${v.invitees.length} staff.`); }
@@ -1695,7 +1704,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -1722,6 +1731,11 @@ document.addEventListener('click', async e=>{
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
   if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
+  if(el.dataset.mkroom){ const p=MEET_PLAT.find(x=>x.k===el.dataset.mkroom), root=$('#overlay'), L=root.querySelector('#f_link'), P=root.querySelector('#f_platform'), M=root.querySelector('#f_mode'); if(!p) return;
+    if(P) P.value=p.n; if(M&&M.value==='In person') M.value='Online';
+    if(p.make==='jitsi'){ const t=(root.querySelector('#f_title')?.value||'Meeting').replace(/[^A-Za-z0-9]+/g,'').slice(0,30)||'Meeting'; const r=Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); if(L) L.value=`https://meet.jit.si/NordicNexus-${t}-${r}`; toast('Free video room link created – it is saved with the meeting.'); }
+    else { window.open(p.make,'_blank','noopener'); toast(`${p.n} opened in a new tab – create the meeting, copy its link and paste it in "Online link".`); L&&L.focus(); }
+    return; }
   if(el.dataset.mdel&&isAdmin){ const m=byId('meetings',el.dataset.mdel); if(!m||m.status!=='Cancelled') return; if(await confirmBox(`Delete the cancelled meeting "${m.title}" (${fmtDT(m.start_iso)}) permanently? This cannot be undone.`,'Delete',true)){ await remove('meetings',m.id); logAct(`Deleted cancelled meeting "${m.title}"`); toast('Cancelled meeting deleted.'); } return; }
   if(el.dataset.mtab){ UI.mtab=el.dataset.mtab; renderAll(); return; }
   if(el.dataset.mrsvp){ const [id,a]=el.dataset.mrsvp.split(':'), m=byId('meetings',id), sid=myStaffId(); if(!m||!sid) return; await patch('meetings',id,{responses:{...(m.responses||{}),[sid]:a}}); toast(a==='Yes'?'Thanks – marked as attending.':'Marked as cannot attend.'); return; }
