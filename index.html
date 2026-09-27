@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=36"></script>
+<script src="config.js?v=37"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=36"></script>
+<script src="nexus-sb.js?v=37"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -831,7 +831,7 @@ async function importXlsx(file){
       const o={}; hdr.forEach((h,i)=>{ const k=XMAP[h]; let v=r[i]; if(!k||v==null||v==='') return; if(v instanceof Date){ v=new Date(Math.round(v.getTime()/60000)*60000).toISOString(); } if(typeof v==='string'&&v.startsWith('=')) return; o[k]=v; });
       if(!o.no && !o.title) continue;
       const id=tenderId(o), ex=byId('tenders',id);
-      if(ex){ const up={}; for(const [k,v] of Object.entries(o)){ if(k==='deadline'||ex[k]==null||ex[k]==='') up[k]=v; } if(Object.keys(up).length){ await patch('tenders',id,{...up,source_updated_at:now}); updated++; } }
+      if(ex){ const up={}; for(const [k,v] of Object.entries(o)){ if(k==='deadline'){ const a=Date.parse(v), b=Date.parse(ex.deadline||''); if(!isNaN(a)&&(isNaN(b)||Math.abs(a-b)>60000)) up[k]=v; } else if(ex[k]==null||ex[k]==='') up[k]=v; } if(Object.keys(up).length){ await patch('tenders',id,{...up,source_updated_at:now}); updated++; } }
       else { await put('tenders',id,{...o,imported_at:now,found_at:now,status:o.status||'Watching'}); added++; }
     }
     const rowsRead=rows.slice(hi+1).filter(r=>r&&r.some(v=>v!=null&&v!=='')).length;
