@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=42"></script>
+<script src="config.js?v=43"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=42"></script>
+<script src="nexus-sb.js?v=43"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -370,7 +370,15 @@ const initials = n => String(n||'?').replace(/^(Eng\.|QS\.|Mr\.|Mrs\.|Ms\.|Dr\.)
 const daysLeft = v => { const d=toDate(v); return d ? (d - new Date())/864e5 : null; };
 const safeId = s => String(s||uid()).replace(/[^A-Za-z0-9_\-.~:@+]/g,'-').replace(/^\.+$/,'x').slice(0,120);
 const byId = (col,id) => S[col].find(x=>x.id===id);
-const projName = id => byId('projects',id)?.name || '—';
+const projName = id => byId('projects',id)?.name || ((S.projectsAll||[]).find(p=>p.id===id)?.name ? (S.projectsAll.find(p=>p.id===id).name+' (removed)') : '—');
+const PROJ_LINKS=[['reports','site reports'],['tasks','tasks'],['procurement','purchases'],['finance','finance entries'],['certificates','payment certificates'],['variations','variations'],['milestones','milestones'],['risks','risks'],['snags','snags'],['plant','plant records'],['boqs','BoQs']];
+const projLinks=id=>PROJ_LINKS.map(([c,l])=>[l,(S[c]||[]).filter(x=>x.project_id===id).length]).filter(x=>x[1]);
+async function removeProject(p){
+  if(!isAdmin||!p) return false;
+  const links=projLinks(p.id), list=links.map(([l,n])=>n+' '+l).join(', ');
+  if(!await confirmBox(`Remove project "${p.name}"? It disappears from the Projects list and from project choices. ${links.length?`Its records (${list}) stay in NEXUS for the record and show as "${p.name} (removed)".`:'It has no linked records.'} An administrator can restore it from Projects → Removed projects.`,'Remove project',true)) return false;
+  await patch('projects',p.id,{deleted:true,deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Removed project ${p.name}`); toast(`Project "${p.name}" removed.`); return true;
+}
 const staffName = id => byId('staff',id)?.name || id || '—';
 function daysChip(v){
   const d = daysLeft(v); if(d==null) return '<span class="days gone">no date</span>';
@@ -905,7 +913,9 @@ function pageProjects(){
       <div><div class="toolbar small"><span>Progress</span><div class="sp"></div><span class="num">${prog}%</span></div><div class="bar"><i style="width:${prog}%"></i></div>
       ${tl!=null?`<div class="sub" style="margin-top:3px">Time elapsed ${tl.toFixed(0)}% ${tl-prog>15?'<span class="chip bad">behind</span>':''}</div>`:''}</div>
       <div class="small muted">${reps.length} site reports${last?' · last '+fmtD(last.date):''}${money()&&p.budget?` · spent ${tzsShort(spent)} of ${tzsShort(p.budget)}`:''}</div>
-    </div></div>`}).join('')||'<div class="empty card">No projects yet.</div>'}</div>`;
+    </div></div>`}).join('')||'<div class="empty card">No projects yet.</div>'}</div>
+  ${isAdmin&&(S.projectsAll||[]).some(p=>p.deleted)?(()=>{const rm=S.projectsAll.filter(p=>p.deleted);return `<div class="toolbar"><button class="btn sm" data-act="showRemovedProj">${UI.showRemovedProj?'Hide':'Show'} removed projects (${rm.length})</button></div>
+  ${UI.showRemovedProj?`<div class="card"><div class="list">${rm.map(p=>{const l=projLinks(p.id);return `<div class="li"><div class="grow"><div class="ttl2">${esc(p.name)}</div><div class="sub">Removed by ${esc(p.deleted_by||'')} · ${fmtD(p.deleted_at)} · ${l.length?l.map(([a,n])=>n+' '+a).join(', '):'no linked records'}</div></div><button class="btn sm" data-restoreproj="${esc(p.id)}">Restore</button>${l.length?'':`<button class="btn sm danger" data-purgeproj="${esc(p.id)}">Delete permanently</button>`}</div>`}).join('')}</div></div>`:''}`})():''}`;
 }
 function projectDrawer(p){
   const reps=S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -915,7 +925,7 @@ function projectDrawer(p){
     <div class="card"><div class="hd"><h2>Site reports</h2><div class="sp"></div><button class="btn sm pri" data-act="newReport" data-proj="${esc(p.id)}">New report</button></div><div class="list">${reps.slice(0,6).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div><span class="sub">${(r.photos||[]).length} photos</span></div>`).join('')||'<div class="empty">No reports yet.</div>'}</div></div>
     <div class="grid g2"><div class="card"><div class="hd"><h2>Open tasks</h2></div><div class="list">${tasks.map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`).join('')||'<div class="empty">None</div>'}</div></div>
     <div class="card"><div class="hd"><h2>Procurement</h2></div><div class="list">${prs.map(x=>`<div class="li"><div class="grow">${esc(x.item)}<div class="sub">${esc(x.status)} · ${tzs(x.est_cost)}</div></div></div>`).join('')||'<div class="empty">None</div>'}</div></div></div>`;
-  return drawerShell(p.name, esc(p.status||'Project'), body, `<button class="btn dark" data-act="editProject">Edit project</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delProject">Delete</button>':''}`);
+  return drawerShell(p.name, esc(p.status||'Project'), body, `<button class="btn dark" data-act="editProject">Edit project</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delProject">Remove</button>':''}`);
 }
 
 /* ===================== SITE REPORTS ===================== */
@@ -1477,7 +1487,7 @@ function pageProject(){
   const p=byId('projects',routeArg); if(!p) return '<div class="empty">This project no longer exists. <button class="btn" data-go="projects">All projects</button></div>';
   const F=projectFacts(p), tab=UI.ptabw||'overview';
   const head=`<div class="toolbar"><button class="btn" data-go="projects">← All projects</button><span class="chip">${esc(p.status||'')}</span><span class="sub">${esc(p.client||'')}${p.location?' · '+esc(p.location):''}</span><div class="sp"></div>
-    <button class="btn" data-act="newReport" data-proj="${esc(p.id)}">New site report</button><button class="btn dark" data-act="editProjectWs">Edit project</button></div>
+    <button class="btn" data-act="newReport" data-proj="${esc(p.id)}">New site report</button><button class="btn dark" data-act="editProjectWs">Edit project</button>${isAdmin?'<button class="btn danger" data-act="delProjectWs">Remove project</button>':''}</div>
     <div class="seg" role="group" aria-label="Project section" style="flex-wrap:wrap">${PWS_TABS.map(([k,l])=>`<button data-pwtab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
   let body='';
   if(tab==='overview'){
@@ -1627,7 +1637,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -1652,6 +1662,8 @@ document.addEventListener('click', async e=>{
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
   if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
+  if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
+  if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
   if(el.dataset.paypr){ const p=byId('procurement',el.dataset.paypr); if(!p||!money()) return; const y=prPay(p);
     formDrawer(`Record payment – ${p.pr_no||''} ${p.item}`,FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),
       {date:today(),type:'Expense',category:prCat(p),amount:y.left||'',project_id:p.project_id||'',party:p.supplier||'',ref:p.pr_no||'',method:'Bank transfer',note:`${p.item}${p.qty?' – '+p.qty+' '+(p.unit||''):''} (purchase ${p.pr_no||''}, approved by ${p.approved_by||''})`},
@@ -1688,7 +1700,9 @@ document.addEventListener('click', async e=>{
     case 'tenderToBoq': if(T){ const id=await put('boqs',null,{title:'BoQ – '+T.title,tender_id:T.id,bills:[],vat:18,contingency:0,scope:T.scope||''}); if(id){ logAct(`Started BoQ for tender "${T.title}"`); go('qs',id); } } break;
     case 'addProject': formDrawer('New project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
     case 'editProject': { const p=byId('projects',drawer.id); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
-    case 'delProject': { const p=byId('projects',drawer.id); if(await confirmBox(`Delete project ${p.name}? Its site reports stay but lose their project link.`,'Delete',true)){ await remove('projects',p.id); logAct(`Deleted project ${p.name}`); closeDrawer(); } } break;
+    case 'delProject': { const p=byId('projects',drawer.id); if(await removeProject(p)) closeDrawer(); } break;
+    case 'delProjectWs': { const p=byId('projects',routeArg); if(await removeProject(p)) go('projects'); } break;
+    case 'showRemovedProj': UI.showRemovedProj=!UI.showRemovedProj; renderAll(); break;
     case 'newReport': openDrawer('report-form',null,{proj:el.dataset.proj||(UI.rproj!=='All'?UI.rproj:'')}); break;
     case 'editReport': openDrawer('report-form',drawer.id); break;
     case 'saveReport': saveReport(); break;
@@ -1803,7 +1817,7 @@ window.addEventListener('popstate', e=>{
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
-  for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); loaded.add(c); renderAll(); }, onErr(c)); }
+  for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
