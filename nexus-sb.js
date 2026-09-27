@@ -173,7 +173,10 @@
   // AI answers are shown as plain text: remove markdown marks (**bold**, # headings, * bullets)
   const plain = t => String(t || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1')
     .replace(/^#{1,6}\s*/gm, '').replace(/^\s*[*•]\s+/gm, '- ').replace(/`([^`]+)`/g, '$1').replace(/\n{3,}/g, '\n\n').trim();
-  const sample = async (x) => ({ text: plain((await callAI(toPayload(x))).text) });
+  const sample = async (x, o = {}) => {
+    const d = await callAI({ ...toPayload(x), ...(o && o.web ? { web: true } : {}) });
+    return { text: plain(d.text), sources: Array.isArray(d.sources) ? d.sources : [], web: !!d.web };
+  };
   sample.json = async (x) => {
     const d = await callAI({ ...toPayload(x), json: true });
     const t = String(d.text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');

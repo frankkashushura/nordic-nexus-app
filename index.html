@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=38"></script>
+<script src="config.js?v=39"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=38"></script>
+<script src="nexus-sb.js?v=39"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1147,9 +1147,10 @@ function pageAbout(){
 
 /* ===================== ASK NEXUS ===================== */
 function askDrawer(){
-  const body=`<div class="list">${UI.chat.map(m=>`<div class="li"><div class="av" style="${m.role==='assistant'?'background:var(--accent);color:var(--accent-ink)':''}">${m.role==='assistant'?'AI':esc(initials(me.name||'You'))}</div><div class="grow prose small">${esc(m.content)}</div></div>`).join('')||'<div class="empty">Ask anything about tenders, projects, site reports, procurement or deadlines. Examples: "Which Pursue tenders close next week?", "Summarise this week’s site issues", "Draft a letter requesting a tender clarification".</div>'}</div>
+  const body=`<div class="list">${UI.chat.map(m=>`<div class="li"><div class="av" style="${m.role==='assistant'?'background:var(--accent);color:var(--accent-ink)':''}">${m.role==='assistant'?'AI':esc(initials(me.name||'You'))}</div><div class="grow"><div class="prose small">${esc(m.content)}</div>${(m.sources||[]).length?`<div class="sub" style="margin-top:6px">Sources: ${m.sources.map((s,i)=>`<a href="${esc(s.url)}" target="_blank" rel="noopener">${i+1}. ${esc(String(s.title||s.url).slice(0,70))}</a>`).join(' · ')}</div>`:''}${m.web?'<div class="sub">🌐 Checked on the web</div>':''}</div></div>`).join('')||'<div class="empty">Ask anything about tenders, projects, site reports, procurement or deadlines. Examples: "Which Pursue tenders close next week?", "Summarise this week’s site issues", "Draft a letter requesting a tender clarification".</div>'}</div>
     ${UI.busy.ask?'<div class="toolbar"><span class="spin"></span><span class="sub">Thinking…</span></div>':''}`;
-  const foot=`<textarea class="inp" id="askInp" placeholder="Ask NEXUS…" style="min-height:44px;flex:1"></textarea><button class="btn pri" data-act="askSend" ${UI.busy.ask?'disabled':''}>Send</button>`;
+  const foot=`<div style="display:flex;flex-direction:column;gap:6px;width:100%"><div style="display:flex;gap:8px"><textarea class="inp" id="askInp" placeholder="Ask about our tenders and projects – or any construction question (methods, BoQ, FIDIC, PPRA, CRB, OSHA, TRA, prices…)" style="min-height:44px;flex:1"></textarea><button class="btn pri" data-act="askSend" ${UI.busy.ask?'disabled':''}>Send</button></div>
+    <label class="sub" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="askWeb" ${UI.askWeb===false?'':'checked'} onchange="UI.askWeb=this.checked"> Search the web for current information (prices, laws, regulations)</label></div>`;
   return drawerShell('Ask NEXUS','AI assistant',body,foot);
 }
 async function askSend(){
@@ -1160,9 +1161,17 @@ async function askSend(){
     procurement:S.procurement.map(p=>({item:p.item,status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').map(t=>({title:t.title,who:staffName(t.assignee),due:t.due})),
     staff:S.staff.filter(s=>s.status!=='Left').map(s=>({name:s.name,position:s.position})), compliance:S.compliance.map(c=>({name:c.name,expiry:c.expiry})),
     finance_summary:(isAdmin||isFin)?{records:S.finance.length}:'restricted'};
-  const turns=[{role:'user',content:`You are NORDIC NEXUS, the assistant inside Nordic Construction's management system. Answer briefly and practically in the language the user writes in (English or Swahili). Use only the data below; say when something is not recorded.\n${companyContext()}\nDATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything.'},...UI.chat.slice(-10)];
-  const r=await ai('ask',()=>sample(turns,{modelTier:'default',cache:false}));
-  if(r) UI.chat.push({role:'assistant',content:r.text}); else UI.chat.pop();
+  const turns=[{role:'user',content:`You are NORDIC NEXUS, the AI assistant of Nordic Construction Company Ltd (Tanzania): an experienced construction professional – quantity surveyor, contracts manager, site engineer and tender adviser. Answer practically and concisely in the language the user writes in (English or Swahili).
+RULES
+1. Questions about Nordic's own tenders, projects, staff, tasks, compliance or records: use ONLY the NEXUS DATA below. If it is not recorded there, say so – never invent Nordic's own figures.
+2. General construction questions (construction methods, materials, specifications and standards, BoQ and measurement (SMM), rate build-up, quantities and calculations, programme and planning, FIDIC and other contracts, variations, claims, extension of time, retention, bonds and guarantees, public procurement under PPRA/NeST, CRB registration, OSHA and HSE, NEMA, TRA taxes and VAT, tendering strategy): answer from professional knowledge. When web search is available, check facts that change (prices, laws, regulations, thresholds, standards, dates) and prefer Tanzanian official sources (PPRA, CRB, TRA, OSHA, NEMA, TBS, TANROADS, NeST).
+3. Make clear which parts come from Nordic's records and which are general guidance. Show units, assumptions and short calculation steps. Give Tanzanian context (TZS, local practice) where relevant.
+4. For structural design, safety-critical work, legal or tax decisions: give the guidance, then say it must be confirmed by a registered engineer, the contract documents, or a qualified lawyer/tax adviser.
+5. For technical values that depend on conditions (striking times, curing, mix ratios, cover, laps, loads, productivity): give the usual range, the conditions it depends on (temperature, cement type, element, props left in place) and the standard or code it comes from (e.g. BS EN, BS 8110, Eurocode, TBS). Never give a single bare number when it depends.
+${companyContext()}
+NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything about Nordic or about construction.'},...UI.chat.slice(-10).map(m=>({role:m.role,content:m.content}))];
+  const r=await ai('ask',()=>sample(turns,{modelTier:'default',cache:false,web:UI.askWeb!==false}));
+  if(r) UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web}); else UI.chat.pop();
 }
 /* ===================== HOME ===================== */
 const WORK = [
