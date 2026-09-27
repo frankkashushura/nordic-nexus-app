@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=41"></script>
+<script src="config.js?v=42"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=41"></script>
+<script src="nexus-sb.js?v=42"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1019,6 +1019,10 @@ async function exportBoq(b){
 const PR_FIELDS=[{k:'item',label:'Item / service',req:1,full:1},{k:'project_id',label:'Project',type:'select'},{k:'qty',label:'Quantity',type:'number'},{k:'unit',label:'Unit'},
   {k:'est_cost',label:'Estimated cost (TZS)',type:'number',req:1},{k:'supplier',label:'Preferred supplier'},{k:'needed_by',label:'Needed on site by',type:'date'},{k:'justification',label:'Justification',type:'textarea'}];
 const PR_STAGES=['Requested','Approved','Ordered','Delivered'];
+// payments recorded in Finance against a purchase request
+const prPaid=p=>S.finance.filter(f=>f.pr_id===p.id&&f.type!=='Income').reduce((a,f)=>a+(+f.amount||0),0);
+const prPay=p=>{ const paid=prPaid(p), est=+p.est_cost||0; return {paid,est,left:Math.max(0,est-paid),st:!paid?'Unpaid':paid>=est?'Paid':'Part-paid'}; };
+const prCat=p=>{ const t=(p.item+' '+(p.justification||'')).toLowerCase(); return /fuel|diesel|petrol|transport|lorry|truck hire/.test(t)?'Fuel & transport':/hire|rental|excavator|crane|roller|grader/.test(t)?'Plant hire':/labou?r|wage|casual|fundi/.test(t)?'Labour / wages':/subcontract/.test(t)?'Subcontractor':'Materials'; };
 function pageProcure(){
   const val=s=>S.procurement.filter(p=>p.status===s).reduce((a,p)=>a+(+p.est_cost||0),0);
   return `<div class="grid g4">${PR_STAGES.map(s=>`<div class="card kpi ${s==='Requested'?'amb':s==='Delivered'?'grn':'blu'}"><span class="label">${s}</span><span class="v num">${S.procurement.filter(p=>p.status===s).length}</span><span class="s">${tzsShort(val(s))}</span></div>`).join('')}</div>
@@ -1026,7 +1030,9 @@ function pageProcure(){
   ${UI.ptab==='board'?'<button class="btn" data-act="exportProc">Export CSV</button><button class="btn pri" data-act="addPR">New purchase request</button>':'<button class="btn pri" data-act="addSupplier">Add supplier</button>'}</div>
   ${UI.ptab==='board'?`<div class="cols">${PR_STAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.procurement.filter(p=>p.status===s).length}</span></h3>
     ${S.procurement.filter(p=>p.status===s).sort((a,b)=>(a.needed_by||'').localeCompare(b.needed_by||'')).map(p=>`<div class="tcard"><div class="toolbar"><span class="mono sub">${esc(p.pr_no||'')}</span>${p.example?'<span class="chip ex">example</span>':''}</div><b>${esc(p.item)}</b><span class="sub">${esc(projName(p.project_id))}${p.qty?` · ${esc(p.qty)} ${esc(p.unit||'')}`:''}</span><span class="num small">${tzs(p.est_cost)}</span>${p.supplier?`<span class="sub">Supplier: ${esc(p.supplier)}</span>`:''}${p.needed_by?`<span class="sub">Needed ${fmtD(p.needed_by)}</span>`:''}<span class="sub">By ${esc(p.requested_by||'')}${p.approved_by?' · approved by '+esc(p.approved_by):''}</span>${s!=='Requested'?`<span class="sub">🔒 Locked${p.approved_at?' – '+(s==='Rejected'?'rejected ':'approved ')+fmtD(p.approved_at):''}${p.ordered_at?' · ordered '+fmtD(p.ordered_at):''}${p.delivered_at?' · delivered '+fmtD(p.delivered_at):''}</span>`:p.notified_at?'<span class="sub">✉ Approvers emailed</span>':''}
-      <div class="toolbar">${s==='Requested'?(isAdmin?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered">Mark ordered</button>`:s==='Ordered'?`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
+      ${money()&&s!=='Requested'?(()=>{const y=prPay(p);return `<span class="sub"><span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span> ${y.paid?tzs(y.paid)+' paid'+(y.left?' · '+tzs(y.left)+' left':''):''}</span>`})():''}
+      <div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(isAdmin?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered">Mark ordered</button>`:s==='Ordered'?`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
+    ${money()?(()=>{const w=S.procurement.filter(p=>['Approved','Ordered','Delivered'].includes(p.status)&&!p.example&&prPay(p).st!=='Paid');return w.length?`<p class="sub">Awaiting payment: <b>${w.length}</b> approved purchase${w.length>1?'s':''} · ${tzs(w.reduce((a,p)=>a+prPay(p).left,0))} still to pay.</p>`:''})():''}
     ${S.procurement.some(p=>p.status==='Rejected')?`<p class="sub">${S.procurement.filter(p=>p.status==='Rejected').length} rejected request(s) kept for the record (locked).</p>`:''}`
   :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Supplier</th><th>Supplies</th><th>Phone</th><th>Email</th><th>Rating</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>`<tr><td class="ttl2">${esc(s.name)} ${s.example?'<span class="chip ex">example</span>':''}</td><td>${esc(s.category||'')}</td><td class="mono">${esc(s.phone||'')}</td><td>${esc(s.email||'')}</td><td>${'★'.repeat(+s.rating||0)}</td><td>${isAdmin?`<button class="btn sm danger" data-delsup="${esc(s.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No suppliers yet.</div></td></tr>'}</tbody></table></div></div>`}`;
 }
@@ -1060,7 +1066,7 @@ function pageFinance(){
     <div class="seg">${['All','Income','Expense'].map(t=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${t}</button>`).join('')}</div><div class="sp"></div>
     <button class="btn" data-act="exportFin">Export CSV</button><button class="btn pri" data-act="addFin">Record transaction</button></div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Description</th><th class="hide-m">Project</th><th class="hide-m">Method</th><th class="r">Amount</th><th></th></tr></thead><tbody>
-    ${rows.map(f=>`<tr><td class="mono small">${fmtD(f.date)}</td><td><div class="ttl2">${esc(f.category||'')} ${f.example?'<span class="chip ex">example</span>':''}</div><div class="sub">${esc(f.party||'')} ${f.ref?'· '+esc(f.ref):''}</div></td><td class="hide-m small">${esc(f.project_id?projName(f.project_id):'Office')}</td><td class="hide-m small">${esc(f.method||'')}</td><td class="r num" style="color:${f.type==='Income'?'var(--good)':'var(--ink)'}">${f.type==='Income'?'+':'−'}${Math.round(+f.amount||0).toLocaleString('en-US')}</td><td><button class="btn sm danger" data-delfin="${esc(f.id)}" aria-label="Delete">✕</button></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No transactions.</div></td></tr>'}</tbody></table></div></div>`;
+    ${rows.map(f=>`<tr><td class="mono small">${fmtD(f.date)}</td><td><div class="ttl2">${esc(f.category||'')} ${f.example?'<span class="chip ex">example</span>':''}</div><div class="sub">${esc(f.party||'')} ${f.ref&&f.ref!==f.pr_no?'· '+esc(f.ref):''}${f.pr_no?` <a class="chip blue" data-go="procure" style="cursor:pointer">🔗 ${esc(f.pr_no)}</a>`:''}</div></td><td class="hide-m small">${esc(f.project_id?projName(f.project_id):'Office')}</td><td class="hide-m small">${esc(f.method||'')}</td><td class="r num" style="color:${f.type==='Income'?'var(--good)':'var(--ink)'}">${f.type==='Income'?'+':'−'}${Math.round(+f.amount||0).toLocaleString('en-US')}</td><td><button class="btn sm danger" data-delfin="${esc(f.id)}" aria-label="Delete">✕</button></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No transactions.</div></td></tr>'}</tbody></table></div></div>`;
 }
 async function aiFinance(){
   const rows=S.finance.map(f=>({date:f.date,type:f.type,category:f.category,amount:+f.amount,project:f.project_id?projName(f.project_id):'Office',party:f.party,ref:f.ref,method:f.method}));
@@ -1621,7 +1627,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -1646,6 +1652,12 @@ document.addEventListener('click', async e=>{
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
   if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
+  if(el.dataset.paypr){ const p=byId('procurement',el.dataset.paypr); if(!p||!money()) return; const y=prPay(p);
+    formDrawer(`Record payment – ${p.pr_no||''} ${p.item}`,FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),
+      {date:today(),type:'Expense',category:prCat(p),amount:y.left||'',project_id:p.project_id||'',party:p.supplier||'',ref:p.pr_no||'',method:'Bank transfer',note:`${p.item}${p.qty?' – '+p.qty+' '+(p.unit||''):''} (purchase ${p.pr_no||''}, approved by ${p.approved_by||''})`},
+      async v=>{ if(v.type==='Expense'&&+v.amount>y.left&&y.est&&!await confirmBox(`This payment (${tzs(v.amount)}) is more than what is left on the purchase (${tzs(y.left)} of ${tzs(y.est)} estimated). Record it anyway?`,'Record anyway')) return;
+        await put('finance',null,{...v,pr_id:p.id,pr_no:p.pr_no||''}); logAct(`Recorded payment ${tzs(v.amount)} for purchase ${p.pr_no||''} "${p.item}"`); toast('Payment recorded in Finance and linked to the purchase.'); },
+      {sub:`Estimated ${tzs(y.est)} · already paid ${tzs(y.paid)} · supplier ${p.supplier||'—'}`,saveLabel:'Record payment'}); return; }
   if(el.dataset.pr){ const [id,st]=el.dataset.pr.split(':'); const p=byId('procurement',id); const up={status:st}; if(st==='Approved'||st==='Rejected'){ if(!await confirmBox(`${st==='Approved'?'Approve':'Reject'} ${p?.pr_no||''} "${p?.item||''}" (${tzs(p?.est_cost)})? After this the record is locked – nobody can edit or delete it.`,st==='Approved'?'Approve':'Reject',st==='Rejected')) return; up.approved_by=me.name||''; up.approved_at=new Date().toISOString(); } if(st==='Ordered'){ up.ordered_by=me.name||''; up.ordered_at=new Date().toISOString(); } if(st==='Delivered'){ up.delivered_by=me.name||''; up.delivered_at=new Date().toISOString(); } await patch('procurement',id,up); logAct(`Purchase request ${p?.pr_no||''} "${p?.item}" → ${st}`); toast(`Marked ${st.toLowerCase()} – ${esc(p?.requested_by||'the requester')} is being notified.`); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); return; }
   if(el.dataset.delrate){ await remove('rates',el.dataset.delrate); return; }
   if(el.dataset.delsup){ if(await confirmBox('Remove this supplier?','Remove',true)) await remove('suppliers',el.dataset.delsup); return; }
