@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=57"></script>
+<script src="config.js?v=58"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=57"></script>
-<script src="nexus-chat.js?v=57"></script>
+<script src="nexus-sb.js?v=58"></script>
+<script src="nexus-chat.js?v=58"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 :root{
-  --bg:#ECEFF3; --panel:#FAFBFC; --panel2:#F0F3F7; --ink:#182340; --muted:#5A6580; --line:#D4DAE3;
+  --bg:#E4E2DC; --panel:#FCFCFA; --panel2:#F1EFEA; --ink:#182340; --muted:#56607A; --line:#D3CFC6;
   --steel:#182340; --steel-ink:#E8EDF6; --steel-muted:#8E9AB8; --steel-line:#27345A;
   --accent:#539FDC; --accent-ink:#0E1830; --accent-soft:#DCEBF8;
   --amber:#F2A900; --amber-ink:#182340; --amber-soft:#FBEBC0;
@@ -346,6 +346,41 @@ ul.clean li{margin:3px 0}
 .ann-seen{list-style:none;margin:0;padding:0;max-height:55vh;overflow:auto}
 .ann-seen li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 @media (max-width:600px){.ann-pop .ann{padding:20px 18px}.ann h3{font-size:18px}}
+
+/* ===== v58 construction theme: concrete base, site photo per page, navy + safety amber ===== */
+body{background-color:var(--bg)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .34 0 0 0 0 .31 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 20% 0%,rgba(255,255,255,.35),transparent 60%)}
+.main{position:relative;isolation:isolate}
+.pg-bg{position:absolute;left:0;right:0;top:0;height:min(430px,62vh);z-index:-1;pointer-events:none;overflow:hidden}
+.pg-bg i{position:absolute;inset:0;background:var(--pgimg,none) center 38%/cover no-repeat;filter:saturate(.9);transition:opacity .45s;opacity:0}
+.pg-bg.on i{opacity:1}
+.pg-bg::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 40%,transparent) 0%,color-mix(in srgb,var(--bg) 62%,transparent) 42%,var(--bg) 100%)}
+.pg-bg::before{content:"";position:absolute;inset:0;z-index:1;opacity:.35;
+  background-image:linear-gradient(color-mix(in srgb,var(--steel) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--steel) 14%,transparent) 1px,transparent 1px);background-size:32px 32px;
+  -webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.top{background:color-mix(in srgb,var(--steel) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:0;color:#fff;box-shadow:0 2px 10px rgba(14,20,37,.18)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:4px;background:repeating-linear-gradient(-45deg,var(--amber) 0 10px,#182340 10px 20px)}
+.top h1{color:#fff;letter-spacing:.03em}
+.top .label{color:var(--amber)}
+.top .iconbtn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#fff}
+.top .iconbtn:hover{background:rgba(255,255,255,.14)}
+.top .who{color:#E8EDF6}
+.top .av{background:var(--amber);color:#182340}
+.view{padding-top:26px}
+.nav button[aria-current="page"]{background:var(--amber);color:#182340;box-shadow:inset 3px 0 0 #fff3}
+.tabbar{border-top-color:var(--amber)}
+.tabbar button[aria-current="page"]{color:var(--amber)}
+.card{box-shadow:0 1px 2px rgba(24,35,64,.08),0 6px 18px rgba(24,35,64,.07)}
+.card>.hd h2::before{content:"";display:inline-block;width:4px;height:.8em;background:var(--amber);margin-right:8px;vertical-align:-1px;border-radius:1px}
+.side{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.12)),var(--steel)}
+:root[data-photos="off"] .pg-bg i{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body::before{opacity:.35;filter:invert(1)}}
+:root[data-theme="dark"] body::before{opacity:.35;filter:invert(1)}
+@media (max-width:900px){.pg-bg{height:300px}.view{padding-top:20px}}
+@media (prefers-reduced-motion:reduce){.pg-bg i{transition:none}}
 </style>
 
 <div class="app" id="app">
@@ -356,6 +391,7 @@ ul.clean li{margin:3px 0}
     <div class="side-foot">Built by Eng. Frank &amp; Eng. Michael<br><span id="syncState">Connecting…</span></div>
   </aside>
   <div class="main">
+    <div class="pg-bg" id="pgBg" aria-hidden="true"><i></i></div>
     <header class="top">
       <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="ttl"><span class="label" id="crumb">NORDIC NEXUS</span><h1 id="pageTitle">Command Centre</h1></div>
@@ -1269,7 +1305,7 @@ function pageSettings(){
       <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.${isAdmin?' <button class="btn sm pri" data-go="logins" style="margin-left:6px">Manage logins</button>':''}</p></div></div>
     ${isAdmin&&window.NX_BACKUP_CARD?window.NX_BACKUP_CARD(S.backup):''}
     <div class="card"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:420px;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
-    <div class="card"><div class="hd"><h2>Appearance</h2></div><div class="bd toolbar"><div class="seg">${['System','Light','Dark'].map(t=>`<button data-thm="${t}" aria-pressed="${(UI.theme||'System')===t}">${t}</button>`).join('')}</div></div></div>
+    <div class="card"><div class="hd"><h2>Appearance</h2></div><div class="bd toolbar"><div class="seg">${['System','Light','Dark'].map(t=>`<button data-thm="${t}" aria-pressed="${(UI.theme||'System')===t}">${t}</button>`).join('')}</div><span class="label" style="margin-left:10px">Site photos</span><div class="seg">${['On','Off'].map(t=>`<button data-photos="${t}" aria-pressed="${(UI.photos||'On')===t}">${t}</button>`).join('')}</div></div></div>
   </div></div>`;
 }
 
@@ -1978,6 +2014,7 @@ function renderView(force=false){
   v.innerHTML=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
   restoreInputs(v,snap, false);
   if(route==='chat'&&window.NX_CHAT_MOUNT) window.NX_CHAT_MOUNT($('#chatHost'));
+  setPageBg();
 }
 function renderDrawer(){
   const o=$('#overlay'); if(!drawer){ o.innerHTML=''; return; }
@@ -2007,7 +2044,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2032,6 +2069,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
   if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); return; }
+  if(el.dataset.photos){ UI.photos=el.dataset.photos; applyPhotos(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
   if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
@@ -2181,6 +2219,26 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&drawer) closeDraw
 $('#bellBtn').onclick=()=>{ nsOpened(); openDrawer('alerts'); };
 $('#askBtn').onclick=()=>openDrawer('ask');
 $('#menuBtn').onclick=()=>{ $('#side').classList.add('open'); const s=document.createElement('div'); s.className='scrim'; s.onclick=()=>{ $('#side').classList.remove('open'); s.remove(); }; document.body.append(s); };
+
+/* v58: realistic page backgrounds – a Nordic project photo behind the top of each page */
+const PG_PHOTO={dash:'flyover',alerts:'scaffold',report:'tower',tenders:'nmb-loliondo',qs:'crdb-tegeta',projects:'flyover',pm:'gabion',reports:'scaffold',certs:'tower',procure:'uyole',plant:'gabion',tasks:'msomera',meetings:'crdb-tegeta',finance:'nmb-loliondo',staff:'msomera',docs:'tower',settings:'uyole',about:'flyover',project:'uyole'};
+function pgPhotoUrl(){
+  if(route==='home'||route==='chat') return '';
+  if(route==='project'&&routeArg){   // the project's own latest site photo
+    const r=S.reports.filter(x=>x.project_id===routeArg&&(x.photos||[]).length).sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
+    const ref=r&&r.photos[0];
+    if(ref){ if(ref.startsWith('asset:')) return ref.slice(6); const id=ref.slice(3); if(photoCache[id]) return photoCache[id]; photoTag(ref); }
+  }
+  return PG_PHOTO[route]?`img/${PG_PHOTO[route]}.jpg`:'';
+}
+let pgLast=null;
+function setPageBg(){
+  const b=$('#pgBg'); if(!b) return; const u=pgPhotoUrl(); if(u===pgLast) return; pgLast=u;
+  const i=b.firstChild; b.classList.remove('on');
+  if(!u){ i.style.removeProperty('--pgimg'); return; }
+  const im=new Image(); im.onload=()=>{ if(pgLast!==u) return; i.style.setProperty('--pgimg',`url("${u.replace(/"/g,'%22')}")`); b.classList.add('on'); }; im.src=u;
+}
+function applyPhotos(){ const on=(UI.photos||'On')==='On'; if(on) document.documentElement.removeAttribute('data-photos'); else document.documentElement.setAttribute('data-photos','off'); try{localStorage.setItem('nx_photos',UI.photos||'On')}catch(_){} }
 function applyTheme(){ const t=UI.theme||'System'; if(t==='System') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t.toLowerCase()); try{localStorage.setItem('nx_theme',t)}catch(_){} }
 
 /* ===================== BACK BUTTON (browser, Android, mouse) ===================== */
@@ -2310,6 +2368,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
 /* ===================== START ===================== */
 (async function start(){
   try{ UI.theme=localStorage.getItem('nx_theme')||'System';  }catch(_){}
+  try{ UI.photos=localStorage.getItem('nx_photos')||'On'; }catch(_){} applyPhotos();
   applyTheme(); renderAll();
   try{ if(window.NX_READY) await window.NX_READY; }catch(_){ return; }
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
