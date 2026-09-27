@@ -5,9 +5,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=44"></script>
+<script src="config.js?v=45"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=44"></script>
+<script src="nexus-sb.js?v=45"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1115,7 +1115,7 @@ function meetCard(m){
       <div class="sub">Organiser: ${esc(m.organizer||'')} · ${inv.length} invited${yes?` · ✓ ${yes} attending`:''}${no?` · ✗ ${no} can't`:''}${m.version>1&&!cancelled?' · <span class="chip amb">updated</span>':''}</div>
       <div class="sub" style="display:flex;flex-wrap:wrap;gap:4px">${inv.map(i=>`<span class="chip ${resp[i]==='Yes'?'good':resp[i]==='No'?'bad':''}" title="${resp[i]==='Yes'?'Attending':resp[i]==='No'?'Cannot attend':'No answer yet'}">${resp[i]==='Yes'?'✓ ':resp[i]==='No'?'✗ ':''}${esc(staffName(i))}</span>`).join('')}</div>
       ${m.agenda?`<details><summary class="small" style="cursor:pointer">Agenda</summary><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(m.agenda)}</div></details>`:''}
-      ${cancelled?`<div class="sub">Cancelled by ${esc(m.cancelled_by||'')}</div>`:`<div class="toolbar" style="gap:6px">
+      ${cancelled?`<div class="toolbar" style="gap:6px"><span class="sub">Cancelled by ${esc(m.cancelled_by||'')}${m.cancelled_at?' · '+fmtDT(m.cancelled_at):''}</span>${isAdmin?`<div class="sp"></div><button class="btn sm danger" data-mdel="${esc(m.id)}">Delete record</button>`:''}</div>`:`<div class="toolbar" style="gap:6px">
         ${m.link&&!past?`<a class="btn sm pri" href="${esc(m.link)}" target="_blank" rel="noopener">Join online</a>`:''}
         ${sid&&inv.includes(sid)&&!past?`<button class="btn sm ${resp[sid]==='Yes'?'pri':''}" data-mrsvp="${esc(m.id)}:Yes">✓ I'll attend</button><button class="btn sm ${resp[sid]==='No'?'danger':''}" data-mrsvp="${esc(m.id)}:No">✗ Can't attend</button>`:''}
         ${canEditMeet(m)&&!past?`<div class="sp"></div><button class="btn sm" data-medit="${esc(m.id)}">Edit</button><button class="btn sm danger" data-mcancel="${esc(m.id)}">Cancel meeting</button>`:''}</div>`}
@@ -1128,7 +1128,7 @@ function pageMeetings(){
   const upc=all.filter(m=>meetEnd(m)>=now&&m.status!=='Cancelled');
   return `<div class="toolbar"><div class="seg">${[['up',`Upcoming (${upc.length})`],['past','Past']].map(([k,l])=>`<button data-mtab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>
     <label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="mmine" ${UI.mmine?'checked':''} onchange="UI.mmine=this.checked;renderAll()"> Only my meetings</label><div class="sp"></div>
-    <button class="btn pri" data-act="addMeeting">Schedule meeting</button></div>
+    ${isAdmin&&all.some(m=>m.status==='Cancelled')?`<button class="btn danger" data-act="delCancelledMeet">Delete cancelled (${all.filter(m=>m.status==='Cancelled').length})</button>`:''}<button class="btn pri" data-act="addMeeting">Schedule meeting</button></div>
     <div style="display:flex;flex-direction:column;gap:10px">${list.map(meetCard).join('')||`<div class="card empty">${tab==='up'?'No upcoming meetings. Click <b>Schedule meeting</b> to invite staff.':'No past meetings yet.'}</div>`}</div>`;
 }
 function meetDrawer(m){
@@ -1695,7 +1695,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
+  const el=e.target.closest('[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -1722,6 +1722,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
   if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
+  if(el.dataset.mdel&&isAdmin){ const m=byId('meetings',el.dataset.mdel); if(!m||m.status!=='Cancelled') return; if(await confirmBox(`Delete the cancelled meeting "${m.title}" (${fmtDT(m.start_iso)}) permanently? This cannot be undone.`,'Delete',true)){ await remove('meetings',m.id); logAct(`Deleted cancelled meeting "${m.title}"`); toast('Cancelled meeting deleted.'); } return; }
   if(el.dataset.mtab){ UI.mtab=el.dataset.mtab; renderAll(); return; }
   if(el.dataset.mrsvp){ const [id,a]=el.dataset.mrsvp.split(':'), m=byId('meetings',id), sid=myStaffId(); if(!m||!sid) return; await patch('meetings',id,{responses:{...(m.responses||{}),[sid]:a}}); toast(a==='Yes'?'Thanks – marked as attending.':'Marked as cannot attend.'); return; }
   if(el.dataset.medit){ const m=byId('meetings',el.dataset.medit); if(m&&canEditMeet(m)) meetDrawer(m); return; }
@@ -1778,6 +1779,7 @@ document.addEventListener('click', async e=>{
     case 'delBoq': if(await confirmBox('Delete this BoQ?','Delete',true)){ await remove('boqs',routeArg); go('qs'); } break;
     case 'addRate': formDrawer('Add rate',[{k:'desc',label:'Item description',req:1,full:1},{k:'unit',label:'Unit',req:1},{k:'rate',label:'Rate (TZS)',type:'number',req:1},{k:'source',label:'Source (project / supplier quote)'}],{},async v=>{ await put('rates',null,v); }); break;
     case 'addMeeting': meetDrawer(null); break;
+    case 'delCancelledMeet': { if(!isAdmin) break; const c=(S.meetings||[]).filter(m=>m.status==='Cancelled'); if(c.length&&await confirmBox(`Delete all ${c.length} cancelled meeting record${c.length>1?'s':''} permanently? Scheduled and past meetings are not touched. This cannot be undone.`,'Delete cancelled',true)){ for(const m of c) await remove('meetings',m.id); logAct(`Deleted ${c.length} cancelled meeting record(s)`); toast(`${c.length} cancelled meeting${c.length>1?'s':''} deleted.`); } } break;
     case 'addPR': formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / general')}:f),{},async v=>{ const n=S.procurement.length+1; await put('procurement',null,{...v,status:'Requested',pr_no:`PR-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`,requested_by:me.name||'',requested_uid:me.id||'',requested_at:new Date().toISOString()}); logAct(`Raised purchase request "${v.item}" ${tzs(v.est_cost)}`); toast('Request sent – approvers are being emailed.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); },{saveLabel:'Send for approval'}); break;
     case 'addSupplier': formDrawer('Add supplier',[{k:'name',label:'Supplier name',req:1},{k:'category',label:'Supplies'},{k:'phone',label:'Phone'},{k:'email',label:'Email'},{k:'tin',label:'TIN'},{k:'rating',label:'Rating',type:'select',options:['3','1','2','4','5']}],{},async v=>{ await put('suppliers',null,v); }); break;
     case 'exportProc': exportCsv('nordic-procurement.csv',['PR no','Item','Project','Qty','Unit','Est cost','Supplier','Status','Requested by','Approved by','Needed by'],S.procurement.map(p=>[p.pr_no,p.item,projName(p.project_id),p.qty,p.unit,p.est_cost,p.supplier,p.status,p.requested_by,p.approved_by,p.needed_by])); break;
