@@ -177,8 +177,8 @@
     const d = await callAI({ ...toPayload(x), ...(o && o.web ? { web: true } : {}) });
     return { text: plain(d.text), sources: Array.isArray(d.sources) ? d.sources : [], web: !!d.web };
   };
-  sample.json = async (x) => {
-    const d = await callAI({ ...toPayload(x), json: true });
+  sample.json = async (x, o = {}) => {
+    const d = await callAI({ ...toPayload(x), json: true, ...(o && o.max_tokens ? { max_tokens: o.max_tokens } : {}) });
     const t = String(d.text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
     try { return JSON.parse(t); } catch (_) { const e = new Error('invalid json'); e.code = 'invalid_json'; throw e; }
   };

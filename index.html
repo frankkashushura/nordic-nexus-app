@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=69"></script>
+<script src="config.js?v=70"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=69"></script>
-<script src="nexus-chat.js?v=69"></script>
+<script src="nexus-sb.js?v=70"></script>
+<script src="nexus-chat.js?v=70"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1530,7 +1530,7 @@ function bgDrawer(){
 }
 function bgRedraw(){ if(!drawer||drawer.type!=='bqgen') return; const o=$('#overlay'); const y=o.querySelector('.db')?.scrollTop||0; o.innerHTML=bgDrawer(); document.body.style.overflow='hidden'; const d=o.querySelector('.db'); if(d) d.scrollTop=y; }
 function bgLog(t,flag){ const g=drawer?.g; if(!g) return; g.log.push({t,...(flag==='ok'?{ok:1}:flag==='bad'?{bad:1}:{})}); bgRedraw(); }
-async function bgAI(prompt){ for(let k=0;k<4;k++){ try{ window.NX_AI_KIND='ask'; return await sample.json(prompt); }catch(e){ if(e?.code==='rate_limited'&&k<3){ bgLog('AI is busy – waiting 20 seconds and trying again…'); await new Promise(r=>setTimeout(r,20000)); continue; } throw e; } } }
+async function bgAI(prompt,maxTok=4500){ for(let k=0;k<4;k++){ try{ window.NX_AI_KIND='ask'; return await sample.json(prompt,{max_tokens:maxTok}); }catch(e){ if(/too large|tokens per minute|reduce your message/i.test(e?.message||'')){ const x=new Error('this part of the document is too large for the free AI plan'); x.code='too_large'; throw x; } if(e?.code==='rate_limited'&&k<3){ bgLog('AI is busy – waiting 20 seconds and trying again…'); await new Promise(r=>setTimeout(r,20000)); continue; } throw e; } } }
 async function bgPdfPages(buf){
   if(!PDFJS){ PDFJS=await import('./vendor/pdfjs/pdf.min.mjs'); PDFJS.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.mjs'; }
   const doc=await PDFJS.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise; const pages=[];
@@ -1570,26 +1570,36 @@ async function bgRun(){
       if(ext!=='pdf'){ bgLog(`${f.name}: only PDF and Excel files can be read.`,'bad'); continue; }
       const pdf=await bgPdfPages(buf); const all=pdf.pages.join('\n'); const chars=all.replace(/\s/g,'').length;
       if(chars<pdf.n*80){ bgLog(`${f.name}: ${pdf.n} pages but almost no text – it looks scanned. Use the Excel or a text PDF of the BoQ.`,'bad'); continue; }
-      if(!bgLooksBoq(all)){ scope.push({name:f.name,text:all}); bgLog(`${f.name}: ${pdf.n} pages – no priced-table layout found; used as scope/specification.`,'ok'); continue; }
+      if(!bgLooksBoq(all)){ scope.push({name:f.name,pages:pdf.pages,text:all}); bgLog(`${f.name}: ${pdf.n} pages – no priced-table layout found; used as scope/specification.`,'ok'); continue; }
       bgLog(`${f.name}: ${pdf.n}-page Bill of Quantities – AI is reading it part by part…`);
-      const chunks=[]; let cur=''; pdf.pages.forEach((p,i)=>{ const t=`\n--- page ${i+1} ---\n`+p; if(cur.length+t.length>11000&&cur){ chunks.push(cur); cur=''; } cur+=t; }); if(cur) chunks.push(cur);
+      const chunks=[]; let cur=''; pdf.pages.forEach((p,i)=>{ const t=`\n--- page ${i+1} ---\n`+p; if(cur.length+t.length>7000&&cur){ chunks.push(cur); cur=''; } if(t.length>7000){ for(let q=0;q<t.length;q+=7000) chunks.push(t.slice(q,q+7000)); } else cur+=t; }); if(cur) chunks.push(cur);
       let n0=bills.reduce((a,x)=>a+x.items.length,0);
       for(let c=0;c<chunks.length;c++){ bgLog(`AI reading part ${c+1} of ${chunks.length}…`); usedAI=true;
         const lastBill=bills.length?bills[bills.length-1].name:'';
         const res=await bgAI(`You extract measured items from a Tanzanian tender Bill of Quantities. Below is part ${c+1} of ${chunks.length} of the text taken from the PDF (table columns are separated by spaces and may be out of order).${lastBill?` The bill in progress at the start of this part is "${lastBill}".`:''}
 Rules: extract EVERY measured item exactly as written – item reference, full description (if an item only says "Ditto", "a.b." or is a short sub-item, prefix it with its heading so it can be priced on its own), unit and quantity. Keep the bill headings (e.g. "BILL No. 2 – SUBSTRUCTURE"). Ignore rate/amount columns, page totals, collections, summaries and preambles without a unit. Never invent items or quantities; use null when a quantity is not given.
 Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5}]}]}
-TEXT:\n${chunks[c]}`);
+TEXT:\n${chunks[c]}`,5000);
         bgMerge(bills,res?.bills); }
       bgLog(`${f.name}: ${bills.reduce((a,x)=>a+x.items.length,0)-n0} items extracted.`,'ok'); }
     let mode='';
     if(!bills.length&&scope.length){ bgLog('No Bill of Quantities in the documents – AI is drafting bills and items from the scope/specification…'); usedAI=true;
-      const T=g.tender?byId('tenders',g.tender):null; const txt=scope.map(s=>`=== ${s.name} ===\n${s.text}`).join('\n').slice(0,60000);
-      const res=await bgAI(`You are a Tanzanian quantity surveyor preparing a Bill of Quantities in the style used on NeST public tenders (SMM-based bills such as Preliminaries, Substructure, Concrete work, Walling, Roofing, Finishes, Doors & Windows, Painting, Plumbing, Electrical, External works).${T?`\nTender: ${T.title} for ${T.client||''}, ${T.location||''}.`:''}
-From the tender documents below, draft the bills and measured items for the works described. Units: m, m2, m3, kg, No, Item, Sum. Give a quantity ONLY where the documents state it; otherwise null. Do not invent works that the documents do not describe.
+      const T=g.tender?byId('tenders',g.tender):null;
+      const WORK=/scope|works|specification|description of|bill of quantit|construction|renovat|rehabilit|extension|roof|concrete|masonry|block|plaster|paint|tile|door|window|plumb|electric|excavat|foundation|drain|floor|ceiling|m2|m3|\bsqm\b/gi, FORMS=/instructions to (bidders|tenderers)|bid(ding)? data sheet|bid security|tender security|declaration|form of (bid|tender)|power of attorney|eligib|evaluation criteria|qualification|conditions of contract|appendix to|signature of|witness/gi;
+      const pages=[]; scope.forEach(sd=>sd.pages.forEach((t,i)=>{ const w=(t.match(WORK)||[]).length, fm=(t.match(FORMS)||[]).length; pages.push({f:sd.name,i:i+1,t,sc:w-3*fm}); }));
+      let pick=pages.filter(x=>x.sc>2&&x.t.replace(/\s/g,'').length>150).sort((a,b)=>b.sc-a.sc).slice(0,14).sort((a,b)=>a.f===b.f?a.i-b.i:a.f.localeCompare(b.f));
+      if(!pick.length) pick=pages.slice(0,6);
+      const parts=[]; let cur=''; pick.forEach(x=>{ const t=`\n--- ${x.f} page ${x.i} ---\n`+x.t.slice(0,7000); if(cur.length+t.length>7000&&cur){ parts.push(cur); cur=''; } cur+=t; }); if(cur) parts.push(cur);
+      bgLog(`Using ${pick.length} of ${pages.length} pages that describe the works (forms and instructions skipped) – ${parts.length} part${parts.length===1?'':'s'}.`);
+      for(let c=0;c<parts.length;c++){ if(parts.length>1) bgLog(`AI drafting items: part ${c+1} of ${parts.length}…`);
+        const res=await bgAI(`You are a Tanzanian quantity surveyor preparing a Bill of Quantities in the style used on NeST public tenders (SMM-based bills such as Preliminaries, Substructure, Concrete work, Walling, Roofing, Finishes, Doors & Windows, Painting, Plumbing, Electrical, External works).${T?`\nTender: ${T.title} for ${T.client||''}, ${T.location||''}.`:''}
+Below is part ${c+1} of ${parts.length} of the tender documents. Draft the bills and measured items ONLY for works described in this part (skip tender forms, instructions and conditions). Units: m, m2, m3, kg, No, Item, Sum. Give a quantity ONLY where the documents state it; otherwise null. Do not invent works. If this part describes no works, reply {"bills":[]}.
 Reply with only JSON: {"bills":[{"name":"...","items":[{"ref":"A","desc":"...","unit":"m2","qty":null}]}]}
-DOCUMENTS:\n${txt}`);
-      bgMerge(bills,res?.bills); mode='Items drafted by AI from the scope/specification – quantities need your take-off'; }
+DOCUMENTS:\n${parts[c]}`,4500);
+        const seen=new Set(bills.flatMap(b=>b.items.map(i=>rtWords(i.desc)+'|'+rtWords(i.unit))));
+        (res?.bills||[]).forEach(bl=>{ bl.items=(bl.items||[]).filter(i=>{ const k=rtWords(i.desc)+'|'+rtWords(i.unit); if(seen.has(k)) return false; seen.add(k); return true; }); });
+        bgMerge(bills,res?.bills); }
+      mode='Items drafted by AI from the scope/specification – quantities need your take-off'; }
     else mode=bills.length?(usedAI?'Items extracted from the tender BoQ (PDF read by AI – spot-check against the document)':'Items read from the Excel BoQ'):'';
     if(!bills.length){ bgLog('Nothing could be read from these documents.','bad'); g.step='setup'; setTimeout(bgRedraw,2500); return; }
     // number the refs if missing
@@ -1599,19 +1609,19 @@ DOCUMENTS:\n${txt}`);
     bills.forEach(bl=>bl.items.forEach(it=>{ const m=it.unit?matchRate(it.desc,it.unit,reg):null; if(m){ it.rate=+m.rate; it.p=bqLibP(m); lib++; if(rtCheck(m)) old++; } else if(it.unit&&!/^(sum|ls|l\.s\.?|item|ps|p\.s\.?|prov)/i.test(it.unit)) miss.push({it,bill:bl.name}); }));
     bgLog(`Priced ${lib} items from the Rate library (${reg} first, newest prices)${old?` – ${old} of them old or undated`:''}.`,'ok');
     if(g.aiRates&&miss.length){ const lib2=S.rates.map(rtN), items=lib2.filter(r=>r.kind==='item'), res2=lib2.filter(r=>r.kind!=='item');
-      const w=s=>new Set(rtWords(s).split(' ').filter(x=>x.length>=3)); const near=(it)=>{ const a=w(it.desc); return items.map(r=>{ const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); return [n/Math.max(1,Math.min(a.size,b.size))+(rtWords(r.unit)===rtWords(it.unit)?.2:0),r]; }).filter(x=>x[0]>.2).sort((x,y)=>y[0]-x[0]).slice(0,5).map(x=>x[1]); };
-      const resTxt=res2.slice(0,70).map(r=>`${r.desc} | ${r.unit} | ${Math.round(r.rate)} | ${r.region} ${r.price_date||'no date'}`).join('\n');
-      let got=0; const batches=[]; for(let i=0;i<miss.length;i+=18) batches.push(miss.slice(i,i+18));
+      const w=s=>new Set(rtWords(s).split(' ').filter(x=>x.length>=3)); const near=(it)=>{ const a=w(it.desc); return items.map(r=>{ const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); return [n/Math.max(1,Math.min(a.size,b.size))+(rtWords(r.unit)===rtWords(it.unit)?.2:0),r]; }).filter(x=>x[0]>.2).sort((x,y)=>y[0]-x[0]).slice(0,4).map(x=>x[1]); };
+      const resTxt=res2.slice(0,50).map(r=>`${r.desc} | ${r.unit} | ${Math.round(r.rate)} | ${r.region} ${r.price_date||'no date'}`).join('\n');
+      let got=0; const batches=[]; for(let i=0;i<miss.length;i+=12) batches.push(miss.slice(i,i+12));
       for(let bi=0;bi<batches.length;bi++){ bgLog(`AI proposing rates for items not in the library (${bi+1} of ${batches.length})…`);
         const lst=batches[bi].map((x,i)=>{ const nb=near(x.it); return `#${i} ${x.it.desc} [unit: ${x.it.unit}] (bill: ${x.bill})\n   similar library rates: ${nb.length?nb.map(r=>`${r.desc} = ${Math.round(r.rate)}/${r.unit} (${r.region}, ${r.price_date||'no date'})`).join(' ; '):'none'}`; }).join('\n');
         let out; try{ out=await bgAI(`You are a senior Tanzanian quantity surveyor. Propose a unit rate in TZS for each BoQ item below, for ${reg}, based ONLY on Nordic Construction's own library: the similar library rates listed with each item and the resource prices (materials, labour, plant) below. Adjust by proportion where sensible (e.g. thickness, size, number of coats) and state the basis in a few words. If there is no sound basis in the data, return null – never guess from outside knowledge.
 RESOURCE PRICES (description | unit | TZS | region date):\n${resTxt||'none'}
 ITEMS:\n${lst}
-Reply with only JSON: {"rates":[{"i":0,"rate":12345,"basis":"from 230 mm blockwork 39,750 scaled to 150 mm"}]}`); }catch(e){ bgLog('AI rate proposals failed: '+(e.message||e),'bad'); break; }
+Reply with only JSON: {"rates":[{"i":0,"rate":12345,"basis":"from 230 mm blockwork 39,750 scaled to 150 mm"}]}`,2500); }catch(e){ bgLog('AI rate proposals failed: '+(e.message||e),'bad'); break; }
         (out?.rates||[]).forEach(r=>{ const x=batches[bi][+r.i]; const v=bqNum(r.rate); if(x&&v&&v>0){ x.it.rate=Math.round(v); x.it.p={s:'ai',basis:String(r.basis||'').slice(0,200),at:today()}; got++; } }); }
       bgLog(`AI proposed ${got} rates (marked AI estimate – check them).`,'ok'); }
     g.res={bills,mode}; g.step='review'; bgLog('Done – review the summary below.','ok');
-  }catch(e){ bgLog('Stopped: '+(e?.code==='rate_limited'?'AI is busy – try again in a minute.':(e.message||e)),'bad'); g.step='review'; g.res=bills.length?{bills,mode:'Partly read'}:null; bgRedraw(); }
+  }catch(e){ bgLog('Stopped: '+(e?.code==='rate_limited'?'AI is busy – try again in a minute.':e?.code==='too_large'?'a part of the document was too large for the free AI plan. Try again, or upload only the BoQ / scope pages.':(e.message||e)),'bad'); g.step='review'; g.res=bills.length?{bills,mode:'Partly read'}:null; bgRedraw(); }
 }
 async function bgCreate(){ const g=drawer.g; if(!g.res?.bills?.length) return; const T=g.tender?byId('tenders',g.tender):null;
   const s=bqStats({bills:g.res.bills});
