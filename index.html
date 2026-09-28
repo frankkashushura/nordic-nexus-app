@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=77"></script>
+<script src="config.js?v=78"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=77"></script>
-<script src="nexus-chat.js?v=77"></script>
+<script src="nexus-sb.js?v=78"></script>
+<script src="nexus-chat.js?v=78"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -607,7 +607,7 @@ function lightbox(src){ const w=document.createElement('div'); w.className='ligh
 function needDb(){ if(!db){ toast('Saving needs the NEXUS database, which is not available in this view.'); return false;} return true; }
 async function put(col, id, data){ if(!needDb()) return null; id=id||uid(); try{ await db.doc(col+'/'+id).set({...data, updated_at:new Date().toISOString(), updated_by:me.name||''}); return id; } catch(e){ handleErr(e); return null; } }
 async function patch(col, id, data){ if(!needDb()) return; try{ await db.doc(col+'/'+id).update({...data, updated_at:new Date().toISOString(), updated_by:me.name||''}); } catch(e){ handleErr(e); } }
-async function remove(col, id){ if(!needDb()) return; try{ await db.doc(col+'/'+id).delete(); } catch(e){ handleErr(e); } }
+async function remove(col, id){ if(!needDb()) return false; try{ await db.doc(col+'/'+id).delete(); return true; } catch(e){ handleErr(e); return false; } }
 function handleErr(e){
   const c=e?.code;
   if(c==='invalid_argument'){ toast('You do not have permission to change this. Ask an administrator.'); }
@@ -2878,7 +2878,7 @@ function renderDrawer(){
   else if(t==='project'){ const x=byId('projects',drawer.id); if(!x) return closeDrawer(); html=projectDrawer(x); }
   else if(t==='report'){ const x=byId('reports',drawer.id); if(!x) return closeDrawer(); html=reportDrawer(x); }
   else if(t==='report-form'){ html=reportForm(drawer.id?byId('reports',drawer.id)||{}:{}, drawer.proj); drawer.form=true; }
-  else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?'<div style="flex:1"></div><button class="btn danger" data-act="delForm">Delete</button>':''}`); drawer.form=true; }
+  else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?`<div style="flex:1"></div><button class="btn danger" data-act="delForm">${esc(drawer.delLabel||'Delete')}</button>`:''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
@@ -2897,7 +2897,7 @@ function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfold
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
 /* ===================== FORM DRAWERS ===================== */
-function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:isAdmin?opts.onDelete:null}); }
+function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
 function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
@@ -2927,7 +2927,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.editsnag){ recEdit('snags',el.dataset.editsnag,'Snag',SNAG_FIELDS,'Snags & close-out'); return; }
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
   if(el.dataset.ttab){ UI.ttab=el.dataset.ttab; renderView(true); return; }
-  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); },{sub:'Payment certificates'}); return; }
+  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
   if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); toast(`${c.no} marked ${st.toLowerCase()}. Open it to adjust dates or amount.`); return; }
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
@@ -3054,7 +3054,7 @@ document.addEventListener('click', async e=>{
     case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual)}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
     case 'aiProject': aiProject(byId('projects',routeArg)); break;
-    case 'delForm': if(drawer?.onDelete && await confirmBox('Delete this record? This cannot be undone.','Delete',true)){ await drawer.onDelete(); closeDrawer(); toast('Deleted.'); } break;
+    case 'delForm': if(drawer?.onDelete && await confirmBox(drawer.delMsg||'Delete this record? This cannot be undone.',drawer.delLabel||'Delete',true)){ const lbl=drawer.delLabel; if(await drawer.onDelete()!==false){ closeDrawer(); toast(lbl==='Remove'?'Removed.':'Deleted.'); } } break;
     case 'downloadWeekly': downloadWeekly(); break;
   }
 });
