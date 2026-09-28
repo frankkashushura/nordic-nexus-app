@@ -193,6 +193,25 @@
     }
   };
 
+  /* ---------------- Office Records: private files (bucket "records", path <record id>/...), audit log ---------------- */
+  window.NX_REC = {
+    async upload(recId, file, v) {
+      const name = (file.name || 'file').replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80);
+      const path = `${recId}/v${v || 1}-${uid()}-${name}`;
+      const up = await sb.storage.from('records').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+      if (up.error) throw mapErr(up.error);
+      return { path, name: file.name || name, size: file.size || 0, type: file.type || '' };
+    },
+    async url(path, download) {
+      const s = await sb.storage.from('records').createSignedUrl(path, 3600, download ? { download: true } : undefined);
+      if (s.error) throw mapErr(s.error);
+      return s.data.signedUrl;
+    },
+    async remove(paths) { const r = await sb.storage.from('records').remove(paths); if (r.error) throw mapErr(r.error); },
+    async log(rec, act) { try { await sb.rpc('rec_log', { rec: String(rec), act: String(act) }); } catch (_) {} },
+    async history(rec) { const { data, error } = await sb.rpc('rec_history', { rec: String(rec) }); if (error) throw mapErr(error); return data || []; }
+  };
+
   window.claude = { use: async n => ({ db, user, sample, assets, downloads })[n] || null };
 
   /* ================= sign-in screens ================= */

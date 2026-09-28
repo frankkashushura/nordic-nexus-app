@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=62"></script>
+<script src="config.js?v=63"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=62"></script>
-<script src="nexus-chat.js?v=62"></script>
+<script src="nexus-sb.js?v=63"></script>
+<script src="nexus-chat.js?v=63"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -408,7 +408,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -471,6 +471,7 @@ const screenChip = s => s ? `<span class="chip ${s==='Pursue'?'good':s==='Check'
 const verdictCls = v => /^bid/i.test(v||'') ? 'good' : /cond/i.test(v||'') ? 'warn' : /no/i.test(v||'') ? 'bad' : '';
 const ICON = {
   pm:'<path d="M3 4v16h18"/><path d="M7 7h6M9 11h8M11 15h6"/>',
+  records:'<path d="M3 7h6l2 2h10v11H3z"/><path d="M3 7V5h6l2 2"/><path d="M8 14h8M8 17h5"/>',
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
   dash:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
   tenders:'<path d="M9 3h6l1 2h3v16H5V5h3z"/><path d="M9 12h6M9 16h4"/>',
@@ -515,7 +516,7 @@ const PAGES = [
   {g:'Running the office'},
   {k:'finance', t:'Finance'},
   {k:'staff', t:'Staff'},
-  {k:'docs', t:'Compliance'},
+  {k:'records', t:'Office Records'},
   {k:'settings', t:'Company & Security'},
   {k:'about', t:'About NEXUS'}
 ];
@@ -604,6 +605,7 @@ function computeAlerts(){
     const f=daysLeft(t.date_found);
     if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:(f!=null&&f>-2)?'New tender':'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)}); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
+  if(typeof recAlerts==='function') recAlerts(A);
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
   { const sid=myStaffId(), now=Date.now(); (S.meetings||[]).filter(m=>m.status!=='Cancelled'&&meetEnd(m)>now&&((sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id)).forEach(m=>{ const t=meetStart(m), inv=sid&&(m.invitees||[]).includes(sid), ans=inv?(m.responses||{})[sid]:null;
@@ -1307,9 +1309,154 @@ function pageDocs(){
   const rows=[...S.compliance].sort((a,b)=>(a.expiry||'9').localeCompare(b.expiry||'9'));
   return `<div class="banner"><div>Tenders are lost when a certificate has lapsed on submission day. NEXUS warns 45 days before each expiry.</div></div>
   <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addDoc">Add document</button></div>
-  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Document</th><th>Number</th><th>Expiry</th><th>Status</th><th class="hide-m">Kept by</th></tr></thead><tbody>
-  ${rows.map(d=>{const dl=daysLeft(d.expiry);return `<tr class="click" data-editdoc="${esc(d.id)}"><td class="ttl2">${esc(d.name)}<div class="sub">${esc(d.issuer||'')}</div></td><td class="mono small">${esc(d.number||'—')}</td><td class="small">${fmtD(d.expiry)}</td><td>${dl==null?'<span class="chip amb">add expiry date</span>':dl<0?'<span class="chip bad">expired</span>':dl<=45?`<span class="chip amb">${Math.ceil(dl)} days left</span>`:'<span class="chip good">valid</span>'}</td><td class="hide-m small">${esc(d.holder||'')}</td></tr>`}).join('')}</tbody></table></div></div>`;
+  <div class="card">${pageDocsTable()}</div>`;
 }
+function pageDocsTable(){ const rows=[...S.compliance].sort((a,b)=>(a.expiry||'9').localeCompare(b.expiry||'9'));
+  return `<div class="tbl-wrap"><table><thead><tr><th>Document</th><th>Number</th><th>Expiry</th><th>Status</th><th class="hide-m">Kept by</th></tr></thead><tbody>
+  ${rows.map(d=>{const dl=daysLeft(d.expiry);return `<tr class="click" data-editdoc="${esc(d.id)}"><td class="ttl2">${esc(d.name)}<div class="sub">${esc(d.issuer||'')}</div></td><td class="mono small">${esc(d.number||'—')}</td><td class="small">${fmtD(d.expiry)}</td><td>${dl==null?'<span class="chip amb">add expiry date</span>':dl<0?'<span class="chip bad">expired</span>':dl<=45?`<span class="chip amb">${Math.ceil(dl)} days left</span>`:'<span class="chip good">valid</span>'}</td><td class="hide-m small">${esc(d.holder||'')}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">No certificates yet.</td></tr>'}</tbody></table></div>`;
+}
+
+/* ===================== OFFICE RECORDS (contracts, letters, legal, HR, finance, policies, templates) ===================== */
+const REC_FOLDERS=[
+  {k:'contracts',t:'Contracts & agreements',i:'📑',lvl:'mgmt',d:'Client contracts, subcontracts, supply & hire agreements, MoUs'},
+  {k:'letters',t:'Letters register',i:'✉️',lvl:'all',d:'Incoming and outgoing letters with reference numbers'},
+  {k:'legal',t:'Legal, insurance & guarantees',i:'⚖️',lvl:'all',d:'Registration, CRB, TIN/VAT, tax clearance, insurance, bank & performance guarantees'},
+  {k:'hr',t:'HR & staff files',i:'👥',lvl:'admin',d:'Employment contracts, appointment letters, staff files'},
+  {k:'finance',t:'Finance & tax',i:'💼',lvl:'mgmt',d:'Audited accounts, tax returns, bank letters'},
+  {k:'policies',t:'Policies & manuals',i:'📘',lvl:'all',d:'HSE, quality, HR policies, company profile, manuals'},
+  {k:'templates',t:'Templates & forms',i:'🗂️',lvl:'all',d:'Letterheads, standard forms, bid templates'}];
+const REC_LEVELS=[['all','All staff'],['mgmt','Management (admin + Finance)'],['admin','Administrators only']];
+const recFolder=k=>REC_FOLDERS.find(f=>f.k===k)||REC_FOLDERS[0];
+const recLvlOk=l=>l==='admin'?isAdmin:l==='mgmt'?(isAdmin||isFin):true;
+const recLvlChip=l=>l==='admin'?'<span class="chip bad" title="Administrators only">🔐 Admin</span>':l==='mgmt'?'<span class="chip amb" title="Administrators and Finance">🔒 Mgmt</span>':'';
+const recFile=r=>{ const f=r.files||[]; return f.length?f[f.length-1]:null; };
+const recExp=r=>r.folder==='letters'?null:(r.expiry||r.end||'');
+function recCanSave(){ return !!window.NX_REC; }
+function recNextRef(dir){ const y=new Date().getFullYear(), pre=`NCC/${dir==='In'?'IN':'OUT'}/${y}/`;
+  const n=Math.max(0,...(S.records||[]).map(r=>String(r.ref||'')).filter(x=>x.startsWith(pre)).map(x=>+x.slice(pre.length)||0));
+  return pre+String(n+1).padStart(3,'0'); }
+function recSearchText(r){ return [r.title,r.ref,r.party,r.tags,r.note,r.direction,projName(r.project_id),r.ai?.summary].join(' ').toLowerCase(); }
+function recExpChip(r){ const e=recExp(r); if(!e) return '<span class="sub">—</span>'; const d=daysLeft(e+'T23:59');
+  return `<span class="chip ${d<0?'bad':d<=30?'bad':d<=60?'amb':'good'}">${d<0?'Expired':d<1?'Today':Math.floor(d)+' d'}</span><div class="sub">${fmtD(e)}</div>`; }
+function recLetterChip(r){ if(r.folder!=='letters') return ''; if(/replied|closed/i.test(r.status||'')) return `<span class="chip good">${esc(r.status)}</span>`;
+  if(!r.reply_by) return ''; const d=daysLeft(r.reply_by+'T23:59'); return `<span class="chip ${d<0?'bad':d<=3?'amb':'blue'}">${d<0?'Reply overdue':'Reply by '+fmtD(r.reply_by)}</span>`; }
+function recRows(list){
+  if(!list.length) return '<div class="card empty">No records here yet. Press <b>Add record</b> to store the first one.</div>';
+  return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Record</th><th class="hide-m">Date</th><th>Expiry / status</th><th class="hide-m">File</th></tr></thead><tbody>
+  ${list.map(r=>{ const f=recFile(r); return `<tr class="click" data-rec="${esc(r.id)}"><td class="mono small">${esc(r.ref||'—')}</td>
+    <td><div class="ttl2">${esc(r.title||'Untitled')} ${recLvlChip(r.level)}</div><div class="sub">${esc([r.folder==='letters'?(r.direction==='In'?'From ':'To ')+(r.party||'?'):r.party, r.project_id?projName(r.project_id):''].filter(Boolean).join(' · '))}</div></td>
+    <td class="hide-m small">${fmtD(r.date)}</td><td>${r.folder==='letters'?recLetterChip(r):recExpChip(r)}</td>
+    <td class="hide-m small">${f?`📎 ${(r.files||[]).length>1?'v'+(r.files.length)+' · ':''}${esc((f.name||'').split('.').pop().toUpperCase())}`:'<span class="sub">no file</span>'}</td></tr>`; }).join('')}
+  </tbody></table></div></div>`; }
+function pageRecords(){
+  const all=S.records||[], q=(UI.rq||'').trim().toLowerCase(), fk=UI.rfolder||'';
+  const soon=all.filter(r=>{ const e=recExp(r); if(!e) return false; const d=daysLeft(e+'T23:59'); return d!=null&&d<=60; }).length;
+  const replies=all.filter(r=>r.folder==='letters'&&r.reply_by&&!/replied|closed/i.test(r.status||'')).length;
+  const month=today().slice(0,7), added=all.filter(r=>(r.created_at||'').startsWith(month)).length;
+  const head=`<div class="grid g4">
+    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${all.length}</span><span class="s">${S.compliance.length} compliance certificates too</span></div>
+    <div class="card kpi ${soon?'hot':'grn'}"><span class="label">Expiring ≤ 60 days</span><span class="v num">${soon}</span><span class="s">contracts, guarantees, insurance, licences</span></div>
+    <div class="card kpi ${replies?'amb':'grn'}"><span class="label">Letters awaiting reply</span><span class="v num">${replies}</span><span class="s">with a reply-by date</span></div>
+    <div class="card kpi grn"><span class="label">Added this month</span><span class="v num">${added}</span><span class="s">${esc(new Date().toLocaleDateString('en-GB',{month:'long'}))}</span></div></div>
+  <div class="toolbar"><input class="inp search" id="rq" type="search" placeholder="Search title, reference, party, project, words in the AI summary" value="${esc(UI.rq||'')}" aria-label="Search records" style="max-width:420px"><div class="sp"></div>
+    <button class="btn" data-act="recLetter">Register letter</button><button class="btn pri" data-act="recAdd">Add record</button></div>`;
+  if(q){ const hits=all.filter(r=>recSearchText(r).includes(q)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    return head+`<p class="muted">${hits.length} record${hits.length===1?'':'s'} match "${esc(UI.rq)}"</p>`+recRows(hits); }
+  if(!fk){ return head+`<div class="grid g3">${REC_FOLDERS.map(f=>{ const n=all.filter(r=>r.folder===f.k).length+(f.k==='legal'?S.compliance.length:0);
+      const ex=all.filter(r=>r.folder===f.k&&recExp(r)&&daysLeft(recExp(r)+'T23:59')<=60).length+(f.k==='legal'?S.compliance.filter(c=>{const d=daysLeft(c.expiry);return d!=null&&d<=45;}).length:0);
+      return `<button class="tile" data-rfolder="${f.k}" style="grid-template-columns:auto 1fr"><span class="ti" style="font-size:20px">${f.i}</span><span class="tt">${esc(f.t)} <span class="num" style="font-size:14px;color:var(--muted)">${n}</span></span><span class="ts">${esc(f.d)}${ex?` · <b style="color:var(--bad)">${ex} expiring</b>`:''}${f.lvl!=='all'?' · '+(f.lvl==='admin'?'🔐':'🔒'):''}</span></button>`; }).join('')}</div>
+    <p class="sub">Each record has an access level: <b>All staff</b>, <b>Management</b> (administrators + Finance) or <b>Administrators only</b>. The database enforces it – people never receive records above their level. Files are private and open through short-lived secure links.</p>`; }
+  const f=recFolder(fk), list=all.filter(r=>r.folder===fk).sort((a,b)=>(b.date||b.created_at||'').localeCompare(a.date||a.created_at||''));
+  const comp=fk==='legal'?`<div class="card"><div class="hd"><h2>Compliance certificates</h2><span class="sub">warned 45 days before expiry</span><div class="sp"></div><button class="btn sm" data-act="addDoc">Add certificate</button></div>${pageDocsTable()}</div>`:'';
+  return head+`<div class="toolbar"><button class="btn" data-rfolder="">← All folders</button><h2 style="font-size:19px">${f.i} ${esc(f.t)}</h2><span class="sub">${list.length} record${list.length===1?'':'s'}</span></div>`+comp+(fk==='legal'&&list.length?'<h3 style="margin-top:6px">Other legal records</h3>':'')+(fk==='legal'&&!list.length?'':recRows(list));
+}
+function recFields(r, folder){
+  const fo=folder||r.folder||'contracts', L=REC_LEVELS.filter(([k])=>recLvlOk(k));
+  const F=[{k:'folder',label:'Folder',type:'select',options:REC_FOLDERS.map(f=>[f.k,f.t])},{k:'title',label:fo==='letters'?'Subject':'Title',req:1,full:1}];
+  if(fo==='letters') F.push({k:'direction',label:'Direction',type:'select',options:['Out','In']},{k:'ref',label:'Reference no.',help:'Filled automatically – change it if the letter already has a number'},{k:'party',label:'To / from (organisation, person)'},{k:'date',label:'Letter date',type:'date'},{k:'reply_by',label:'Reply needed by',type:'date'},{k:'status',label:'Status',type:'select',options:['Open','Replied','Closed']});
+  else F.push({k:'ref',label:'Reference / number'},{k:'party',label:fo==='contracts'?'Other party (client, subcontractor, supplier)':fo==='hr'?'Staff member':'Issued by / other party'},{k:'date',label:'Date signed / issued',type:'date'},{k:'expiry',label:fo==='contracts'?'End / completion date':'Expiry date',type:'date',help:'Reminders 60, 30 and 7 days before'});
+  if(fo==='contracts'){ if(money()) F.push({k:'value',label:'Contract sum (TZS)',type:'number'}); F.push({k:'start',label:'Start date',type:'date'},{k:'dlp_end',label:'Defects liability ends',type:'date'},{k:'retention',label:'Retention %',type:'number'}); }
+  F.push({k:'project_id',label:'Project',type:'select',options:[['','— none —'],...S.projects.map(p=>[p.id,p.name])]},{k:'owner',label:'Responsible person (gets the reminders)',type:'select',options:[['','— none —'],...S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name])]},
+    {k:'level',label:'Who can see it',type:'select',options:L},{k:'tags',label:'Keywords',ph:'e.g. CRDB, fit-out, 2026'},{k:'note',label:'Notes',type:'textarea'});
+  if(!r.id) F.push({k:'file',label:'File (PDF, Word, Excel, photo – up to 50 MB)',type:'file',full:1});
+  return F; }
+async function recSave(r, v){
+  const fileEl=document.querySelector('#f_file'), file=fileEl&&fileEl.files&&fileEl.files[0];
+  delete v.file; if(!recLvlOk(v.level)) v.level='all';
+  if(v.folder==='letters'&&!v.ref) v.ref=recNextRef(v.direction);
+  const id=r.id||uid(); const data={...v};
+  if(file){ if(!recCanSave()){ toast('File upload needs the NEXUS database.'); return false; } if(file.size>50*1024*1024){ toast('The file is larger than 50 MB.'); return false; }
+    try{ toast('Uploading '+file.name+' …'); const up=await window.NX_REC.upload(id,file,((r.files||[]).length)+1); data.files=[...(r.files||[]),{...up,v:(r.files||[]).length+1,at:new Date().toISOString(),by:me.name||''}]; }
+    catch(e){ toast('Upload failed: '+(e.message||e)); return false; } }
+  if(r.id){ await patch('records',id,data); window.NX_REC?.log(id,'edited'); logAct(`Updated record: ${v.title}`); }
+  else { await put('records',id,{...data,files:data.files||[],created_at:new Date().toISOString(),created_by:me.name||'',created_uid:me.id||''}); window.NX_REC?.log(id,'added'); logAct(`Added record: ${v.title}`); }
+  UI.rfolder=v.folder; if(route==='records') renderAll(); }
+function recOpenForm(r={}, preset={}){
+  UI.recFormNew=!r.id;
+  const folder=preset.folder||r.folder||(UI.rfolder||'contracts'), vals={folder,level:recFolder(folder).lvl,direction:'Out',status:'Open',date:today(),...preset,...r};
+  if(!recLvlOk(vals.level)) vals.level='all';
+  if(!r.id&&folder==='letters') vals.ref=recNextRef(vals.direction);
+  formDrawer(r.id?'Edit record':(folder==='letters'?'Register letter':'Add record'),recFields(r,folder),vals,v=>recSave(r,v),{sub:'Office Records',onDelete:r.id?async()=>{ if(window.NX_REC&&(r.files||[]).length) await window.NX_REC.remove(r.files.map(f=>f.path)).catch(()=>{}); window.NX_REC?.log(r.id,'deleted'); await remove('records',r.id); logAct(`Deleted record: ${r.title}`); }:null});
+}
+function recDrawer(r){
+  const f=recFolder(r.folder), files=r.files||[], a=r.ai;
+  const kv=[['Folder',f.t],['Reference',r.ref],[r.folder==='letters'?(r.direction==='In'?'From':'To'):'Other party',r.party],['Date',fmtD(r.date)],
+    ...(r.folder==='letters'?[['Reply by',fmtD(r.reply_by)],['Status',r.status]]:[['Expiry / end',fmtD(r.expiry)]]),
+    ...(r.folder==='contracts'?[['Start',fmtD(r.start)],...(money()?[['Contract sum',tzs(r.value)]]:[]),['Retention',r.retention?r.retention+'%':''],['Defects liability ends',fmtD(r.dlp_end)]]:[]),
+    ['Project',r.project_id?projName(r.project_id):''],['Responsible',r.owner?staffName(r.owner):''],['Access',(REC_LEVELS.find(x=>x[0]===(r.level||'all'))||[])[1]],['Keywords',r.tags],['Added',`${fmtD(r.created_at)} · ${r.created_by||''}`]].filter(([,v])=>v&&v!=='—');
+  const isPdf=x=>x&&(/pdf/i.test(x.type||'')||/\.pdf$/i.test(x.name||''));
+  const aiCard=`<div class="ai"><div class="hd"><span class="chip blue">AI</span><h2>Contract summary</h2><div class="sp"></div>${isPdf(recFile(r))?`<button class="btn sm pri" data-act="recAi" ${UI.busy.rec?'disabled':''}>${spin('rec')}${a?'Read again':'Summarise with AI'}</button>`:''}</div><div class="bd">
+    ${a?`<p style="white-space:pre-wrap">${esc(a.summary||'')}</p><dl class="kv" style="margin-top:8px">${[['Parties',(a.parties||[]).join(' · ')],['Contract sum',money()?(a.contract_sum?`${a.currency||'TZS'} ${(+a.contract_sum||0).toLocaleString('en-US')}`:''):''],['Start',a.start],['Completion / end',a.end],['Duration',a.duration],['Advance payment',a.advance],['Retention',a.retention],['Defects liability',a.dlp],['Liquidated damages',a.ld],['Payment terms',a.payment_terms],['Performance security',a.performance_security],['Insurance required',a.insurance]].filter(([,v])=>v).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+      ${(a.obligations||[]).length?`<h3 style="margin-top:10px">Key obligations</h3><ul>${a.obligations.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>`:''}
+      ${(a.risks||[]).length?`<h3 style="margin-top:10px">Watch out for</h3><ul>${a.risks.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>`:''}
+      <div class="toolbar" style="margin-top:8px"><span class="sub">Read ${fmtDT(a.at)} from ${esc(a.file||'the contract')} – check against the signed contract.</span><div class="sp"></div><button class="btn sm" data-act="recAiFill">Copy dates${money()?' & sum':''} into the record</button></div>`
+      :`<p class="sub">${isPdf(recFile(r))?'NEXUS reads the contract PDF and lists the parties, sum, dates, retention, defects period, liquidated damages, payment terms, key obligations and risks.':'Attach the contract as a PDF (text PDF, not a scan) to get an AI summary.'}</p>`}</div></div>`;
+  const body=`<div class="toolbar">${recLvlChip(r.level)} ${r.folder==='letters'?recLetterChip(r):recExp(r)?recExpChip(r).replace('<div class="sub">',' <span class="sub">').replace('</div>','</span>'):''}</div>
+    <dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    ${r.note?`<p style="white-space:pre-wrap;margin-top:8px">${esc(r.note)}</p>`:''}
+    <div class="card"><div class="hd"><h2>Files & versions</h2><div class="sp"></div><label class="btn sm pri" style="cursor:pointer">Upload ${files.length?'new version':'file'}<input type="file" id="recUp" hidden></label></div>
+      <div class="list">${files.length?[...files].reverse().map((x,i)=>`<div class="li"><div class="grow"><div class="ttl2">${i===0?'<span class="chip good">Current</span> ':''}v${x.v||files.length-i} · ${esc(x.name||'file')}</div><div class="sub">${fmtDT(x.at)} · ${esc(x.by||'')} · ${x.size?(x.size>=1048576?(x.size/1048576).toFixed(1)+' MB':Math.max(1,Math.round(x.size/1024))+' KB'):''}</div></div><button class="btn sm" data-recopen="${esc(x.path)}" data-recv="${x.v||''}">Open</button><button class="btn sm" data-recdl="${esc(x.path)}" data-recv="${x.v||''}">Download</button></div>`).join(''):'<div class="empty">No file attached yet.</div>'}</div></div>
+    ${r.folder==='contracts'?aiCard:''}
+    ${(isAdmin||isFin)?`<div class="card"><div class="hd"><h2>Who opened it</h2><div class="sp"></div><button class="btn sm" data-act="recLog">Show history</button></div><div id="recLogBox" class="bd small muted">Every add, edit, new version, open and download is recorded.</div></div>`:''}`;
+  return drawerShell(r.title||'Record', `${f.i} ${f.t}${r.ref?' · '+r.ref:''}`, body, `<button class="btn" data-act="recEdit">Edit</button>${isAdmin?'<div class="sp"></div>':''}`);
+}
+async function recOpenFile(path, v, dl){ const r=byId('records',drawer?.id); if(!window.NX_REC){ toast('Files open in the NEXUS app (online).'); return; }
+  try{ const url=await window.NX_REC.url(path, dl); window.NX_REC.log(r?.id||path.split('/')[0], (dl?'downloaded':'opened')+(v?' v'+v:'')); window.open(url,'_blank','noopener'); }
+  catch(e){ toast('Could not open the file: '+(e.message||e)); } }
+async function recUploadVersion(file){ const r=byId('records',drawer?.id); if(!r||!file) return; if(!window.NX_REC){ toast('Upload needs the NEXUS database.'); return; }
+  if(file.size>50*1024*1024){ toast('The file is larger than 50 MB.'); return; }
+  try{ toast('Uploading '+file.name+' …'); const v=(r.files||[]).length+1; const up=await window.NX_REC.upload(r.id,file,v);
+    await patch('records',r.id,{files:[...(r.files||[]),{...up,v,at:new Date().toISOString(),by:me.name||''}]}); window.NX_REC.log(r.id,v>1?'new version v'+v:'file added'); logAct(`${v>1?'New version':'File added'}: ${r.title}`); toast(v>1?`Version ${v} saved – older versions are kept.`:'File saved.'); }
+  catch(e){ toast('Upload failed: '+(e.message||e)); } }
+async function recShowLog(){ const r=byId('records',drawer?.id), box=$('#recLogBox'); if(!r||!box||!window.NX_REC) return; box.innerHTML='<span class="spin"></span> Loading…';
+  try{ const h=await window.NX_REC.history(r.id); box.innerHTML=h.length?`<div class="list">${h.map(x=>`<div class="li"><div class="grow"><b>${esc(x.who||'?')}</b> ${esc(x.action)}</div><span class="sub">${fmtDT(x.at)}</span></div>`).join('')}</div>`:'No activity recorded yet.'; }
+  catch(e){ box.textContent='Could not load the history: '+(e.message||e); } }
+let PDFJS=null;
+async function recPdfText(path){
+  if(!PDFJS){ PDFJS=await import('./vendor/pdfjs/pdf.min.mjs'); PDFJS.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.mjs'; }
+  const url=await window.NX_REC.url(path,false), buf=await (await fetch(url)).arrayBuffer();
+  const doc=await PDFJS.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise; let t='';
+  for(let i=1;i<=Math.min(doc.numPages,80)&&t.length<160000;i++){ const pg=await doc.getPage(i); const c=await pg.getTextContent(); t+=`\n--- page ${i} ---\n`+c.items.map(x=>x.str).join(' '); }
+  return {text:t, pages:doc.numPages}; }
+async function recAi(){ const r=byId('records',drawer?.id), f=r&&recFile(r); if(!f) return;
+  const res=await ai('rec',async()=>{ let pdf; try{ pdf=await recPdfText(f.path); }catch(e){ throw new Error('the PDF could not be read ('+(e.message||e)+')'); }
+    if(pdf.text.replace(/---.*?---/g,'').trim().length<300) throw new Error('this PDF is a scanned picture with no text. Enter the key details by hand, or upload a text PDF.');
+    const prompt=`You read construction contracts for Nordic Construction Co. Ltd (Tanzania). From the contract text below, extract the facts exactly as written. Use null when something is not stated – never guess.
+Reply as JSON: {"summary":"4-6 plain sentences: what the contract is for, who with, value, time, main risks","parties":["..."],"contract_sum":number|null,"currency":"TZS|USD|...","start":"YYYY-MM-DD|null","end":"YYYY-MM-DD|null","duration":"...","advance":"...","retention":"...","dlp":"defects liability period","ld":"liquidated damages rate and cap","payment_terms":"...","performance_security":"...","insurance":"...","obligations":["up to 8 key obligations for Nordic"],"risks":["up to 6 clauses Nordic should watch"]}
+CONTRACT (${pdf.pages} pages):\n${pdf.text.slice(0,150000)}`;
+    return await sample.json(prompt); });
+  if(res){ await patch('records',r.id,{ai:{...res,at:new Date().toISOString(),file:f.name}}); window.NX_REC?.log(r.id,'AI summary'); toast('Contract summary saved.'); } }
+async function recAiFill(){ const r=byId('records',drawer?.id), a=r&&r.ai; if(!a) return; const up={}, iso=x=>/^\d{4}-\d{2}-\d{2}$/.test(x||'')?x:null;
+  if(iso(a.start)&&!r.start) up.start=a.start; if(iso(a.end)&&!r.expiry) up.expiry=a.end; if(money()&&a.contract_sum&&!r.value&&(!a.currency||/tzs|tsh/i.test(a.currency))) up.value=+a.contract_sum;
+  if((a.parties||[]).length&&!r.party) up.party=a.parties.filter(p=>!/nordic/i.test(p)).join(', ');
+  if(!Object.keys(up).length){ toast('Nothing new to copy – the record already has these details.'); return; }
+  await patch('records',r.id,up); toast('Copied: '+Object.keys(up).join(', ')+'.'); }
+function projectDocsTab(p){ const list=(S.records||[]).filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `<div class="toolbar"><span class="muted">Contracts, letters, guarantees and other records linked to this project (only those you are allowed to see).</span><div class="sp"></div><button class="btn" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn pri" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>`+recRows(list); }
+function recAlerts(A){ const sid=myStaffId(), mine=r=>isAdmin||(sid&&r.owner===sid);
+  (S.records||[]).forEach(r=>{ if(!mine(r)) return; const e=recExp(r);
+    if(e){ const d=daysLeft(e+'T23:59'); if(d!=null&&d<=60&&d>-30) A.push({lvl:d<=7?'bad':d<=30?'warn':'blue', kind:r.folder==='contracts'?'Contract ending':'Record expiring', text:`${r.title} ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${recFolder(r.folder).t}${r.ref?' · '+r.ref:''} · ${fmtD(e)}`, go:['rec',r.id], sort:d<=7?3:14, at:new Date(Date.parse(e+'T07:00:00+03:00')-(d<=7?7:d<=30?30:60)*864e5).toISOString(), nk:'recx|'+r.id+'|'+e+'|'+(d<=7?7:d<=30?30:60)}); }
+    if(r.folder==='letters'&&r.reply_by&&!/replied|closed/i.test(r.status||'')){ const d=daysLeft(r.reply_by+'T23:59'); if(d!=null&&d<=3) A.push({lvl:d<0?'bad':'warn', kind:'Letter reply due', text:r.title, sub:`${r.ref||''} · ${r.direction==='In'?'from':'to'} ${r.party||'?'} · reply by ${fmtD(r.reply_by)}`, go:['rec',r.id], sort:4, at:new Date(Date.parse(r.reply_by+'T07:00:00+03:00')-3*864e5).toISOString(), nk:'recl|'+r.id+'|'+r.reply_by}); } }); }
 
 /* ===================== SETTINGS / SECURITY ===================== */
 const CO_FIELDS=[['name','Registered name'],['tagline','Tagline'],['founded','Formed'],['crb_building','CRB – building'],['crb_civil','CRB – civil'],['address','Head office'],['pobox','P.O. Box'],['phone','Phone'],['email','Email'],['web','Website'],['social','Social media'],['branch','Branch'],['tin','TIN'],['vrn','VRN'],['vision','Vision'],['mission','Mission'],['purpose','Purpose'],['values','Core values'],['sectors','Key sectors'],['services','Services'],['references','Reference projects (used by AI)'],['facts','Company facts (used by AI)']].map(([k,label])=>({k,label,type:['vision','mission','purpose','services','references','facts','sectors'].includes(k)?'textarea':'text'}));
@@ -1641,7 +1788,7 @@ const RISK_FIELDS=[{k:'title',label:'Risk or issue',req:1,full:1},{k:'kind',labe
 const SNAG_FIELDS=[{k:'location',label:'Location',req:1,ph:'e.g. Block A, ground floor, room 3'},{k:'description',label:'Defect',req:1,full:1},
   {k:'trade',label:'Trade',type:'select',options:['Civil / masonry','Finishes','Carpentry & joinery','Roofing','Plumbing','Electrical','Mechanical','External works']},
   {k:'assigned',label:'Assigned to'},{k:'due',label:'Fix by',type:'date'},{k:'status',label:'Status',type:'select',options:['Open','Fixed','Verified']}];
-const PWS_TABS=[['overview','Overview'],['programme','Programme'],['variations','Variations & EOT'],['risks','Risks & issues'],['snags','Snags & close-out']];
+const PWS_TABS=[['overview','Overview'],['programme','Programme'],['variations','Variations & EOT'],['risks','Risks & issues'],['snags','Snags & close-out'],['docs','Documents']];
 
 function planned(ms, at){ const s=toDate(ms.planned_start), f=toDate(ms.planned_finish); if(!s||!f) return 0; if(at<=s) return 0; if(at>=f) return 1; return (at-s)/(f-s); }
 function programme(pid, at=new Date()){
@@ -1718,6 +1865,7 @@ ${money()?`      <div class="card kpi blu"><span class="label">Original contract
       <div class="card"><div class="hd"><h2>How to use</h2></div><div class="bd small">Log anything that could delay the work, cost money or hurt someone (late drawings, unpaid certificates, rain season, material price rises, access problems). Give it an owner and an action date. Scores of 15 or more count as <b>high</b> and appear in Alerts.</div></div></div>
       <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addRisk">Add risk or issue</button></div>
       <div class="card"><div class="list">${rs.map(r=>{const sc=(+r.likelihood||0)*(+r.impact||0);return `<div class="li" style="cursor:pointer" data-editrisk="${esc(r.id)}"><div class="stripe ${r.status==='Closed'?'':sc>=15?'bad':sc>=8?'warn':'good'}"></div><div class="grow"><div class="toolbar" style="gap:6px"><span class="chip ${r.kind==='Issue'?'bad':'blue'}">${esc(r.kind||'Risk')}</span><span class="chip">${sc} score</span>${r.status==='Closed'?'<span class="chip good">Closed</span>':''}</div><div class="ttl2">${esc(r.title)}</div><div class="sub">${esc(r.mitigation||'No action recorded')} · ${esc(staffName(r.owner))}${r.due?' · by '+fmtD(r.due):''}</div></div></div>`}).join('')||'<div class="empty">No risks or issues logged.</div>'}</div></div>`;
+  } else if(tab==='docs'){ body=projectDocsTab(p);
   } else {
     const sn=S.snags.filter(s=>s.project_id===p.id).sort((a,b)=>['Open','Fixed','Verified'].indexOf(a.status)-['Open','Fixed','Verified'].indexOf(b.status));
     const n=k=>sn.filter(s=>s.status===k).length;
@@ -2016,7 +2164,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -2029,7 +2177,7 @@ function renderNav(){
 function renderView(force=false){
   const v=$('#view'), a=document.activeElement;
   if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
-  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq'].includes(a.id)){ pendingView=true; return; }
+  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
   const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):p?.t||'';
@@ -2050,6 +2198,7 @@ function renderDrawer(){
   else if(t==='report'){ const x=byId('reports',drawer.id); if(!x) return closeDrawer(); html=reportDrawer(x); }
   else if(t==='report-form'){ html=reportForm(drawer.id?byId('reports',drawer.id)||{}:{}, drawer.proj); drawer.form=true; }
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?'<div style="flex:1"></div><button class="btn danger" data-act="delForm">Delete</button>':''}`); drawer.form=true; }
+  else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
   else if(t==='ask'){ html=askDrawer(); }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
@@ -2059,7 +2208,7 @@ function renderDrawer(){
 }
 let rq=false;
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); annMaybePop(); }); }
-function go(k,arg=null,fromHistory=false){ if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
+function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
 /* ===================== FORM DRAWERS ===================== */
@@ -2068,7 +2217,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2081,6 +2230,10 @@ document.addEventListener('click', async e=>{
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
+  if(el.dataset.rec){ openDrawer('rec',el.dataset.rec); window.NX_REC?.log(el.dataset.rec,'viewed'); return; }
+  if(el.dataset.rfolder!==undefined){ UI.rfolder=el.dataset.rfolder; UI.rq=''; renderView(true); window.scrollTo(0,0); return; }
+  if(el.dataset.recopen){ recOpenFile(el.dataset.recopen, el.dataset.recv, false); return; }
+  if(el.dataset.recdl){ recOpenFile(el.dataset.recdl, el.dataset.recv, true); return; }
   if(el.dataset.tmine!==undefined){ UI.tmine=el.dataset.tmine==='1'; renderView(true); return; }
   if(el.dataset.edittask){ const t=byId('tasks',el.dataset.edittask); if(!t) return; formDrawer('Task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),t,async v=>{ const re=v.assignee&&v.assignee!==t.assignee; await patch('tasks',t.id,{...v,...(re?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`Task updated: ${v.title||t.title}`); },{onDelete:async()=>{ await remove('tasks',t.id); logAct(`Deleted task: ${t.title}`); }}); return; }
   if(el.dataset.editms){ const m=byId('milestones',el.dataset.editms); if(!m) return; formDrawer('Programme activity',msFields(m.project_id,m.id),m,async v=>{ await pmSaveActivity(m.project_id,m.id,v); },{sub:'Programme · '+projName(m.project_id),onDelete:async()=>{ await remove('milestones',m.id); for(const o of msOf(m.project_id).filter(x=>msPreds(x).includes(m.id))) await patch('milestones',o.id,{preds:msPreds(o).filter(x=>x!==m.id)}); logAct(`Deleted programme activity – ${projName(m.project_id)}`); }}); return; }
@@ -2172,6 +2325,14 @@ document.addEventListener('click', async e=>{
     case 'clearFinEx': if(await confirmBox('Remove all example finance and procurement records?','Remove examples',true)){ for(const f of S.finance.filter(x=>x.example)) await remove('finance',f.id); for(const f of S.procurement.filter(x=>x.example)) await remove('procurement',f.id); for(const f of S.suppliers.filter(x=>x.example)) await remove('suppliers',f.id); toast('Examples removed.'); } break;
     case 'aiFinance': aiFinance(); break;
     case 'addStaff': formDrawer('Add staff member',STAFF_FIELDS,{status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); break;
+    case 'recAdd': recOpenForm({},{folder:UI.rfolder&&UI.rfolder!=='letters'?UI.rfolder:'contracts'}); break;
+    case 'recLetter': recOpenForm({},{folder:'letters'}); break;
+    case 'recAddProj': recOpenForm({},{folder:'contracts',project_id:el.dataset.proj}); break;
+    case 'recLetterProj': recOpenForm({},{folder:'letters',project_id:el.dataset.proj}); break;
+    case 'recEdit': { const r=byId('records',drawer?.id); if(r) recOpenForm(r); } break;
+    case 'recAi': recAi(); break;
+    case 'recAiFill': recAiFill(); break;
+    case 'recLog': recShowLog(); break;
     case 'addTask': formDrawer('New task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),{priority:'Normal'},async v=>{ await put('tasks',null,{...v,status:'To do',created_by:me.name||'',created_uid:me.id||'',...(v.assignee?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`New task: ${v.title}`); }); break;
     case 'addDoc': formDrawer('Add compliance document',DOC_FIELDS,{},async v=>{ await put('compliance',null,v); }); break;
     case 'saveCompany': { const v=readForm(CO_FIELDS,$('#view')); if(!v) return; try{ await db.doc('settings/company').set({...company(),...v,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company profile'); toast('Company profile saved.'); }catch(err){ handleErr(err); } } break;
@@ -2220,6 +2381,7 @@ document.addEventListener('input', e=>{
   const el=e.target;
   if(el.id==='tq'){ UI.tq=el.value; renderView(true); return; }
   if(el.id==='staffq'){ UI.staffq=el.value; renderView(true); return; }
+  if(el.id==='rq'){ UI.rq=el.value; renderView(true); return; }
   if(route==='qs'&&routeArg&&(el.dataset.it||el.dataset.bill!==undefined||el.dataset.bq)){
     const b=boqDraft&&boqDraft.id===routeArg?boqDraft:structuredClone(byId('boqs',routeArg));
     if(el.dataset.bq) b[el.dataset.bq]=el.type==='number'?(el.value===''?'':+el.value):el.value;
@@ -2228,6 +2390,9 @@ document.addEventListener('input', e=>{
     boqChanged(b);
   }
 });
+document.addEventListener('change',e=>{ const el=e.target; if(!el) return;
+  if(el.id==='recUp'&&el.files&&el.files[0]){ recUploadVersion(el.files[0]); el.value=''; return; }
+  if(el.id==='f_folder'&&drawer&&drawer.type==='form'&&drawer.sub==='Office Records'&&UI.recFormNew){ const t=$('#f_title')?.value||''; recOpenForm({},{folder:el.value,title:t}); } });
 document.addEventListener('change', async e=>{
   const el=e.target;
   if(el.id==='tcat'){ UI.tcat=el.value; renderView(true); }
@@ -2255,7 +2420,7 @@ function pgPhotoUrl(){
     const ref=r&&r.photos[0];
     if(ref){ if(ref.startsWith('asset:')) return ref.slice(6); const id=ref.slice(3); if(photoCache[id]) return photoCache[id]; photoTag(ref); }
   }
-  return PG_PHOTO.has(route)?`img/bg/${route}.jpg`:'';
+  const pk=route==='records'?'docs':route; return PG_PHOTO.has(pk)?`img/bg/${pk}.jpg`:'';
 }
 let pgLast=null;
 function setPageBg(){
@@ -2388,6 +2553,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   else if(k==='logins'){ if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); }
   else if(k==='ann'&&v){ go('home'); let n=0; const t=setInterval(()=>{ if(byId('announcements',v)){ clearInterval(t); annShow(v,1); } else if(++n>40) clearInterval(t); },250); }
   else if(k==='chat'){ go('chat'); if(v){ let n=0; const t=setInterval(()=>{ if((window.NX_CHAT_OPEN&&window.NX_CHAT_OPEN(v))||++n>40) clearInterval(t); },250); } }
+  else if(k==='rec'&&v){ go('records'); let n=0; const t=setInterval(()=>{ if(byId('records',v)){ clearInterval(t); openDrawer('rec',v); } else if(++n>40) clearInterval(t); },250); }
   else if(k==='tender'&&v){ go('tenders'); let n=0; const t=setInterval(()=>{ if(byId('tenders',v)){ clearInterval(t); openTender(v); } else if(++n>40) clearInterval(t); },250); }
   else if(PAGE_FN[k]) go(k);
 };
