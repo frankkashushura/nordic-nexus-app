@@ -139,7 +139,8 @@
     async canEdit() { return profile?.role === 'admin'; },
     async can(what) { if (what === 'data.write') return profile?.role !== 'viewer'; return true; },
     async isFinance() { return profile?.role === 'finance'; },
-    async isProcurement() { return profile?.role === 'procurement'; }
+    async isProcurement() { return profile?.role === 'procurement'; },
+    async people() { const { data, error } = await sb.from('profiles').select('user_id,name,email,role,active,pending'); if (error) return []; return (data || []).filter(p => p.active !== false && !p.pending).map(p => ({ id: p.user_id, name: p.name || '', email: p.email || '', role: p.role, roleTxt: ROLE_TXT[p.role] || p.role })); }
   };
 
   /* ---------------- files (site photos, tender documents) ---------------- */

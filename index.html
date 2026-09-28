@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=76"></script>
+<script src="config.js?v=77"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=76"></script>
-<script src="nexus-chat.js?v=76"></script>
+<script src="nexus-sb.js?v=77"></script>
+<script src="nexus-chat.js?v=77"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1873,13 +1873,21 @@ function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhot
 function myPhotoDrawer(){ const r=myPhotoRef(), mine=S.avatars.find(a=>a.id===me.id), card=S.staff.find(isMyStaff);
   return drawerShell('My profile photo',esc(me.name||''),`<div class="card"><div class="bd" style="text-align:center">
     <div class="myph">${r?photoTag(r):esc(initials(me.name||'You'))}</div>
-    <p class="sub" style="margin:10px 0 0">Shown in the top bar${card?' and on your Staff card':''}.</p>
-    ${card?'':`<p class="sub" style="margin:6px 0 0">No Staff card uses your login email yet – ask an administrator to add <b>${esc(me.email||'')}</b> to your Staff card.</p>`}
+    <p class="sub" style="margin:10px 0 0">Shown in the top bar and in the Staff list.</p>
   </div></div>`,`<label class="btn pri" style="cursor:pointer"><span id="myphLbl">${r?'Change photo':'Upload photo'}</span><input type="file" accept="image/*" data-myphoto="1" hidden></label>${mine&&mine.photo?'<button class="btn" data-act="myPhotoDel">Remove</button>':''}<button class="btn" data-act="close">Close</button>`); }
 async function myPhotoUpload(file){ if(!db||!me.id) return; const l=$('#myphLbl'); if(l) l.innerHTML='<span class="spin"></span> Uploading…';
   try{ const ref=await storePhoto(file); if(await put('avatars',me.id,{photo:ref,email:lcE(me.email),name:me.name||'',at:new Date().toISOString()})){ toast('Profile photo updated.'); if(drawer?.type==='myphoto') closeDrawer(); } else if(l) l.textContent='Upload photo'; }
   catch(_){ toast('Photo upload failed – try again.'); if(l) l.textContent='Upload photo'; }
   renderAll(); }
+// v77: logins without a Staff card still appear in Staff; members add / edit their own card (name, position, department, phone, station)
+const MY_FIELDS=()=>STAFF_FIELDS.filter(f=>['name','position','department','phone','station'].includes(f.k));
+async function loadPeople(){ try{ S.people=(await user?.people?.())||[]; }catch(_){ S.people=[]; } renderAll(); }
+function loginOnly(){ return (S.people||[]).filter(p=>p.email&&!S.staff.some(s=>lcE(s.email)===lcE(p.email))).map(p=>({id:'login:'+p.id,uid:p.id,name:p.name||p.email,position:p.roleTxt||'',department:'',email:p.email,station:'NEXUS login – no staff details yet',_login:true})); }
+function myDetails(){ const card=S.staff.find(isMyStaff);
+  formDrawer(card?'My staff details':'Add my staff details',MY_FIELDS(),card||{name:me.name||'',station:'Head Office – Dar es Salaam'},async v=>{
+    if(card){ await patch('staff',card.id,v); logAct(`Updated own staff details: ${v.name}`); }
+    else { if(!await put('staff','u-'+me.id,{...v,email:lcE(me.email),status:'Active',n_email:'Yes'})) return false; logAct(`Added own staff card: ${v.name}`); }
+  },{sub:'Status, email and alert settings are managed by an administrator.',saveLabel:'Save my details'}); }
 /* ===================== STAFF ===================== */
 const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Position',req:1},{k:'department',label:'Department',type:'select',options:['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT']},
   {k:'email',label:'Email',type:'email',help:'Tender alerts go here'},{k:'phone',label:'Mobile for SMS / WhatsApp',type:'tel',ph:'+255 7xx xxx xxx'},{k:'station',label:'Station',type:'select',options:['Head Office – Dar es Salaam','Bulyanhulu Branch','Site']},
@@ -1887,12 +1895,12 @@ const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Posi
   {k:'n_email',label:'Email alerts',type:'select',options:['Yes','No']},{k:'n_sms',label:'SMS alerts',type:'select',options:['No','Yes']},{k:'n_whatsapp',label:'WhatsApp alerts',type:'select',options:['No','Yes']},{k:'alert_types',label:'Tender alerts to receive',type:'select',options:['All tender alerts','Deadlines only','None']}];
 function pageStaff(){
   const q=UI.staffq.toLowerCase(); const order=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
-  const list=S.staff.filter(s=>!q||[s.name,s.position,s.department].join(' ').toLowerCase().includes(q)).sort((a,b)=>(order.indexOf(a.department)-order.indexOf(b.department))||(a.rank??99)-(b.rank??99));
+  const list=[...S.staff,...loginOnly()].filter(s=>!q||[s.name,s.position,s.department].join(' ').toLowerCase().includes(q)).sort((a,b)=>(!!a._login-!!b._login)||(order.indexOf(a.department)-order.indexOf(b.department))||(a.rank??99)-(b.rank??99));
   return `<div class="toolbar"><input class="inp search" id="staffq" type="search" placeholder="Search name or position" value="${esc(UI.staffq)}" aria-label="Search staff"><span class="muted small">${S.staff.filter(s=>s.status!=='Left').length} active</span><div class="sp"></div>${me.id?'<button class="btn" data-act="myPhoto">My photo</button>':''}${isAdmin?'<button class="btn pri" data-act="addStaff">Add staff member</button>':''}</div>
-  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${esc(s.department||'')}</div></div></div>
+  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':s._login?'style="border-style:dashed"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${esc(s.department||'')}</div></div></div>
     <div class="small">${s.email?`<div>${esc(s.email)}</div>`:''}${s.phone?`<div class="mono">${esc(s.phone)}</div>`:''}<div class="sub">${esc(s.station||'')}${s.status&&s.status!=='Active'?' · '+esc(s.status):''}</div></div>
-    ${isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:isMyStaff(s)?'<div class="toolbar"><button class="btn sm" data-act="myPhoto">My photo</button></div>':''}</div>`).join('')}</div>
-  ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. Use <b>My photo</b> to add your own picture.</p>':''}`;
+    ${s._login?`<div class="toolbar">${isMyStaff(s)?'<button class="btn sm pri" data-act="myDetails">Add my details</button><button class="btn sm" data-act="myPhoto">My photo</button>':''}${isAdmin?`<button class="btn sm" data-mkstaff="${esc(s.uid)}">Create staff card</button>`:''}</div>`:isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:isMyStaff(s)?'<div class="toolbar"><button class="btn sm" data-act="myDetails">Edit my details</button><button class="btn sm" data-act="myPhoto">My photo</button></div>':''}</div>`).join('')}</div>
+  ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. You can edit your own details and photo.</p>':''}`;
 }
 
 /* ===================== TASKS ===================== */
@@ -2894,7 +2902,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2950,6 +2958,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.delsup){ if(await confirmBox('Remove this supplier?','Remove',true)) await remove('suppliers',el.dataset.delsup); return; }
   if(el.dataset.delfin){ const f=byId('finance',el.dataset.delfin); if(await confirmBox(`Delete this ${f?.type?.toLowerCase()} of ${tzs(f?.amount)}? This cannot be undone.`,'Delete',true)){ await remove('finance',el.dataset.delfin); logAct(`Deleted finance record ${f?.category} ${tzs(f?.amount)}`);} return; }
   if(el.dataset.editstaff){ const s=byId('staff',el.dataset.editstaff); formDrawer('Edit staff member',STAFF_FIELDS,s,async v=>{ await patch('staff',s.id,v); logAct(`Updated staff: ${v.name}`); }); return; }
+  if(el.dataset.mkstaff){ const p=(S.people||[]).find(x=>x.id===el.dataset.mkstaff); if(!p) return; formDrawer('Create staff card',STAFF_FIELDS,{name:p.name,email:p.email,status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); return; }
   if(el.dataset.delstaff){ const s=byId('staff',el.dataset.delstaff); if(await confirmBox(`Remove ${s?.name} from NEXUS? Past records keep their name.`,'Remove',true)){ await remove('staff',s.id); logAct(`Removed staff: ${s?.name}`); toast('Removed.'); } return; }
   if(el.dataset.deltask){ if(await confirmBox('Delete this task?','Delete',true)) await remove('tasks',el.dataset.deltask); return; }
   if(el.dataset.editdoc){ const d=byId('compliance',el.dataset.editdoc); formDrawer('Compliance document',DOC_FIELDS,d,async v=>{ await patch('compliance',d.id,v); logAct(`Updated compliance: ${v.name}`); },{sub:'Compliance'}); return; }
@@ -3004,6 +3013,7 @@ document.addEventListener('click', async e=>{
     case 'clearFinEx': if(await confirmBox('Remove all example finance and procurement records?','Remove examples',true)){ for(const f of S.finance.filter(x=>x.example)) await remove('finance',f.id); for(const f of S.procurement.filter(x=>x.example)) await remove('procurement',f.id); for(const f of S.suppliers.filter(x=>x.example)) await remove('suppliers',f.id); toast('Examples removed.'); } break;
     case 'aiFinance': aiFinance(); break;
     case 'myPhoto': openDrawer('myphoto'); break;
+    case 'myDetails': myDetails(); break;
     case 'myPhotoDel': if(await confirmBox('Remove your profile photo?','Remove',true)){ await put('avatars',me.id,{photo:'',email:lcE(me.email),name:me.name||'',at:new Date().toISOString()}); toast('Photo removed.'); closeDrawer(); renderAll(); } break;
     case 'addStaff': formDrawer('Add staff member',STAFF_FIELDS,{status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); break;
     case 'recAdd': recOpenForm({},{folder:UI.rfolder&&UI.rfolder!=='letters'?UI.rfolder:'contracts'}); break;
@@ -3255,7 +3265,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
   if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
     $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile photo'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
-  nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
+  loadPeople(); nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
