@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=74"></script>
+<script src="config.js?v=75"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=74"></script>
-<script src="nexus-chat.js?v=74"></script>
+<script src="nexus-sb.js?v=75"></script>
+<script src="nexus-chat.js?v=75"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -469,7 +469,7 @@ const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
 let db=null, assets=null, sample=null, user=null, downloads=null;
-let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, canWrite=true;
+let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, canWrite=true;
 let route = 'home', routeArg = null; window.NX_ROUTE=()=>route;
 let drawer = null;           // {type, id, form:bool}
 const UI = {tq:'', tscreen:'Open', tcat:'All', rproj:'All', fproj:'All', ftype:'All', ptab:'board', qtab:'boqs', staffq:'', chat:[], busy:{}};
@@ -579,6 +579,8 @@ const PAGES = [
 const TABS = ['home','chat','projects','reports','more'];
 /* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
 const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
+const isProcOff=()=>typeof isProc!=='undefined'&&isProc;   // Procurement Officer role
+const canApprovePR=p=>isAdmin||(isProcOff()&&!(p.requested_uid&&p.requested_uid===me.id));
 const MONEY_PAGES=['certs','report','finance'];
 const navPages=()=>PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k));
 const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
@@ -662,6 +664,7 @@ function computeAlerts(){
     if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:(f!=null&&f>-2)?'New tender':'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)}); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   if(typeof recAlerts==='function') recAlerts(A);
+  if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
   { const sid=myStaffId(), now=Date.now(); (S.meetings||[]).filter(m=>m.status!=='Cancelled'&&meetEnd(m)>now&&((sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id)).forEach(m=>{ const t=meetStart(m), inv=sid&&(m.invitees||[]).includes(sid), ans=inv?(m.responses||{})[sid]:null;
@@ -1751,11 +1754,11 @@ function pageProcure(){
   ${UI.ptab==='board'?'<button class="btn" data-act="exportProc">Export CSV</button><button class="btn pri" data-act="addPR">New purchase request</button>':'<button class="btn pri" data-act="addSupplier">Add supplier</button>'}</div>
   ${UI.ptab==='board'?`<div class="cols">${PR_STAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.procurement.filter(p=>p.status===s).length}</span></h3>
     ${S.procurement.filter(p=>p.status===s).sort((a,b)=>(a.needed_by||'').localeCompare(b.needed_by||'')).map(p=>`<div class="tcard"><div class="toolbar"><span class="mono sub">${esc(p.pr_no||'')}</span>${p.example?'<span class="chip ex">example</span>':''}</div><b>${esc(p.item)}</b><span class="sub">${esc(projName(p.project_id))}${p.qty?` · ${esc(p.qty)} ${esc(p.unit||'')}`:''}</span><span class="num small">${tzs(p.est_cost)}</span>${p.supplier?`<span class="sub">Supplier: ${esc(p.supplier)}</span>`:''}${p.needed_by?`<span class="sub">Needed ${fmtD(p.needed_by)}</span>`:''}<span class="sub">By ${esc(p.requested_by||'')}${p.approved_by?' · approved by '+esc(p.approved_by):''}</span>${s!=='Requested'?`<span class="sub">🔒 Locked${p.approved_at?' – '+(s==='Rejected'?'rejected ':'approved ')+fmtD(p.approved_at):''}${p.ordered_at?' · ordered '+fmtD(p.ordered_at):''}${p.delivered_at?' · delivered '+fmtD(p.delivered_at):''}</span>`:p.notified_at?'<span class="sub">✉ Approvers emailed</span>':''}
-      ${money()&&s!=='Requested'?(()=>{const y=prPay(p);return `<span class="sub"><span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span> ${y.paid?tzs(y.paid)+' paid'+(y.left?' · '+tzs(y.left)+' left':''):''}</span>`})():''}
-      <div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(isAdmin?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered">Mark ordered</button>`:s==='Ordered'?`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
+      ${(money()||isProcOff())&&s!=='Requested'?(()=>{const y=prPay(p);return `<span class="sub"><span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span> ${y.paid?tzs(y.paid)+' paid'+(y.left?' · '+tzs(y.left)+' left':''):''}</span>`})():''}
+      <div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(canApprovePR(p)?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered">Mark ordered</button>`:s==='Ordered'?`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
     ${money()?(()=>{const w=S.procurement.filter(p=>['Approved','Ordered','Delivered'].includes(p.status)&&!p.example&&prPay(p).st!=='Paid');return w.length?`<p class="sub">Awaiting payment: <b>${w.length}</b> approved purchase${w.length>1?'s':''} · ${tzs(w.reduce((a,p)=>a+prPay(p).left,0))} still to pay.</p>`:''})():''}
     ${S.procurement.some(p=>p.status==='Rejected')?`<p class="sub">${S.procurement.filter(p=>p.status==='Rejected').length} rejected request(s) kept for the record (locked).</p>`:''}`
-  :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Supplier</th><th>Supplies</th><th>Phone</th><th>Email</th><th>Rating</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>`<tr><td class="ttl2">${esc(s.name)} ${s.example?'<span class="chip ex">example</span>':''}</td><td>${esc(s.category||'')}</td><td class="mono">${esc(s.phone||'')}</td><td>${esc(s.email||'')}</td><td>${'★'.repeat(+s.rating||0)}</td><td>${isAdmin?`<button class="btn sm danger" data-delsup="${esc(s.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No suppliers yet.</div></td></tr>'}</tbody></table></div></div>`}`;
+  :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Supplier</th><th>Supplies</th><th>Phone</th><th>Email</th><th>Rating</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>`<tr><td class="ttl2">${esc(s.name)} ${s.example?'<span class="chip ex">example</span>':''}</td><td>${esc(s.category||'')}</td><td class="mono">${esc(s.phone||'')}</td><td>${esc(s.email||'')}</td><td>${'★'.repeat(+s.rating||0)}</td><td>${isAdmin||isProcOff()?`<button class="btn sm danger" data-delsup="${esc(s.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No suppliers yet.</div></td></tr>'}</tbody></table></div></div>`}`;
 }
 
 /* ===================== FINANCE ===================== */
@@ -2048,7 +2051,7 @@ function pageSettings(){
   <div style="display:flex;flex-direction:column;gap:14px">
     <div class="card"><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
       <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff sign up from the sign-in page; an administrator approves each sign-up and chooses the role before they see anything.</li>
-      <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
+      <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Procurement Officers also approve purchase requests (not their own) and manage suppliers. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
       <li><b>Finance is sealed.</b> Ledger records are invisible to everyone except Finance users and administrators, enforced by the database, not just hidden on screen.</li>
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
       <li><b>No passwords stored.</b> NeST and bank logins never go into NEXUS.</li></ul>
@@ -3226,7 +3229,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   try{ if(window.NX_READY) await window.NX_READY; }catch(_){ return; }
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
-  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
+  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
     $('#meName').textContent=me.name||''; $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
   nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';

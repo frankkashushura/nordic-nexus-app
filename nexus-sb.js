@@ -138,7 +138,8 @@
     async me() { return { id: session.user.id, name: profile?.name || session.user.email, email: session.user.email, avatarUrl: '', role: profile?.role }; },
     async canEdit() { return profile?.role === 'admin'; },
     async can(what) { if (what === 'data.write') return profile?.role !== 'viewer'; return true; },
-    async isFinance() { return profile?.role === 'finance'; }
+    async isFinance() { return profile?.role === 'finance'; },
+    async isProcurement() { return profile?.role === 'procurement'; }
   };
 
   /* ---------------- files (site photos, tender documents) ---------------- */
@@ -606,7 +607,7 @@
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-nxbk]'); if (b) { e.preventDefault(); bkDo(b.dataset.nxbk); } });
 
   /* ================= account menu + login management ================= */
-  const ROLE_TXT = { admin: 'Administrator', finance: 'Finance', staff: 'Staff', viewer: 'Viewer (read only)' };
+  const ROLE_TXT = { admin: 'Administrator', finance: 'Finance', procurement: 'Procurement Officer', staff: 'Staff', viewer: 'Viewer (read only)' };
   window.NX_ROLE = () => ROLE_TXT[profile?.role] || '';
   function attachMenu() {
     const who = document.querySelector('.who'); if (!who) return;
