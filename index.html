@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=61"></script>
+<script src="config.js?v=62"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=61"></script>
-<script src="nexus-chat.js?v=61"></script>
+<script src="nexus-sb.js?v=62"></script>
+<script src="nexus-chat.js?v=62"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -616,7 +616,10 @@ function computeAlerts(){
     A.push({lvl:p.status==='Rejected'?'bad':'blue', kind:'Your purchase', text:`${p.pr_no||''} ${p.item} – ${p.status.toLowerCase()}`, sub:`${by?'by '+by+' · ':''}${fmtDT(at)}`, go:['route','procure'], sort:15, at});
   });
   S.compliance.forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
-  S.tasks.filter(t=>t.status!=='Done' && t.due && daysLeft(t.due+'T23:59')<0).forEach(t=>A.push({lvl:'bad', kind:'Overdue task', text:t.title, sub:`${staffName(t.assignee)} · due ${fmtD(t.due)}`, go:['route','tasks'], sort:5, at:t.due?t.due+'T23:59:00+03:00':''}));
+  { const sid=myStaffId(); S.tasks.filter(t=>tStage(t)!=='Done'&&sid&&t.assignee===sid).forEach(t=>{
+      if(t.assigned_at&&Date.now()-Date.parse(t.assigned_at)<3*864e5) A.push({lvl:'blue', kind:'Task for you', text:t.title, sub:`${t.assigned_by?'From '+t.assigned_by+' · ':''}${t.due?'due '+fmtD(t.due):'no due date'}${t.project_id?' · '+projName(t.project_id):''}`, go:['route','tasks'], sort:8, at:t.assigned_at, nk:'task|'+t.id+'|'+sid});
+      const dl=t.due?daysLeft(t.due+'T23:59'):null; if(dl!=null&&dl>=0&&dl<2) A.push({lvl:'warn', kind:'Task due', text:t.title, sub:`Due ${dl<1?'today':'tomorrow'} · ${fmtD(t.due)}`, go:['route','tasks'], sort:6, at:new Date(Date.parse(t.due+'T07:00:00+03:00')-864e5).toISOString(), nk:'taskdue|'+t.id+'|'+t.due}); }); }
+  S.tasks.filter(t=>tStage(t)!=='Done' && t.due && daysLeft(t.due+'T23:59')<0 && (isAdmin||(myStaffId()&&t.assignee===myStaffId()))).forEach(t=>A.push({lvl:'bad', kind:'Overdue task', text:t.title, sub:`${staffName(t.assignee)} · due ${fmtD(t.due)}`, go:['route','tasks'], sort:5, at:t.due?t.due+'T23:59:00+03:00':''}));
   S.reports.filter(r=>r.hse && r.hse.trim() && !/^(none|nil|no)\b/i.test(r.hse.trim()) && daysLeft(r.date)>-7).forEach(r=>A.push({lvl:'bad', kind:'HSE', text:`HSE note on ${projName(r.project_id)}`, sub:r.hse.slice(0,90), go:['report',r.id], sort:2, at:r.updated_at||r.date}));
   (money()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
@@ -1292,8 +1295,9 @@ const TASK_FIELDS=[{k:'title',label:'Task',req:1,full:1},{k:'assignee',label:'As
 const TSTAGES=['To do','In progress','Waiting','Done'];
 const tStage=t=>TSTAGES.includes(t.status)?t.status:/done|complete|closed/i.test(t.status||'')?'Done':/progress/i.test(t.status||'')?'In progress':'To do';
 function pageTasks(){
-  return `<div class="toolbar"><span class="muted">${S.tasks.filter(t=>tStage(t)!=='Done').length} open</span><div class="sp"></div><button class="btn pri" data-act="addTask">New task</button></div>
-  <div class="cols">${TSTAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.tasks.filter(t=>tStage(t)===s).length}</span></h3>${S.tasks.filter(t=>tStage(t)===s).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(t=>{const od=t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="tcard"><div class="toolbar">${t.priority&&t.priority!=='Normal'?`<span class="chip ${t.priority==='Urgent'?'bad':'amb'}">${esc(t.priority)}</span>`:''}${od?'<span class="chip bad">overdue</span>':''}</div><b class="click" style="cursor:pointer" data-edittask="${esc(t.id)}" title="Edit task">${esc(t.title)}</b><span class="sub">${esc(staffName(t.assignee))}${t.project_id?' · '+esc(projName(t.project_id)):''}</span>${t.due?`<span class="sub">Due ${fmtD(t.due)}</span>`:''}
+  const sid=myStaffId(), mineN=sid?S.tasks.filter(t=>t.assignee===sid&&tStage(t)!=='Done').length:0, TL=UI.tmine&&sid?S.tasks.filter(t=>t.assignee===sid):S.tasks;
+  return `<div class="toolbar"><div class="seg" role="group" aria-label="Show tasks"><button data-tmine="0" aria-pressed="${!UI.tmine}">All tasks</button><button data-tmine="1" aria-pressed="${!!UI.tmine}" ${sid?'':'disabled title="Your login email is not on a staff record"'}>My tasks${mineN?` (${mineN})`:''}</button></div><span class="muted">${TL.filter(t=>tStage(t)!=='Done').length} open</span><div class="sp"></div><button class="btn pri" data-act="addTask">New task</button></div>
+  ${UI.tmine&&sid&&!mineN?'<div class="card empty">No open tasks for you right now.</div>':''}<div class="cols">${TSTAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${TL.filter(t=>tStage(t)===s).length}</span></h3>${TL.filter(t=>tStage(t)===s).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(t=>{const od=t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="tcard"><div class="toolbar">${t.priority&&t.priority!=='Normal'?`<span class="chip ${t.priority==='Urgent'?'bad':'amb'}">${esc(t.priority)}</span>`:''}${od?'<span class="chip bad">overdue</span>':''}</div><b class="click" style="cursor:pointer" data-edittask="${esc(t.id)}" title="Edit task">${esc(t.title)}</b><span class="sub">${esc(staffName(t.assignee))}${t.project_id?' · '+esc(projName(t.project_id)):''}</span>${t.due?`<span class="sub">Due ${fmtD(t.due)}</span>`:''}
     <div class="toolbar"><select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-tstat="${esc(t.id)}" aria-label="Move task">${TSTAGES.map(x=>`<option ${x===tStage(t)?'selected':''}>${x}</option>`).join('')}</select>${isAdmin?`<button class="btn sm" data-deltask="${esc(t.id)}" aria-label="Delete task">✕</button>`:''}</div></div>`}).join('')}</div>`).join('')}</div>`;
 }
 
@@ -2064,7 +2068,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2077,7 +2081,8 @@ document.addEventListener('click', async e=>{
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
-  if(el.dataset.edittask){ const t=byId('tasks',el.dataset.edittask); if(!t) return; formDrawer('Task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),t,async v=>{ await patch('tasks',t.id,v); logAct(`Task updated: ${v.title||t.title}`); },{onDelete:async()=>{ await remove('tasks',t.id); logAct(`Deleted task: ${t.title}`); }}); return; }
+  if(el.dataset.tmine!==undefined){ UI.tmine=el.dataset.tmine==='1'; renderView(true); return; }
+  if(el.dataset.edittask){ const t=byId('tasks',el.dataset.edittask); if(!t) return; formDrawer('Task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),t,async v=>{ const re=v.assignee&&v.assignee!==t.assignee; await patch('tasks',t.id,{...v,...(re?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`Task updated: ${v.title||t.title}`); },{onDelete:async()=>{ await remove('tasks',t.id); logAct(`Deleted task: ${t.title}`); }}); return; }
   if(el.dataset.editms){ const m=byId('milestones',el.dataset.editms); if(!m) return; formDrawer('Programme activity',msFields(m.project_id,m.id),m,async v=>{ await pmSaveActivity(m.project_id,m.id,v); },{sub:'Programme · '+projName(m.project_id),onDelete:async()=>{ await remove('milestones',m.id); for(const o of msOf(m.project_id).filter(x=>msPreds(x).includes(m.id))) await patch('milestones',o.id,{preds:msPreds(o).filter(x=>x!==m.id)}); logAct(`Deleted programme activity – ${projName(m.project_id)}`); }}); return; }
   if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFields(),'Variations & EOT'); return; }
   if(el.dataset.editrisk){ recEdit('risks',el.dataset.editrisk,'Risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),'Risks & issues'); return; }
@@ -2167,7 +2172,7 @@ document.addEventListener('click', async e=>{
     case 'clearFinEx': if(await confirmBox('Remove all example finance and procurement records?','Remove examples',true)){ for(const f of S.finance.filter(x=>x.example)) await remove('finance',f.id); for(const f of S.procurement.filter(x=>x.example)) await remove('procurement',f.id); for(const f of S.suppliers.filter(x=>x.example)) await remove('suppliers',f.id); toast('Examples removed.'); } break;
     case 'aiFinance': aiFinance(); break;
     case 'addStaff': formDrawer('Add staff member',STAFF_FIELDS,{status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); break;
-    case 'addTask': formDrawer('New task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),{priority:'Normal'},async v=>{ await put('tasks',null,{...v,status:'To do',created_by:me.name||''}); logAct(`New task: ${v.title}`); }); break;
+    case 'addTask': formDrawer('New task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),{priority:'Normal'},async v=>{ await put('tasks',null,{...v,status:'To do',created_by:me.name||'',created_uid:me.id||'',...(v.assignee?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`New task: ${v.title}`); }); break;
     case 'addDoc': formDrawer('Add compliance document',DOC_FIELDS,{},async v=>{ await put('compliance',null,v); }); break;
     case 'saveCompany': { const v=readForm(CO_FIELDS,$('#view')); if(!v) return; try{ await db.doc('settings/company').set({...company(),...v,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company profile'); toast('Company profile saved.'); }catch(err){ handleErr(err); } } break;
     case 'saveForm': { const v=readForm(drawer.fields); if(!v) return; el.disabled=true; const ok=await drawer.onSave(v); el.disabled=false; if(ok!==false){ closeDrawer(); toast('Saved.'); } } break;
