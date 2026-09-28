@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=75"></script>
+<script src="config.js?v=76"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=75"></script>
-<script src="nexus-chat.js?v=75"></script>
+<script src="nexus-sb.js?v=76"></script>
+<script src="nexus-chat.js?v=76"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -94,6 +94,7 @@ a{color:var(--blue)}
 .iconbtn svg{width:18px;height:18px}
 .iconbtn .dot{position:absolute;top:-5px;right:-5px;background:var(--bad);color:#fff;font:600 10px/16px var(--f-mono);min-width:16px;height:16px;border-radius:8px;text-align:center;padding:0 4px}
 .who{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.myph{width:132px;height:132px;margin:0 auto;border-radius:50%;overflow:hidden;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:var(--muted)}.myph img{width:100%;height:100%;object-fit:cover}
 .av{width:32px;height:32px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-weight:600;font-size:12px;overflow:hidden;flex:none}
 .av img{width:100%;height:100%;object-fit:cover}
 .view{padding:22px 24px 90px;display:flex;flex-direction:column;gap:18px;max-width:1400px;width:100%}
@@ -464,7 +465,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -1860,6 +1861,25 @@ function meetDrawer(m){
     window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR();
   },{saveLabel:m?'Save changes':'Schedule & send invitations'});
 }
+/* ===================== PROFILE PHOTOS (v76) ===================== */
+// every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
+const lcE=s=>String(s||'').trim().toLowerCase();
+const isMyStaff=s=>!!me.email&&lcE(s.email)===lcE(me.email);
+function avatarFor(email){ const e=lcE(email); return e?S.avatars.find(a=>lcE(a.email)===e):null; }
+function pickPhoto(a,s){ const at=a&&a.photo?Date.parse(a.at||0)||0:-1, st=s&&s.photo?Date.parse(s.photo_at||0)||0:-1; return at<0&&st<0?'':(at>=st?a.photo:s.photo); }
+const staffPhotoRef=s=>pickPhoto(avatarFor(s.email),s);
+const myPhotoRef=()=>pickPhoto(S.avatars.find(a=>a.id===me.id),S.staff.find(isMyStaff));
+function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhotoRef(); const h=r?photoTag(r).replace(' data-zoom',''):esc(initials(me.name||'You')); if(el.__h!==h){ el.innerHTML=h; el.__h=h; } }
+function myPhotoDrawer(){ const r=myPhotoRef(), mine=S.avatars.find(a=>a.id===me.id), card=S.staff.find(isMyStaff);
+  return drawerShell('My profile photo',esc(me.name||''),`<div class="card"><div class="bd" style="text-align:center">
+    <div class="myph">${r?photoTag(r):esc(initials(me.name||'You'))}</div>
+    <p class="sub" style="margin:10px 0 0">Shown in the top bar${card?' and on your Staff card':''}.</p>
+    ${card?'':`<p class="sub" style="margin:6px 0 0">No Staff card uses your login email yet – ask an administrator to add <b>${esc(me.email||'')}</b> to your Staff card.</p>`}
+  </div></div>`,`<label class="btn pri" style="cursor:pointer"><span id="myphLbl">${r?'Change photo':'Upload photo'}</span><input type="file" accept="image/*" data-myphoto="1" hidden></label>${mine&&mine.photo?'<button class="btn" data-act="myPhotoDel">Remove</button>':''}<button class="btn" data-act="close">Close</button>`); }
+async function myPhotoUpload(file){ if(!db||!me.id) return; const l=$('#myphLbl'); if(l) l.innerHTML='<span class="spin"></span> Uploading…';
+  try{ const ref=await storePhoto(file); if(await put('avatars',me.id,{photo:ref,email:lcE(me.email),name:me.name||'',at:new Date().toISOString()})){ toast('Profile photo updated.'); if(drawer?.type==='myphoto') closeDrawer(); } else if(l) l.textContent='Upload photo'; }
+  catch(_){ toast('Photo upload failed – try again.'); if(l) l.textContent='Upload photo'; }
+  renderAll(); }
 /* ===================== STAFF ===================== */
 const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Position',req:1},{k:'department',label:'Department',type:'select',options:['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT']},
   {k:'email',label:'Email',type:'email',help:'Tender alerts go here'},{k:'phone',label:'Mobile for SMS / WhatsApp',type:'tel',ph:'+255 7xx xxx xxx'},{k:'station',label:'Station',type:'select',options:['Head Office – Dar es Salaam','Bulyanhulu Branch','Site']},
@@ -1868,11 +1888,11 @@ const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Posi
 function pageStaff(){
   const q=UI.staffq.toLowerCase(); const order=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
   const list=S.staff.filter(s=>!q||[s.name,s.position,s.department].join(' ').toLowerCase().includes(q)).sort((a,b)=>(order.indexOf(a.department)-order.indexOf(b.department))||(a.rank??99)-(b.rank??99));
-  return `<div class="toolbar"><input class="inp search" id="staffq" type="search" placeholder="Search name or position" value="${esc(UI.staffq)}" aria-label="Search staff"><span class="muted small">${S.staff.filter(s=>s.status!=='Left').length} active</span><div class="sp"></div>${isAdmin?'<button class="btn pri" data-act="addStaff">Add staff member</button>':''}</div>
-  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':''}><div class="toolbar"><div class="ph">${s.photo?photoTag(s.photo):esc(initials(s.name))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${esc(s.department||'')}</div></div></div>
+  return `<div class="toolbar"><input class="inp search" id="staffq" type="search" placeholder="Search name or position" value="${esc(UI.staffq)}" aria-label="Search staff"><span class="muted small">${S.staff.filter(s=>s.status!=='Left').length} active</span><div class="sp"></div>${me.id?'<button class="btn" data-act="myPhoto">My photo</button>':''}${isAdmin?'<button class="btn pri" data-act="addStaff">Add staff member</button>':''}</div>
+  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${esc(s.department||'')}</div></div></div>
     <div class="small">${s.email?`<div>${esc(s.email)}</div>`:''}${s.phone?`<div class="mono">${esc(s.phone)}</div>`:''}<div class="sub">${esc(s.station||'')}${s.status&&s.status!=='Active'?' · '+esc(s.status):''}</div></div>
-    ${isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:''}</div>`).join('')}</div>
-  ${!isAdmin?'<p class="sub">Only administrators can add or remove staff.</p>':''}`;
+    ${isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:isMyStaff(s)?'<div class="toolbar"><button class="btn sm" data-act="myPhoto">My photo</button></div>':''}</div>`).join('')}</div>
+  ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. Use <b>My photo</b> to add your own picture.</p>':''}`;
 }
 
 /* ===================== TASKS ===================== */
@@ -2856,6 +2876,7 @@ function renderDrawer(){
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
   else if(t==='bqgen'){ html=bgDrawer(); drawer.form=true; }
   else if(t==='ask'){ html=askDrawer(); }
+  else if(t==='myphoto'){ html=myPhotoDrawer(); drawer.form=true; }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
   o.innerHTML=html; document.body.style.overflow='hidden';
@@ -2863,7 +2884,7 @@ function renderDrawer(){
   if(t==='ask'){ const l=o.querySelector('.db'), n=UI.chat.length+(UI.busy.ask?1:0); if(l){ l.style.scrollBehavior='auto'; if(n!==UI.askLastN||UI.askKeepBottom!==false) l.scrollTop=l.scrollHeight; else if(UI.askScrollY!=null) l.scrollTop=UI.askScrollY; l.style.scrollBehavior=''; l.onscroll=()=>{ UI.askScrollY=l.scrollTop; UI.askKeepBottom=l.scrollHeight-l.scrollTop-l.clientHeight<80; }; } UI.askLastN=n; const ta=o.querySelector('#askInp'); if(ta&&ta.value){ ta.style.height='auto'; ta.style.height=Math.min(200,ta.scrollHeight)+'px'; } }
 }
 let rq=false;
-function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); annMaybePop(); }); }
+function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); renderMe(); annMaybePop(); }); }
 function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
@@ -2982,6 +3003,8 @@ document.addEventListener('click', async e=>{
     case 'exportFin': exportCsv('nordic-finance.csv',['Date','Type','Category','Amount TZS','Project','Party','Reference','Method','Note'],S.finance.map(f=>[f.date,f.type,f.category,f.amount,f.project_id?projName(f.project_id):'Office',f.party,f.ref,f.method,f.note])); break;
     case 'clearFinEx': if(await confirmBox('Remove all example finance and procurement records?','Remove examples',true)){ for(const f of S.finance.filter(x=>x.example)) await remove('finance',f.id); for(const f of S.procurement.filter(x=>x.example)) await remove('procurement',f.id); for(const f of S.suppliers.filter(x=>x.example)) await remove('suppliers',f.id); toast('Examples removed.'); } break;
     case 'aiFinance': aiFinance(); break;
+    case 'myPhoto': openDrawer('myphoto'); break;
+    case 'myPhotoDel': if(await confirmBox('Remove your profile photo?','Remove',true)){ await put('avatars',me.id,{photo:'',email:lcE(me.email),name:me.name||'',at:new Date().toISOString()}); toast('Photo removed.'); closeDrawer(); renderAll(); } break;
     case 'addStaff': formDrawer('Add staff member',STAFF_FIELDS,{status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); break;
     case 'recAdd': recOpenForm({},{folder:UI.rfolder&&UI.rfolder!=='letters'?UI.rfolder:'contracts'}); break;
     case 'recLetter': recOpenForm({},{folder:'letters'}); break;
@@ -3064,7 +3087,8 @@ document.addEventListener('change', async e=>{
   else if(el.id==='xlsxFile'&&el.files[0]){ await importXlsx(el.files[0]); el.value=''; }
   else if(el.id&&el.id.startsWith('ck_')&&drawer?.type==='tender'){ const t=byId('tenders',drawer.id); const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); t.checklist=cl; const s=checklistState(t); const c=$('#ckCount'), b=$('#ckBar'); if(c){ c.textContent=`${s.done}/${s.total}`; c.className='chip '+(s.pct===100?'good':s.pct>=50?'amb':''); } if(b) b.style.width=s.pct+'%'; await patch('tenders',t.id,{checklist:cl}); }
   else if(el.dataset.tstat){ const t=byId('tasks',el.dataset.tstat); await patch('tasks',t.id,{status:el.value}); logAct(`Task "${t.title}" → ${el.value}`); el.blur(); }
-  else if(el.dataset.staffphoto&&el.files[0]){ toast('Uploading photo…'); try{ const ref=await storePhoto(el.files[0]); await patch('staff',el.dataset.staffphoto,{photo:ref}); toast('Photo updated.'); }catch(_){ toast('Photo upload failed.'); } }
+  else if(el.dataset.myphoto&&el.files[0]){ const f=el.files[0]; el.value=''; await myPhotoUpload(f); }
+  else if(el.dataset.staffphoto&&el.files[0]){ toast('Uploading photo…'); try{ const ref=await storePhoto(el.files[0]); await patch('staff',el.dataset.staffphoto,{photo:ref,photo_at:new Date().toISOString()}); toast('Photo updated.'); }catch(_){ toast('Photo upload failed.'); } }
   else if(el.id==='tdocFile'&&el.files.length&&drawer?.type==='tender'){ const t=byId('tenders',drawer.id); const list=[...(t.files||[])]; for(const f of el.files){ try{ const r=await assets.upload(f); list.push({name:f.name,url:r.url,at:new Date().toISOString(),by:me.name||''}); }catch(err){ toast(`${f.name} could not be uploaded: ${err?.message||err?.code}`); } } await patch('tenders',t.id,{files:list}); logAct(`Attached ${el.files.length} document(s) to "${t.title}"`); drawer.form=false; renderDrawer(); }
 });
 document.addEventListener('focusout', ()=>{ setTimeout(()=>{ if(pendingView){ const a=document.activeElement; if(!(a&&$('#view').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))) renderView(); } },120); });
@@ -3230,7 +3254,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
   if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
-    $('#meName').textContent=me.name||''; $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
+    $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile photo'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
   nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
