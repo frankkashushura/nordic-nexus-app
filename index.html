@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=65"></script>
+<script src="config.js?v=66"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=65"></script>
-<script src="nexus-chat.js?v=65"></script>
+<script src="nexus-sb.js?v=66"></script>
+<script src="nexus-chat.js?v=66"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1155,17 +1155,16 @@ function boqTotals(b){ const bills=(b.bills||[]).map(bl=>({name:bl.name,total:(b
 function pageQs(){
   if(routeArg) return boqEditor(byId('boqs',routeArg));
   return `<div class="toolbar"><div class="seg">${[['boqs','Bills of Quantities'],['rates','Rate library']].map(([k,l])=>`<button data-qtab="${k}" aria-pressed="${UI.qtab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${UI.qtab==='boqs'?'<button class="btn pri" data-act="newBoq">New BoQ</button>':'<button class="btn pri" data-act="addRate">Add rate</button>'}</div>
+    ${UI.qtab==='boqs'?'<button class="btn pri" data-act="newBoq">New BoQ</button>':''}</div>
   ${UI.qtab==='boqs'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>BoQ</th><th>For</th><th class="r">Items</th><th class="r">Grand total</th><th class="hide-m">Updated</th></tr></thead><tbody>
     ${S.boqs.map(b=>{const t=boqTotals(b);return `<tr class="click" data-boq="${esc(b.id)}"><td class="ttl2">${esc(b.title)}</td><td class="small">${esc(b.tender_id?('Tender: '+(byId('tenders',b.tender_id)?.title||'')):b.project_id?projName(b.project_id):'—')}</td><td class="r num">${(b.bills||[]).reduce((a,x)=>a+(x.items||[]).length,0)}</td><td class="r num">${tzs(t.grand)}</td><td class="hide-m sub">${fmtD(b.updated_at)} ${esc(b.updated_by||'')}</td></tr>`}).join('')||'<tr><td colspan="5"><div class="empty">No BoQs yet. Start one from a tender or press New BoQ.</div></td></tr>'}</tbody></table></div></div>`
-  :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Description</th><th>Unit</th><th class="r">Rate (TZS)</th><th class="hide-m">Source / date</th><th></th></tr></thead><tbody>
-    ${S.rates.map(r=>`<tr><td>${esc(r.desc)}</td><td>${esc(r.unit)}</td><td class="r num">${tzs(r.rate).replace('TZS ','')}</td><td class="hide-m sub">${esc(r.source||'')} ${fmtD(r.updated_at)}</td><td>${isAdmin?`<button class="btn sm danger" data-delrate="${esc(r.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No rates yet. Add rates from recent priced BoQs; NEXUS then fills matching items automatically.</div></td></tr>'}</tbody></table></div></div>`}`;
+  :rtPage()}`;
 }
 function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
   const t=boqTotals(b);
   return `<div class="toolbar"><button class="btn" data-go="qs">← All BoQs</button><div class="sp"></div>
-    <button class="btn" data-act="applyRates">Apply library rates</button><button class="btn" data-act="exportBoq">Export Excel</button>${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
+    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn" data-act="exportBoq">Export Excel</button>${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
   <div class="card"><div class="bd"><div class="form">
     <div class="fld full"><label for="bq_title">BoQ title</label><input class="inp" id="bq_title" data-bq="title" value="${esc(b.title)}"></div>
     <div class="fld"><label for="bq_proj">Project</label><select class="inp" id="bq_proj" data-bq="project_id">${projOpts().map(([v,l])=>`<option value="${esc(v)}" ${v===(b.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -1195,11 +1194,252 @@ async function aiBoq(b){
   b.bills=[...(b.bills||[]), ...r.bills.map(x=>({name:x.name,items:(x.items||[]).map(i=>({ref:i.ref||'',desc:i.desc||'',unit:i.unit||'',qty:i.qty??'',rate:i.rate??''}))}))];
   await patch('boqs',b.id,{title:b.title,contingency:b.contingency,vat:b.vat,bills:b.bills,scope}); logAct(`AI drafted ${r.bills.length} bills for BoQ "${b.title}"`); toast(`Added ${r.bills.length} bills. Enter quantities from your take-off.`);
 }
-function matchRate(desc,unit){
+function matchRate(desc,unit,region){
   const w=s=>new Set(String(s).toLowerCase().match(/[a-z0-9]{3,}/g)||[]); const a=w(desc); let best=null,bs=0;
-  for(const r of S.rates){ if((r.unit||'').toLowerCase()!==(unit||'').toLowerCase()) continue; const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); const s=n/Math.max(1,Math.min(a.size,b.size)); if(s>bs){bs=s;best=r;} }
-  return bs>=.6?best:null;
+  for(const r0 of S.rates){ const r=rtN(r0); if(r.kind!=='item') continue; if(rtWords(r.unit)!==rtWords(unit)) continue; const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); let s=n/Math.max(1,Math.min(a.size,b.size)); if(s<.6) continue;
+    if(region&&r.region===region) s+=.15; else if(r.region==='General') s+=.05;
+    if(s>bs+1e-9||(Math.abs(s-bs)<1e-9&&best&&(r.price_date||'')>(best.price_date||''))){bs=s;best=r;} }
+  return best;
 }
+/* ===================== v66 RATE LIBRARY ===================== */
+const RT_KINDS=[['item','BoQ item rate'],['material','Material price'],['labour','Labour rate'],['plant','Plant hire rate']];
+const RT_REGIONS=['General','Arusha','Dar es Salaam','Dodoma','Geita','Iringa','Kagera','Katavi','Kigoma','Kilimanjaro','Lindi','Manyara','Mara','Mbeya','Morogoro','Mtwara','Mwanza','Njombe','Pwani','Rukwa','Ruvuma','Shinyanga','Simiyu','Singida','Songwe','Tabora','Tanga','Zanzibar'];
+const RT_TRADES=[
+  ['Painting & decorating',/paint|emulsion|gloss|varnish|decorat|undercoat|primer/],
+  ['Glazing',/glass|glazing|glazed/],
+  ['Electrical',/cable|socket|switch|lamp|lighting|light fitting|electric|conduit|earthing|distribution board|luminaire|breaker/],
+  ['Plumbing & drainage',/pipe|plumb|\bwc\b|w\.c|basin|sink|manhole|septic|soak ?pit|drain|tap|water tank|upvc|ppr|gully|shower|urinal/],
+  ['Reinforcement',/reinforcement|rebar|high yield|mild steel bar|\bbrc\b|fabric mesh|\by\d{1,2}\b|\br\d{1,2}\b.*bar|bending schedule/],
+  ['Formwork',/formwork|shutter/],
+  ['Masonry & walling',/block|brick|walling|\bwall\b|damp proof|\bdpc\b|masonry|stone/],
+  ['Concrete work',/concrete|blinding|\bc\s?1[05]\b|\bc\s?2[05]\b|\bc\s?30\b|grade c/],
+  ['Roofing',/roof|truss|iron sheet|\bcgi\b|ridge|fascia|gutter|purlin|rafter|valley/],
+  ['Metalwork & windows',/steel door|steel window|window|grille|burglar|alumin|railing|metal|gate|balustrade/],
+  ['Carpentry & joinery',/timber|door|frame|joinery|cupboard|shelf|shelving|counter|architrave/],
+  ['Finishes',/plaster|screed|tile|terrazzo|render|ceiling|skirting|floor|gypsum|cladding/],
+  ['Earthworks',/excavat|\bfill|hardcore|termite|cart away|backfill|compact|murram|top ?soil|site clear/],
+  ['Demolition & alterations',/demol|remov|strip|break|hack|dismantl/],
+  ['External works',/paving|kerb|fenc|landscap|road|culvert|driveway|external|walkway|parking/],
+  ['Preliminaries',/prelim|insurance|site office|mobilis|mobiliz|setting out|hoarding|signboard|water for|temporary/]
+];
+const RT_TRADE_NAMES=[...RT_TRADES.map(x=>x[0]),'Materials','Labour','Plant','Other'];
+const RT_OLD_DAYS=183;
+function rtGuessTrade(txt, kind){ if(kind==='material') return 'Materials'; if(kind==='labour') return 'Labour'; if(kind==='plant') return 'Plant'; const s=String(txt||'').toLowerCase(); for(const [n,re] of RT_TRADES) if(re.test(s)) return n; return 'Other'; }
+function rtRegionOf(txt){ const s=String(txt||'').toLowerCase(); if(!s) return 'General'; if(/dar|kinondoni|ilala|temeke|ubungo|kigamboni/.test(s)) return 'Dar es Salaam'; if(/zanzibar|unguja|pemba/.test(s)) return 'Zanzibar'; if(/kibaha|bagamoyo|mkuranga|coast region/.test(s)) return 'Pwani'; if(/moshi/.test(s)) return 'Kilimanjaro'; return RT_REGIONS.find(r=>r!=='General'&&s.includes(r.toLowerCase()))||'General'; }
+function rtBoqRegion(b){ if(!b) return 'General'; const p=b.project_id?byId('projects',b.project_id):null, t=b.tender_id?byId('tenders',b.tender_id):null; return rtRegionOf((p?.location||'')+' '+(t?.location||'')); }
+/* fill defaults for older rates that pre-date v66 */
+function rtN(r){ const kind=r.kind||'item'; return {...r, kind, trade:r.trade||rtGuessTrade(r.desc,kind), region:r.region||'General', price_date:r.price_date||(r.updated_at||'').slice(0,10)}; }
+function rtAge(r){ const d=Date.parse((r.price_date||'')+'T00:00'); return isNaN(d)?null:Math.floor((Date.now()-d)/864e5); }
+const rtOld = r => { const a=rtAge(r); return a!=null&&a>RT_OLD_DAYS; };
+const rtWords = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const rtKey = (desc,unit,region) => rtWords(desc)+'|'+rtWords(unit)+'|'+String(region||'General').toLowerCase();
+function rtBuTotals(bu){ const L=bu?.lines||[]; const s={M:0,L:0,P:0}; L.forEach(l=>{ s[l.t]=(s[l.t]||0)+(+l.qty||0)*(+l.price||0); }); const sub=s.M+s.L+s.P, ohp=sub*((+(bu?.ohp??15)||0)/100); return {...s, sub, ohp, rate:sub+ohp}; }
+const rtHasBu = r => (r.bu?.lines||[]).length>0;
+function rtFmt(n){ return (n==null||n===''||isNaN(+n))?'—':Math.round(+n).toLocaleString('en-US'); }
+function rtChange(r){ const h=r.hist||[]; if(!h.length||!(+h[h.length-1].rate)) return ''; const p=(+r.rate - +h[h.length-1].rate)/(+h[h.length-1].rate)*100; if(Math.abs(p)<0.5) return ''; return `<span class="small" style="color:${p>0?'var(--bad)':'var(--good)'}" title="Change from the previous price ${rtFmt(h[h.length-1].rate)}">${p>0?'▲':'▼'}${Math.abs(p).toFixed(0)}%</span>`; }
+
+/* ---------- library page (QS Studio → Rate library) ---------- */
+function rtPage(){
+  const all=S.rates.map(rtN), q=(UI.rtq||'').trim().toLowerCase(), k=UI.rtk||'', tr=UI.rtt||'', rg=UI.rtr||'', old=!!UI.rtold;
+  const nOld=all.filter(rtOld).length, nRes=all.filter(r=>r.kind!=='item').length, nBu=all.filter(rtHasBu).length, regs=new Set(all.map(r=>r.region));
+  let list=all.filter(r=>(!k||r.kind===k)&&(!tr||r.trade===tr)&&(!rg||r.region===rg)&&(!old||rtOld(r)));
+  if(q){ const w=q.split(/\s+/).filter(Boolean); list=list.filter(r=>{ const s=(r.desc+' '+r.unit+' '+r.trade+' '+r.region+' '+(r.source||'')+' '+(r.note||'')).toLowerCase(); return w.every(x=>s.includes(x)); }); }
+  const opt=(arr,v,blank)=>`<option value="">${blank}</option>`+arr.map(o=>{ const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${ov===v?'selected':''}>${esc(ol)}</option>`; }).join('');
+  const usedTrades=RT_TRADE_NAMES.filter(t=>all.some(r=>r.trade===t)), usedRegs=RT_REGIONS.filter(x=>regs.has(x));
+  const groups=RT_TRADE_NAMES.map(t=>[t,list.filter(r=>r.trade===t).sort((a,b)=>a.desc.localeCompare(b.desc))]).filter(g=>g[1].length);
+  const row=r=>`<tr class="click" data-rt="open" data-id="${esc(r.id)}"><td>${esc(r.desc)}${rtHasBu(r)?' <span class="chip blue" title="Rate built up from materials, labour and plant">build-up</span>':''}${r.kind!=='item'?` <span class="chip">${esc(RT_KINDS.find(x=>x[0]===r.kind)?.[1]||'')}</span>`:''}</td><td>${esc(r.unit)}</td><td class="r num">${rtFmt(r.rate)} ${rtChange(r)}</td><td class="hide-m small">${esc(r.region)}</td><td class="hide-m sub">${esc(r.source||'')}${r.source?' · ':''}${fmtD(r.price_date)} ${rtOld(r)?'<span class="chip amb" title="Price is more than 6 months old – check before using">Old</span>':''}</td></tr>`;
+  return `<div class="grid g4">
+    <div class="card kpi blu"><span class="label">Rates in library</span><span class="v num">${all.length}</span><span class="s">${all.length-nRes} BoQ item rates · ${nRes} resource prices</span></div>
+    <div class="card kpi grn"><span class="label">With build-up</span><span class="v num">${nBu}</span><span class="s">materials + labour + plant + OH&amp;P</span></div>
+    <div class="card kpi ${nOld?'amb':'grn'}" data-rt="oldonly" style="cursor:pointer"><span class="label">Older than 6 months</span><span class="v num">${nOld}</span><span class="s">${nOld?'tap to list – check and update':'all prices are recent'}</span></div>
+    <div class="card kpi blu"><span class="label">Regions</span><span class="v num">${regs.size}</span><span class="s">${esc([...regs].slice(0,3).join(', '))}${regs.size>3?'…':''}</span></div></div>
+  <div class="toolbar" style="flex-wrap:wrap;gap:8px"><input class="inp search" id="rtq" type="search" placeholder="Search description, unit, source…" value="${esc(UI.rtq||'')}" aria-label="Search rates" style="max-width:300px">
+    <select class="inp" id="rtk" aria-label="Type" style="width:auto">${opt(RT_KINDS,k,'All types')}</select>
+    <select class="inp" id="rtt" aria-label="Trade" style="width:auto">${opt(usedTrades,tr,'All trades')}</select>
+    <select class="inp" id="rtr" aria-label="Region" style="width:auto">${opt(usedRegs,rg,'All regions')}</select>
+    ${old?'<button class="btn sm" data-rt="oldonly">Old only ✕</button>':''}
+    <div class="sp"></div>
+    ${canWrite?'<button class="btn" data-rt="impboq">Import from BoQ</button><button class="btn" data-rt="impfile">Import Excel</button>':''}<button class="btn" data-rt="export">Export Excel</button>${canWrite?'<button class="btn pri" data-rt="new">Add rate</button>':''}</div>
+  ${!all.length?'<div class="card"><div class="empty">No rates yet. Use <b>Import from BoQ</b> to load rates from a priced BoQ in NEXUS, <b>Import Excel</b> for a priced BoQ or price list, or <b>Add rate</b>. NEXUS then fills matching BoQ items automatically.</div></div>'
+   :!list.length?'<div class="card"><div class="empty">No rates match these filters.</div></div>'
+   :groups.map(([t,L])=>`<div class="card"><div class="hd"><h2>${esc(t)}</h2><span class="sub">${L.length}</span></div><div class="tbl-wrap"><table><thead><tr><th>Description</th><th style="width:70px">Unit</th><th class="r" style="width:150px">Rate (TZS)</th><th class="hide-m" style="width:120px">Region</th><th class="hide-m" style="width:220px">Source · price date</th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div></div>`).join('')}
+  <p class="sub">Rates marked <b>Old</b> are more than 6 months old. Every price change is kept in the rate's history. <b>Apply library rates</b> in a BoQ fills empty rates, preferring the BoQ's region and the newest price.</p>`;
+}
+
+/* ---------- one rate: details, build-up, history ---------- */
+function rtOpen(id, preset){ const r=id?rtN(byId('rates',id)||{}):{kind:'item',trade:'',region:'General',price_date:today(),unit:'',desc:'',rate:'',...(preset||{})}; $('#overlay').innerHTML=''; openDrawer('rate',id||null,{rt:structuredClone({...r,bu:r.bu||{lines:[],ohp:15}}),form:false}); }
+function rateDrawer(){
+  const r=drawer.rt, ex=drawer.id?byId('rates',drawer.id):null, bu=r.bu||{lines:[],ohp:15}, T=rtBuTotals(bu), has=bu.lines.length>0, ro=!canWrite?'disabled':'';
+  const sel=(k,opts)=>`<select class="inp" id="rf_${k}" data-rf="${k}" ${ro}>${opts.map(o=>{ const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${String(ov)===String(r[k]??'')?'selected':''}>${esc(ol)}</option>`; }).join('')}</select>`;
+  const inp=(k,type='text',extra='')=>`<input class="inp ${type==='number'?'num':''}" id="rf_${k}" data-rf="${k}" type="${type}" ${type==='number'?'step="any"':''} value="${esc(r[k]??'')}" ${ro} ${extra}>`;
+  const lineRow=(l,i)=>`<tr><td><select class="inp" data-rl="${i}.t" style="width:84px;padding-right:22px" ${ro}>${[['M','Mat'],['L','Lab'],['P','Plant']].map(([v,t])=>`<option value="${v}" ${l.t===v?'selected':''}>${t}</option>`).join('')}</select></td>
+    <td><input class="inp" data-rl="${i}.desc" value="${esc(l.desc||'')}" placeholder="e.g. Cement 50kg bag" ${ro}></td><td><input class="inp" data-rl="${i}.unit" value="${esc(l.unit||'')}" style="width:64px" ${ro}></td>
+    <td><input class="inp num" data-rl="${i}.qty" type="number" step="any" value="${esc(l.qty??'')}" style="width:84px;text-align:right" ${ro}></td><td><input class="inp num" data-rl="${i}.price" type="number" step="any" value="${esc(l.price??'')}" style="width:104px;text-align:right" ${ro}></td>
+    <td class="r num" id="rla_${i}">${rtFmt((+l.qty||0)*(+l.price||0))}</td><td>${canWrite?`<button class="btn sm" data-rt="delline" data-i="${i}" aria-label="Remove line">✕</button>`:''}</td></tr>`;
+  const hist=[...(r.hist||[])].reverse();
+  const body=`<div class="form">
+    <div class="fld full"><label for="rf_desc">Description *</label><textarea class="inp" id="rf_desc" data-rf="desc" style="min-height:54px" ${ro}>${esc(r.desc||'')}</textarea></div>
+    <div class="fld"><label for="rf_unit">Unit *</label>${inp('unit','text','list="rtUnits" placeholder="m2, m3, kg, No, bag…"')}</div>
+    <div class="fld"><label for="rf_kind">Type</label>${sel('kind',RT_KINDS)}</div>
+    <div class="fld"><label for="rf_trade">Trade</label>${sel('trade',[['','Auto (from description)'],...RT_TRADE_NAMES])}</div>
+    <div class="fld"><label for="rf_region">Region</label>${sel('region',RT_REGIONS)}</div>
+    <div class="fld"><label for="rf_rate">Rate (TZS) *</label>${has?`<input class="inp num" id="rf_rate" value="${rtFmt(T.rate)}" disabled><span class="sub">from the build-up below</span>`:inp('rate','number')}</div>
+    <div class="fld"><label for="rf_price_date">Price date</label>${inp('price_date','date')}</div>
+    <div class="fld full"><label for="rf_source">Source</label>${inp('source','text','placeholder="Project BoQ, supplier quote, market survey…"')}</div>
+    <div class="fld full"><label for="rf_note">Notes</label>${inp('note','text','placeholder="Specification, what is included / excluded"')}</div>
+    <datalist id="rtUnits">${['m','m2','m3','kg','t','No','Item','Sum','LS','bag','trip','day','hr','litre','pc','set','pair'].map(u=>`<option value="${u}">`).join('')}</datalist></div>
+  ${r.kind==='item'?`<div class="card" style="margin-top:12px"><div class="hd"><h2>Rate build-up</h2><span class="sub">per 1 ${esc(r.unit||'unit')}</span><div class="sp"></div>${canWrite?`<button class="btn sm" data-rt="aibu" ${UI.busy.rtbu?'disabled':''}>${spin('rtbu')}AI: draft build-up</button>`:''}</div>
+    ${has?`<div class="tbl-wrap"><table><thead><tr><th>Type</th><th>Resource</th><th>Unit</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th><th></th></tr></thead><tbody>${bu.lines.map(lineRow).join('')}</tbody></table></div>`:'<div class="bd sub">No build-up. Add materials, labour and plant per unit, or let AI draft the quantities – prices are then taken from your library\'s material, labour and plant prices.</div>'}
+    <div class="bd" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">${canWrite?'<button class="btn sm" data-rt="addline" data-t="M">+ Material</button><button class="btn sm" data-rt="addline" data-t="L">+ Labour</button><button class="btn sm" data-rt="addline" data-t="P">+ Plant</button>'+(has?'<button class="btn sm" data-rt="fillprices">Fill prices from library</button>':''):''}</div>
+    ${has?`<div class="tbl-wrap"><table><tbody>
+      <tr><td>Materials</td><td class="r num" id="rbM">${rtFmt(T.M)}</td></tr><tr><td>Labour</td><td class="r num" id="rbL">${rtFmt(T.L)}</td></tr><tr><td>Plant</td><td class="r num" id="rbP">${rtFmt(T.P)}</td></tr>
+      <tr><td>Overheads &amp; profit <input class="inp num" data-rf="ohp" type="number" step="any" value="${esc(bu.ohp??15)}" style="width:70px;display:inline-block;text-align:right" ${ro}> %</td><td class="r num" id="rbO">${rtFmt(T.ohp)}</td></tr>
+      <tr><td><b>Rate per ${esc(r.unit||'unit')}</b></td><td class="r num"><b id="rbR">${rtFmt(T.rate)}</b></td></tr></tbody></table></div>`:''}</div>`:''}
+  ${ex?`<div class="card" style="margin-top:12px"><div class="hd"><h2>Price history</h2></div><div class="tbl-wrap"><table><thead><tr><th>Price date</th><th class="r">Rate</th><th>Source</th><th class="hide-m">Changed by</th></tr></thead><tbody>
+    <tr><td>${fmtD(rtN(ex).price_date)} <span class="chip good">current</span></td><td class="r num">${rtFmt(ex.rate)}</td><td class="small">${esc(ex.source||'')}</td><td class="hide-m sub">${esc(ex.updated_by||'')}</td></tr>
+    ${hist.map(h=>`<tr><td>${fmtD(h.date)}</td><td class="r num">${rtFmt(h.rate)}</td><td class="small">${esc(h.source||'')}</td><td class="hide-m sub">${esc(h.by||'')}</td></tr>`).join('')}</tbody></table></div></div>`:''}`;
+  const foot=canWrite?`<button class="btn pri" data-rt="save">Save</button><button class="btn" data-act="close">Cancel</button>${ex?'<button class="btn" data-rt="copyregion">Copy for another region</button>':''}<div style="flex:1"></div>${ex&&isAdmin?'<button class="btn danger" data-rt="del">Delete</button>':''}`:'<button class="btn" data-act="close">Close</button>';
+  return drawerShell(ex?(r.desc||'Rate').slice(0,80):'Add rate', 'Rate library', body, foot);
+}
+function rtRedraw(){ const o=$('#overlay'); if(!drawer) return; const y=o.querySelector('.db')?.scrollTop||0; o.innerHTML=drawer.type==='rate'?rateDrawer():rtImpDrawer(); document.body.style.overflow='hidden'; const b=o.querySelector('.db'); if(b) b.scrollTop=y; }
+function rtLiveTotals(){ const r=drawer.rt, T=rtBuTotals(r.bu); (r.bu.lines||[]).forEach((l,i)=>{ const c=$('#rla_'+i); if(c) c.textContent=rtFmt((+l.qty||0)*(+l.price||0)); }); const set=(id,v)=>{ const e=$('#'+id); if(e) e.textContent=rtFmt(v); }; set('rbM',T.M); set('rbL',T.L); set('rbP',T.P); set('rbO',T.ohp); set('rbR',T.rate); const rr=$('#rf_rate'); if(rr&&rr.disabled) rr.value=rtFmt(T.rate); }
+function rtMatchRes(desc, unit, t){ const kind=t==='L'?'labour':t==='P'?'plant':'material'; const w=s=>new Set(rtWords(s).split(' ').filter(x=>x.length>=3)); const a=w(desc); let best=null,bs=0;
+  for(const r0 of S.rates){ const r=rtN(r0); if(r.kind!==kind) continue; const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); let s=n/Math.max(1,Math.min(a.size,b.size)); if(unit&&r.unit&&rtWords(unit)!==rtWords(r.unit)) s-=.25; if(s>bs||(s===bs&&best&&(r.price_date||'')>(best.price_date||''))){bs=s;best=r;} }
+  return bs>=.5?best:null; }
+function rtFillPrices(onlyEmpty){ let n=0; (drawer.rt.bu.lines||[]).forEach(l=>{ if(onlyEmpty&&l.price!==''&&l.price!=null) return; const m=rtMatchRes(l.desc,l.unit,l.t); if(m){ l.price=+m.rate; if(!l.unit) l.unit=m.unit; n++; } }); return n; }
+async function rtAiBuildUp(){
+  const r=drawer.rt; if(!(r.desc||'').trim()||!(r.unit||'').trim()){ toast('Enter the description and unit first.'); return; }
+  toast('AI is drafting the build-up quantities…');
+  const res=await ai('rtbu',()=>sample.json(`You are a senior Tanzanian quantity surveyor. Prepare a unit rate build-up for this BoQ item, for construction in ${r.region&&r.region!=='General'?r.region+', ':''}Tanzania.\nItem: ${r.desc}\nUnit: ${r.unit}\n\nList the resources needed for ONE ${r.unit}: materials (with normal waste allowance included in the quantity), labour (crew hours or days) and plant. Use realistic standard constants (e.g. cement bags, sand and aggregate m3, water, blocks per m2, mortar, labour output rates). Use common Tanzanian units (bag, m3, kg, No, litre, day, hr). Do NOT give any prices. Reply with only JSON: {"lines":[{"t":"M","desc":"Cement 50kg bag","unit":"bag","qty":0.0},{"t":"L","desc":"Mason","unit":"day","qty":0.0},{"t":"P","desc":"Concrete mixer","unit":"day","qty":0.0}],"ohp":15,"note":"short assumptions"}`,{modelTier:'default'}));
+  if(!res?.lines?.length) return;
+  drawer.rt.bu={lines:res.lines.filter(l=>l&&l.desc).map(l=>({t:['M','L','P'].includes(l.t)?l.t:'M',desc:String(l.desc),unit:String(l.unit||''),qty:+l.qty||0,price:''})), ohp:+res.ohp||drawer.rt.bu?.ohp||15};
+  if(res.note&&!drawer.rt.note) drawer.rt.note=String(res.note).slice(0,200);
+  const n=rtFillPrices(true), m=drawer.rt.bu.lines.length; rtRedraw();
+  toast(`AI drafted ${m} resource lines. ${n} prices filled from your library${n<m?` – enter the other ${m-n} prices (add them to the library as material/labour/plant prices to reuse them)`:''}. Check the quantities.`);
+}
+async function rtSave(){
+  const r=drawer.rt, ex=drawer.id?byId('rates',drawer.id):null;
+  const desc=(r.desc||'').trim(), unit=(r.unit||'').trim(); const has=r.kind==='item'&&(r.bu?.lines||[]).length>0;
+  const rate=has?Math.round(rtBuTotals(r.bu).rate):(r.rate===''||r.rate==null?NaN:+r.rate);
+  if(!desc){ toast('Description is required.'); return; } if(!unit){ toast('Unit is required.'); return; } if(!(rate>0)){ toast(has?'The build-up gives no rate yet – enter quantities and prices.':'Enter the rate.'); return; }
+  const v={desc,unit,rate,kind:r.kind||'item',trade:r.trade||rtGuessTrade(desc,r.kind),region:r.region||'General',price_date:r.price_date||today(),source:(r.source||'').trim(),note:(r.note||'').trim(),
+    bu:has?{lines:r.bu.lines.map(l=>({t:l.t,desc:l.desc||'',unit:l.unit||'',qty:l.qty===''?0:+l.qty,price:l.price===''?0:+l.price})),ohp:+(r.bu.ohp??15)||0}:null, hist:ex?.hist||[]};
+  const dupe=S.rates.find(x=>x.id!==drawer.id&&rtKey(x.desc,x.unit,rtN(x).region)===rtKey(desc,unit,v.region));
+  if(dupe&&!drawer.dupeOk){ drawer.dupeOk=true; toast('The same item and unit already exist for this region. Press Save again to keep both, or open the existing rate instead.'); return; }
+  if(ex){ const o=rtN(ex); if(Math.round(+o.rate)!==Math.round(rate)) v.hist=[...(ex.hist||[]),{rate:+o.rate,date:o.price_date,source:o.source||'',by:ex.updated_by||''}].slice(-30); await patch('rates',ex.id,{...v,created_at:ex.created_at||ex.updated_at||''}); }
+  else await put('rates',null,{...v,created_at:new Date().toISOString()});
+  logAct(`${ex?'Updated':'Added'} library rate: ${desc.slice(0,60)} – TZS ${rtFmt(rate)}/${unit}`);
+  closeDrawer(); toast(ex?'Rate updated'+(v.hist.length>(ex.hist||[]).length?' – previous price kept in history.':'.'):'Rate added to the library.');
+}
+
+/* ---------- import: priced BoQ in NEXUS or Excel file ---------- */
+function rtImpOpen(mode, boqId){ const b=boqId?byId('boqs',boqId):null; const imp={mode,boq:boqId||'',region:b?rtBoqRegion(b):'General',trade:'',src:b?b.title:'',date:b?(b.updated_at||'').slice(0,10)||today():today(),upd:'update',rows:b?rtImpFromBoq(b):null,file:''}; $('#overlay').innerHTML=''; openDrawer('rtimp',null,{imp,form:false}); }
+function rtImpFromBoq(b){ const rows=[]; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ const rate=+it.rate; if(!(rate>0)||!(it.desc||'').trim()||!(it.unit||'').trim()) return; rows.push({desc:String(it.desc).trim(),unit:String(it.unit).trim(),rate,hint:bl.name||''}); })); return rows; }
+async function rtImpFile(file){
+  try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{cellDates:true}); const rows=[];
+    for(const sn of wb.SheetNames){ const A=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null}); let hi=-1, cD=-1, cU=-1, cR=-1, title='';
+      for(let i=0;i<Math.min(A.length,40);i++){ const r=A[i]||[]; const s=r.map(x=>String(x??'').toLowerCase().trim()); const d=s.findIndex(x=>/^desc|description|item description|particulars/.test(x)), rr=s.findIndex(x=>/^(unit )?rate|^price|unit price|rate \(|^amount per/.test(x)&&!/amount$/.test(x)), u=s.findIndex(x=>/^unit$|^units?\b|^uom/.test(x)&&!/price|rate/.test(x));
+        if(!title){ const t=s.find(x=>x.length>4); if(t) title=t; }
+        if(d>=0&&rr>=0){ hi=i; cD=d; cR=rr; cU=u; break; } }
+      if(hi<0) continue; let bill=/bill/i.test(title)?title:sn;
+      for(const r of A.slice(hi+1)){ if(!r) continue; const d=r[cD], rate=typeof r[cR]==='number'?r[cR]:+String(r[cR]??'').replace(/[, ]/g,''); const unit=cU>=0?r[cU]:null;
+        if(typeof d==='string'&&/^bill|^total|carried|collection|summary/i.test(d.trim())&&!(rate>0)){ if(/^bill/i.test(d.trim())) bill=d; continue; }
+        if(!d||!(rate>0)||!unit) continue; rows.push({desc:String(d).replace(/\s+/g,' ').trim(),unit:String(unit).trim(),rate,hint:bill}); } }
+    drawer.imp.rows=rows; drawer.imp.file=file.name; if(!drawer.imp.src) drawer.imp.src=file.name.replace(/\.[a-z]+$/i,'');
+    rtRedraw(); if(!rows.length) toast('No priced items found. The sheet needs columns named Description, Unit and Rate.');
+  }catch(e){ toast('Could not read the file: '+e.message); }
+}
+function rtImpScan(){ const I=drawer.imp; if(I.mode==='boq'){ const b=byId('boqs',I.boq); I.rows=b?rtImpFromBoq(b):null; } }
+function rtImpPlan(){ const I=drawer.imp; if(!I.rows) return null; const seen=new Set(), plan=[];
+  for(const x of I.rows){ const region=I.region||'General', key=rtKey(x.desc,x.unit,region); if(seen.has(key)) continue; seen.add(key);
+    const ex=S.rates.find(r=>rtKey(r.desc,r.unit,rtN(r).region)===key); const st=!ex?'new':Math.round(+ex.rate)===Math.round(x.rate)?'same':'change';
+    plan.push({...x,region,ex,st,trade:I.trade||rtGuessTrade(x.hint+' '+x.desc,'item')||rtGuessTrade(x.desc,'item')}); }
+  plan.forEach(p=>{ if(!I.trade){ const t1=rtGuessTrade(p.desc,'item'); p.trade=t1!=='Other'?t1:rtGuessTrade(p.hint,'item'); } });
+  return plan; }
+function rtImpDrawer(){
+  const I=drawer.imp, plan=rtImpPlan(), nNew=plan?plan.filter(p=>p.st==='new').length:0, nCh=plan?plan.filter(p=>p.st==='change').length:0, nSame=plan?plan.filter(p=>p.st==='same').length:0;
+  const priced=S.boqs.filter(b=>rtImpFromBoq(b).length);
+  const selR=`<select class="inp" data-ri="region">${RT_REGIONS.map(x=>`<option ${x===I.region?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+  const selT=`<select class="inp" data-ri="trade"><option value="">Auto – from bill names and descriptions</option>${RT_TRADE_NAMES.map(x=>`<option ${x===I.trade?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+  const body=`<div class="form">
+    ${I.mode==='boq'?`<div class="fld full"><label>Priced BoQ</label><select class="inp" data-ri="boq"><option value="">— choose a BoQ —</option>${priced.map(b=>`<option value="${esc(b.id)}" ${b.id===I.boq?'selected':''}>${esc(b.title)} (${rtImpFromBoq(b).length} priced items)</option>`).join('')}</select>${priced.length?'':'<span class="sub">No BoQ in NEXUS has priced items yet.</span>'}</div>`
+      :`<div class="fld full"><label for="rtFile">Excel file (.xlsx / .xls / .csv)</label><input class="inp" id="rtFile" type="file" accept=".xlsx,.xls,.csv"><span class="sub">${I.file?'Read: <b>'+esc(I.file)+'</b> – ':''}A priced BoQ (every bill sheet) or a price list. NEXUS looks for columns named <b>Description</b>, <b>Unit</b> and <b>Rate</b>.</span></div>`}
+    <div class="fld"><label>Region of these rates</label>${selR}</div>
+    <div class="fld"><label>Trade</label>${selT}</div>
+    <div class="fld"><label>Source</label><input class="inp" data-ri="src" value="${esc(I.src||'')}" placeholder="e.g. Mount Carmel BoQ 2026"></div>
+    <div class="fld"><label>Price date</label><input class="inp" type="date" data-ri="date" value="${esc(I.date||'')}"></div>
+    <div class="fld full"><label>When an item already exists with a different rate</label><select class="inp" data-ri="upd"><option value="update" ${I.upd==='update'?'selected':''}>Update it to the new rate (old rate kept in history)</option><option value="skip" ${I.upd==='skip'?'selected':''}>Keep the library rate (skip)</option></select></div></div>
+  ${plan?`<div class="card" style="margin-top:12px"><div class="hd"><h2>Preview</h2><span class="sub">${plan.length} items · <b style="color:var(--good)">${nNew} new</b> · <b style="color:var(--warn)">${nCh} changed</b> · ${nSame} already in library</span></div>
+    <div class="tbl-wrap" style="max-height:360px;overflow:auto"><table><thead><tr><th></th><th>Description</th><th>Unit</th><th class="r">Rate</th><th class="hide-m">Library now</th><th class="hide-m">Trade</th></tr></thead><tbody>
+    ${plan.slice(0,300).map(p=>`<tr><td>${p.st==='new'?'<span class="chip good">new</span>':p.st==='change'?'<span class="chip amb">change</span>':'<span class="chip">same</span>'}</td><td class="small">${esc(p.desc.slice(0,140))}</td><td>${esc(p.unit)}</td><td class="r num">${rtFmt(p.rate)}</td><td class="hide-m r num sub">${p.ex?rtFmt(p.ex.rate):''}</td><td class="hide-m sub">${esc(p.trade)}</td></tr>`).join('')}
+    </tbody></table></div>${plan.length>300?`<div class="bd sub">…and ${plan.length-300} more.</div>`:''}</div>`:''}`;
+  const n=nNew+(I.upd==='update'?nCh:0);
+  const foot=`<button class="btn pri" data-rt="doimp" ${!plan||!n||UI.busy.rtimp?'disabled':''}>${spin('rtimp')}Import ${n||''} rate${n===1?'':'s'}</button><button class="btn" data-act="close">Cancel</button>`;
+  return drawerShell(I.mode==='boq'?'Import rates from a priced BoQ':'Import rates from Excel','Rate library',body,foot);
+}
+async function rtDoImport(){
+  const I=drawer.imp, plan=rtImpPlan(); if(!plan) return; UI.busy.rtimp=true; rtRedraw(); let a=0,u=0;
+  try{ for(const p of plan){ const src=(I.src||'').trim(), date=I.date||today();
+      if(p.st==='new'){ await put('rates',null,{desc:p.desc,unit:p.unit,rate:Math.round(p.rate*100)/100,kind:'item',trade:p.trade,region:p.region,price_date:date,source:src,note:'',bu:null,hist:[],created_at:new Date().toISOString()}); a++; }
+      else if(p.st==='change'&&I.upd==='update'){ const o=rtN(p.ex); await patch('rates',p.ex.id,{rate:Math.round(p.rate*100)/100,price_date:date,source:src,region:o.region,trade:o.trade,kind:o.kind,hist:[...(p.ex.hist||[]),{rate:+o.rate,date:o.price_date,source:o.source||'',by:p.ex.updated_by||''}].slice(-30)}); u++; } }
+  } finally { UI.busy.rtimp=false; }
+  logAct(`Imported rates into the library${I.src?' from '+I.src:''}: ${a} new, ${u} updated`);
+  closeDrawer(); toast(`Rate library: ${a} new rate${a===1?'':'s'}, ${u} updated.`);
+}
+async function rtExport(){
+  try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const all=S.rates.map(rtN).sort((a,b)=>RT_TRADE_NAMES.indexOf(a.trade)-RT_TRADE_NAMES.indexOf(b.trade)||a.desc.localeCompare(b.desc));
+  const rows=[[company().name.toUpperCase()+' – RATE LIBRARY'],['Printed '+new Date().toLocaleDateString('en-GB')],[],['Trade','Description','Unit','Rate (TZS)','Type','Region','Source','Price date','Materials','Labour','Plant','OH&P %','Previous rate']];
+  all.forEach(r=>{ const T=rtHasBu(r)?rtBuTotals(r.bu):null, h=(r.hist||[]).slice(-1)[0]; rows.push([r.trade,r.desc,r.unit,+r.rate,RT_KINDS.find(x=>x[0]===r.kind)?.[1]||'',r.region,r.source||'',r.price_date||'',T?Math.round(T.M):null,T?Math.round(T.L):null,T?Math.round(T.P):null,T?+r.bu.ohp:null,h?+h.rate:null]); });
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:22},{wch:60},{wch:7},{wch:14},{wch:16},{wch:14},{wch:26},{wch:11},{wch:11},{wch:11},{wch:11},{wch:8},{wch:13}]; XLSX.utils.book_append_sheet(wb,ws,'Rates');
+  const bu=[['Rate','Unit','Type','Resource','Res. unit','Qty','Price','Amount']]; all.filter(rtHasBu).forEach(r=>{ r.bu.lines.forEach(l=>bu.push([r.desc,r.unit,l.t,l.desc,l.unit,+l.qty,+l.price,Math.round((+l.qty||0)*(+l.price||0))])); bu.push([r.desc,r.unit,'','Overheads & profit '+r.bu.ohp+'%','','','',Math.round(rtBuTotals(r.bu).ohp)],[]); });
+  if(bu.length>1){ const w2=XLSX.utils.aoa_to_sheet(bu); w2['!cols']=[{wch:50},{wch:6},{wch:5},{wch:36},{wch:8},{wch:9},{wch:12},{wch:13}]; XLSX.utils.book_append_sheet(wb,w2,'Build-ups'); }
+  const data=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  if(!downloads){ toast('Downloads are not available in this view.'); return; }
+  try{ await downloads.save({filename:'Nordic-rate-library-'+today()+'.xlsx',data:new Uint8Array(data)}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
+}
+
+/* ---------- events for the rate library ---------- */
+document.addEventListener('click', async e=>{
+  const el=e.target.closest('[data-rt]'); if(!el) return; const a=el.dataset.rt;
+  if(a==='open'){ rtOpen(el.dataset.id); return; }
+  if(a==='new'){ rtOpen(null); return; }
+  if(a==='oldonly'){ UI.rtold=!UI.rtold; renderView(true); return; }
+  if(a==='impboq'){ rtImpOpen('boq', el.dataset.rtboq||''); return; }
+  if(a==='impfile'){ rtImpOpen('file'); return; }
+  if(a==='export'){ rtExport(); return; }
+  if(!drawer) return;
+  if(a==='addline'){ drawer.rt.bu=drawer.rt.bu||{lines:[],ohp:15}; drawer.rt.bu.lines.push({t:el.dataset.t,desc:'',unit:'',qty:'',price:''}); rtRedraw(); return; }
+  if(a==='delline'){ drawer.rt.bu.lines.splice(+el.dataset.i,1); rtRedraw(); return; }
+  if(a==='fillprices'){ const n=rtFillPrices(false); rtRedraw(); toast(n?`${n} price${n===1?'':'s'} filled from the library.`:'No matching material, labour or plant prices in the library.'); return; }
+  if(a==='aibu'){ await rtAiBuildUp(); return; }
+  if(a==='save'){ await rtSave(); return; }
+  if(a==='copyregion'){ const r=structuredClone(drawer.rt); delete r.id; delete r.hist; r.region=''; r.price_date=today(); drawer.id=null; drawer.rt={...r,region:'General'}; drawer.dupeOk=false; rtRedraw(); toast('Copy made – choose the region and price, then Save.'); return; }
+  if(a==='del'){ const ex=byId('rates',drawer.id); if(ex&&await confirmBox('Delete this rate from the library?','Delete',true)){ await remove('rates',ex.id); logAct(`Deleted library rate: ${ex.desc.slice(0,60)}`); closeDrawer(); toast('Rate deleted.'); } return; }
+  if(a==='doimp'){ await rtDoImport(); return; }
+});
+document.addEventListener('input', e=>{
+  const el=e.target;
+  if(el.id==='rtq'){ UI.rtq=el.value; renderView(true); return; }
+  if(!drawer) return;
+  if(drawer.type==='rate'){
+    if(el.dataset.rf){ const k=el.dataset.rf; if(k==='ohp'){ drawer.rt.bu.ohp=el.value===''?0:+el.value; rtLiveTotals(); return; } drawer.rt[k]=el.type==='number'?(el.value===''?'':+el.value):el.value; drawer.dupeOk=false;
+      if(k==='kind'||(k==='unit'&&el.tagName==='SELECT')) rtRedraw(); return; }
+    if(el.dataset.rl){ const [i,k]=el.dataset.rl.split('.'); const l=drawer.rt.bu.lines[+i]; if(!l) return; l[k]=(k==='qty'||k==='price')?(el.value===''?'':+el.value):el.value; rtLiveTotals(); return; }
+  }
+  if(drawer.type==='rtimp'&&el.dataset.ri){ const k=el.dataset.ri; drawer.imp[k]=el.value; if(k==='boq'){ const b=byId('boqs',el.value); drawer.imp.region=b?rtBoqRegion(b):drawer.imp.region; drawer.imp.src=b?b.title:''; drawer.imp.date=b?((b.updated_at||'').slice(0,10)||today()):today(); rtImpScan(); }
+    if(el.tagName==='SELECT') rtRedraw(); }
+});
+document.addEventListener('change', e=>{
+  const el=e.target;
+  if(el.id==='rtk'){ UI.rtk=el.value; renderView(true); return; }
+  if(el.id==='rtt'){ UI.rtt=el.value; renderView(true); return; }
+  if(el.id==='rtr'){ UI.rtr=el.value; renderView(true); return; }
+  if(el.id==='rtFile'&&el.files&&el.files[0]&&drawer?.type==='rtimp'){ rtImpFile(el.files[0]); return; }
+});
+
 async function exportBoq(b){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const wb=XLSX.utils.book_new(), t=boqTotals(b), c=company();
@@ -2303,7 +2543,7 @@ function renderNav(){
 function renderView(force=false){
   const v=$('#view'), a=document.activeElement;
   if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
-  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq'].includes(a.id)){ pendingView=true; return; }
+  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
   const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):p?.t||'';
@@ -2325,6 +2565,8 @@ function renderDrawer(){
   else if(t==='report-form'){ html=reportForm(drawer.id?byId('reports',drawer.id)||{}:{}, drawer.proj); drawer.form=true; }
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?'<div style="flex:1"></div><button class="btn danger" data-act="delForm">Delete</button>':''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
+  else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
+  else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
   else if(t==='ask'){ html=askDrawer(); }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
@@ -2437,7 +2679,7 @@ document.addEventListener('click', async e=>{
     case 'newBoq': { const id=await put('boqs',null,{title:'New BoQ',bills:[{name:'Preliminaries',items:[]}],vat:18,contingency:0}); if(id) go('qs',id); } break;
     case 'addBill': { const b=curBoq(); await patch('boqs',b.id,{title:b.title,contingency:b.contingency,vat:b.vat,bills:[...(b.bills||[]),{name:'New bill',items:[]}]}); } break;
     case 'aiBoq': aiBoq(curBoq()); break;
-    case 'applyRates': { const b=curBoq(); let n=0; const bills=b.bills||[]; bills.forEach(bl=>(bl.items||[]).forEach(it=>{ if(it.rate===''||it.rate==null){ const m=matchRate(it.desc,it.unit); if(m){ it.rate=m.rate; n++; } } })); await patch('boqs',b.id,{bills}); toast(n?`Filled ${n} rates from the library.`:'No empty items matched a library rate.'); } break;
+    case 'applyRates': { const b=curBoq(); let n=0, nOld=0; const reg=rtBoqRegion(b); const bills=b.bills||[]; bills.forEach(bl=>(bl.items||[]).forEach(it=>{ if(it.rate===''||it.rate==null){ const m=matchRate(it.desc,it.unit,reg); if(m){ it.rate=m.rate; n++; if(rtOld(m)) nOld++; } } })); await patch('boqs',b.id,{bills}); toast(n?`Filled ${n} rates from the library (${reg} first, newest prices)${nOld?` – ${nOld} of them are older than 6 months: check them`:''}.`:'No empty items matched a library rate.'); } break;
     case 'exportBoq': exportBoq(byId('boqs',routeArg)); break;
     case 'delBoq': if(await confirmBox('Delete this BoQ?','Delete',true)){ await remove('boqs',routeArg); go('qs'); } break;
     case 'addRate': formDrawer('Add rate',[{k:'desc',label:'Item description',req:1,full:1},{k:'unit',label:'Unit',req:1},{k:'rate',label:'Rate (TZS)',type:'number',req:1},{k:'source',label:'Source (project / supplier quote)'}],{},async v=>{ await put('rates',null,v); }); break;
