@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=59"></script>
+<script src="config.js?v=60"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=59"></script>
-<script src="nexus-chat.js?v=59"></script>
+<script src="nexus-sb.js?v=60"></script>
+<script src="nexus-chat.js?v=60"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -440,7 +440,7 @@ const DEFAULT_COMPANY = {
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-const today = () => { const d=new Date(); return d.toISOString().slice(0,10); };
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };   // local date (EAT), not UTC
 const toDate = v => { if(!v) return null; const d=new Date(v); return isNaN(d) ? null : d; };
 const atMinus = (v,days) => { const d=toDate(v); return d ? new Date(d-days*864e5).toISOString() : ''; };
 const fmtD = v => { const d=toDate(v); return d ? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'; };
@@ -705,7 +705,7 @@ function pageDash(){
   const catMax=Math.max(1,...Object.values(cats));
   let fin='';
   if(isAdmin){
-    const m=new Date().toISOString().slice(0,7), rows=S.finance.filter(f=>(f.date||'').startsWith(m));
+    const m=today().slice(0,7), rows=S.finance.filter(f=>(f.date||'').startsWith(m));
     const inc=rows.filter(f=>f.type==='Income').reduce((a,f)=>a+(+f.amount||0),0), exp=rows.filter(f=>f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
     fin=`<div class="card kpi ${inc-exp>=0?'grn':'hot'}"><span class="label">Net cash this month</span><span class="v num">${tzsShort(inc-exp)}</span><span class="s">In ${tzsShort(inc)} · Out ${tzsShort(exp)}</span></div>`;
   }
@@ -831,6 +831,10 @@ function f02Result(f){
   const n=sc.filter(x=>x!==''&&x!=null).length; if(n<12) return {label:`Incomplete (${n}/12)`, cls:'', score:null};
   const s=F02.reduce((a,[_,w],i)=>a+w*(+sc[i]),0)/5; return {score:s, label:s>=70?'Bid':s>=50?'Conditional (MD)':'No-Bid', cls:s>=70?'good':s>=50?'warn':'bad'};
 }
+/* F-02: the score updates while the selects are changed (saved with the tender) */
+document.addEventListener('change',e=>{ const el=e.target; if(!el||!/^[gs]\d+$/.test(el.id||'')||!el.closest('#overlay')) return; const box=document.querySelector('#f02chip'); if(!box) return;
+  const gates={}; GATES.forEach((_,i)=>{ const v=document.querySelector('#g'+i)?.value; if(v) gates[i]=v; }); const scores=F02.map((_,i)=>document.querySelector('#s'+i)?.value??'');
+  const r=f02Result({gates,scores}); box.innerHTML=r?`<span class="chip ${r.cls}">${esc(r.label)}${r.score!=null?' · '+r.score.toFixed(1):''}</span>`:''; });
 function filteredTenders(){
   const q=UI.tq.toLowerCase();
   return S.tenders.filter(t=>{
@@ -889,13 +893,13 @@ const TENDER_EDIT = [
   {k:'notes',label:'Notes',type:'textarea'}];
 function tenderDrawer(t){
   const f=t.f02||{gates:{},scores:[]}, res=f02Result(f);
-  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',`${fmtD(t.date_found)} · ${t.found_by||''} · ${t.source||''}`],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
+  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',[fmtD(t.date_found),t.found_by,t.source].filter(x=>x&&x!=='—').join(' · ')],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
   const docs=(t.files||[]);
   const body=`
     <div class="toolbar">${daysChip(t.deadline)} ${screenChip(t.screen)} <span class="chip">${esc(t.status||'Watching')}</span> ${t.url?`<a class="btn sm" href="${esc(t.url)}" target="_blank" rel="noopener">Open source page ↗</a>`:''}</div>
     <dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
     <div class="ai" id="aiBox">${aiAdviceHtml(t)}</div>
-    <div class="card"><div class="hd"><h2>F-02 Bid / No-Bid score</h2><div class="sp"></div>${res?`<span class="chip ${res.cls}">${esc(res.label)}${res.score!=null?' · '+res.score.toFixed(1):''}</span>`:''}</div><div class="bd">
+    <div class="card"><div class="hd"><h2>F-02 Bid / No-Bid score</h2><div class="sp"></div><span id="f02chip">${res?`<span class="chip ${res.cls}">${esc(res.label)}${res.score!=null?' · '+res.score.toFixed(1):''}</span>`:''}</span></div><div class="bd">
       <div class="form">${GATES.map((g,i)=>`<div class="fld"><label for="g${i}">${g}</label><select class="inp" id="g${i}">${['','Pass','Fail','TBC'].map(o=>`<option ${f.gates?.[i]===o?'selected':''}>${o}</option>`).join('')}</select></div>`).join('')}</div>
       <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>#</th><th>Criterion</th><th class="r">Weight</th><th>Score 0–5</th></tr></thead><tbody>
       ${F02.map(([c,w],i)=>`<tr><td class="mono">${i+1}</td><td>${esc(c)}</td><td class="r mono">${w}</td><td><select class="inp" id="s${i}" style="width:74px">${['',0,1,2,3,4,5].map(o=>`<option ${String(f.scores?.[i]??'')===String(o)?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}
@@ -1164,7 +1168,7 @@ function pageFinance(){
   if(!(isAdmin||isFin)) return `<div class="card empty">Finance is restricted to administrators (MD, Finance, Company Secretary). Ask an administrator for Finance access if you need it.</div>`;
   let rows=[...S.finance].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(UI.fproj!=='All') rows=rows.filter(f=>f.project_id===UI.fproj); if(UI.ftype!=='All') rows=rows.filter(f=>f.type===UI.ftype);
-  const m=new Date().toISOString().slice(0,7), mr=S.finance.filter(f=>(f.date||'').startsWith(m));
+  const m=today().slice(0,7), mr=S.finance.filter(f=>(f.date||'').startsWith(m));
   const inc=mr.filter(f=>f.type==='Income').reduce((a,f)=>a+(+f.amount||0),0), exp=mr.filter(f=>f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
   const bud=S.projects.filter(p=>+p.budget>0).map(p=>({p,spent:S.finance.filter(f=>f.project_id===p.id&&f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0)}));
   const risk=UI.finRisk;
@@ -1190,7 +1194,7 @@ async function aiFinance(){
   const rows=S.finance.map(f=>({date:f.date,type:f.type,category:f.category,amount:+f.amount,project:f.project_id?projName(f.project_id):'Office',party:f.party,ref:f.ref,method:f.method}));
   const budgets=S.projects.filter(p=>p.budget||p.contract_sum).map(p=>({project:p.name,budget:p.budget,contract_sum:p.contract_sum,progress:p.progress}));
   const r=await ai('fin',()=>sample.json(`You are the internal auditor of a Tanzanian construction company. Review this ledger for risks and losses: duplicate or near-duplicate payments, payments split to avoid approval, spending above budget relative to progress, unusual amounts for the category, heavy cash use, missing references, income gaps / unpaid certificates, statutory payments (TRA, NSSF, WCF, SDL) that look late, and cash-flow pressure. Be specific: name the records (date, party, amount). If data is thin, say so. Amounts are TZS.\nLEDGER:${JSON.stringify(rows)}\nPROJECT BUDGETS:${JSON.stringify(budgets)}\nReply with only JSON: {"level":"Low"|"Medium"|"High","findings":[{"severity":"High"|"Medium"|"Low","title":"...","detail":"..."}],"actions":["control to put in place"]}`,{modelTier:'complex'}));
-  if(r){ UI.finRisk={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI finance risk check: '+r.level); }
+  if(r){ UI.finRisk={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI finance risk check: '+(r.level||'done')); }
 }
 
 /* ===================== CHAT (private 1-to-1; module in nexus-chat.js) ===================== */
@@ -1272,10 +1276,11 @@ function pageStaff(){
 /* ===================== TASKS ===================== */
 const TASK_FIELDS=[{k:'title',label:'Task',req:1,full:1},{k:'assignee',label:'Assigned to',type:'select'},{k:'project_id',label:'Project',type:'select'},{k:'due',label:'Due date',type:'date'},{k:'priority',label:'Priority',type:'select',options:['Normal','High','Urgent']},{k:'detail',label:'Details',type:'textarea'}];
 const TSTAGES=['To do','In progress','Waiting','Done'];
+const tStage=t=>TSTAGES.includes(t.status)?t.status:/done|complete|closed/i.test(t.status||'')?'Done':/progress/i.test(t.status||'')?'In progress':'To do';
 function pageTasks(){
-  return `<div class="toolbar"><span class="muted">${S.tasks.filter(t=>t.status!=='Done').length} open</span><div class="sp"></div><button class="btn pri" data-act="addTask">New task</button></div>
-  <div class="cols">${TSTAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.tasks.filter(t=>(t.status||'To do')===s).length}</span></h3>${S.tasks.filter(t=>(t.status||'To do')===s).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(t=>{const od=t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="tcard"><div class="toolbar">${t.priority&&t.priority!=='Normal'?`<span class="chip ${t.priority==='Urgent'?'bad':'amb'}">${esc(t.priority)}</span>`:''}${od?'<span class="chip bad">overdue</span>':''}</div><b>${esc(t.title)}</b><span class="sub">${esc(staffName(t.assignee))}${t.project_id?' · '+esc(projName(t.project_id)):''}</span>${t.due?`<span class="sub">Due ${fmtD(t.due)}</span>`:''}
-    <div class="toolbar"><select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-tstat="${esc(t.id)}" aria-label="Move task">${TSTAGES.map(x=>`<option ${x===(t.status||'To do')?'selected':''}>${x}</option>`).join('')}</select>${isAdmin?`<button class="btn sm" data-deltask="${esc(t.id)}" aria-label="Delete task">✕</button>`:''}</div></div>`}).join('')}</div>`).join('')}</div>`;
+  return `<div class="toolbar"><span class="muted">${S.tasks.filter(t=>tStage(t)!=='Done').length} open</span><div class="sp"></div><button class="btn pri" data-act="addTask">New task</button></div>
+  <div class="cols">${TSTAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.tasks.filter(t=>tStage(t)===s).length}</span></h3>${S.tasks.filter(t=>tStage(t)===s).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(t=>{const od=t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="tcard"><div class="toolbar">${t.priority&&t.priority!=='Normal'?`<span class="chip ${t.priority==='Urgent'?'bad':'amb'}">${esc(t.priority)}</span>`:''}${od?'<span class="chip bad">overdue</span>':''}</div><b class="click" style="cursor:pointer" data-edittask="${esc(t.id)}" title="Edit task">${esc(t.title)}</b><span class="sub">${esc(staffName(t.assignee))}${t.project_id?' · '+esc(projName(t.project_id)):''}</span>${t.due?`<span class="sub">Due ${fmtD(t.due)}</span>`:''}
+    <div class="toolbar"><select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-tstat="${esc(t.id)}" aria-label="Move task">${TSTAGES.map(x=>`<option ${x===tStage(t)?'selected':''}>${x}</option>`).join('')}</select>${isAdmin?`<button class="btn sm" data-deltask="${esc(t.id)}" aria-label="Delete task">✕</button>`:''}</div></div>`}).join('')}</div>`).join('')}</div>`;
 }
 
 /* ===================== COMPLIANCE ===================== */
@@ -1601,7 +1606,7 @@ async function downloadWeekly(){
   ${reportBody(w,true)}
   <p style="font-size:8.5pt;color:#5A6580;margin-top:18pt">Prepared from NORDIC NEXUS${me.name?' by '+esc(me.name):''} on ${esc(fmtDT(new Date()))}.</p></body></html>`;
   if(!downloads){ toast('Downloads are not available in this view.'); return; }
-  try{ await downloads.save({filename:`Nordic_Weekly_Report_${new Date().toISOString().slice(0,10)}.doc`, data:'﻿'+html}); logAct('Downloaded weekly management report'); }
+  try{ await downloads.save({filename:`Nordic_Weekly_Report_${today()}.doc`, data:'﻿'+html}); logAct('Downloaded weekly management report'); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
 }
 /* ===================== PROJECT WORKSPACE ===================== */
@@ -1650,7 +1655,7 @@ function sCurve(pid){
     <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
     <line x1="${nx}" x2="${nx}" y1="12" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="${nx+4}" y="22" font-size="10" fill="var(--muted)">today</text>
     <circle cx="${nx}" cy="${y(pr.actual)}" r="6" fill="${pr.actual>=pr.planned-5?'var(--good)':'var(--bad)'}" stroke="var(--panel)" stroke-width="2"/>
-  </svg><div class="toolbar small"><span><span style="display:inline-block;width:14px;height:3px;background:var(--accent);vertical-align:middle"></span> Planned (from activity dates and weights)</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--good);vertical-align:middle"></span> Actual today</span></div>`;
+  </svg><div class="toolbar small"><span><span style="display:inline-block;width:14px;height:3px;background:var(--accent);vertical-align:middle"></span> Planned (from activity dates and weights)</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--good);vertical-align:middle"></span> Actual today – on plan</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--bad);vertical-align:middle"></span> behind plan</span></div>`;
 }
 function pageProject(){
   const p=byId('projects',routeArg); if(!p) return '<div class="empty">This project no longer exists. <button class="btn" data-go="projects">All projects</button></div>';
@@ -1814,7 +1819,7 @@ function pmGantt(pid, opt={}){
   const cpm=pmCpm(pid).res, t=today0();
   const dates=ms.flatMap(m=>[msStart(m),msFinish(m),pd(m.baseline_start),pd(m.baseline_finish),pd(m.actual_start)]).filter(Boolean).concat(opt.fc?[opt.fc]:[]);
   let s=addD(new Date(Math.min(...dates.map(d=>d.getTime()))),-3), e=addD(new Date(Math.max(...dates.map(d=>d.getTime()))),6);
-  const D=Math.max(14,dDiff(e,s)), ppd=D<=45?22:D<=120?9:D<=300?4.2:D<=700?2.2:1.2, LW=240, RH=30, TOP=44, W=Math.round(LW+D*ppd+20), H=TOP+ms.length*RH+24;
+  const D=Math.max(14,dDiff(e,s)), ppd=D<=45?22:D<=120?9:D<=300?4.2:D<=700?2.2:1.2, NARROW=(window.innerWidth||1200)<640, LW=NARROW?140:240, RH=30, TOP=44, W=Math.round(LW+D*ppd+20), H=TOP+ms.length*RH+58;
   const X=d=>LW+dDiff(d,s)*ppd, row=new Map(ms.map((m,i)=>[m.id,i])), Y=i=>TOP+i*RH;
   let g='';
   // month bands + labels
@@ -1832,7 +1837,7 @@ function pmGantt(pid, opt={}){
     if(i%2) g+=`<rect x="0" y="${y}" width="${W}" height="${RH}" fill="var(--line)" opacity=".18"/>`;
     g+=`<g data-editms="${esc(m.id)}" style="cursor:pointer"><title>${esc(m.name)}\n${fmtD(m.planned_start)} → ${fmtD(fm)} · ${pg}% done${c.float!=null?`\nFloat: ${c.float} days${crit?' – CRITICAL':''}`:''}${m.baseline_finish?`\nBaseline finish: ${fmtD(m.baseline_finish)}`:''}${m.resp?`\nResponsible: ${m.resp}`:''}</title>
       <rect x="0" y="${y}" width="${W}" height="${RH}" fill="transparent"/>
-      <text x="8" y="${y+19}" font-size="12" fill="${lateNow?'#C0392B':'var(--ink)'}" font-weight="${crit?700:500}">${esc((mile?'◆ ':'')+(m.name.length>30?m.name.slice(0,29)+'…':m.name))}</text>
+      <text x="8" y="${y+19}" font-size="12" fill="${lateNow?'#C0392B':'var(--ink)'}" font-weight="${crit?700:500}">${esc((mile?'◆ ':'')+(m.name.length>(NARROW?16:30)?m.name.slice(0,NARROW?15:29)+'…':m.name))}</text>
       <text x="${LW-8}" y="${y+19}" font-size="10.5" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${mile?'':pg+'%'}</text>`;
     if(m.baseline_start&&m.baseline_finish){ const bx=X(pd(m.baseline_start)), bw=Math.max(3,(dDiff(pd(m.baseline_finish),pd(m.baseline_start))+1)*ppd); g+=`<rect x="${bx}" y="${y+22}" width="${bw}" height="4" rx="2" fill="var(--muted)" opacity=".55"/>`; }
     if(mile){ const cx=X(sm)+ppd/2; g+=`<path d="M${cx} ${y+6} l9 9 l-9 9 l-9 -9z" fill="${pg>=100?'var(--good)':crit?'#C0392B':'#F2A900'}" stroke="var(--panel)" stroke-width="1.5"/>`; }
@@ -1847,8 +1852,8 @@ function pmGantt(pid, opt={}){
     g+=`<path d="M${x1} ${y1} H${mx} V${y2} H${x2-1}" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#pmArr)" opacity=".85"/>`; }));
   // today + forecast
   if(t>=s&&t<=e){ const x=X(t)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4 3"/><rect x="${x-18}" y="${H-17}" width="36" height="14" rx="3" fill="#C0392B"/><text x="${x}" y="${H-6.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Today</text>`; }
-  if(opt.fc&&opt.fc>=s&&opt.fc<=e){ const x=X(opt.fc)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6 3"/><text x="${x+4}" y="${H-22}" font-size="10" fill="#7B1FA2" font-weight="700">Forecast finish</text>`; }
-  if(opt.contract&&opt.contract>=s&&opt.contract<=e){ const x=X(opt.contract)+ppd; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="var(--good)" stroke-width="2"/><text x="${x-4}" y="${TOP-10}" text-anchor="end" font-size="10" fill="var(--good)" font-weight="700">Contract completion</text>`; }
+  if(opt.fc&&opt.fc>=s&&opt.fc<=e){ const x=X(opt.fc)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6 3"/><text x="${x+4}" y="${H-24}" font-size="10" fill="#7B1FA2" font-weight="700">Forecast finish</text>`; }
+  if(opt.contract&&opt.contract>=s&&opt.contract<=e){ const x=X(opt.contract)+ppd; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="var(--good)" stroke-width="2"/><rect x="${x-80}" y="${H-52}" width="78" height="14" rx="3" fill="var(--good)"/><text x="${x-41}" y="${H-41.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Contract end</text>`; }
   return `<div class="pm-gantt" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gantt chart" style="display:block;font-family:inherit">
     <defs><marker id="pmArr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--muted)"/></marker></defs>
     <rect x="0" y="0" width="${LW}" height="${H}" fill="var(--panel)"/>${g}<line x1="${LW}" x2="${LW}" y1="0" y2="${H}" stroke="var(--line)"/></svg></div>
@@ -1928,13 +1933,13 @@ function pagePm(){
   const withMs=rows.filter(r=>r.f), t=today0();
   let bars='';
   if(withMs.length){ const s=addD(new Date(Math.min(...withMs.map(r=>r.f.start.getTime()))),-7), e=addD(new Date(Math.max(...withMs.map(r=>Math.max(r.f.fc,r.f.contract||0,r.f.end)))),10), D=Math.max(30,dDiff(e,s)), LW=210, W=Math.max(720,LW+D*2.4), RH=34, H=40+withMs.length*RH, X=d=>LW+dDiff(d,s)/D*(W-LW-12);
-    let g=''; for(let d=new Date(s.getFullYear(),s.getMonth(),1); d<=e; d=new Date(d.getFullYear(),d.getMonth()+1,1)){ const x=Math.max(LW,X(d)); g+=`<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--line)"/><text x="${x+4}" y="14" font-size="10.5" fill="var(--muted)">${d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}</text>`; }
+    let g=''; for(let d=new Date(s.getFullYear(),s.getMonth(),1); d<=e; d=new Date(d.getFullYear(),d.getMonth()+1,1)){ const x=Math.max(LW,X(d)), nx=X(new Date(d.getFullYear(),d.getMonth()+1,1)); g+=`<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="var(--line)"/>${nx-x>=44?`<text x="${x+4}" y="14" font-size="10.5" fill="var(--muted)">${d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}</text>`:''}`; }
     withMs.forEach((r,i)=>{ const y=28+i*RH, x=X(r.f.start), w=Math.max(4,X(r.f.end)-x), c=r.f.status==='late'?'#C0392B':r.f.status==='risk'?'#E67E22':r.f.status==='done'?'var(--good)':'#1F5FA8', a=r.f.pr?r.f.pr.actual:0;
       g+=`<g data-go-proj="${esc(r.p.id)}" style="cursor:pointer"><title>${esc(r.p.name)} · ${a.toFixed(0)}% done · forecast ${fmtD(r.f.fc)}</title><text x="8" y="${y+17}" font-size="12" fill="var(--ink)" font-weight="600">${esc(r.p.name.length>27?r.p.name.slice(0,26)+'…':r.p.name)}</text>
         <rect x="${x}" y="${y+5}" width="${w}" height="16" rx="5" fill="${c}" opacity=".22"/><rect x="${x}" y="${y+5}" width="${w*a/100}" height="16" rx="5" fill="${c}"/>
         ${r.f.contract?`<line x1="${X(r.f.contract)}" x2="${X(r.f.contract)}" y1="${y+1}" y2="${y+25}" stroke="var(--good)" stroke-width="2.5"/>`:''}
         <path d="M${X(r.f.fc)} ${y+4} l7 9 l-7 9 l-7 -9z" fill="${r.f.slip>0?'#C0392B':'#7B1FA2'}"/></g>`; });
-    const tx=X(t); g+=`<line x1="${tx}" x2="${tx}" y1="18" y2="${H}" stroke="#C0392B" stroke-dasharray="4 3"/><text x="${tx+3}" y="26" font-size="10" fill="#C0392B" font-weight="700">Today</text>`;
+    const tx=X(t); g+=`<line x1="${tx}" x2="${tx}" y1="18" y2="${H}" stroke="#C0392B" stroke-dasharray="4 3"/><text x="${tx+3}" y="${H-6}" font-size="10" fill="#C0392B" font-weight="700">Today</text>`;
     bars=`<div style="overflow-x:auto"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="All projects timeline" style="display:block">${g}</svg></div><div class="toolbar small" style="gap:14px;flex-wrap:wrap"><span>Bar = programme, dark part = % done</span><span style="color:var(--good)">▌ Contract completion</span><span style="color:#7B1FA2">◆ Forecast finish (red = late)</span></div>`; }
   return `<div class="grid g4">
     <div class="card kpi blu"><span class="label">Active projects</span><span class="v num">${P.length}</span><span class="s">${withMs.length} with a programme</span></div>
@@ -1959,7 +1964,8 @@ function pmReportRows(pid, rDate){
 async function pmApplyReport(){
   const ins=[...document.querySelectorAll('[data-rpms]')]; let n=0;
   for(const el of ins){ const m=byId('milestones',el.dataset.rpms); if(!m) continue; const v=Math.max(0,Math.min(100,+el.value||0)); if(v===msPg(m)) continue;
-    const up={progress:v}; if(v>0&&!m.actual_start) up.actual_start=today(); if(v>=100&&!m.actual_finish) up.actual_finish=today(); await patch('milestones',m.id,up); n++; }
+    const rd=document.querySelector('#f_date')?.value||today();   // the report's date, not the day it is typed
+    const up={progress:v}; if(v>0&&!m.actual_start) up.actual_start=msPg(m)>0&&m.planned_start&&m.planned_start<rd?m.planned_start:rd; if(v>=100&&!m.actual_finish) up.actual_finish=rd; await patch('milestones',m.id,up); n++; }
   if(n) logAct(`Programme progress updated from a site report (${n} activit${n>1?'ies':'y'})`);
   return n;
 }
@@ -2044,7 +2050,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delfin],[data-editstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2057,6 +2063,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
+  if(el.dataset.edittask){ const t=byId('tasks',el.dataset.edittask); if(!t) return; formDrawer('Task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),t,async v=>{ await patch('tasks',t.id,v); logAct(`Task updated: ${v.title||t.title}`); },{onDelete:async()=>{ await remove('tasks',t.id); logAct(`Deleted task: ${t.title}`); }}); return; }
   if(el.dataset.editms){ const m=byId('milestones',el.dataset.editms); if(!m) return; formDrawer('Programme activity',msFields(m.project_id,m.id),m,async v=>{ await pmSaveActivity(m.project_id,m.id,v); },{sub:'Programme · '+projName(m.project_id),onDelete:async()=>{ await remove('milestones',m.id); for(const o of msOf(m.project_id).filter(x=>msPreds(x).includes(m.id))) await patch('milestones',o.id,{preds:msPreds(o).filter(x=>x!==m.id)}); logAct(`Deleted programme activity – ${projName(m.project_id)}`); }}); return; }
   if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFields(),'Variations & EOT'); return; }
   if(el.dataset.editrisk){ recEdit('risks',el.dataset.editrisk,'Risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),'Risks & issues'); return; }
