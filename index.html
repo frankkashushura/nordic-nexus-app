@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=71"></script>
+<script src="config.js?v=72"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=71"></script>
-<script src="nexus-chat.js?v=71"></script>
+<script src="nexus-sb.js?v=72"></script>
+<script src="nexus-chat.js?v=72"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -887,14 +887,19 @@ function syncHealth(){
 }
 function scannerCard(last){
   const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
+  const nt=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0];
+  const nfy=UI.trBase?newTenders(UI.trBase).length:0, bad=src.filter(x=>x.error).length;
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
-    <div class="bd small" style="display:flex;flex-direction:column;gap:6px">
-      <div>The Tender Scanner runs in the cloud on GitHub every 5–15 minutes, day and night – no office PC needed (NeST every 5 min, DDO and TANROADS every 15, World Bank every 30, other sites hourly). NEXUS copies new tenders and changed deadlines from it every 10 minutes, 06:00–23:00, so the times below can lag the scanner by a few minutes. Nobody needs to import.</div>
-      <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · this 10-minute check found ${sy.added} new, ${sy.updated} updated`:'—'}</dd><dt>Newest tender</dt><dd>${(()=>{ const t=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0]; return t?`${fmtDT(tNewAt(t))} · ${esc((t.title||'').slice(0,70))}`:'—'; })()}</dd><dt>New for you</dt><dd>${(()=>{ const n=UI.trBase?newTenders(UI.trBase).length:0; return UI.trBase?`${n} found since your previous visit (${fmtDT(UI.trBase)})${n?' – marked <span class="chip blue">New</span> in the list':''}`:'—'; })()}</dd><dt>Last manual import</dt><dd>${S.lastImport?fmtDT(S.lastImport.at)+` · ${esc(S.lastImport.by||'')} · ${S.lastImport.added} new, ${S.lastImport.updated} updated`:'—'}</dd></dl>
-      ${src.length?`<div class="toolbar">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>`:''}
-      <div class="muted">Manual import (Import pipeline) still works as a backup: it adds the workbook's tenders and then runs a sync straight away${last?' · last new tender added '+fmtDT(last):''}.</div>
+    <div class="bd small">
+      <dl class="kv"><dt>Last scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}${sy?.last_sync?` · synced ${fmtDT(sy.last_sync).split(' ').pop()}`:''}</dd>
+        <dt>Newest tender</dt><dd>${nt?`${fmtDT(tNewAt(nt))} · ${esc((nt.title||'').slice(0,42))}${(nt.title||'').length>42?'…':''}`:'—'}</dd>
+        <dt>New for you</dt><dd>${nfy?`<b>${nfy}</b> since your last visit`:'None since your last visit'}</dd></dl>
+      ${src.length?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">${src.length} sources${bad?` · <span style="color:var(--bad)">${bad} with errors</span>`:' · all working'}</summary>
+        <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>
+        <div class="muted" style="margin-top:6px">Scanned in the cloud every 5–15 min; NEXUS syncs every 10 min (06:00–23:00).${S.lastImport?` Last manual import ${fmtDT(S.lastImport.at)}.`:''}</div></details>`:''}
     </div></div>`;
 }
+
 const F02 = [
  ['Client payment record and funding confirmed',10],['Relationship / access to decision-maker',8],['Client type strategic value',7],['Expected number and strength of competitors',10],
  ['Evaluation basis favours us',8],['Margin potential at market rates',7],['Key staff and equipment available',10],['Location and logistics',5],
@@ -930,8 +935,8 @@ function pageTenders(){
   return tabs+`
   <div class="grid g3">
     ${scannerCard(last)}
-    <div class="card"><div class="hd"><h2>AI bid advisor</h2></div><div class="bd small">Open any tender and press <b>Get AI advice</b>. NEXUS checks it against Nordic's CRB classes (Building I, Civil IV), reference projects, location and the F-02 criteria, then suggests Bid, Conditional or No-Bid with the risks to verify.</div></div>
-    <div class="card"><div class="hd"><h2>Tender documents</h2></div><div class="bd small">For every new Pursue or Check tender the scanner creates a folder under <b>Tender Documents</b> with a link to its NeST page. Log in to NeST with Nordic's tenderer account, save the document there, then attach it to the tender here so the whole team works from one copy.</div></div>
+    <div class="card"><div class="hd"><h2>AI bid advisor</h2></div><div class="bd small">Open a tender → <b>Get AI advice</b> for a Bid / Conditional / No-Bid suggestion.</div></div>
+    <div class="card"><div class="hd"><h2>Tender documents</h2></div><div class="bd small">Download from NeST, then attach to the tender here so the team shares one copy.</div></div>
   </div>
   <div class="toolbar">
     <input class="inp search" id="tq" type="search" placeholder="Search title, client, number, place" value="${esc(UI.tq)}" aria-label="Search tenders">
