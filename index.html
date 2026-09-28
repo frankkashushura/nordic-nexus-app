@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=63"></script>
+<script src="config.js?v=64"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=63"></script>
-<script src="nexus-chat.js?v=63"></script>
+<script src="nexus-sb.js?v=64"></script>
+<script src="nexus-chat.js?v=64"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -346,6 +346,62 @@ ul.clean li{margin:3px 0}
 .ann-seen{list-style:none;margin:0;padding:0;max-height:55vh;overflow:auto}
 .ann-seen li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 @media (max-width:600px){.ann-pop .ann{padding:20px 18px}.ann h3{font-size:18px}}
+
+/* ask */
+/* ===== Ask NEXUS chat (ChatGPT / Gemini style) ===== */
+.drawer.ask{width:min(980px,100%);background:var(--panel);overflow:hidden}
+.ask-top{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--line);background:var(--panel)}
+.ask-title{flex:1;text-align:center;font:600 16px var(--f-body);color:var(--ink)}
+.ask-title span{font:700 10px var(--f-mono);background:linear-gradient(90deg,#539FDC,#7B61FF);color:#fff;border-radius:6px;padding:2px 6px;margin-left:4px;vertical-align:2px}
+.ask-new,.ask-x{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;color:var(--muted);font-size:13px}
+.ask-new:hover,.ask-x:hover{background:var(--panel2);color:var(--ink)} .ask-new[disabled]{opacity:.4;pointer-events:none}
+.ask-new svg,.ask-x svg{width:18px;height:18px}
+.drawer.ask .ask-body{flex:1;overflow-y:auto;padding:0;display:block;scroll-behavior:smooth}
+.ask-thread{max-width:760px;margin:0 auto;padding:24px 20px 30px;display:flex;flex-direction:column;gap:26px}
+.ask-row.me{display:flex;justify-content:flex-end}
+.ask-bub{background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:20px 20px 6px 20px;max-width:78%;font-size:15px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.ask-row.bot{display:flex;gap:14px;align-items:flex-start}
+.ask-ava{flex:none;width:32px;height:32px;border-radius:50%;background:#182340;display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 3px color-mix(in srgb,#539FDC 25%,transparent)}
+.ask-ava img{width:24px;height:24px;object-fit:contain}
+.ask-ava.thinking{animation:askPulse 1.4s ease-in-out infinite}
+@keyframes askPulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,#7B61FF 22%,transparent)}}
+.ask-ans{flex:1;min-width:0;padding-top:4px}
+.ask-md{font-size:15px;line-height:1.7;color:var(--ink)}
+.ask-md p{margin:0 0 12px} .ask-md p:last-child{margin-bottom:0}
+.ask-md h4{font:600 15px var(--f-body);margin:16px 0 6px;color:var(--ink)}
+.ask-md ul,.ask-md ol{margin:0 0 12px;padding-left:22px} .ask-md li{margin:4px 0}
+.ask-md code{font:13px var(--f-mono);background:var(--panel2);padding:1px 5px;border-radius:5px}
+.ask-md a{color:var(--blue);word-break:break-all}
+.ask-tbl{overflow-x:auto;margin:0 0 12px;border:1px solid var(--line);border-radius:10px}
+.ask-tbl table{border-collapse:collapse;width:100%;font-size:13.5px} .ask-tbl th,.ask-tbl td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left} .ask-tbl th{background:var(--panel2);font-weight:600;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}
+.ask-caret{display:inline-block;width:8px;height:16px;background:var(--ink);vertical-align:-3px;margin-left:2px;border-radius:2px;animation:askBlink .8s steps(2) infinite}
+@keyframes askBlink{50%{opacity:0}}
+.ask-dots{display:flex;gap:5px;padding:10px 0 6px} .ask-dots i{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:askDot 1.2s infinite ease-in-out} .ask-dots i:nth-child(2){animation-delay:.15s} .ask-dots i:nth-child(3){animation-delay:.3s}
+@keyframes askDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.ask-src{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.ask-src a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);text-decoration:none;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 4px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask-src a span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font:600 10px var(--f-mono);flex:none}
+.ask-src a:hover{border-color:var(--blue)}
+.ask-tools{display:flex;align-items:center;gap:2px;margin-top:8px;opacity:.75} .ask-row.bot:hover .ask-tools{opacity:1}
+.ask-tb{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:var(--muted)} .ask-tb:hover{background:var(--panel2);color:var(--ink)} .ask-tb svg{width:16px;height:16px}
+.ask-web-tag{font-size:11.5px;color:var(--muted);margin-left:6px}
+.ask-hero{max-width:760px;margin:0 auto;padding:clamp(28px,9vh,90px) 20px 20px;display:flex;flex-direction:column;gap:22px}
+.ask-logo{width:52px;height:52px;border-radius:16px;background:#182340;display:grid;place-items:center;box-shadow:0 8px 24px rgba(83,159,220,.35)} .ask-logo img{width:36px;height:36px;object-fit:contain}
+.ask-hero h1{font:600 clamp(26px,4.2vw,40px)/1.2 var(--f-body);text-transform:none;letter-spacing:-.01em;color:var(--muted)}
+.ask-hero h1 span{background:linear-gradient(90deg,#539FDC 0%,#7B61FF 55%,#E8618C 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ask-sug{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:10px}
+.ask-card{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);font-size:13.5px;line-height:1.4;color:var(--ink);min-height:74px;transition:background .15s,border-color .15s,transform .15s}
+.ask-card:hover{border-color:var(--accent);transform:translateY(-1px)} .ask-card .ic{font-size:18px}
+.ask-foot{padding:8px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,var(--panel) 70%,transparent)}
+.ask-box{max-width:760px;margin:0 auto;border:1px solid var(--line);background:var(--bg);border-radius:26px;padding:10px 10px 8px 18px;box-shadow:0 6px 24px rgba(24,35,64,.10);transition:border-color .15s,box-shadow .15s}
+.ask-box:focus-within{border-color:var(--accent);box-shadow:0 6px 28px rgba(83,159,220,.22)}
+.ask-box textarea{all:unset;display:block;width:100%;box-sizing:border-box;min-height:24px;max-height:200px;overflow-y:auto;font-size:15px;line-height:1.5;color:var(--ink);padding:4px 0 6px;white-space:pre-wrap;word-wrap:break-word}
+.ask-box textarea::placeholder{color:var(--muted)}
+.ask-bar{display:flex;align-items:center;gap:8px}.ask-bar .sp{flex:1}
+.ask-chip{all:unset;cursor:pointer;font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted)} .ask-chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--blue);font-weight:600}
+.ask-send{all:unset;cursor:pointer;width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;transition:opacity .15s} .ask-send svg{width:18px;height:18px} .ask-send[disabled]{opacity:.35;cursor:default}
+.ask-note{max-width:760px;margin:6px auto 0;text-align:center;font-size:11.5px;color:var(--muted)}
+@media (max-width:640px){ .drawer.ask{width:100%} .ask-bub{max-width:88%} .ask-thread{padding:18px 14px 24px;gap:20px} .ask-row.bot{gap:10px} .ask-ava{width:28px;height:28px} .ask-new span{display:none} }
 
 /* ===== v58 construction theme: concrete base, site photo per page, navy + safety amber ===== */
 body{background-color:var(--bg)}
@@ -1507,16 +1563,54 @@ function pageAbout(){
 }
 
 /* ===================== ASK NEXUS ===================== */
-function askDrawer(){
-  const body=`<div class="list">${UI.chat.map(m=>`<div class="li"><div class="av" style="${m.role==='assistant'?'background:var(--accent);color:var(--accent-ink)':''}">${m.role==='assistant'?'AI':esc(initials(me.name||'You'))}</div><div class="grow"><div class="prose small">${esc(m.content)}</div>${(m.sources||[]).length?`<div class="sub" style="margin-top:6px">Sources: ${m.sources.map((s,i)=>`<a href="${esc(s.url)}" target="_blank" rel="noopener">${i+1}. ${esc(String(s.title||s.url).slice(0,70))}</a>`).join(' · ')}</div>`:''}${m.web?'<div class="sub">🌐 Checked on the web</div>':''}</div></div>`).join('')||'<div class="empty">Ask anything about tenders, projects, site reports, procurement or deadlines. Examples: "Which Pursue tenders close next week?", "Summarise this week’s site issues", "Draft a letter requesting a tender clarification".</div>'}</div>
-    ${UI.busy.ask?'<div class="toolbar"><span class="spin"></span><span class="sub">Thinking…</span></div>':''}`;
-  const foot=`<div style="display:flex;flex-direction:column;gap:6px;width:100%"><div style="display:flex;gap:8px"><textarea class="inp" id="askInp" placeholder="Ask about our tenders and projects – or any construction question (methods, BoQ, FIDIC, PPRA, CRB, OSHA, TRA, prices…)" style="min-height:44px;flex:1"></textarea><button class="btn pri" data-act="askSend" ${UI.busy.ask?'disabled':''}>Send</button></div>
-    <label class="sub" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="askWeb" ${UI.askWeb===false?'':'checked'} onchange="UI.askWeb=this.checked"> Search the web for current information (prices, laws, regulations)</label></div>`;
-  return drawerShell('Ask NEXUS','AI assistant',body,foot);
-}
-async function askSend(){
-  const inp=$('#askInp'); const q=inp?.value.trim(); if(!q) return; inp.value='';
-  UI.chat.push({role:'user',content:q});
+/* ---------- Ask NEXUS: chat screen in the style of ChatGPT / Gemini ---------- */
+function askFmt(t){ // plain AI text → tidy HTML (paragraphs, lists, tables, bold labels)
+  const lines=String(t||'').replace(/\r/g,'').split('\n'); let h='', list=null, tbl=null;
+  const inl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/(https?:\/\/[^\s)]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const close=()=>{ if(list){ h+=`</${list}>`; list=null; } if(tbl){ h+='<div class="ask-tbl"><table>'+tbl.map((r,k)=>'<tr>'+r.map(c=>k===0?`<th>${inl(c)}</th>`:`<td>${inl(c)}</td>`).join('')+'</tr>').join('')+'</table></div>'; tbl=null; } };
+  for(const raw of lines){ const l=raw.trim();
+    if(/^\|.*\|$/.test(l)){ if(list){ h+=`</${list}>`; list=null; } const cells=l.slice(1,-1).split('|').map(c=>c.trim()); if(cells.every(c=>/^:?-{2,}:?$/.test(c))) continue; (tbl=tbl||[]).push(cells); continue; }
+    if(tbl) close();
+    let m;
+    if((m=l.match(/^[-*•]\s+(.*)/))){ if(list!=='ul'){ close(); h+='<ul>'; list='ul'; } h+=`<li>${inl(m[1])}</li>`; continue; }
+    if((m=l.match(/^(\d+)[.)]\s+(.*)/))){ if(list!=='ol'){ close(); h+='<ol>'; list='ol'; } h+=`<li>${inl(m[2])}</li>`; continue; }
+    close();
+    if(!l){ continue; }
+    if((m=l.match(/^#{1,4}\s*(.*)/))) { h+=`<h4>${inl(m[1])}</h4>`; continue; }
+    if(l.length<70&&/:$/.test(l)&&!/[.!?]$/.test(l.slice(0,-1))) { h+=`<h4>${inl(l.slice(0,-1))}</h4>`; continue; }
+    h+=`<p>${inl(l)}</p>`; }
+  close(); return h; }
+const ASK_SUGGEST=[['📋','Which tenders close this week and which should we pursue?'],['🏗️','Summarise the progress of our active projects'],['🧮','Build up a rate for 1 m³ of C25 concrete in Dar es Salaam'],['⚖️','Explain FIDIC 2017 clause 20 on claims and notices'],['📅','What are the curing and striking times for slabs and beams?'],['💰','How is VAT and withholding tax applied to a TZS 100m contract?']];
+function askSave(){ try{ localStorage.setItem('nx_ask_'+(me.id||'x'),JSON.stringify(UI.chat.slice(-40))); }catch(_){} }
+function askLoad(){ if(UI.askLoaded) return; UI.askLoaded=true; try{ const d=JSON.parse(localStorage.getItem('nx_ask_'+(me.id||'x'))||'[]'); if(Array.isArray(d)&&!UI.chat.length) UI.chat=d; }catch(_){} }
+function askMsgHtml(m,i){
+  if(m.role==='user') return `<div class="ask-row me"><div class="ask-bub">${esc(m.content).replace(/\n/g,'<br>')}</div></div>`;
+  const anim=UI.askAnim&&UI.askAnim.i===i, txt=anim?m.content.slice(0,UI.askAnim.n):m.content, last=i===UI.chat.length-1;
+  return `<div class="ask-row bot"><div class="ask-ava" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-md" ${anim?'id="askAnim"':''}>${askFmt(txt)}${anim?'<span class="ask-caret"></span>':''}</div>
+    ${!anim&&(m.sources||[]).length?`<div class="ask-src">${m.sources.slice(0,6).map((s,k)=>`<a href="${esc(s.url||s)}" target="_blank" rel="noopener" title="${esc(s.title||s.url||s)}"><span>${k+1}</span>${esc(((s.title||s.url||String(s)).replace(/^https?:\/\/(www\.)?/,'')).slice(0,38))}</a>`).join('')}</div>`:''}
+    ${!anim?`<div class="ask-tools"><button class="ask-tb" data-askcopy="${i}" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>${last?`<button class="ask-tb" data-act="askRetry" title="Regenerate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg></button>`:''}${m.web?'<span class="ask-web-tag">🌐 web</span>':''}</div>`:''}</div></div>`; }
+function askDrawer(){ askLoad();
+  const first=(me.name||'').split(' ')[0]||'', h=new Date().getHours(), greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const empty=!UI.chat.length&&!UI.busy.ask;
+  const msgs=empty?`<div class="ask-hero"><div class="ask-logo"><img alt="" src="${LOGO}"></div><h1><span>${greet}${first?', '+esc(first):''}.</span><br>How can I help today?</h1>
+      <div class="ask-sug">${ASK_SUGGEST.map(([ic,q])=>`<button class="ask-card" data-askq="${esc(q)}"><span class="ic">${ic}</span><span>${esc(q)}</span></button>`).join('')}</div></div>`
+    :`<div class="ask-thread">${UI.chat.map(askMsgHtml).join('')}${UI.busy.ask?`<div class="ask-row bot"><div class="ask-ava thinking" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-dots"><i></i><i></i><i></i></div><div class="sub">${UI.askWeb!==false?'Thinking and searching the web…':'Thinking…'}</div></div></div>`:''}</div>`;
+  return `<div class="drawer-bg" data-bg><div class="drawer ask" role="dialog" aria-modal="true" aria-label="Ask NEXUS">
+    <div class="ask-top"><button class="ask-new" data-act="askNew" title="New chat" ${empty?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg><span>New chat</span></button>
+      <div class="ask-title">Ask NEXUS <span>AI</span></div><button class="ask-x" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="db ask-body">${msgs}</div>
+    <div class="ask-foot"><div class="ask-box"><textarea id="askInp" rows="1" placeholder="Ask NEXUS anything – tenders, projects, BoQ, FIDIC, PPRA, prices…" aria-label="Message"></textarea>
+      <div class="ask-bar"><button type="button" class="ask-chip ${UI.askWeb===false?'':'on'}" data-act="askWebT" title="Search the web for current prices, laws and regulations">🌐 Web search</button><div class="sp"></div>
+      <button class="ask-send" data-act="askSend" aria-label="Send" ${UI.busy.ask?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div>
+      <div class="ask-note">NEXUS AI can make mistakes. Check important figures, contracts and legal points.</div></div></div></div>`; }
+function askAnimate(i){ const m=UI.chat[i]; if(!m) return; UI.askAnim={i,n:0}; const L=m.content.length, step=Math.max(4,Math.ceil(L/90));
+  clearInterval(UI.askT); UI.askT=setInterval(()=>{ if(!UI.askAnim){ clearInterval(UI.askT); return; } UI.askAnim.n+=step; const el=$('#askAnim');
+    if(UI.askAnim.n>=L){ clearInterval(UI.askT); UI.askAnim=null; renderDrawer(); askScroll(); return; }
+    if(el){ el.innerHTML=askFmt(m.content.slice(0,UI.askAnim.n))+'<span class="ask-caret"></span>'; askScroll(true); } },22); }
+function askScroll(soft){ const b=document.querySelector('.drawer.ask .ask-body'); if(!b) return; if(soft&&b.scrollHeight-b.scrollTop-b.clientHeight>160) return; b.scrollTop=b.scrollHeight; }
+async function askSend(text){
+  if(UI.busy.ask) return; const inp=$('#askInp'); const q=(text||inp?.value||'').trim(); if(!q) return; if(inp) inp.value='';
+  UI.askAnim=null; UI.chat.push({role:'user',content:q}); askSave();
   const snap={today:new Date().toString(), tenders:openTenders().map(t=>({title:t.title,client:t.client,no:t.no,location:t.location,category:t.category,deadline:t.deadline,screen:t.screen,status:t.status,ai:t.ai?.verdict})),
     projects:S.projects.map(p=>({name:p.name,client:p.client,location:p.location,status:p.status,progress:p.progress})), recent_reports:S.reports.slice(-15).map(r=>({project:projName(r.project_id),date:r.date,work:r.work_done,issues:r.issues,hse:r.hse})),
     procurement:S.procurement.map(p=>({item:p.item,status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').map(t=>({title:t.title,who:staffName(t.assignee),due:t.due})),
@@ -1532,7 +1626,8 @@ RULES
 ${companyContext()}
 NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything about Nordic or about construction.'},...UI.chat.slice(-10).map(m=>({role:m.role,content:m.content}))];
   const r=await ai('ask',()=>sample(turns,{modelTier:'default',cache:false,web:UI.askWeb!==false}));
-  if(r) UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web}); else UI.chat.pop();
+  if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
+  else { UI.chat.pop(); askSave(); renderDrawer(); const i2=$('#askInp'); if(i2&&!i2.value) i2.value=q; }
 }
 /* ===================== HOME ===================== */
 const WORK = [
@@ -2204,7 +2299,7 @@ function renderDrawer(){
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
   o.innerHTML=html; document.body.style.overflow='hidden';
   restoreInputs(o,snap,true);
-  if(t==='ask'){ const l=o.querySelector('.db'); if(l) l.scrollTop=l.scrollHeight; }
+  if(t==='ask'){ const l=o.querySelector('.db'), n=UI.chat.length+(UI.busy.ask?1:0); if(l){ l.style.scrollBehavior='auto'; if(n!==UI.askLastN||UI.askKeepBottom!==false) l.scrollTop=l.scrollHeight; else if(UI.askScrollY!=null) l.scrollTop=UI.askScrollY; l.style.scrollBehavior=''; l.onscroll=()=>{ UI.askScrollY=l.scrollTop; UI.askKeepBottom=l.scrollHeight-l.scrollTop-l.clientHeight<80; }; } UI.askLastN=n; const ta=o.querySelector('#askInp'); if(ta&&ta.value){ ta.style.height='auto'; ta.style.height=Math.min(200,ta.scrollHeight)+'px'; } }
 }
 let rq=false;
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); annMaybePop(); }); }
@@ -2338,6 +2433,9 @@ document.addEventListener('click', async e=>{
     case 'saveCompany': { const v=readForm(CO_FIELDS,$('#view')); if(!v) return; try{ await db.doc('settings/company').set({...company(),...v,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company profile'); toast('Company profile saved.'); }catch(err){ handleErr(err); } } break;
     case 'saveForm': { const v=readForm(drawer.fields); if(!v) return; el.disabled=true; const ok=await drawer.onSave(v); el.disabled=false; if(ok!==false){ closeDrawer(); toast('Saved.'); } } break;
     case 'askSend': askSend(); break;
+    case 'askNew': UI.chat=[]; UI.askAnim=null; askSave(); renderDrawer(); setTimeout(()=>$('#askInp')?.focus(),50); break;
+    case 'askWebT': UI.askWeb=UI.askWeb===false; renderDrawer(); break;
+    case 'askRetry': { if(UI.busy.ask) break; const last=UI.chat.length-1; if(last<1||UI.chat[last].role!=='assistant') break; const q=UI.chat[last-1].content; UI.chat.splice(last-1,2); askSend(q); } break;
     case 'saveChecklist': if(T){ const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); await patch('tenders',T.id,{checklist:cl}); const s=checklistState({checklist:cl}); logAct(`Bid checklist for "${T.title}": ${s.done}/${s.total}`); toast(`Checklist saved: ${s.done} of ${s.total} done.`); } break;
     case 'saveOutcome': if(T){ const v=readForm(OUTCOME_FIELDS.map(f=>({...f,k:'o_'+f.k}))); if(!v) return; const up={}; OUTCOME_FIELDS.forEach(f=>{ up[f.k]=v['o_'+f.k]; }); await patch('tenders',T.id,up); logAct(`Recorded bid result for "${T.title}"`); toast('Result saved.'); } break;
     case 'addCert': formDrawer('New payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),{status:'Submitted',submitted:today(),terms:28},async v=>{ await put('certificates',null,v); logAct(`Recorded ${v.no} for ${projName(v.project_id)} – ${tzs(v.amount)}`); },{sub:'Payment certificates',saveLabel:'Save certificate'}); break;
@@ -2379,6 +2477,7 @@ async function saveReport(){
 }
 document.addEventListener('input', e=>{
   const el=e.target;
+  if(el.id==='askInp'){ el.style.height='auto'; el.style.height=Math.min(200,el.scrollHeight)+'px'; return; }
   if(el.id==='tq'){ UI.tq=el.value; renderView(true); return; }
   if(el.id==='staffq'){ UI.staffq=el.value; renderView(true); return; }
   if(el.id==='rq'){ UI.rq=el.value; renderView(true); return; }
@@ -2408,7 +2507,7 @@ document.addEventListener('change', async e=>{
 document.addEventListener('focusout', ()=>{ setTimeout(()=>{ if(pendingView){ const a=document.activeElement; if(!(a&&$('#view').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))) renderView(); } },120); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&drawer) closeDrawer(); if(e.key==='Enter'&&e.target.id==='askInp'&&!e.shiftKey){ e.preventDefault(); askSend(); } });
 $('#bellBtn').onclick=()=>{ nsOpened(); openDrawer('alerts'); };
-$('#askBtn').onclick=()=>openDrawer('ask');
+$('#askBtn').onclick=()=>{ openDrawer('ask'); setTimeout(()=>$('#askInp')?.focus(),60); };
 $('#menuBtn').onclick=()=>{ $('#side').classList.add('open'); const s=document.createElement('div'); s.className='scrim'; s.onclick=()=>{ $('#side').classList.remove('open'); s.remove(); }; document.body.append(s); };
 
 /* v58: realistic page backgrounds – a Nordic project photo behind the top of each page */
@@ -2545,6 +2644,8 @@ document.addEventListener('click',async e=>{
   else if(k==='seen') annSeenBox(id);
   else if(k==='del'){ const a=byId('announcements',id); if(a&&await confirmBox(`Remove the announcement "${a.title}"? It disappears for everyone.`,'Remove',true)){ await remove('announcements',id); toast('Announcement removed.'); } }
 }, true);
+document.addEventListener('click',e=>{ const q=e.target.closest('[data-askq]'); if(q){ e.stopPropagation(); askSend(q.dataset.askq); return; }
+  const c=e.target.closest('[data-askcopy]'); if(c){ e.stopPropagation(); const m=UI.chat[+c.dataset.askcopy]; if(m){ (navigator.clipboard?navigator.clipboard.writeText(m.content):Promise.reject()).then(()=>toast('Copied.')).catch(()=>toast('Copy not allowed here – select the text instead.')); } } },true);
 document.addEventListener('click',e=>{ const g=e.target.closest('[data-go-proj]'); if(!g) return; e.stopPropagation(); UI.ptabw='programme'; go('project',g.dataset.goProj); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ANN.showing){ ANN.later.add(ANN.showing); annClose(); } });
 /* ---------- open a page from a notification ---------- */
