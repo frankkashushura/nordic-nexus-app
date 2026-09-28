@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=70"></script>
+<script src="config.js?v=71"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=70"></script>
-<script src="nexus-chat.js?v=70"></script>
+<script src="nexus-sb.js?v=71"></script>
+<script src="nexus-chat.js?v=71"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -890,7 +890,7 @@ function scannerCard(last){
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
     <div class="bd small" style="display:flex;flex-direction:column;gap:6px">
       <div>The Tender Scanner runs in the cloud on GitHub every 5–15 minutes, day and night – no office PC needed (NeST every 5 min, DDO and TANROADS every 15, World Bank every 30, other sites hourly). NEXUS copies new tenders and changed deadlines from it every 10 minutes, 06:00–23:00, so the times below can lag the scanner by a few minutes. Nobody needs to import.</div>
-      <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · ${sy.added} new, ${sy.updated} updated`:'—'}</dd><dt>Last manual import</dt><dd>${S.lastImport?fmtDT(S.lastImport.at)+` · ${esc(S.lastImport.by||'')} · ${S.lastImport.added} new, ${S.lastImport.updated} updated`:'—'}</dd></dl>
+      <dl class="kv"><dt>Last cloud scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}</dd><dt>Last sync to NEXUS</dt><dd>${sy?fmtDT(sy.last_sync)+` · this 10-minute check found ${sy.added} new, ${sy.updated} updated`:'—'}</dd><dt>Newest tender</dt><dd>${(()=>{ const t=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0]; return t?`${fmtDT(tNewAt(t))} · ${esc((t.title||'').slice(0,70))}`:'—'; })()}</dd><dt>New for you</dt><dd>${(()=>{ const n=UI.trBase?newTenders(UI.trBase).length:0; return UI.trBase?`${n} found since your previous visit (${fmtDT(UI.trBase)})${n?' – marked <span class="chip blue">New</span> in the list':''}`:'—'; })()}</dd><dt>Last manual import</dt><dd>${S.lastImport?fmtDT(S.lastImport.at)+` · ${esc(S.lastImport.by||'')} · ${S.lastImport.added} new, ${S.lastImport.updated} updated`:'—'}</dd></dl>
       ${src.length?`<div class="toolbar">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>`:''}
       <div class="muted">Manual import (Import pipeline) still works as a backup: it adds the workbook's tenders and then runs a sync straight away${last?' · last new tender added '+fmtDT(last):''}.</div>
     </div></div>`;
@@ -2744,7 +2744,7 @@ function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object
 let pendingView=false;
 function renderNav(){
   const alerts=nsUnread();
-  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders since you last opened Tender Radar">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
+  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
   $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join('');
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
