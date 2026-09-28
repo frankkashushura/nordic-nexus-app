@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=66"></script>
+<script src="config.js?v=67"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=66"></script>
-<script src="nexus-chat.js?v=66"></script>
+<script src="nexus-sb.js?v=67"></script>
+<script src="nexus-chat.js?v=67"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1228,9 +1228,11 @@ function rtGuessTrade(txt, kind){ if(kind==='material') return 'Materials'; if(k
 function rtRegionOf(txt){ const s=String(txt||'').toLowerCase(); if(!s) return 'General'; if(/dar|kinondoni|ilala|temeke|ubungo|kigamboni/.test(s)) return 'Dar es Salaam'; if(/zanzibar|unguja|pemba/.test(s)) return 'Zanzibar'; if(/kibaha|bagamoyo|mkuranga|coast region/.test(s)) return 'Pwani'; if(/moshi/.test(s)) return 'Kilimanjaro'; return RT_REGIONS.find(r=>r!=='General'&&s.includes(r.toLowerCase()))||'General'; }
 function rtBoqRegion(b){ if(!b) return 'General'; const p=b.project_id?byId('projects',b.project_id):null, t=b.tender_id?byId('tenders',b.tender_id):null; return rtRegionOf((p?.location||'')+' '+(t?.location||'')); }
 /* fill defaults for older rates that pre-date v66 */
-function rtN(r){ const kind=r.kind||'item'; return {...r, kind, trade:r.trade||rtGuessTrade(r.desc,kind), region:r.region||'General', price_date:r.price_date||(r.updated_at||'').slice(0,10)}; }
+function rtN(r){ const kind=r.kind||'item'; return {...r, kind, trade:r.trade||rtGuessTrade(r.desc,kind), region:r.region||'General', price_date:r.price_date??(r.updated_at||'').slice(0,10)}; }
 function rtAge(r){ const d=Date.parse((r.price_date||'')+'T00:00'); return isNaN(d)?null:Math.floor((Date.now()-d)/864e5); }
 const rtOld = r => { const a=rtAge(r); return a!=null&&a>RT_OLD_DAYS; };
+const rtUndated = r => !r.price_date;
+const rtCheck = r => rtOld(r)||rtUndated(r);
 const rtWords = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const rtKey = (desc,unit,region) => rtWords(desc)+'|'+rtWords(unit)+'|'+String(region||'General').toLowerCase();
 function rtBuTotals(bu){ const L=bu?.lines||[]; const s={M:0,L:0,P:0}; L.forEach(l=>{ s[l.t]=(s[l.t]||0)+(+l.qty||0)*(+l.price||0); }); const sub=s.M+s.L+s.P, ohp=sub*((+(bu?.ohp??15)||0)/100); return {...s, sub, ohp, rate:sub+ohp}; }
@@ -1241,17 +1243,17 @@ function rtChange(r){ const h=r.hist||[]; if(!h.length||!(+h[h.length-1].rate)) 
 /* ---------- library page (QS Studio → Rate library) ---------- */
 function rtPage(){
   const all=S.rates.map(rtN), q=(UI.rtq||'').trim().toLowerCase(), k=UI.rtk||'', tr=UI.rtt||'', rg=UI.rtr||'', old=!!UI.rtold;
-  const nOld=all.filter(rtOld).length, nRes=all.filter(r=>r.kind!=='item').length, nBu=all.filter(rtHasBu).length, regs=new Set(all.map(r=>r.region));
-  let list=all.filter(r=>(!k||r.kind===k)&&(!tr||r.trade===tr)&&(!rg||r.region===rg)&&(!old||rtOld(r)));
+  const nOld=all.filter(rtCheck).length, nRes=all.filter(r=>r.kind!=='item').length, nBu=all.filter(rtHasBu).length, regs=new Set(all.map(r=>r.region));
+  let list=all.filter(r=>(!k||r.kind===k)&&(!tr||r.trade===tr)&&(!rg||r.region===rg)&&(!old||rtCheck(r)));
   if(q){ const w=q.split(/\s+/).filter(Boolean); list=list.filter(r=>{ const s=(r.desc+' '+r.unit+' '+r.trade+' '+r.region+' '+(r.source||'')+' '+(r.note||'')).toLowerCase(); return w.every(x=>s.includes(x)); }); }
   const opt=(arr,v,blank)=>`<option value="">${blank}</option>`+arr.map(o=>{ const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${ov===v?'selected':''}>${esc(ol)}</option>`; }).join('');
   const usedTrades=RT_TRADE_NAMES.filter(t=>all.some(r=>r.trade===t)), usedRegs=RT_REGIONS.filter(x=>regs.has(x));
   const groups=RT_TRADE_NAMES.map(t=>[t,list.filter(r=>r.trade===t).sort((a,b)=>a.desc.localeCompare(b.desc))]).filter(g=>g[1].length);
-  const row=r=>`<tr class="click" data-rt="open" data-id="${esc(r.id)}"><td>${esc(r.desc)}${rtHasBu(r)?' <span class="chip blue" title="Rate built up from materials, labour and plant">build-up</span>':''}${r.kind!=='item'?` <span class="chip">${esc(RT_KINDS.find(x=>x[0]===r.kind)?.[1]||'')}</span>`:''}</td><td>${esc(r.unit)}</td><td class="r num">${rtFmt(r.rate)} ${rtChange(r)}</td><td class="hide-m small">${esc(r.region)}</td><td class="hide-m sub">${esc(r.source||'')}${r.source?' · ':''}${fmtD(r.price_date)} ${rtOld(r)?'<span class="chip amb" title="Price is more than 6 months old – check before using">Old</span>':''}</td></tr>`;
+  const row=r=>`<tr class="click" data-rt="open" data-id="${esc(r.id)}"><td>${esc(r.desc)}${rtHasBu(r)?' <span class="chip blue" title="Rate built up from materials, labour and plant">build-up</span>':''}${r.kind!=='item'?` <span class="chip">${esc(RT_KINDS.find(x=>x[0]===r.kind)?.[1]||'')}</span>`:''}</td><td>${esc(r.unit)}</td><td class="r num">${rtFmt(r.rate)} ${rtChange(r)}</td><td class="hide-m small">${esc(r.region)}</td><td class="hide-m sub">${esc(r.source||'')}${r.source?' · ':''}${r.price_date?fmtD(r.price_date):''} ${rtOld(r)?'<span class="chip amb" title="Price is more than 6 months old – check before using">Old</span>':rtUndated(r)?'<span class="chip amb" title="The source gave no price date – check before using">No date</span>':''}</td></tr>`;
   return `<div class="grid g4">
     <div class="card kpi blu"><span class="label">Rates in library</span><span class="v num">${all.length}</span><span class="s">${all.length-nRes} BoQ item rates · ${nRes} resource prices</span></div>
     <div class="card kpi grn"><span class="label">With build-up</span><span class="v num">${nBu}</span><span class="s">materials + labour + plant + OH&amp;P</span></div>
-    <div class="card kpi ${nOld?'amb':'grn'}" data-rt="oldonly" style="cursor:pointer"><span class="label">Older than 6 months</span><span class="v num">${nOld}</span><span class="s">${nOld?'tap to list – check and update':'all prices are recent'}</span></div>
+    <div class="card kpi ${nOld?'amb':'grn'}" data-rt="oldonly" style="cursor:pointer"><span class="label">Old or undated</span><span class="v num">${nOld}</span><span class="s">${nOld?'over 6 months old or no price date – tap to list':'all prices are recent'}</span></div>
     <div class="card kpi blu"><span class="label">Regions</span><span class="v num">${regs.size}</span><span class="s">${esc([...regs].slice(0,3).join(', '))}${regs.size>3?'…':''}</span></div></div>
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><input class="inp search" id="rtq" type="search" placeholder="Search description, unit, source…" value="${esc(UI.rtq||'')}" aria-label="Search rates" style="max-width:300px">
     <select class="inp" id="rtk" aria-label="Type" style="width:auto">${opt(RT_KINDS,k,'All types')}</select>
@@ -1263,7 +1265,7 @@ function rtPage(){
   ${!all.length?'<div class="card"><div class="empty">No rates yet. Use <b>Import from BoQ</b> to load rates from a priced BoQ in NEXUS, <b>Import Excel</b> for a priced BoQ or price list, or <b>Add rate</b>. NEXUS then fills matching BoQ items automatically.</div></div>'
    :!list.length?'<div class="card"><div class="empty">No rates match these filters.</div></div>'
    :groups.map(([t,L])=>`<div class="card"><div class="hd"><h2>${esc(t)}</h2><span class="sub">${L.length}</span></div><div class="tbl-wrap"><table><thead><tr><th>Description</th><th style="width:70px">Unit</th><th class="r" style="width:150px">Rate (TZS)</th><th class="hide-m" style="width:120px">Region</th><th class="hide-m" style="width:220px">Source · price date</th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div></div>`).join('')}
-  <p class="sub">Rates marked <b>Old</b> are more than 6 months old. Every price change is kept in the rate's history. <b>Apply library rates</b> in a BoQ fills empty rates, preferring the BoQ's region and the newest price.</p>`;
+  <p class="sub">Rates marked <b>Old</b> are more than 6 months old; <b>No date</b> means the source gave no price date. Every price change is kept in the rate's history. <b>Apply library rates</b> in a BoQ fills empty rates, preferring the BoQ's region and the newest price.</p>`;
 }
 
 /* ---------- one rate: details, build-up, history ---------- */
