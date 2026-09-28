@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=64"></script>
+<script src="config.js?v=65"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=64"></script>
-<script src="nexus-chat.js?v=64"></script>
+<script src="nexus-sb.js?v=65"></script>
+<script src="nexus-chat.js?v=65"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1588,19 +1588,19 @@ function askMsgHtml(m,i){
   const anim=UI.askAnim&&UI.askAnim.i===i, txt=anim?m.content.slice(0,UI.askAnim.n):m.content, last=i===UI.chat.length-1;
   return `<div class="ask-row bot"><div class="ask-ava" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-md" ${anim?'id="askAnim"':''}>${askFmt(txt)}${anim?'<span class="ask-caret"></span>':''}</div>
     ${!anim&&(m.sources||[]).length?`<div class="ask-src">${m.sources.slice(0,6).map((s,k)=>`<a href="${esc(s.url||s)}" target="_blank" rel="noopener" title="${esc(s.title||s.url||s)}"><span>${k+1}</span>${esc(((s.title||s.url||String(s)).replace(/^https?:\/\/(www\.)?/,'')).slice(0,38))}</a>`).join('')}</div>`:''}
-    ${!anim?`<div class="ask-tools"><button class="ask-tb" data-askcopy="${i}" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>${last?`<button class="ask-tb" data-act="askRetry" title="Regenerate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg></button>`:''}${m.web?'<span class="ask-web-tag">🌐 web</span>':''}</div>`:''}</div></div>`; }
+    ${!anim?`<div class="ask-tools"><button class="ask-tb" data-askcopy="${i}" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>${last?`<button class="ask-tb" data-act="askRetry" title="Regenerate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg></button>`:''}${m.checked?'<span class="ask-web-tag" title="Technical answer re-checked by a second AI review against verified reference facts">✓ checked</span>':''}${m.web?'<span class="ask-web-tag">🌐 web</span>':''}</div>`:''}</div></div>`; }
 function askDrawer(){ askLoad();
   const first=(me.name||'').split(' ')[0]||'', h=new Date().getHours(), greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const empty=!UI.chat.length&&!UI.busy.ask;
   const msgs=empty?`<div class="ask-hero"><div class="ask-logo"><img alt="" src="${LOGO}"></div><h1><span>${greet}${first?', '+esc(first):''}.</span><br>How can I help today?</h1>
       <div class="ask-sug">${ASK_SUGGEST.map(([ic,q])=>`<button class="ask-card" data-askq="${esc(q)}"><span class="ic">${ic}</span><span>${esc(q)}</span></button>`).join('')}</div></div>`
-    :`<div class="ask-thread">${UI.chat.map(askMsgHtml).join('')}${UI.busy.ask?`<div class="ask-row bot"><div class="ask-ava thinking" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-dots"><i></i><i></i><i></i></div><div class="sub">${UI.askWeb!==false?'Thinking and searching the web…':'Thinking…'}</div></div></div>`:''}</div>`;
+    :`<div class="ask-thread">${UI.chat.map(askMsgHtml).join('')}${UI.busy.ask?`<div class="ask-row bot"><div class="ask-ava thinking" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-dots"><i></i><i></i><i></i></div><div class="sub">${esc(UI.askStage||(UI.askWeb!==false?'Thinking and searching the web…':'Thinking…'))}</div></div></div>`:''}</div>`;
   return `<div class="drawer-bg" data-bg><div class="drawer ask" role="dialog" aria-modal="true" aria-label="Ask NEXUS">
     <div class="ask-top"><button class="ask-new" data-act="askNew" title="New chat" ${empty?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg><span>New chat</span></button>
       <div class="ask-title">Ask NEXUS <span>AI</span></div><button class="ask-x" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="db ask-body">${msgs}</div>
     <div class="ask-foot"><div class="ask-box"><textarea id="askInp" rows="1" placeholder="Ask NEXUS anything – tenders, projects, BoQ, FIDIC, PPRA, prices…" aria-label="Message"></textarea>
-      <div class="ask-bar"><button type="button" class="ask-chip ${UI.askWeb===false?'':'on'}" data-act="askWebT" title="Search the web for current prices, laws and regulations">🌐 Web search</button><div class="sp"></div>
+      <div class="ask-bar"><button type="button" class="ask-chip ${UI.askWeb===false?'':'on'}" data-act="askWebT" title="Search the web for every question. Technical, legal, tax and price questions always search the web and are double-checked.">🌐 Web search${UI.askWeb===false?' · auto':''}</button><div class="sp"></div>
       <button class="ask-send" data-act="askSend" aria-label="Send" ${UI.busy.ask?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div>
       <div class="ask-note">NEXUS AI can make mistakes. Check important figures, contracts and legal points.</div></div></div></div>`; }
 function askAnimate(i){ const m=UI.chat[i]; if(!m) return; UI.askAnim={i,n:0}; const L=m.content.length, step=Math.max(4,Math.ceil(L/90));
@@ -1608,6 +1608,25 @@ function askAnimate(i){ const m=UI.chat[i]; if(!m) return; UI.askAnim={i,n:0}; c
     if(UI.askAnim.n>=L){ clearInterval(UI.askT); UI.askAnim=null; renderDrawer(); askScroll(); return; }
     if(el){ el.innerHTML=askFmt(m.content.slice(0,UI.askAnim.n))+'<span class="ask-caret"></span>'; askScroll(true); } },22); }
 function askScroll(soft){ const b=document.querySelector('.drawer.ask .ask-body'); if(!b) return; if(soft&&b.scrollHeight-b.scrollTop-b.clientHeight>160) return; b.scrollTop=b.scrollHeight; }
+/* reliability: technical, legal, tax and price questions always use the web and get a second expert check */
+const ASK_TECH=/strik|curing|cure|mix|ratio|cover|lap|anchorage|load|kn\b|mpa|strength|design|beam|slab|column|footing|foundation|rebar|reinforc|concrete|mortar|steel|timber|block|brick|asphalt|bitumen|compaction|cbr|soil|bearing|drain|culvert|bridge|road|formwork|scaffold|standard|bs ?\d|bs en|eurocode|tbs|code|specification|spec\b|sm?m\b|measure|quantity|quantities|rate build|build-?up|productivity|price|cost|rate|tzs|shilling|fidic|clause|contract|claim|variation|eot|extension of time|liquidated|retention|bond|guarantee|insurance|law|act\b|regulation|ppra|ppa|nest|crb|osha|nema|tra\b|tax|vat|withholding|wht|sdl|nssf|wcf|permit|licen|sheria|kodi|kanuni|mkataba|bei|gharama|zege|nondo|saruji|msingi/i;
+const ASK_FACTS=`- BS 8110-1:1997 Table 6.1 – minimum striking periods for ordinary Portland cement concrete (surface temperature about 16 °C / 7 °C): vertical formwork to columns, walls and large beams 12 h / 18 h; soffit formwork to slabs 4 days / 6 days; props to slabs 10 days / 15 days; soffit formwork to beams 10 days / 15 days; props to beams 14 days / 21 days. Longer when temperatures are low, with slower cements or where loads are applied early; formwork may be struck earlier only if cube tests show adequate strength (commonly about 10 N/mm² or twice the stress it will carry). Tanzania's warm climate does not by itself justify shortening these without test evidence.
+- Tanzania VAT standard rate: 18 % (VAT Act 2014).`;
+function askReviewPrompt(q,d){ return `You are a senior chartered quantity surveyor and civil/structural engineer in Tanzania, checking an AI draft answer before it is shown to Nordic Construction staff.
+QUESTION:
+${q}
+DRAFT ANSWER:
+${d.text}
+WEB SOURCES THE DRAFT USED: ${(d.sources||[]).map(s=>(s.title||'')+' '+(s.url||'')).join(' | ')||'none'}
+VERIFIED REFERENCE FACTS (these override the draft):
+${ASK_FACTS}
+YOUR JOB:
+1. Correct any wrong or unsafe numbers, units, standards, clause/section numbers, legal or tax statements. Remove invented or irrelevant references (for example a contract clause that does not deal with the subject).
+2. Keep what is correct and useful. Keep it concise and practical, with short lists or a small table where it helps.
+3. Statements about Nordic's own tenders, projects, staff, tasks and records come from Nordic's database – keep them exactly as they are.
+3b. Where a value depends on conditions, give the range and the conditions. Where something must be confirmed (engineer, contract, TRA, PPRA, lawyer), say so briefly.
+4. Finish with one line starting "Basis:" naming the standards, laws or sources actually relied on (only real ones).
+Write ONLY the final answer for the user, in the same language as the question (English or Swahili). Do not mention the draft or that you checked it.`; }
 async function askSend(text){
   if(UI.busy.ask) return; const inp=$('#askInp'); const q=(text||inp?.value||'').trim(); if(!q) return; if(inp) inp.value='';
   UI.askAnim=null; UI.chat.push({role:'user',content:q}); askSave();
@@ -1623,10 +1642,22 @@ RULES
 3. Make clear which parts come from Nordic's records and which are general guidance. Show units, assumptions and short calculation steps. Give Tanzanian context (TZS, local practice) where relevant.
 4. For structural design, safety-critical work, legal or tax decisions: give the guidance, then say it must be confirmed by a registered engineer, the contract documents, or a qualified lawyer/tax adviser.
 5. For technical values that depend on conditions (striking times, curing, mix ratios, cover, laps, loads, productivity): give the usual range, the conditions it depends on (temperature, cement type, element, props left in place) and the standard or code it comes from (e.g. BS EN, BS 8110, Eurocode, TBS). Never give a single bare number when it depends.
+6. Accuracy first: never invent figures, standards, clause numbers, section numbers, court cases or prices. Cite a standard or clause ONLY when you are sure it covers the point; otherwise describe it without a number. If you are not sure, say so plainly and say who should confirm it. Do not pad answers with unrelated references.
+7. When web results are available, prefer current official sources (PPRA, TRA, CRB, OSHA, NEMA, Parliament/legal sites, manufacturers) and mention them.
+VERIFIED REFERENCE FACTS (use these when relevant – they override anything contradicting them):
+${ASK_FACTS}
 ${companyContext()}
 NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything about Nordic or about construction.'},...UI.chat.slice(-10).map(m=>({role:m.role,content:m.content}))];
-  const r=await ai('ask',()=>sample(turns,{modelTier:'default',cache:false,web:UI.askWeb!==false}));
-  if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
+  const tech=ASK_TECH.test(q), web=UI.askWeb!==false||tech;
+  UI.askStage=web?'Thinking and searching the web…':'Thinking…';
+  const r=await ai('ask',async()=>{ const d=await sample(turns,{modelTier:'default',cache:false,web});
+    if(!tech) return d;
+    UI.askStage='Checking the answer for accuracy…'; renderDrawer(); window.NX_AI_KIND='review';
+    try{ const c=await sample([{role:'user',content:askReviewPrompt(q,d)}],{modelTier:'default',cache:false,web:false});
+      const t=(c&&c.text||'').trim(); if(t.length>40) return {...d,text:t,checked:true}; }catch(_){}
+    return d; });
+  UI.askStage='';
+  if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web,checked:!!r.checked}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
   else { UI.chat.pop(); askSave(); renderDrawer(); const i2=$('#askInp'); if(i2&&!i2.value) i2.value=q; }
 }
 /* ===================== HOME ===================== */
