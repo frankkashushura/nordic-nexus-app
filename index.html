@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=68"></script>
+<script src="config.js?v=69"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=68"></script>
-<script src="nexus-chat.js?v=68"></script>
+<script src="nexus-sb.js?v=69"></script>
+<script src="nexus-chat.js?v=69"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1504,12 +1504,12 @@ function bgDrawer(){
   let body='';
   if(g.step==='setup'){
     body=`<div class="form">
-      <div class="fld full"><label>Tender</label><select class="inp" data-bg="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+      <div class="fld full"><label>Tender</label><select class="inp" data-bgf="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
       <div class="fld full"><label>Tender documents to read</label>${g.docs.length?g.docs.map(d=>`<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-bgdoc="${d.i}" ${d.on?'checked':''}> ${esc(d.name)}</label>`).join(''):`<span class="sub">${T?'This tender has no attached documents – attach them in Tender Radar or upload them below.':'Choose a tender, or upload the documents below.'}</span>`}</div>
       <div class="fld full"><label for="bgFile">Upload documents from this device</label><input class="inp" type="file" id="bgFile" accept=".pdf,.xlsx,.xls,.csv" multiple><span class="sub">${g.uploads.length?'Added: '+g.uploads.map(u=>'<b>'+esc(u.name)+'</b>').join(', ')+' · ':''}PDF (text, not scanned photos) or Excel. Best result: the tender's own <b>Bill of Quantities</b>. Specifications or a scope description also work – NEXUS then drafts the items.</span></div>
-      <div class="fld full"><label>BoQ title</label><input class="inp" data-bg="title" value="${esc(g.title||'')}" placeholder="BoQ – project name"></div>
-      <div class="fld"><label>Region for rates</label><select class="inp" data-bg="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
-      <div class="fld"><label>&nbsp;</label><label class="small" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-bg="aiRates" ${g.aiRates?'checked':''}> Let NEXUS AI propose rates for items not in the library (marked <b>AI estimate</b> – to be checked by the QS)</label></div></div>
+      <div class="fld full"><label>BoQ title</label><input class="inp" data-bgf="title" value="${esc(g.title||'')}" placeholder="BoQ – project name"></div>
+      <div class="fld"><label>Region for rates</label><select class="inp" data-bgf="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="fld"><label>&nbsp;</label><label class="small" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-bgf="aiRates" ${g.aiRates?'checked':''}> Let NEXUS AI propose rates for items not in the library (marked <b>AI estimate</b> – to be checked by the QS)</label></div></div>
       <div class="card" style="margin-top:12px"><div class="bd small"><b>How it works</b><ol style="margin:6px 0 0 18px;padding:0"><li>NEXUS reads the documents. An Excel BoQ is read directly; a PDF BoQ is read by AI part by part (bills, items, units, quantities – nothing invented).</li><li>If there is no BoQ, AI drafts bills and items from the scope/specification (quantities only where the documents state them).</li><li>Each item is priced from the <b>Rate library</b> (region first, newest price). Items without a match get an <b>AI estimate</b> based on similar library rates, or stay <b>Unpriced</b>.</li><li>You then check and complete the rates in <b>Price (QS)</b>.</li></ol></div></div>`;
   } else {
     const log=g.log.map(l=>`<div class="small" style="padding:3px 0;${l.bad?'color:var(--bad)':''}">${l.ok?'✓ ':l.bad?'⚠ ':'• '}${esc(l.t)}</div>`).join('');
@@ -1633,8 +1633,8 @@ document.addEventListener('click', async e=>{ const el=e.target.closest('[data-b
 document.addEventListener('change', e=>{ const el=e.target; if(!drawer||drawer.type!=='bqgen') return; const g=drawer.g;
   if(el.id==='bgFile'&&el.files?.length){ for(const f of el.files) g.uploads.push({name:f.name,file:f}); if(!g.title) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z]+$/i,''); bgRedraw(); return; }
   if(el.dataset.bgdoc!==undefined){ const d=g.docs.find(x=>x.i===+el.dataset.bgdoc); if(d) d.on=el.checked; return; }
-  if(el.dataset.bg){ const k=el.dataset.bg; g[k]=el.type==='checkbox'?el.checked:el.value; if(k==='tender'){ const T=byId('tenders',el.value); g.docs=bgTenderDocs(T); g.title=T?'BoQ – '+T.title:g.title; g.region=T?rtRegionOf(T.location||''):g.region; bgRedraw(); } } });
-document.addEventListener('input', e=>{ const el=e.target; if(drawer?.type==='bqgen'&&el.dataset.bg==='title') drawer.g.title=el.value; });
+  if(el.dataset.bgf){ const k=el.dataset.bgf; g[k]=el.type==='checkbox'?el.checked:el.value; if(k==='tender'){ const T=byId('tenders',el.value); g.docs=bgTenderDocs(T); g.title=T?'BoQ – '+T.title:g.title; g.region=T?rtRegionOf(T.location||''):g.region; bgRedraw(); } } });
+document.addEventListener('input', e=>{ const el=e.target; if(drawer?.type==='bqgen'&&el.dataset.bgf==='title') drawer.g.title=el.value; });
 
 async function exportBoq(b){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
