@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=72"></script>
+<script src="config.js?v=73"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=72"></script>
-<script src="nexus-chat.js?v=72"></script>
+<script src="nexus-sb.js?v=73"></script>
+<script src="nexus-chat.js?v=73"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -892,7 +892,7 @@ function scannerCard(last){
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
     <div class="bd small">
       <dl class="kv"><dt>Last scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}${sy?.last_sync?` · synced ${fmtDT(sy.last_sync).split(' ').pop()}`:''}</dd>
-        <dt>Newest tender</dt><dd>${nt?`${fmtDT(tNewAt(nt))} · ${esc((nt.title||'').slice(0,42))}${(nt.title||'').length>42?'…':''}`:'—'}</dd>
+        <dt>Newest tenders</dt><dd>${nt?(()=>{ const t0=Date.parse(tNewAt(nt)); const n=S.tenders.filter(x=>firstSeen(x)&&t0-Date.parse(tNewAt(x))<=15*60e3).length; return `<b>${n}</b> · ${fmtDT(tNewAt(nt))}`; })():'—'}</dd>
         <dt>New for you</dt><dd>${nfy?`<b>${nfy}</b> since your last visit`:'None since your last visit'}</dd></dl>
       ${src.length?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">${src.length} sources${bad?` · <span style="color:var(--bad)">${bad} with errors</span>`:' · all working'}</summary>
         <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>
