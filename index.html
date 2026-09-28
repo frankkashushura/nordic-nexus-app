@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=79"></script>
+<script src="config.js?v=80"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=79"></script>
-<script src="nexus-chat.js?v=79"></script>
+<script src="nexus-sb.js?v=80"></script>
+<script src="nexus-chat.js?v=80"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -180,6 +180,9 @@ td.r,th.r{text-align:right}
 .bar i{display:block;height:100%;background:var(--accent)}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;background:var(--panel2);cursor:zoom-in}
+.dp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:14px;margin-bottom:14px}.dp-card .hd h2{font-size:16px}
+.dp-heads{display:flex;flex-wrap:wrap;gap:14px}.dp-chip{display:inline-flex;align-items:center;gap:8px;font-size:13px}.dp-av{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--blue-soft);color:var(--blue);display:inline-grid;place-items:center;font-weight:700;font-size:12px;flex:none}.dp-av img{width:100%;height:100%;object-fit:cover}.dp-av.sm{width:26px;height:26px;font-size:10px;margin-right:-6px;border:2px solid var(--panel)}
+.dp-stats{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12.5px;margin:10px 0 8px}.dp-faces{display:flex;align-items:center}
 .staffgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:14px}
 .staff{padding:16px;display:flex;flex-direction:column;gap:10px}
 .staff .ph{width:64px;height:64px;border-radius:6px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font:700 24px var(--f-display);overflow:hidden}
@@ -465,7 +468,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -537,6 +540,7 @@ const ICON = {
   qs:'<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11M14 9v11"/>',
   finance:'<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
   procure:'<path d="M3 3h2l2.5 12h11L21 7H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>',
+  depts:'<rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="9" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-5h14v5M12 12v5"/>',
   staff:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M16 4a3.5 3.5 0 010 7M22 21c0-3-1.5-5-4-5.7"/>',
   chat:'<path d="M21 12a8 8 0 01-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1121 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>',
   meetings:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="9" cy="15" r="1.3"/><circle cx="15" cy="15" r="1.3"/>',
@@ -572,6 +576,7 @@ const PAGES = [
   {k:'meetings', t:'Meetings'},
   {g:'Running the office'},
   {k:'finance', t:'Finance'},
+  {k:'depts', t:'Departments'},
   {k:'staff', t:'Staff'},
   {k:'records', t:'Office Records'},
   {k:'settings', t:'Company & Security'},
@@ -693,6 +698,7 @@ function computeAlerts(){
     else A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3}); }
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
+  if(typeof deptAlerts==='function') deptAlerts(A);
   return A.sort((a,b)=>a.sort-b.sort);
 }
 
@@ -1895,10 +1901,10 @@ const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Posi
   {k:'status',label:'Status',type:'select',options:['Active','On leave','Left']},{k:'joined',label:'Joined',type:'date'},
   {k:'n_email',label:'Email alerts',type:'select',options:['Yes','No']},{k:'n_sms',label:'SMS alerts',type:'select',options:['No','Yes']},{k:'n_whatsapp',label:'WhatsApp alerts',type:'select',options:['No','Yes']},{k:'alert_types',label:'Tender alerts to receive',type:'select',options:['All tender alerts','Deadlines only','None']}];
 function pageStaff(){
-  const q=UI.staffq.toLowerCase(); const order=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
+  const q=UI.staffq.toLowerCase(); const order=deptNames();
   const list=[...S.staff,...loginOnly()].filter(s=>!q||[s.name,s.position,s.department].join(' ').toLowerCase().includes(q)).sort((a,b)=>(!!a._login-!!b._login)||(order.indexOf(a.department)-order.indexOf(b.department))||(a.rank??99)-(b.rank??99));
   return `<div class="toolbar"><input class="inp search" id="staffq" type="search" placeholder="Search name or position" value="${esc(UI.staffq)}" aria-label="Search staff"><span class="muted small">${S.staff.filter(s=>s.status!=='Left').length} active</span><div class="sp"></div>${me.id?'<button class="btn" data-act="myPhoto">My photo</button>':''}${isAdmin?'<button class="btn pri" data-act="addStaff">Add staff member</button>':''}</div>
-  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':s._login?'style="border-style:dashed"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${esc(s.department||'')}</div></div></div>
+  <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':s._login?'style="border-style:dashed"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${s.department?`<a data-open="dept:${esc(s.department)}" style="cursor:pointer">${esc(s.department)}</a>`:''}</div></div></div>
     <div class="small">${s.email?`<div>${esc(s.email)}</div>`:''}${s.phone?`<div class="mono">${esc(s.phone)}</div>`:''}<div class="sub">${esc(s.station||'')}${s.status&&s.status!=='Active'?' · '+esc(s.status):''}</div></div>
     ${s._login?`<div class="toolbar">${isMyStaff(s)?'<button class="btn sm pri" data-act="myDetails">Add my details</button><button class="btn sm" data-act="myPhoto">My photo</button>':''}${isAdmin?`<button class="btn sm" data-mkstaff="${esc(s.uid)}">Create staff card</button>`:''}</div>`:isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:isMyStaff(s)?'<div class="toolbar"><button class="btn sm" data-act="myDetails">Edit my details</button><button class="btn sm" data-act="myPhoto">My photo</button></div>':''}</div>`).join('')}</div>
   ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. You can edit your own details and photo.</p>':''}`;
@@ -2846,13 +2852,13 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
 function renderNav(){
   const alerts=nsUnread();
-  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
+  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k||(p.k==='depts'&&route==='dept')?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
   $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join('');
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
@@ -2862,8 +2868,8 @@ function renderView(force=false){
   if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
-  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):p?.t||'';
-  $('#crumb').textContent=route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':'NORDIC NEXUS';
+  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
+  $('#crumb').textContent=route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':route==='dept'?'Departments':'NORDIC NEXUS';
   const banner = !db ? `<div class="banner warn"><div><b>Working offline.</b> The NEXUS database is not connected in this view, so nothing you enter is saved.</div></div>` : '';
   v.innerHTML=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
   restoreInputs(v,snap, false);
@@ -2897,13 +2903,131 @@ function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=fal
 function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
+/* ===================== DEPARTMENTS (v80) ===================== */
+// Each department has its own staff, a Head and a Deputy (the department's administrators), a mandate,
+// objectives, a notice board, department tasks and quick links. Administrators manage everything;
+// Head / Deputy manage their own department (mandate, objectives, notices, adding unassigned staff, removing members).
+const DEPT_DEFAULT=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
+const DEPT_LINKS={'Management':[['dash','Command Centre'],['report','Weekly Report'],['tenders','Tender Radar']],'Technical / Projects':[['projects','Projects'],['pm','Programme'],['reports','Site Reports'],['plant','Plant & Equipment']],
+  'Quantity Surveying':[['qs','QS Studio'],['tenders','Tender Radar'],['certs','Payment Certificates']],'Procurement':[['procure','Procurement'],['plant','Plant & Equipment']],
+  'Finance & Admin':[['finance','Finance'],['certs','Payment Certificates'],['records','Office Records']],'HSE':[['reports','Site Reports'],['records','Office Records']],'Site':[['reports','Site Reports'],['tasks','Tasks'],['plant','Plant & Equipment']],'ICT':[['settings','Company & Security'],['about','About NEXUS']]};
+const DEPT_OBJ_ST=['On track','At risk','Behind','Done'];
+const lcN=s=>String(s||'').trim().toLowerCase();
+function deptList(){
+  const docs=[...(S.departments||[])].sort((a,b)=>((a.order??99)-(b.order??99))||String(a.name).localeCompare(String(b.name)));
+  const L=docs.map(d=>({...d,doc:true}));
+  const have=n=>L.some(d=>lcN(d.name)===lcN(n));
+  if(!docs.length) DEPT_DEFAULT.forEach((n,i)=>{ if(!have(n)) L.push({id:'v-'+i,name:n,order:i,doc:false}); });
+  S.staff.forEach(s=>{ if(s.department&&!have(s.department)) L.push({id:'v-'+lcN(s.department),name:s.department,order:90,doc:false}); });
+  return L;
+}
+const deptNames=()=>deptList().map(d=>d.name);
+const deptByName=n=>deptList().find(d=>lcN(d.name)===lcN(n));
+const deptMembers=d=>S.staff.filter(s=>lcN(s.department)===lcN(d.name)).sort((a,b)=>(a.id===d.head?-2:a.id===d.deputy?-1:0)-(b.id===d.head?-2:b.id===d.deputy?-1:0)||(a.rank??99)-(b.rank??99)||String(a.name).localeCompare(String(b.name)));
+const myCard=()=>S.staff.find(isMyStaff);
+const isDeptAdmin=d=>!!d&&(isAdmin||(!!d.doc&&!!myCard()&&[d.head,d.deputy].includes(myCard().id)));
+const deptTasks=d=>{ const ids=new Set(deptMembers(d).map(s=>s.id)); return S.tasks.filter(t=>lcN(t.dept)===lcN(d.name)||(!t.dept&&ids.has(t.assignee))); };
+const deptNotes=d=>(S.deptnotes||[]).filter(n=>lcN(n.dept)===lcN(d.name)).sort((a,b)=>(!!b.pinned-!!a.pinned)||String(b.at||'').localeCompare(String(a.at||'')));
+function staffChip(s,role){ if(!s) return `<span class="sub">${role?esc(role)+': not set':'— not set —'}</span>`; const r=staffPhotoRef(s); return `<span class="dp-chip"><span class="dp-av">${r?photoTag(r).replace(' data-zoom',''):esc(initials(s.name))}</span><span><b>${esc(s.name)}</b>${role?`<span class="sub" style="display:block">${esc(role)}</span>`:''}</span></span>`; }
+// keep the Staff form's department list in step with the departments
+{ const f=STAFF_FIELDS.find(x=>x.k==='department'); if(f) Object.defineProperty(f,'options',{get:()=>deptNames(),configurable:true}); }
+
+function pageDepts(){
+  const L=deptList(), mine=myCard()&&deptByName(myCard().department);
+  const card=d=>{ const m=deptMembers(d), t=deptTasks(d).filter(x=>tStage(x)!=='Done'), od=t.filter(x=>x.due&&daysLeft(x.due+'T23:59')<0).length, lv=m.filter(s=>s.status==='On leave').length, nn=deptNotes(d).filter(n=>Date.now()-Date.parse(n.at||0)<7*864e5).length;
+    return `<div class="card dp-card click" data-open="dept:${esc(d.name)}" style="cursor:pointer"><div class="hd"><h2>${esc(d.name)}</h2>${mine&&mine.name===d.name?'<span class="chip blue">My department</span>':''}</div><div class="bd">
+      ${d.mandate?`<p class="small" style="margin:0 0 8px">${esc(String(d.mandate).slice(0,140))}${String(d.mandate).length>140?'…':''}</p>`:''}
+      <div class="dp-heads">${staffChip(byId('staff',d.head),'Head')}${d.deputy?staffChip(byId('staff',d.deputy),'Deputy'):''}</div>
+      <div class="dp-stats"><span><b class="num">${m.length}</b> staff</span>${lv?`<span><b class="num">${lv}</b> on leave</span>`:''}<span><b class="num">${t.length}</b> open tasks</span>${od?`<span class="chip bad">${od} overdue</span>`:''}${nn?`<span class="chip amb">${nn} new notice${nn>1?'s':''}</span>`:''}</div>
+      <div class="dp-faces">${m.slice(0,8).map(s=>{const r=staffPhotoRef(s);return `<span class="dp-av sm" title="${esc(s.name)}">${r?photoTag(r).replace(' data-zoom',''):esc(initials(s.name))}</span>`}).join('')}${m.length>8?`<span class="sub">+${m.length-8}</span>`:''}</div></div></div>`; };
+  const unassigned=S.staff.filter(s=>!s.department&&s.status!=='Left');
+  return `<div class="toolbar"><span class="muted">${L.length} departments · ${S.staff.filter(s=>s.status!=='Left').length} staff</span><div class="sp"></div>${mine?`<button class="btn" data-open="dept:${esc(mine.name)}">My department</button>`:''}${isAdmin?'<button class="btn pri" data-act="deptNew">New department</button>':''}</div>
+  <div class="dp-grid">${L.map(card).join('')}</div>
+  ${unassigned.length?`<div class="card"><div class="hd"><h2>Not in a department</h2><span class="sub">${unassigned.length}</span></div><div class="bd dp-faces" style="flex-wrap:wrap;gap:10px">${unassigned.map(s=>staffChip(s,s.position)).join('')}</div></div>`:''}
+  <p class="sub">Each department's Head and Deputy run their department page: mandate, objectives, notices and members.${isAdmin?' Administrators set the Head and Deputy.':''}</p>`;
+}
+
+function pageDept(){
+  const d=deptByName(routeArg); if(!d) return '<div class="card empty">Department not found. <button class="btn sm" data-go="depts">All departments</button></div>';
+  const adm=isDeptAdmin(d), m=deptMembers(d), T=deptTasks(d), open=T.filter(t=>tStage(t)!=='Done'), od=open.filter(t=>t.due&&daysLeft(t.due+'T23:59')<0), notes=deptNotes(d), obj=d.objectives||[];
+  const links=(DEPT_LINKS[d.name]||[]).filter(([k])=>navPages().some(p=>p.k===k));
+  const role=s=>s.id===d.head?'Head of department':s.id===d.deputy?'Deputy':(s.position||'');
+  return `<div class="toolbar"><button class="btn" data-go="depts">← All departments</button><div class="sp"></div>${adm?`<button class="btn" data-act="deptEdit">${isAdmin?'Edit department':'Edit mandate'}</button>`:''}${isAdmin&&d.doc&&!m.length?'<button class="btn danger" data-act="deptDel">Delete</button>':''}</div>
+  <div class="card"><div class="bd"><div class="dp-heads" style="margin-bottom:8px">${staffChip(byId('staff',d.head),'Head of department')}${staffChip(byId('staff',d.deputy),'Deputy')}</div>
+    ${d.mandate?`<p style="margin:6px 0 0;white-space:pre-line">${esc(d.mandate)}</p>`:`<p class="sub" style="margin:6px 0 0">No mandate written yet${adm?' – tap Edit to describe what this department is responsible for.':'.'}</p>`}
+    ${!d.doc&&isAdmin?'<p class="sub">Set a Head and Deputy with “Edit department” so they can run this page.</p>':''}
+    ${links.length?`<div class="toolbar" style="margin-top:10px">${links.map(([k,t])=>`<button class="btn sm" data-go="${k}">${ico(k)} ${esc(t)}</button>`).join('')}</div>`:''}</div></div>
+  <div class="grid g4">
+    <div class="card kpi blu"><span class="label">Staff</span><span class="v num">${m.length}</span><span class="s">${m.filter(s=>s.status==='On leave').length} on leave</span></div>
+    <div class="card kpi ${od.length?'hot':'grn'}"><span class="label">Open tasks</span><span class="v num">${open.length}</span><span class="s">${od.length} overdue</span></div>
+    <div class="card kpi amb"><span class="label">Objectives</span><span class="v num">${obj.filter(o=>o.status!=='Done').length}</span><span class="s">${obj.filter(o=>o.status==='Done').length} done · ${obj.filter(o=>o.status==='At risk'||o.status==='Behind').length} need attention</span></div>
+    <div class="card kpi grn"><span class="label">Notices</span><span class="v num">${notes.length}</span><span class="s">${notes.filter(n=>Date.now()-Date.parse(n.at||0)<7*864e5).length} this week</span></div></div>
+  <div class="grid g2">
+    <div class="card"><div class="hd"><h2>Members</h2><span class="sub">${m.length}</span><div class="sp"></div>${adm?'<button class="btn sm" data-act="deptAddMember">Add member</button>':''}</div><div class="list">
+      ${m.map(s=>`<div class="li"><span class="dp-av">${(r=>r?photoTag(r).replace(' data-zoom',''):esc(initials(s.name)))(staffPhotoRef(s))}</span><div class="grow"><div class="ttl2">${esc(s.name)} ${s.status&&s.status!=='Active'?`<span class="chip amb">${esc(s.status)}</span>`:''}</div><div class="sub">${esc(role(s))}${s.phone?' · <span class="mono">'+esc(s.phone)+'</span>':''}${s.email?' · '+esc(s.email):''}</div></div>${adm&&s.id!==d.head?`<button class="btn sm" data-deptrm="${esc(s.id)}" title="Remove from department" aria-label="Remove from department">✕</button>`:''}</div>`).join('')||'<div class="empty">No staff in this department yet.</div>'}</div></div>
+    <div class="card"><div class="hd"><h2>Notice board</h2><div class="sp"></div>${adm&&d.doc?'<button class="btn sm pri" data-act="deptNote">Post notice</button>':''}</div><div class="list">
+      ${notes.map(n=>`<div class="li"><div class="grow"><div class="ttl2">${n.pinned?'📌 ':''}${esc(n.title||'')}</div>${n.body?`<div class="small" style="white-space:pre-line">${esc(n.body)}</div>`:''}<div class="sub">${esc(n.by||'')} · ${fmtDT(n.at)}</div></div>${adm?`<button class="btn sm" data-deptnote="${esc(n.id)}" aria-label="Remove notice">✕</button>`:''}</div>`).join('')||`<div class="empty">No notices yet.${adm&&!d.doc?' Set a Head first (Edit department).':''}</div>`}</div></div>
+    <div class="card"><div class="hd"><h2>Objectives</h2><div class="sp"></div>${adm?'<button class="btn sm" data-act="deptObj">Add objective</button>':''}</div><div class="list">
+      ${obj.map((o,i)=>`<div class="li"><div class="grow"><div class="ttl2">${esc(o.t||'')}</div><div class="sub">${o.due?'Target '+fmtD(o.due):'No target date'}${o.owner?' · '+esc(staffName(o.owner)):''}</div></div>${adm?`<select class="inp" style="width:auto;padding:3px 6px;font-size:12px" data-deptobj="${i}" aria-label="Objective status">${DEPT_OBJ_ST.map(x=>`<option ${x===(o.status||'On track')?'selected':''}>${x}</option>`).join('')}</select><button class="btn sm" data-deptobjrm="${i}" aria-label="Remove objective">✕</button>`:`<span class="chip ${o.status==='Done'?'good':o.status==='At risk'?'amb':o.status==='Behind'?'bad':'blue'}">${esc(o.status||'On track')}</span>`}</div>`).join('')||'<div class="empty">No objectives set.</div>'}</div></div>
+    <div class="card"><div class="hd"><h2>Department tasks</h2><span class="sub">${open.length} open</span><div class="sp"></div>${canWrite?'<button class="btn sm" data-act="deptTask">New task</button>':''}</div><div class="list">
+      ${open.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).slice(0,12).map(t=>{const late=t.due&&daysLeft(t.due+'T23:59')<0;return `<div class="li click" data-edittask="${esc(t.id)}" style="cursor:pointer"><div class="grow"><div class="ttl2">${esc(t.title)}</div><div class="sub">${esc(t.assignee?staffName(t.assignee):'Unassigned')} · ${esc(tStage(t))}${t.due?' · due '+fmtD(t.due):''}</div></div>${late?'<span class="chip bad">Overdue</span>':t.priority&&t.priority!=='Normal'?`<span class="chip amb">${esc(t.priority)}</span>`:''}</div>`}).join('')||'<div class="empty">No open tasks.</div>'}</div></div>
+  </div>`;
+}
+
+async function deptEnsureDocs(){ if((S.departments||[]).length) return; for(const [i,n] of DEPT_DEFAULT.entries()) await put('departments',safeId(n.toLowerCase()).slice(0,40),{name:n,order:i}); }
+async function deptSave(d,v){
+  if(d.doc){ await patch('departments',d.id,v); }
+  else { await deptEnsureDocs(); const ex=(S.departments||[]).find(x=>lcN(x.name)===lcN(d.name)); if(ex) await patch('departments',ex.id,v); else await put('departments',safeId(String(v.name||d.name).toLowerCase()).slice(0,40)||uid(),{name:d.name,order:d.order??50,...v}); }
+}
+function deptEditDrawer(d){
+  const opts=[['','— not set —'],...S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name+(s.department&&lcN(s.department)!==lcN(d?.name)?' ('+s.department+')':'')])];
+  const F=isAdmin?[{k:'name',label:'Department name',req:1},{k:'head',label:'Head of department',type:'select',options:opts},{k:'deputy',label:'Deputy',type:'select',options:opts},{k:'order',label:'Order on the page',type:'number'},{k:'mandate',label:'Mandate / responsibilities',type:'textarea',full:1}]
+    :[{k:'mandate',label:'Mandate / responsibilities',type:'textarea',full:1}];
+  formDrawer(d?(isAdmin?'Edit department':'Edit mandate'):'New department',F,d?{name:d.name,head:d.head||'',deputy:d.deputy||'',order:d.order??'',mandate:d.mandate||''}:{order:(deptList().length)},async v=>{
+    if(v.order!==undefined) v.order=v.order===''?99:+v.order;
+    if(!d){ if(deptByName(v.name)){ toast('A department with this name already exists.'); return false; } await deptEnsureDocs(); await put('departments',safeId(v.name.toLowerCase()).slice(0,40)||uid(),{...v}); logAct(`New department: ${v.name}`); return; }
+    const old=d.name; await deptSave(d,v);
+    if(isAdmin&&v.name&&v.name!==old){ for(const s of S.staff.filter(x=>lcN(x.department)===lcN(old))) await patch('staff',s.id,{department:v.name}); for(const n of deptNotes(d)) await patch('deptnotes',n.id,{dept:v.name}); for(const t of S.tasks.filter(x=>lcN(x.dept)===lcN(old))) await patch('tasks',t.id,{dept:v.name}); routeArg=v.name; }
+    for(const k of ['head','deputy']) if(isAdmin&&v[k]){ const s=byId('staff',v[k]); if(s&&lcN(s.department)!==lcN(v.name||old)) await patch('staff',s.id,{department:v.name||old}); }
+    logAct(`Updated department ${v.name||old}`);
+  },{sub:d?d.name:'Departments',saveLabel:'Save'});
+}
+async function deptObjSave(d,list){ await deptSave(d,{objectives:list}); }
+function deptAlerts(A){
+  const c=myCard(); if(!c||!c.department) return; const d=deptByName(c.department); if(!d) return;
+  deptNotes(d).filter(n=>Date.now()-Date.parse(n.at||0)<3*864e5&&n.by_uid!==me.id).forEach(n=>A.push({lvl:'blue',kind:'Department notice',text:`${d.name}: ${n.title||''}`,sub:`${n.by||''} · ${fmtDT(n.at)}`,go:['dept',d.name],sort:24,at:n.at}));
+}
+async function deptAction(act,el){
+  const d=deptByName(routeArg);
+  if(act==='deptNew'){ if(isAdmin) deptEditDrawer(null); return true; }
+  if(!d) return false;
+  if(act==='deptEdit'){ if(isDeptAdmin(d)) deptEditDrawer(d); return true; }
+  if(act==='deptDel'){ if(isAdmin&&d.doc&&!deptMembers(d).length&&await confirmBox(`Delete the department "${d.name}"? Its notices are removed too.`,'Delete',true)){ for(const n of deptNotes(d)) await remove('deptnotes',n.id); await remove('departments',d.id); logAct(`Deleted department ${d.name}`); go('depts'); } return true; }
+  if(act==='deptAddMember'){ if(!isDeptAdmin(d)) return true; const pool=S.staff.filter(s=>s.status!=='Left'&&lcN(s.department)!==lcN(d.name)&&(isAdmin||!s.department));
+    if(!pool.length){ toast(isAdmin?'Everyone is already in this department.':'No unassigned staff. An administrator can move staff from another department.'); return true; }
+    formDrawer(`Add member – ${d.name}`,[{k:'sid',label:isAdmin?'Staff member':'Staff member (not yet in a department)',type:'select',options:[['','— choose —'],...pool.map(s=>[s.id,s.name+(s.department?' (now '+s.department+')':'')])],req:1}],{},async v=>{ const s=byId('staff',v.sid); if(!s) return false; await patch('staff',s.id,{department:d.name}); logAct(`${s.name} added to ${d.name}`); },{sub:d.name,saveLabel:'Add'}); return true; }
+  if(act==='deptNote'){ if(!isDeptAdmin(d)) return true; formDrawer(`Post notice – ${d.name}`,[{k:'title',label:'Title',req:1,full:1},{k:'body',label:'Message',type:'textarea',full:1},{k:'pinned',label:'Pin to top',type:'select',options:['No','Yes']}],{pinned:'No'},async v=>{
+      await deptEnsureDocs(); await put('deptnotes',null,{dept:d.name,title:v.title,body:v.body||'',pinned:v.pinned==='Yes',by:me.name||'',by_uid:me.id||'',at:new Date().toISOString()}); logAct(`Notice for ${d.name}: ${v.title}`); },{sub:'Shown to everyone on this department page and as an alert to its members',saveLabel:'Post'}); return true; }
+  if(act==='deptObj'){ if(!isDeptAdmin(d)) return true; const mem=deptMembers(d); formDrawer(`Add objective – ${d.name}`,[{k:'t',label:'Objective',req:1,full:1,ph:'e.g. Submit 6 priced tenders this quarter'},{k:'due',label:'Target date',type:'date'},{k:'owner',label:'Responsible',type:'select',options:[['','— department —'],...mem.map(s=>[s.id,s.name])]},{k:'status',label:'Status',type:'select',options:DEPT_OBJ_ST}],{status:'On track'},async v=>{ await deptObjSave(d,[...(d.objectives||[]),{...v,at:new Date().toISOString()}]); logAct(`Objective for ${d.name}: ${v.t}`); },{sub:d.name,saveLabel:'Add'}); return true; }
+  if(act==='deptTask'){ const mem=deptMembers(d); formDrawer(`New task – ${d.name}`,TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:[['','— unassigned —'],...mem.map(s=>[s.id,s.name])]}:f.k==='project_id'?{...f,options:projOpts()}:f),{priority:'Normal'},async v=>{ await put('tasks',null,{...v,dept:d.name,status:'To do',created_by:me.name||'',created_uid:me.id||'',...(v.assignee?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`New ${d.name} task: ${v.title}`); },{sub:d.name}); return true; }
+  return false;
+}
+async function deptClick(el){
+  const d=deptByName(routeArg); if(!d) return false;
+  if(el.dataset.deptrm){ const s=byId('staff',el.dataset.deptrm); if(s&&isDeptAdmin(d)&&await confirmBox(`Remove ${s.name} from ${d.name}? Their staff card stays; they become "not in a department".`,'Remove',true)){ await patch('staff',s.id,{department:''}); logAct(`${s.name} removed from ${d.name}`); } return true; }
+  if(el.dataset.deptnote){ const n=byId('deptnotes',el.dataset.deptnote); if(n&&isDeptAdmin(d)&&await confirmBox('Remove this notice?','Remove',true)) await remove('deptnotes',n.id); return true; }
+  if(el.dataset.deptobjrm!==undefined){ if(!isDeptAdmin(d)) return true; const L=[...(d.objectives||[])]; const o=L[+el.dataset.deptobjrm]; if(o&&await confirmBox(`Remove the objective "${o.t}"?`,'Remove',true)){ L.splice(+el.dataset.deptobjrm,1); await deptObjSave(d,L); } return true; }
+  return false;
+}
+async function deptChange(el){ const d=deptByName(routeArg); if(!d||!isDeptAdmin(d)) return; const L=[...(d.objectives||[])], i=+el.dataset.deptobj; if(!L[i]) return; L[i]={...L[i],status:el.value}; await deptObjSave(d,L); logAct(`${d.name} objective "${L[i].t}" → ${el.value}`); }
+
 /* ===================== FORM DRAWERS ===================== */
 function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
 function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -2912,7 +3036,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.nk) nsMarkRead([el.dataset.nk]);
   if(el.dataset.go==='alerts'&&route!=='alerts') nsOpened();
   if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } if(el.dataset.go==='logins'){ try{ closeDrawer(); }catch(_){} if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); return; } go(el.dataset.go); return; }
-  if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else openDrawer(k,id); return; }
+  if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else if(k==='dept') go('dept',id); else openDrawer(k,id); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
@@ -2928,6 +3052,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.editsnag){ recEdit('snags',el.dataset.editsnag,'Snag',SNAG_FIELDS,'Snags & close-out'); return; }
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
   if(el.dataset.ttab){ UI.ttab=el.dataset.ttab; renderView(true); return; }
+  if((el.dataset.deptrm||el.dataset.deptnote||el.dataset.deptobjrm!==undefined)&&await deptClick(el)) return;
   if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
   if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); toast(`${c.no} marked ${st.toLowerCase()}. Open it to adjust dates or amount.`); return; }
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
@@ -2974,6 +3099,7 @@ document.addEventListener('click', async e=>{
     await patch('boqs',b.id,{title:b.title,project_id:b.project_id||'',contingency:b.contingency,vat:b.vat,bills}); return; }
   const act=el.dataset.act; if(!act) return;
   const T=drawer?.type==='tender'?byId('tenders',drawer.id):null;
+  if(/^dept/.test(act)&&await deptAction(act,el)) return;
   switch(act){
     case 'close': closeDrawer(); break;
     case 'pushOn': window.NX_PUSH_ON&&window.NX_PUSH_ON(); break;
@@ -3101,6 +3227,7 @@ document.addEventListener('change', async e=>{
   else if(el.id==='fproj'){ UI.fproj=el.value; renderView(true); }
   else if(el.id==='xlsxFile'&&el.files[0]){ await importXlsx(el.files[0]); el.value=''; }
   else if(el.id&&el.id.startsWith('ck_')&&drawer?.type==='tender'){ const t=byId('tenders',drawer.id); const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); t.checklist=cl; const s=checklistState(t); const c=$('#ckCount'), b=$('#ckBar'); if(c){ c.textContent=`${s.done}/${s.total}`; c.className='chip '+(s.pct===100?'good':s.pct>=50?'amb':''); } if(b) b.style.width=s.pct+'%'; await patch('tenders',t.id,{checklist:cl}); }
+  else if(el.dataset.deptobj!==undefined){ await deptChange(el); el.blur(); }
   else if(el.dataset.tstat){ const t=byId('tasks',el.dataset.tstat); await patch('tasks',t.id,{status:el.value}); logAct(`Task "${t.title}" → ${el.value}`); el.blur(); }
   else if(el.dataset.myphoto&&el.files[0]){ const f=el.files[0]; el.value=''; await myPhotoUpload(f); }
   else if(el.dataset.staffphoto&&el.files[0]){ toast('Uploading photo…'); try{ const ref=await storePhoto(el.files[0]); await patch('staff',el.dataset.staffphoto,{photo:ref,photo_at:new Date().toISOString()}); toast('Photo updated.'); }catch(_){ toast('Photo upload failed.'); } }
