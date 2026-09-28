@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=73"></script>
+<script src="config.js?v=74"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=73"></script>
-<script src="nexus-chat.js?v=73"></script>
+<script src="nexus-sb.js?v=74"></script>
+<script src="nexus-chat.js?v=74"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1131,7 +1131,7 @@ function pageReports(){
   let rs=[...S.reports].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(UI.rproj!=='All') rs=rs.filter(r=>r.project_id===UI.rproj);
   const groups={}; rs.forEach(r=>(groups[r.project_id]=groups[r.project_id]||[]).push(r));
-  return `<div class="toolbar"><select class="inp" id="rproj" aria-label="Project filter"><option value="All">All projects</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.rproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><div class="sp"></div><button class="btn pri" data-act="newReport">New site report</button></div>
+  return `<div class="toolbar"><select class="inp" id="rproj" aria-label="Project filter"><option value="All">All projects</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.rproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><div class="sp"></div><button class="btn" data-act="rpDownload">Download</button><button class="btn pri" data-act="newReport">New site report</button></div>
   ${Object.keys(groups).length?Object.entries(groups).map(([pid,list])=>`<div class="card"><div class="hd"><h2>${esc(projName(pid))}</h2><div class="sp"></div><span class="sub">${list.length} reports</span></div><div class="list">
     ${list.map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="stripe ${r.hse&&!/^(none|nil|no)\b/i.test(r.hse.trim())?'bad':r.issues?'warn':'good'}"></div><div class="grow">
       <div class="toolbar"><b>${fmtD(r.date)}</b><span class="sub">${esc(r.author||'')} · ${esc(r.weather||'')} · ${r.workforce??'?'} workers</span>${r.ai_summary?'<span class="ai-tag">AI</span>':''}</div>
@@ -1152,7 +1152,78 @@ function reportDrawer(r){
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd class="prose">${esc(v)}</dd>`).join('')}</dl>
   ${(r.photos||[]).length?`<div class="card"><div class="hd"><h2>Photos</h2><span class="sub">${r.photos.length}</span></div><div class="bd photos">${r.photos.map(p=>photoTag(p)).join('')}</div></div>`:''}
   <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}</div></div>`;
-  return drawerShell(`${projName(r.project_id)} · ${fmtD(r.date)}`, 'Site report', body, `<button class="btn dark" data-act="editReport">Edit</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delReport">Delete</button>':''}`);
+  return drawerShell(`${projName(r.project_id)} · ${fmtD(r.date)}`, 'Site report', body, `<button class="btn dark" data-act="editReport">Edit</button><button class="btn" data-act="rpDownloadOne">Download (Word)</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delReport">Delete</button>':''}`);
+}
+
+/* ===================== v74 SITE REPORT DOWNLOADS (all staff) ===================== */
+async function rpImgB64(ref){
+  try{
+    let src=ref.startsWith('asset:')?ref.slice(6):null;
+    if(!src){ const id=ref.slice(3); if(photoCache[id]) src=photoCache[id]; else if(db){ const s=await db.doc('photos/'+id).get(); src=s.exists?s.data().data:''; } }
+    if(!src) return null;
+    const bmp=await new Promise((res,rej)=>{ const im=new Image(); if(!src.startsWith('data:')) im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=()=>rej(new Error('image did not load')); im.src=src; });
+    const k=Math.min(1,900/Math.max(bmp.naturalWidth||bmp.width,bmp.naturalHeight||bmp.height)); const W0=bmp.naturalWidth||bmp.width, H0=bmp.naturalHeight||bmp.height;
+    const c=document.createElement('canvas'); c.width=Math.round(W0*k); c.height=Math.round(H0*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return {b64:c.toDataURL('image/jpeg',.8).split(',')[1], w:c.width, h:c.height};
+  }catch(e){ console.warn('photo skipped',e); return null; }
+}
+function rpX(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
+function rpRun(t,o={}){ const pr=`${o.b?'<w:b/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}`; return String(t??'').split('\n').map((ln,i)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${i?'<w:br/>':''}<w:t xml:space="preserve">${rpX(ln)}</w:t></w:r>`).join(''); }
+function rpPara(t,o={}){ return `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after??80}"/>${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="539FDC"/></w:pBdr>':''}</w:pPr>${rpRun(t,o)}</w:p>`; }
+function rpPic(n,w,h){ const E=9525; return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${w*E}" cy="${h*E}"/><wp:docPr id="${n}" name="Photo ${n}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="photo${n}.jpeg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="img${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${w*E}" cy="${h*E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`; }
+function rpDocx(bodyXml, images){
+  const CFB=XLSX.CFB, c=CFB.utils.cfb_new(), enc=new TextEncoder(), add=(p,d)=>CFB.utils.cfb_add(c,p,typeof d==='string'?enc.encode(d):d);
+  add('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  add('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  add('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${images.map((im,i)=>`<Relationship Id="img${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/photo${i+1}.jpeg"/>`).join('')}</Relationships>`);
+  add('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  images.forEach((im,i)=>add(`word/media/photo${i+1}.jpeg`,im.bytes));
+  return CFB.write(c,{fileType:'zip',type:'array'});
+}
+async function rpDownloadWord(list, title, withPhotos=true){
+  if(!list.length){ toast('No site reports to download.'); return; }
+  if(!downloads){ toast('Downloads are not available in this view.'); return; }
+  try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const c=company(), imgs=[]; let skipped=0;
+  if(withPhotos){ const all=list.reduce((a,r)=>a+(r.photos||[]).length,0); if(all) toast(`Preparing ${all} photo${all===1?'':'s'}…`); }
+  const cell=(t,label)=>`<w:tc><w:tcPr><w:tcW w:w="${label?2700:7200}" w:type="dxa"/>${label?'<w:shd w:val="clear" w:color="auto" w:fill="EEF1F6"/>':''}</w:tcPr>${String(t??'').split('\n').length?`<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>${rpRun(t,label?{b:1}:{})}</w:p>`:''}</w:tc>`;
+  const tblPr='<w:tblPr><w:tblW w:w="9900" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="C9CED8"/><w:left w:val="single" w:sz="4" w:color="C9CED8"/><w:bottom w:val="single" w:sz="4" w:color="C9CED8"/><w:right w:val="single" w:sz="4" w:color="C9CED8"/><w:insideH w:val="single" w:sz="4" w:color="C9CED8"/><w:insideV w:val="single" w:sz="4" w:color="C9CED8"/></w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>';
+  let body=rpPara(c.name.toUpperCase(),{b:1,sz:32,color:'182340',after:40})+rpPara(title,{color:'539FDC',sz:24,after:200});
+  for(const r of list){
+    const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers on site',r.workforce],['Work done',r.work_done],['Materials received',r.materials],['Plant / equipment',r.plant],['Issues / delays',r.issues],['Health & safety',r.hse],['Plan for next day',r.next_day],['AI summary',r.ai_summary]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
+    body+=rpPara(`${projName(r.project_id)} – ${fmtD(r.date)}`,{b:1,sz:26,color:'182340',before:240,after:100,border:1});
+    body+=`<w:tbl>${tblPr}<w:tblGrid><w:gridCol w:w="2700"/><w:gridCol w:w="7200"/></w:tblGrid>${kv.map(([k,v])=>`<w:tr>${cell(k,1)}${cell(v,0)}</w:tr>`).join('')}</w:tbl>`;
+    if(withPhotos&&(r.photos||[]).length){ const cells=[];
+      for(const p of r.photos){ const im=await rpImgB64(p); if(!im){ skipped++; continue; } const bin=atob(im.b64), bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); imgs.push({bytes}); const w=310, h=Math.round(im.h*w/im.w); cells.push(rpPic(imgs.length,w,h)); }
+      if(cells.length){ body+=rpPara(`Photos (${cells.length})`,{b:1,before:160,after:60});
+        const rows=[]; for(let i=0;i<cells.length;i+=2) rows.push(cells.slice(i,i+2));
+        body+=`<w:tbl><w:tblPr><w:tblW w:w="9900" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="4950"/><w:gridCol w:w="4950"/></w:tblGrid>${rows.map(rw=>`<w:tr>${[0,1].map(k=>`<w:tc><w:tcPr><w:tcW w:w="4950" w:type="dxa"/></w:tcPr><w:p>${rw[k]||''}</w:p></w:tc>`).join('')}</w:tr>`).join('')}</w:tbl>`; } }
+    else if((r.photos||[]).length) body+=rpPara(`${r.photos.length} photo(s) in NEXUS.`,{color:'5A6580',before:80});
+  }
+  body+=rpPara(`Downloaded from NORDIC NEXUS${me.name?' by '+me.name:''} on ${fmtDT(new Date())}.`,{color:'5A6580',sz:17,before:300});
+  const data=rpDocx(body,imgs), name=safeId(title).slice(0,70)||'Site_reports';
+  try{ await downloads.save({filename:name+'.docx', data:new Uint8Array(data), type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}); logAct(`Downloaded ${list.length} site report${list.length===1?'':'s'} (${title})`); toast(`Downloaded ${list.length} report${list.length===1?'':'s'}${skipped?` – ${skipped} photo(s) could not be added`:''}.`); }
+  catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
+}
+async function rpDownloadExcel(list, title){
+  if(!list.length){ toast('No site reports to download.'); return; }
+  try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const rows=[[company().name.toUpperCase()+' – '+title],[],['Date','Project','Reported by','Weather','Workers','Work done','Materials received','Plant','Issues / delays','HSE','Next day','Photos']];
+  list.forEach(r=>rows.push([r.date||'',projName(r.project_id),r.author||'',r.weather||'',r.workforce??'',r.work_done||'',r.materials||'',r.plant||'',r.issues||'',r.hse||'',r.next_day||'',(r.photos||[]).length]));
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:11},{wch:28},{wch:16},{wch:12},{wch:8},{wch:60},{wch:30},{wch:24},{wch:40},{wch:30},{wch:40},{wch:7}]; XLSX.utils.book_append_sheet(wb,ws,'Site reports');
+  if(!downloads){ toast('Downloads are not available in this view.'); return; }
+  try{ await downloads.save({filename:(safeId(title).slice(0,70)||'Site_reports')+'.xlsx', data:new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'}))}); logAct(`Downloaded ${list.length} site reports as Excel (${title})`); }
+  catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
+}
+function rpDownloadForm(){
+  const d0=today().slice(0,8)+'01';
+  formDrawer('Download site reports',[{k:'project_id',label:'Project',type:'select',options:[['All','All projects'],...S.projects.map(p=>[p.id,p.name])]},{k:'from',label:'From',type:'date'},{k:'to',label:'To',type:'date'},{k:'format',label:'Format',type:'select',options:[['word','Word – with photos'],['wordnp','Word – without photos (smaller file)'],['excel','Excel – list']]}],
+    {project_id:UI.rproj||'All',from:d0,to:today(),format:'word'},
+    async v=>{ const list=S.reports.filter(r=>(v.project_id==='All'||r.project_id===v.project_id)&&(!v.from||(r.date||'')>=v.from)&&(!v.to||(r.date||'')<=v.to)).sort((a,b)=>(a.project_id===b.project_id?(a.date||'').localeCompare(b.date||''):projName(a.project_id).localeCompare(projName(b.project_id))));
+      const title=`Site reports – ${v.project_id==='All'?'all projects':projName(v.project_id)} – ${v.from?fmtD(v.from):'start'} to ${v.to?fmtD(v.to):'today'}`;
+      if(!list.length){ toast('No site reports in that period.'); return false; }
+      closeDrawer(); if(v.format==='excel') await rpDownloadExcel(list,title); else await rpDownloadWord(list,title,v.format==='word'); return false; },
+    {saveLabel:'Download'});
 }
 
 /* ===================== QS STUDIO ===================== */
@@ -2885,6 +2956,8 @@ document.addEventListener('click', async e=>{
     case 'delProject': { const p=byId('projects',drawer.id); if(await removeProject(p)) closeDrawer(); } break;
     case 'delProjectWs': { const p=byId('projects',routeArg); if(await removeProject(p)) go('projects'); } break;
     case 'showRemovedProj': UI.showRemovedProj=!UI.showRemovedProj; renderAll(); break;
+    case 'rpDownload': rpDownloadForm(); break;
+    case 'rpDownloadOne': { const r=byId('reports',drawer?.id); if(r) await rpDownloadWord([r],`Site report – ${projName(r.project_id)} – ${fmtD(r.date)}`,true); } break;
     case 'newReport': openDrawer('report-form',null,{proj:el.dataset.proj||(UI.rproj!=='All'?UI.rproj:'')}); break;
     case 'editReport': openDrawer('report-form',drawer.id); break;
     case 'saveReport': saveReport(); break;
