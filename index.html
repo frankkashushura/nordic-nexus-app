@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=82"></script>
+<script src="config.js?v=83"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=82"></script>
-<script src="nexus-chat.js?v=82"></script>
+<script src="nexus-sb.js?v=83"></script>
+<script src="nexus-chat.js?v=83"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -441,6 +441,65 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 :root[data-theme="dark"] body::before{opacity:.35;filter:invert(1)}
 @media (max-width:900px){.pg-bg{height:300px}.view{padding-top:20px}}
 @media (prefers-reduced-motion:reduce){.pg-bg i{transition:none}}
+
+/* ===== v83 civil-engineering themes (Blueprint · Concrete · Steel · Earthworks) ===== */
+:root[data-theme="blueprint"]{color-scheme:dark;
+  --bg:#0A2E57; --panel:#0F3C70; --panel2:#0C3563; --ink:#EEF5FF; --muted:#AFC8E6; --line:#2E609A;
+  --steel:#061E3B; --steel-ink:#EEF5FF; --steel-muted:#8DAAD0; --steel-line:#123560;
+  --accent:#FFB400; --accent-ink:#0A2440; --accent-soft:#1B4B80;
+  --amber:#FFB400; --amber-ink:#0A2440; --amber-soft:#3D3A1F;
+  --blue:#8CCBFF; --blue-soft:#17497E;
+  --good:#63D695; --good-soft:#114A45; --warn:#FFC857; --warn-soft:#4A3F1C; --bad:#FF8A70; --bad-soft:#4F2635;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.28); --hd-bg:rgba(255,255,255,.045); --card-bd:rgba(160,205,255,.38)}
+:root[data-theme="concrete"]{color-scheme:light;
+  --bg:#BAB6AD; --panel:#ECE9E3; --panel2:#DDD9D0; --ink:#1E2227; --muted:#50565E; --line:#B5B0A5;
+  --steel:#2A2E33; --steel-ink:#F2F0EB; --steel-muted:#A5A9AE; --steel-line:#3A3F45;
+  --accent:#E8671A; --accent-ink:#FFFFFF; --accent-soft:#F6D8C4;
+  --amber:#F59E0B; --amber-ink:#1E2227; --amber-soft:#F7E3B8;
+  --blue:#2D5E8B; --blue-soft:#D3DFEA;
+  --good:#2E7D4F; --good-soft:#D6EADC; --warn:#9A6500; --warn-soft:#F5E4BD; --bad:#B8402A; --bad-soft:#F3D8D1;
+  --shadow:0 1px 2px rgba(30,34,39,.12),0 6px 18px rgba(30,34,39,.10); --hd-bg:linear-gradient(180deg,#E3DFD7,#ECE9E3); --card-bd:#ABA69A}
+:root[data-theme="steel"]{color-scheme:dark;
+  --bg:#14171A; --panel:#22272C; --panel2:#1A1E22; --ink:#EDF0F3; --muted:#9CA5AF; --line:#353C44;
+  --steel:#0D0F11; --steel-ink:#EDF0F3; --steel-muted:#8C959E; --steel-line:#22272C;
+  --accent:#FFD400; --accent-ink:#14171A; --accent-soft:#3A3512;
+  --amber:#FFD400; --amber-ink:#14171A; --amber-soft:#3A3512;
+  --blue:#72B8FF; --blue-soft:#1C2E42;
+  --good:#5FCB8A; --good-soft:#15301F; --warn:#FFC74D; --warn-soft:#3A2E12; --bad:#FF7F66; --bad-soft:#3E1F19;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px rgba(0,0,0,.35); --hd-bg:linear-gradient(180deg,#2A3036,#22272C); --card-bd:#3A424A}
+:root[data-theme="earthworks"]{color-scheme:light;
+  --bg:#D6C5A2; --panel:#F8F2E5; --panel2:#EEE3CC; --ink:#33291C; --muted:#6B5C47; --line:#CFBD98;
+  --steel:#34432A; --steel-ink:#F5EFDF; --steel-muted:#BAC2A6; --steel-line:#45563A;
+  --accent:#D99A00; --accent-ink:#2A2115; --accent-soft:#F3E0AE;
+  --amber:#E3A400; --amber-ink:#2A2115; --amber-soft:#F3E0AE;
+  --blue:#3B6C9E; --blue-soft:#DCE4EC;
+  --good:#3C7A38; --good-soft:#DCEBD5; --warn:#8F5E00; --warn-soft:#F4E3BC; --bad:#B0402A; --bad-soft:#F2D8CF;
+  --shadow:0 1px 2px rgba(51,41,28,.12),0 6px 18px rgba(51,41,28,.10); --hd-bg:linear-gradient(180deg,#F1E7D2,#F8F2E5); --card-bd:#C9B58D}
+:root[data-theme="blueprint"] .card,:root[data-theme="concrete"] .card,:root[data-theme="steel"] .card,:root[data-theme="earthworks"] .card{border-color:var(--card-bd)}
+:root[data-theme="blueprint"] .card>.hd,:root[data-theme="concrete"] .card>.hd,:root[data-theme="steel"] .card>.hd,:root[data-theme="earthworks"] .card>.hd{background:var(--hd-bg);border-radius:var(--r) var(--r) 0 0}
+/* backgrounds: drawing grid · concrete · brushed steel · contour lines */
+:root[data-theme="blueprint"] body::before{opacity:1;filter:none;background-image:linear-gradient(rgba(190,225,255,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(190,225,255,.10) 1px,transparent 1px),linear-gradient(rgba(190,225,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(190,225,255,.045) 1px,transparent 1px),radial-gradient(ellipse at 15% 0%,rgba(120,180,255,.18),transparent 55%);background-size:100px 100px,100px 100px,20px 20px,20px 20px,100% 100%}
+:root[data-theme="blueprint"] .card{background-image:linear-gradient(rgba(190,225,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(190,225,255,.035) 1px,transparent 1px);background-size:20px 20px}
+:root[data-theme="blueprint"] .card>.hd h2{color:#fff;letter-spacing:.04em}
+:root[data-theme="concrete"] body::before{opacity:1;filter:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .25 0 0 0 0 .24 0 0 0 0 .22 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),radial-gradient(circle at 12% 18%,rgba(0,0,0,.06) 0 3px,transparent 4px),radial-gradient(circle at 68% 62%,rgba(0,0,0,.05) 0 2px,transparent 3px);background-size:260px 260px,180px 180px,140px 140px}
+:root[data-theme="concrete"] .card>.hd h2::before{background:var(--accent)}
+:root[data-theme="steel"] body::before{opacity:1;filter:none;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.028) 0 2px,transparent 2px 7px),radial-gradient(ellipse at 80% 0%,rgba(255,212,0,.07),transparent 50%)}
+:root[data-theme="steel"] .card{border-top:3px solid #3F474F}
+:root[data-theme="steel"] .card.kpi.hot{border-top-color:var(--bad)} :root[data-theme="steel"] .card.kpi.amb{border-top-color:var(--amber)} :root[data-theme="steel"] .card.kpi.blu{border-top-color:var(--blue)} :root[data-theme="steel"] .card.kpi.grn{border-top-color:var(--good)}
+:root[data-theme="earthworks"] body::before{opacity:1;filter:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360' viewBox='0 0 360 360'%3E%3Cg fill='none' stroke='%237a6441' stroke-opacity='.16' stroke-width='1.2'%3E%3Cpath d='M-20 60c60-40 120 40 200 0s140-50 200 10'/%3E%3Cpath d='M-20 110c70-40 130 40 210 0s130-40 190 10'/%3E%3Cpath d='M-20 160c60-30 140 50 220 5s120-45 180 5'/%3E%3Cpath d='M-20 220c80-50 120 40 200 0s150-40 200 15'/%3E%3Cpath d='M-20 280c60-30 130 40 210 0s140-45 190 5'/%3E%3Cpath d='M-20 330c70-40 120 40 200 0s140-40 200 10'/%3E%3C/g%3E%3C/svg%3E")}
+:root[data-theme="blueprint"] .top::after{background:repeating-linear-gradient(-45deg,#FFB400 0 10px,#061E3B 10px 20px)}
+:root[data-theme="steel"] .top::after{background:repeating-linear-gradient(-45deg,#FFD400 0 10px,#0D0F11 10px 20px)}
+:root[data-theme="earthworks"] .top::after{background:repeating-linear-gradient(-45deg,#E3A400 0 10px,#34432A 10px 20px)}
+:root[data-theme="concrete"] .top::after{background:repeating-linear-gradient(-45deg,#E8671A 0 10px,#2A2E33 10px 20px)}
+:root[data-theme="blueprint"] .nav button[aria-current="page"],:root[data-theme="steel"] .nav button[aria-current="page"],:root[data-theme="earthworks"] .nav button[aria-current="page"]{color:var(--amber-ink)}
+:root[data-theme="concrete"] .nav button[aria-current="page"]{background:var(--accent);color:#fff}
+/* theme picker swatches */
+.thm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;width:100%}
+.thm{all:unset;cursor:pointer;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column}
+.thm[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.thm .sw{height:58px;position:relative;display:flex;align-items:flex-end;gap:5px;padding:7px}
+.thm .sw i{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.2)}
+.thm b{padding:7px 9px 2px;font-size:13px} .thm span{padding:0 9px 8px;font-size:11.5px;color:var(--muted)}
 </style>
 
 <div class="app" id="app">
@@ -1878,9 +1937,10 @@ const staffPhotoRef=s=>pickPhoto(avatarFor(s.email),s);
 const myPhotoRef=()=>pickPhoto(S.avatars.find(a=>a.id===me.id),S.staff.find(isMyStaff));
 function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhotoRef(); const h=r?photoTag(r).replace(' data-zoom',''):esc(initials(me.name||'You')); if(el.__h!==h){ el.innerHTML=h; el.__h=h; } }
 function myPhotoDrawer(){ const r=myPhotoRef(), mine=S.avatars.find(a=>a.id===me.id), card=S.staff.find(isMyStaff);
-  return drawerShell('My profile photo',esc(me.name||''),`<div class="card"><div class="bd" style="text-align:center">
+  return drawerShell('My profile',esc(me.name||''),`<div class="card"><div class="bd" style="text-align:center">
     <div class="myph">${r?photoTag(r):esc(initials(me.name||'You'))}</div>
     <p class="sub" style="margin:10px 0 0">Shown in the top bar and in the Staff list.</p>
+  </div></div><div class="card"><div class="hd"><h2>Theme</h2><span class="sub">How NEXUS looks for you</span></div><div class="bd">${themePicker()}
   </div></div>`,`<label class="btn pri" style="cursor:pointer"><span id="myphLbl">${r?'Change photo':'Upload photo'}</span><input type="file" accept="image/*" data-myphoto="1" hidden></label>${mine&&mine.photo?'<button class="btn" data-act="myPhotoDel">Remove</button>':''}<button class="btn" data-act="close">Close</button>`); }
 async function myPhotoUpload(file){ if(!db||!me.id) return; const l=$('#myphLbl'); if(l) l.innerHTML='<span class="spin"></span> Uploading…';
   try{ const ref=await storePhoto(file); if(await put('avatars',me.id,{photo:ref,email:lcE(me.email),name:me.name||'',at:new Date().toISOString()})){ toast('Profile photo updated.'); if(drawer?.type==='myphoto') closeDrawer(); } else if(l) l.textContent='Upload photo'; }
@@ -2093,7 +2153,7 @@ function pageSettings(){
       <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.${isAdmin?' <button class="btn sm pri" data-go="logins" style="margin-left:6px">Manage logins</button>':''}</p></div></div>
     ${isAdmin&&window.NX_BACKUP_CARD?window.NX_BACKUP_CARD(S.backup):''}
     <div class="card"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:420px;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
-    <div class="card"><div class="hd"><h2>Appearance</h2></div><div class="bd toolbar"><div class="seg">${['System','Light','Dark'].map(t=>`<button data-thm="${t}" aria-pressed="${(UI.theme||'System')===t}">${t}</button>`).join('')}</div><span class="label" style="margin-left:10px">Site photos</span><div class="seg">${['On','Off'].map(t=>`<button data-photos="${t}" aria-pressed="${(UI.photos||'On')===t}">${t}</button>`).join('')}</div></div></div>
+    <div class="card"><div class="hd"><h2>Appearance</h2><span class="sub">Your choice, on this device</span></div><div class="bd">${themePicker()}</div><div class="bd toolbar" style="padding-top:0"><span class="label">Site photos</span><div class="seg">${['On','Off'].map(t=>`<button data-photos="${t}" aria-pressed="${(UI.photos||'On')===t}">${t}</button>`).join('')}</div></div></div>
   </div></div>`;
 }
 
@@ -3058,7 +3118,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
-  if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); return; }
+  if(el.dataset.thm){ UI.theme=el.dataset.thm; applyTheme(); renderView(true); document.querySelectorAll('[data-thm]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.thm===UI.theme))); return; }
   if(el.dataset.photos){ UI.photos=el.dataset.photos; applyPhotos(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
@@ -3258,7 +3318,9 @@ function setPageBg(){
   const im=new Image(); im.onload=()=>{ if(pgLast!==u) return; i.style.setProperty('--pgimg',`url("${u.replace(/"/g,'%22')}")`); b.classList.add('on'); }; im.src=u;
 }
 function applyPhotos(){ const on=(UI.photos||'On')==='On'; if(on) document.documentElement.removeAttribute('data-photos'); else document.documentElement.setAttribute('data-photos','off'); try{localStorage.setItem('nx_photos',UI.photos||'On')}catch(_){} }
-function applyTheme(){ const t=UI.theme||'System'; if(t==='System') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t.toLowerCase()); try{localStorage.setItem('nx_theme',t)}catch(_){} }
+const THEMES=[['Blueprint','Drawing-board blue with a grid',['#0A2E57','#0F3C70','#FFB400','#EEF5FF']],['Concrete','Concrete grey, safety orange',['#BAB6AD','#ECE9E3','#E8671A','#2A2E33']],['Steel','Structural steel, hi-vis yellow',['#14171A','#22272C','#FFD400','#EDF0F3']],['Earthworks','Murram & sand, site green',['#D6C5A2','#F8F2E5','#E3A400','#34432A']],['Light','Classic light',['#E4E2DC','#FCFCFA','#F2A900','#182340']],['Dark','Classic dark',['#0E1425','#162038','#F2B632','#E6EBF5']],['System','Follows the device',['#E4E2DC','#0E1425','#F2A900','#539FDC']]];
+function themePicker(){ const cur=UI.theme||'Blueprint'; return `<div class="thm-grid">${THEMES.map(([n,d,c])=>`<button class="thm" data-thm="${n}" aria-pressed="${cur===n}"><span class="sw" style="background:linear-gradient(135deg,${c[0]} 0 55%,${c[1]} 55%)">${c.map(x=>`<i style="background:${x}"></i>`).join('')}</span><b>${n}</b><span>${d}</span></button>`).join('')}</div>`; }
+function applyTheme(){ const t=UI.theme||'Blueprint'; try{ const m=document.querySelector('meta[name=theme-color]'); const th=THEMES.find(x=>x[0]===t); if(m&&th) m.content=th[0]==='System'||th[0]==='Light'?'#182340':th[2][0]; }catch(_){} if(t==='System') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t.toLowerCase()); try{localStorage.setItem('nx_theme',t)}catch(_){} }
 
 /* ===================== BACK BUTTON (browser, Android, mouse) ===================== */
 try{ history.replaceState({nx:1,route,arg:routeArg}, ''); }catch(_){}
@@ -3389,7 +3451,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
 };
 /* ===================== START ===================== */
 (async function start(){
-  try{ UI.theme=localStorage.getItem('nx_theme')||'System';  }catch(_){}
+  try{ UI.theme=localStorage.getItem('nx_theme')||'Blueprint';  }catch(_){}
   try{ UI.photos=localStorage.getItem('nx_photos')||'On'; }catch(_){} applyPhotos();
   applyTheme(); renderAll();
   try{ if(window.NX_READY) await window.NX_READY; }catch(_){ return; }
