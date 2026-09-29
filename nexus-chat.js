@@ -34,7 +34,9 @@
     await markDelivered(); await loadMine(); badge();
   }
   // ticks like WhatsApp: ✓ sent · ✓✓ grey delivered (the other person's NEXUS received it) · ✓✓ blue read
+  // "delivered" only while this person is really using NEXUS (app on screen) – a hidden/background tab does not count
   async function markDelivered(id) {
+    if (document.visibilityState !== 'visible') return;
     try { let q = sb.from('chat_messages').update({ delivered_at: new Date().toISOString() }).neq('sender', st.me).is('delivered_at', null); if (id) q = q.eq('id', id); await q; } catch (_) {}
   }
   async function loadMine() {
@@ -91,7 +93,7 @@
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, p => onUpd(p.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, async () => { await loadThreads().catch(() => {}); badge(); })
       .subscribe();
-    document.addEventListener('visibilitychange', () => { if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') markDelivered(); if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
   }
   async function onNew(m) {
     let t = st.threads.find(x => x.id === m.thread_id);
