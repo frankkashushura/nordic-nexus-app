@@ -6,7 +6,7 @@
   const MAX = 25 * 1024 * 1024, PAGE = 100;
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const say = m => (window.toast ? window.toast(m) : alert(m));
-  const st = { slow: 0, me: null, people: new Map(), threads: [], unread: {}, cur: null, msgs: {}, more: {}, urls: {}, root: null, q: '', rec: null, ready: false, err: '' };
+  const st = { slow: 0, me: null, people: new Map(), threads: [], unread: {}, mst: {}, cur: null, msgs: {}, more: {}, urls: {}, root: null, q: '', rec: null, ready: false, err: '' };
   window.NX_CHAT_UNREAD = 0; window.NX_CHAT_ALERTS = [];
 
   /* ---------- helpers ---------- */
@@ -30,8 +30,19 @@
   async function loadThreads() { const { data, error } = await sb.from('chat_threads').select('*').order('last_at', { ascending: false }); if (error) throw error; st.threads = data || []; }
   async function loadUnread() {
     const { data } = await sb.from('chat_messages').select('thread_id').is('read_at', null).neq('sender', st.me).eq('deleted', false).limit(2000);
-    st.unread = {}; (data || []).forEach(r => { st.unread[r.thread_id] = (st.unread[r.thread_id] || 0) + 1; }); badge();
+    st.unread = {}; (data || []).forEach(r => { st.unread[r.thread_id] = (st.unread[r.thread_id] || 0) + 1; });
+    await markDelivered(); await loadMine(); badge();
   }
+  // ticks like WhatsApp: ✓ sent · ✓✓ grey delivered (the other person's NEXUS received it) · ✓✓ blue read
+  async function markDelivered(id) {
+    try { let q = sb.from('chat_messages').update({ delivered_at: new Date().toISOString() }).neq('sender', st.me).is('delivered_at', null); if (id) q = q.eq('id', id); await q; } catch (_) {}
+  }
+  async function loadMine() {
+    try { const { data, error } = await sb.from('chat_messages').select('thread_id,delivered_at').eq('sender', st.me).is('read_at', null).eq('deleted', false).limit(2000); if (error) return;
+      const m = {}; (data || []).forEach(r => { if (!r.delivered_at) m[r.thread_id] = 'sent'; else if (!m[r.thread_id]) m[r.thread_id] = 'delivered'; }); st.mst = m; } catch (_) {}
+  }
+  let mineT = null; function refreshMine() { clearTimeout(mineT); mineT = setTimeout(async () => { await loadMine(); if (st.root) renderList(); }, 400); }
+  const listTick = t => { const s = st.mst[t.id]; return s === 'sent' ? `<span style="color:var(--wa-sub)" title="Sent">${IC.t1}</span> ` : s === 'delivered' ? `<span style="color:var(--wa-sub)" title="Delivered">${IC.t2}</span> ` : `<span class="rd" style="color:var(--wa-tick)" title="Read">${IC.t2}</span> `; };
   async function loadMsgs(tid, older) {
     let q = sb.from('chat_messages').select('*').eq('thread_id', tid).order('created_at', { ascending: false }).limit(PAGE);
     const have = st.msgs[tid] || [];
@@ -59,7 +70,7 @@
         for (const m of (data || []).reverse()) {
           const i = list.findIndex(x => x.id === m.id);
           if (i < 0) { const t = list.findIndex(x => x.tmp && x.sender === m.sender && x.kind === m.kind && (x.body || '') === (m.body || '')); if (t >= 0) list.splice(t, 1); list.push(m); changed = true; }
-          else if (list[i].read_at !== m.read_at || list[i].deleted !== m.deleted) { list[i] = m; changed = true; }
+          else if (list[i].read_at !== m.read_at || list[i].delivered_at !== m.delivered_at || list[i].deleted !== m.deleted) { list[i] = m; changed = true; if (m.sender === st.me) refreshMine(); }
         }
         if (changed) { list.sort((a, b) => a.created_at.localeCompare(b.created_at)); renderMsgs(false); }
         if (list.some(m => m.sender !== st.me && !m.read_at)) markRead(tid).catch(() => {});
@@ -88,13 +99,15 @@
     const list = st.msgs[m.thread_id];
     if (list && !list.some(x => x.id === m.id)) { const tmp = list.findIndex(x => x.tmp && x.sender === m.sender && x.body === m.body && x.kind === m.kind); if (tmp >= 0) list.splice(tmp, 1); list.push(m); }
     if (t) { t.last_at = m.created_at; t.last_from = m.sender; t.last_text = preview(m); st.threads.sort((a, b) => b.last_at.localeCompare(a.last_at)); }
+    if (m.sender === st.me) { if (!m.read_at) st.mst[m.thread_id] = m.delivered_at ? 'delivered' : 'sent'; }
     if (m.sender !== st.me) {
+      if (!m.delivered_at) markDelivered(m.id);
       if (st.cur === m.thread_id && visible()) markRead(m.thread_id).catch(() => {});
       else { st.unread[m.thread_id] = (st.unread[m.thread_id] || 0) + 1; beep(); if ((window.NX_ROUTE && window.NX_ROUTE()) !== 'chat' || st.cur !== m.thread_id) say(`💬 ${pName(m.sender)}: ${preview(m)}`); }
     }
     badge(); if (st.cur === m.thread_id) renderMsgs(true);
   }
-  function onUpd(m) { const list = st.msgs[m.thread_id]; if (!list) return; const i = list.findIndex(x => x.id === m.id); if (i >= 0) { list[i] = m; if (st.cur === m.thread_id) renderMsgs(false); } }
+  function onUpd(m) { if (m.sender === st.me) refreshMine(); const list = st.msgs[m.thread_id]; if (!list) return; const i = list.findIndex(x => x.id === m.id); if (i >= 0) { list[i] = m; if (st.cur === m.thread_id) renderMsgs(false); } }
   const preview = m => m.deleted ? 'Message deleted' : m.kind === 'text' ? String(m.body || '').slice(0, 120) : { image: '📷 Photo', video: '🎬 Video', audio: '🎤 Voice note' }[m.kind] || '📄 ' + (m.file_name || 'Document');
 
   /* ---------- sending ---------- */
@@ -462,7 +475,7 @@
     const th = st.threads.filter(t => !q || pName(other(t)).toLowerCase().includes(q));
     const ppl = [...st.people.values()].filter(p => !withThread.has(p.user_id) && (!q || (p.name || '').toLowerCase().includes(q) || (p.job || '').toLowerCase().includes(q)));
     box.innerHTML = th.map(t => { const o = other(t), u = st.unread[t.id] || 0, mine = t.last_from === st.me;
-      return `<div class="nxc-it ${st.cur === t.id ? 'on' : ''}" data-c="open" data-v="${t.id}">${av(pName(o))}<div class="g"><div class="r1"><span class="n">${esc(pName(o))}</span><span class="t ${u ? 'u' : ''}">${listTime(t.last_text ? t.last_at : '')}</span></div><div class="r2"><span class="p">${mine && t.last_text ? '<span style="color:var(--wa-sub)">' + IC.t1 + '</span> ' : ''}${esc(t.last_text || 'Tap to start chatting')}</span>${u ? `<span class="nxc-u">${u}</span>` : ''}</div></div></div>`; }).join('')
+      return `<div class="nxc-it ${st.cur === t.id ? 'on' : ''}" data-c="open" data-v="${t.id}">${av(pName(o))}<div class="g"><div class="r1"><span class="n">${esc(pName(o))}</span><span class="t ${u ? 'u' : ''}">${listTime(t.last_text ? t.last_at : '')}</span></div><div class="r2"><span class="p">${mine && t.last_text ? listTick(t) : ''}${esc(t.last_text || 'Tap to start chatting')}</span>${u ? `<span class="nxc-u">${u}</span>` : ''}</div></div></div>`; }).join('')
       + (ppl.length ? `<div class="nxc-sec">Start a new chat</div>` + ppl.map(p => `<div class="nxc-it" data-c="person" data-v="${p.user_id}">${av(p.name)}<div class="g"><div class="r1"><span class="n">${esc(p.name)}</span></div><div class="r2"><span class="p">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))}</span></div></div></div>`).join('') : '')
       || `<div class="nxc-empty">${q ? 'Nobody matches your search.' : 'No other NEXUS users yet. Colleagues appear here once they sign up and an administrator approves them.'}</div>`;
   }
@@ -499,7 +512,7 @@
     const prevH = box.scrollHeight, prevT = box.scrollTop; let day = '', prev = null, html = st.more[st.cur] ? `<button class="nxc-older" data-c="older">Load earlier messages</button>` : '';
     for (const m of list.filter(vis)) { const d = dayLabel(m.created_at); let tail = !prev || prev.sender !== m.sender; if (d !== day) { day = d; tail = true; html += `<div class="nxc-day">${d}</div>`; }
       const mine = m.sender === st.me, media = !m.deleted && !m.uploading && (m.kind === 'image' || m.kind === 'video');
-      const tick = mine ? (m.failed ? ' <span style="color:#ea0038">not sent</span>' : m.tmp ? ' ' + IC.clock : m.read_at ? ` <span class="rd" title="Read">${IC.t2}</span>` : ` <span title="Delivered">${IC.t1}</span>`) : '';
+      const tick = mine ? (m.failed ? ' <span style="color:#ea0038">not sent</span>' : m.tmp ? ' ' + IC.clock : m.read_at ? ` <span class="rd" title="Read">${IC.t2}</span>` : m.delivered_at ? ` <span title="Delivered">${IC.t2}</span>` : ` <span title="Sent">${IC.t1}</span>`) : '';
       const q = m.reply_to ? (list.find(x => x.id === m.reply_to) || null) : null;
       const rx = Object.values(m.reactions || {}); const rxs = [...new Set(rx)];
       html += `<div class="nxc-b ${mine ? 'me' : ''} ${tail ? 'tail' : ''} ${media ? 'media' : ''} ${rx.length ? 'hasrx' : ''}" data-id="${m.id}">${!m.tmp ? `<button class="nxc-mn" data-c="menu" data-v="${m.id}" title="Message options"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M3.3 4.6L9 10.3l5.7-5.7 1.6 1.6L9 13.4 1.7 6.2z"/></svg></button>` : ''}${m.fwd && !m.deleted ? '<div class="nxc-fw">↪ Forwarded</div>' : ''}${m.reply_to && !m.deleted ? `<div class="nxc-q" data-c="jump" data-v="${m.reply_to}"><b>${esc(q ? (q.sender === st.me ? 'You' : pName(q.sender)) : 'Reply')}</b><span>${esc(snippet(q))}</span></div>` : ''}${body(m)}<span class="meta">${m.edited_at && !m.deleted ? '<i>Edited</i> ' : ''}${hhmm(m.created_at)}${tick}</span>${rx.length ? `<div class="nxc-rx" data-c="menu" data-v="${m.id}">${rxs.join('')}${rx.length > 1 ? ' ' + rx.length : ''}</div>` : ''}</div>`; prev = m; }
