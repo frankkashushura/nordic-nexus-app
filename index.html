@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=95"></script>
+<script src="config.js?v=96"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=95"></script>
-<script src="nexus-chat.js?v=95"></script>
+<script src="nexus-sb.js?v=96"></script>
+<script src="nexus-chat.js?v=96"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -764,6 +764,7 @@ function computeAlerts(){
     if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:(f!=null&&f>-2)?'New tender':'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)}); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   if(typeof recAlerts==='function') recAlerts(A);
+  if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
@@ -1198,7 +1199,7 @@ const PROJECT_FIELDS=[
   {k:'type',label:'Work type',type:'select',options:['building','renovation','fit-out','civil','MEP','water & sewer']},
   {k:'status',label:'Status',type:'select',options:['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed']},
   {k:'contract_no',label:'Contract number'},{k:'contract_sum',label:'Contract sum (TZS)',type:'number'},{k:'budget',label:'Cost budget (TZS)',type:'number'},
-  {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date (contract)',type:'date'},{k:'pc_date',label:'Practical completion (handover) date',type:'date'},{k:'dlp_months',label:'Defects liability period (months)',type:'number',def:12},{k:'progress',label:'Progress %',type:'number'},
+  {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date (contract)',type:'date',help:'Alerts and notifications from 60 days before'},{k:'pc_date',label:'Practical completion (handover) date',type:'date'},{k:'dlp_months',label:'Defects liability period (months)',type:'number',def:12},{k:'pg_expiry',label:'Performance guarantee expiry',type:'date',help:'Alerts and notifications from 40 days before'},{k:'pg_ref',label:'Performance guarantee no. / bank'},{k:'progress',label:'Progress %',type:'number'},
   {k:'manager',label:'Project manager',type:'select',options:[]},{k:'reporter',label:'Daily site report by',type:'select',options:[],help:'Reminded at 17:00 if today\'s report is missing (else the project manager)'},{k:'notes',label:'Notes',type:'textarea'}];
 function pageProjects(){
   const st=['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed'];
@@ -1222,7 +1223,7 @@ function pageProjects(){
 function projectDrawer(p){
   const reps=S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const tasks=S.tasks.filter(t=>t.project_id===p.id&&t.status!=='Done'), prs=S.procurement.filter(x=>x.project_id===p.id);
-  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',money()&&p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
+  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',money()&&p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}`:''],['Performance guarantee',p.pg_expiry?`expires ${fmtD(p.pg_expiry)}${p.pg_ref?' · '+p.pg_ref:''}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
     <div class="card"><div class="hd"><h2>Site reports</h2><div class="sp"></div><button class="btn sm pri" data-act="newReport" data-proj="${esc(p.id)}">New report</button></div><div class="list">${reps.slice(0,6).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div><span class="sub">${(r.photos||[]).length} photos</span></div>`).join('')||'<div class="empty">No reports yet.</div>'}</div></div>
     <div class="grid g2"><div class="card"><div class="hd"><h2>Open tasks</h2></div><div class="list">${tasks.map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`).join('')||'<div class="empty">None</div>'}</div></div>
@@ -2123,6 +2124,9 @@ const recLvlOk=l=>l==='admin'?isAdmin:l==='mgmt'?(isAdmin||isFin):true;
 const recLvlChip=l=>l==='admin'?'<span class="chip bad" title="Administrators only">🔐 Admin</span>':l==='mgmt'?'<span class="chip amb" title="Administrators and Finance">🔒 Mgmt</span>':'';
 const recFile=r=>{ const f=r.files||[]; return f.length?f[f.length-1]:null; };
 const recExp=r=>r.folder==='letters'?null:(r.expiry||r.end||'');
+/* v96: performance guarantees – alerts from 40 days before expiry (record type, or the words in the title / keywords) */
+const REC_KINDS=['','Performance guarantee','Advance payment guarantee','Bid security','Insurance','Registration / licence','Tax / compliance','Other'];
+const recIsPG=r=>r&&r.folder!=='letters'&&(r.kind==='Performance guarantee'||/performance\s*(guarantee|bond|security)/i.test(`${r.title||''} ${r.tags||''}`));
 function recCanSave(){ return !!window.NX_REC; }
 function recNextRef(dir){ const y=new Date().getFullYear(), pre=`NCC/${dir==='In'?'IN':'OUT'}/${y}/`;
   const n=Math.max(0,...(S.records||[]).map(r=>String(r.ref||'')).filter(x=>x.startsWith(pre)).map(x=>+x.slice(pre.length)||0));
@@ -2166,7 +2170,9 @@ function recFields(r, folder){
   const fo=folder||r.folder||'contracts', L=REC_LEVELS.filter(([k])=>recLvlOk(k));
   const F=[{k:'folder',label:'Folder',type:'select',options:REC_FOLDERS.map(f=>[f.k,f.t])},{k:'title',label:fo==='letters'?'Subject':'Title',req:1,full:1}];
   if(fo==='letters') F.push({k:'direction',label:'Direction',type:'select',options:['Out','In']},{k:'ref',label:'Reference no.',help:'Filled automatically – change it if the letter already has a number'},{k:'party',label:'To / from (organisation, person)'},{k:'date',label:'Letter date',type:'date'},{k:'reply_by',label:'Reply needed by',type:'date'},{k:'status',label:'Status',type:'select',options:['Open','Replied','Closed']});
-  else F.push({k:'ref',label:'Reference / number'},{k:'party',label:fo==='contracts'?'Other party (client, subcontractor, supplier)':fo==='hr'?'Staff member':'Issued by / other party'},{k:'date',label:'Date signed / issued',type:'date'},{k:'expiry',label:fo==='contracts'?'End / completion date':'Expiry date',type:'date',help:'Reminders 60, 30 and 7 days before'});
+  if(fo==='legal') F.push({k:'kind',label:'Type',type:'select',options:REC_KINDS.map(k=>[k,k||'— choose —']),help:'Performance guarantees are alerted from 40 days before expiry'});
+  else if(fo!=='letters'&&r.kind) F.push({k:'kind',label:'Type',type:'select',options:REC_KINDS.map(k=>[k,k||'— choose —'])});
+  if(fo!=='letters') F.push({k:'ref',label:'Reference / number'},{k:'party',label:fo==='contracts'?'Other party (client, subcontractor, supplier)':fo==='hr'?'Staff member':'Issued by / other party'},{k:'date',label:'Date signed / issued',type:'date'},{k:'expiry',label:fo==='contracts'?'End / completion date':'Expiry date',type:'date',help:fo==='legal'?'Reminders 60, 30 and 7 days before (performance guarantees: 40, 30, 14 and 7)':'Reminders 60, 30 and 7 days before'});
   if(fo==='contracts'){ if(money()) F.push({k:'value',label:'Contract sum (TZS)',type:'number'}); F.push({k:'start',label:'Start date',type:'date'},{k:'dlp_end',label:'Defects liability ends',type:'date'},{k:'retention',label:'Retention %',type:'number'}); }
   F.push({k:'project_id',label:'Project',type:'select',options:[['','— none —'],...S.projects.map(p=>[p.id,p.name])]},{k:'owner',label:'Responsible person (gets the reminders)',type:'select',options:[['','— none —'],...S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name])]},
     {k:'level',label:'Who can see it',type:'select',options:L},{k:'tags',label:'Keywords',ph:'e.g. CRDB, fit-out, 2026'},{k:'note',label:'Notes',type:'textarea'});
@@ -2245,10 +2251,19 @@ async function recAiFill(){ const r=byId('records',drawer?.id), a=r&&r.ai; if(!a
   await patch('records',r.id,up); toast('Copied: '+Object.keys(up).join(', ')+'.'); }
 function projectDocsTab(p){ const list=(S.records||[]).filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   return `<div class="toolbar"><span class="muted">Contracts, letters, guarantees and other records linked to this project (only those you are allowed to see).</span><div class="sp"></div><button class="btn" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn pri" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>`+recRows(list); }
-function recAlerts(A){ const sid=myStaffId(), mine=r=>isAdmin||(sid&&r.owner===sid);
+function recAlerts(A){ const sid=myStaffId(), pmOf=pid=>{ const p=byId('projects',pid); return !!(p&&sid&&p.manager===sid); }, mine=r=>isAdmin||(sid&&r.owner===sid)||(recIsPG(r)&&(isFinR()||pmOf(r.project_id)));
   (S.records||[]).forEach(r=>{ if(!mine(r)) return; const e=recExp(r);
+    if(e&&recIsPG(r)){ const d=daysLeft(e+'T23:59'); if(d!=null&&d<=40&&d>-30){ const st=d<=7?7:d<=14?14:d<=30?30:40; A.push({lvl:d<=14?'bad':'warn', kind:'Performance guarantee', text:`${r.title} ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${r.project_id?projName(r.project_id)+' · ':''}${r.ref?r.ref+' · ':''}${r.party?r.party+' · ':''}${fmtD(e)} – arrange extension with the bank`, go:['rec',r.id], sort:d<=14?2:9, at:new Date(Date.parse(e+'T07:00:00+03:00')-st*864e5).toISOString(), nk:'recpg|'+r.id+'|'+e+'|'+st}); } return; }
     if(e){ const d=daysLeft(e+'T23:59'); if(d!=null&&d<=60&&d>-30) A.push({lvl:d<=7?'bad':d<=30?'warn':'blue', kind:r.folder==='contracts'?'Contract ending':'Record expiring', text:`${r.title} ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${recFolder(r.folder).t}${r.ref?' · '+r.ref:''} · ${fmtD(e)}`, go:['rec',r.id], sort:d<=7?3:14, at:new Date(Date.parse(e+'T07:00:00+03:00')-(d<=7?7:d<=30?30:60)*864e5).toISOString(), nk:'recx|'+r.id+'|'+e+'|'+(d<=7?7:d<=30?30:60)}); }
     if(r.folder==='letters'&&r.reply_by&&!/replied|closed/i.test(r.status||'')){ const d=daysLeft(r.reply_by+'T23:59'); if(d!=null&&d<=3) A.push({lvl:d<0?'bad':'warn', kind:'Letter reply due', text:r.title, sub:`${r.ref||''} · ${r.direction==='In'?'from':'to'} ${r.party||'?'} · reply by ${fmtD(r.reply_by)}`, go:['rec',r.id], sort:4, at:new Date(Date.parse(r.reply_by+'T07:00:00+03:00')-3*864e5).toISOString(), nk:'recl|'+r.id+'|'+r.reply_by}); } }); }
+
+/* v96: project contract completion (60 days) and performance guarantee on the project (40 days) → administrators, the project manager (+ Finance for guarantees) */
+function projDueAlerts(A){ const sid=myStaffId(), shut=/complet|closed|cancel|lost/i;
+  (S.projects||[]).forEach(p=>{ if(p.example||shut.test(p.status||'')) return; const pm=!!(sid&&p.manager===sid);
+    if(p.end&&!p.pc_date&&(isAdmin||pm)){ const d=daysLeft(dlYmd(p.end)+'T23:59'); if(d!=null&&d<=60&&d>-60){ const st=d<0?-1:d<=7?7:d<=14?14:d<=30?30:60;
+      A.push({lvl:d<=14?'bad':d<=30?'warn':'blue', kind:'Contract ending', text:`${p.name} – contract ${d<0?'completion date passed '+fmtD(p.end):d<1?'ends today':'ends in '+Math.ceil(d)+' days'}`, sub:`Completion ${fmtD(p.end)}${p.client?' · '+p.client:''} – plan handover or apply for extension of time`, go:['project',p.id], sort:d<=14?3:13, at:new Date(Date.parse(dlYmd(p.end)+'T07:00:00+03:00')-Math.max(st,0)*864e5).toISOString(), nk:'pend|'+p.id+'|'+p.end+'|'+st}); } }
+    if(p.pg_expiry&&(isAdmin||pm||isFinR())){ const d=daysLeft(dlYmd(p.pg_expiry)+'T23:59'); if(d!=null&&d<=40&&d>-30){ const st=d<0?-1:d<=7?7:d<=14?14:d<=30?30:40;
+      A.push({lvl:d<=14?'bad':'warn', kind:'Performance guarantee', text:`${p.name} – performance guarantee ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${p.pg_ref?p.pg_ref+' · ':''}expires ${fmtD(p.pg_expiry)} – arrange extension with the bank`, go:['project',p.id], sort:d<=14?2:9, at:new Date(Date.parse(dlYmd(p.pg_expiry)+'T07:00:00+03:00')-Math.max(st,0)*864e5).toISOString(), nk:'ppg|'+p.id+'|'+p.pg_expiry+'|'+st}); } } }); }
 
 /* ===================== SETTINGS / SECURITY ===================== */
 const CO_FIELDS=[['name','Registered name'],['tagline','Tagline'],['founded','Formed'],['crb_building','CRB – building'],['crb_civil','CRB – civil'],['address','Head office'],['pobox','P.O. Box'],['phone','Phone'],['email','Email'],['web','Website'],['social','Social media'],['branch','Branch'],['tin','TIN'],['vrn','VRN'],['vision','Vision'],['mission','Mission'],['purpose','Purpose'],['values','Core values'],['sectors','Key sectors'],['services','Services'],['references','Reference projects (used by AI)'],['facts','Company facts (used by AI)']].map(([k,label])=>({k,label,type:['vision','mission','purpose','services','references','facts','sectors'].includes(k)?'textarea':'text'}));
@@ -3200,7 +3215,7 @@ async function deptClick(el){
 async function deptChange(el){ const d=deptByName(routeArg); if(!d||!isDeptAdmin(d)) return; const L=[...(d.objectives||[])], i=+el.dataset.deptobj; if(!L[i]) return; L[i]={...L[i],status:el.value}; await deptObjSave(d,L); logAct(`${d.name} objective "${L[i].t}" → ${el.value}`); }
 
 /* ===== DEADLINES (v2.10): every date that matters in one list – the server sends the reminders ===== */
-const DL_KIND={tender:['🏗️','Tender'],clar:['📌','Clarification'],visit:['📌','Site visit'],activity:['📅','Programme'],completion:['🏁','Completion'],dlp:['🛠️','Defects period'],doc:['📄','Document expiry'],payment:['💰','Payment due'],purchase:['🛒','Purchase'],task:['✅','Task']};
+const DL_KIND={tender:['🏗️','Tender'],clar:['📌','Clarification'],visit:['📌','Site visit'],activity:['📅','Programme'],completion:['🏁','Completion'],pg:['🛡️','Performance guarantee'],dlp:['🛠️','Defects period'],doc:['📄','Document expiry'],payment:['💰','Payment due'],purchase:['🛒','Purchase'],task:['✅','Task']};
 const dlYmd=v=>{ const m=String(v||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; };
 const dlDays=d=>Math.ceil((Date.parse(d+'T23:59:59+03:00')-Date.now())/864e5);
 function deadlineItems(){
@@ -3215,7 +3230,9 @@ function deadlineItems(){
   const live=pid=>{ const p=byId('projects',pid); return p&&!shut.test(p.status||''); };
   for(const m of S.milestones||[]) if(!m.example&&(+m.progress||0)<100&&live(m.project_id)) add(m.planned_finish,'activity',m.name,`${projName(m.project_id)} · ${+m.progress||0}% done`,'project:'+m.project_id,pm(m.project_id));
   for(const p of S.projects) if(p.end&&!p.pc_date&&!shut.test(p.status||'')) add(p.end,'completion',p.name,'Contract completion','project:'+p.id,sid&&p.manager===sid);
+  for(const p of S.projects) if(p.pg_expiry&&!shut.test(p.status||'')) add(p.pg_expiry,'pg',p.name,'Performance guarantee'+(p.pg_ref?' · '+p.pg_ref:''),'project:'+p.id,(sid&&p.manager===sid)||isFinR());
   for(const r of S.records||[]){ if(r.folder==='contracts'&&r.dlp_end&&dlDays(dlYmd(r.dlp_end))>=0) add(r.dlp_end,'dlp',r.title||'Contract','Release retention after this date','rec:'+r.id,sid&&r.owner===sid);
+    else if(recIsPG(r)&&recExp(r)) add(recExp(r),'pg',r.title||'Performance guarantee',[r.project_id?projName(r.project_id):'',r.ref,r.party].filter(Boolean).join(' · '),'rec:'+r.id,(sid&&r.owner===sid)||isFinR()||pm(r.project_id));
     else if(r.folder!=='contracts'&&recExp(r)) add(recExp(r),'doc',r.title||'Document',[r.ref,r.party].filter(Boolean).join(' · '),'rec:'+r.id,sid&&r.owner===sid); }
   for(const c of compLegacy()) add(c.expiry,'doc',c.name,c.issuer||'','go:records',false);
   if(certOk()) for(const c of S.certificates||[]){ if(c.example||c.status!=='Certified'||!dlYmd(c.certified)) continue;
