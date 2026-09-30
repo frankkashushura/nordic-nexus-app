@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=83"></script>
+<script src="config.js?v=84"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=83"></script>
-<script src="nexus-chat.js?v=83"></script>
+<script src="nexus-sb.js?v=84"></script>
+<script src="nexus-chat.js?v=84"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -620,7 +620,7 @@ const PAGES = [
   {k:'dash', t:'Command Centre'},
   {k:'alerts', t:'Alerts & Notifications'},
   {k:'chat', t:'Chat'},
-  {k:'report', t:'Weekly Report'},
+  {k:'report', t:'Management Report'},
   {g:'Winning work'},
   {k:'tenders', t:'Tender Radar'},
   {k:'qs', t:'QS Studio'},
@@ -741,7 +741,7 @@ function computeAlerts(){
     if(!at || Date.now()-Date.parse(at)>7*864e5) return;
     A.push({lvl:p.status==='Rejected'?'bad':'blue', kind:'Your purchase', text:`${p.pr_no||''} ${p.item} – ${p.status.toLowerCase()}`, sub:`${by?'by '+by+' · ':''}${fmtDT(at)}`, go:['route','procure'], sort:15, at});
   });
-  S.compliance.forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
+  compLegacy().forEach(c=>{ const d=daysLeft(c.expiry); if(d!=null && d<=45) A.push({lvl:d<0?'bad':d<=14?'bad':'warn', kind:'Compliance', text:`${c.name} ${d<0?'has expired':'expires '+fmtD(c.expiry)}`, sub:'Renew before tendering', go:['route','docs'], sort:d, at:atMinus(c.expiry,45)}); });
   { const sid=myStaffId(); S.tasks.filter(t=>tStage(t)!=='Done'&&sid&&t.assignee===sid).forEach(t=>{
       if(t.assigned_at&&Date.now()-Date.parse(t.assigned_at)<3*864e5) A.push({lvl:'blue', kind:'Task for you', text:t.title, sub:`${t.assigned_by?'From '+t.assigned_by+' · ':''}${t.due?'due '+fmtD(t.due):'no due date'}${t.project_id?' · '+projName(t.project_id):''}`, go:['route','tasks'], sort:8, at:t.assigned_at, nk:'task|'+t.id+'|'+sid});
       const dl=t.due?daysLeft(t.due+'T23:59'):null; if(dl!=null&&dl>=0&&dl<2) A.push({lvl:'warn', kind:'Task due', text:t.title, sub:`Due ${dl<1?'today':'tomorrow'} · ${fmtD(t.due)}`, go:['route','tasks'], sort:6, at:new Date(Date.parse(t.due+'T07:00:00+03:00')-864e5).toISOString(), nk:'taskdue|'+t.id+'|'+t.due}); }); }
@@ -1851,7 +1851,7 @@ function pageFinance(){
     ${risk?`<div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
     <div class="list">${(risk.findings||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div><span class="chip ${f.severity==='High'?'bad':f.severity==='Medium'?'amb':'blue'}">${esc(f.severity)}</span></div>`).join('')}</div>
     ${(risk.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended controls</div><ul class="clean small">${risk.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}`
-    :'<p class="small muted">Scans the ledger for duplicate payments, split payments below approval limits, spending above project budgets, unusual amounts, cash-heavy spending, unpaid certificates and cash-flow gaps.</p>'}</div></div>
+    :'<p class="small muted">Checks the ledger for duplicates, split payments, overspending and cash-flow gaps.</p>'}</div></div>
   ${bud.length?`<div class="card"><div class="hd"><h2>Budget vs spend</h2></div><div class="bd" style="display:flex;flex-direction:column;gap:10px">${bud.map(({p,spent})=>{const pc=spent/p.budget*100;return `<div><div class="toolbar small"><span>${esc(p.name)}</span><div class="sp"></div><span class="num">${tzsShort(spent)} / ${tzsShort(p.budget)}</span></div><div class="bar"><i style="width:${Math.min(100,pc)}%;background:${pc>100?'var(--bad)':pc>85?'var(--amber)':'var(--good)'}"></i></div></div>`}).join('')}</div></div>`:''}
   <div class="toolbar"><select class="inp" id="fproj" aria-label="Project"><option value="All">All projects</option><option value="" ${UI.fproj===''?'selected':''}>Office / overheads</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.fproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
     <div class="seg">${['All','Income','Expense'].map(t=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${t}</button>`).join('')}</div><div class="sp"></div>
@@ -1879,7 +1879,7 @@ const meetFields=()=>[{k:'title',label:'Meeting title',req:1,full:1,ph:'e.g. Wee
   {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'platform',label:'Online platform',type:'select',options:['',...MEET_PLAT.map(p=>p.n)]},{k:'tools',type:'linktools'},{k:'link',label:'Online link',ph:'Paste the Zoom / Google Meet / Teams link here (https://…)',full:1},
   {k:'project_id',label:'Project (optional)',type:'select',options:projOpts('— not project specific —')},{k:'agenda',label:'Agenda',type:'textarea',ph:'1. Progress\n2. Issues\n3. AOB'},
   {k:'invitees',label:'Invite staff (they get an email with a calendar invite and a NEXUS alert)',type:'checks',req:1,options:S.staff.filter(x=>x.status!=='Left'&&x.email).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>[x.id,`${x.name}${x.position?' – '+x.position:''}`])}];
-const myStaffId=()=>{ const e=(me.email||'').toLowerCase(), n=(me.name||'').toLowerCase(); return (S.staff.find(x=>e&&(x.email||'').toLowerCase()===e)||S.staff.find(x=>n&&(x.name||'').toLowerCase()===n))?.id||null; };
+const myStaffId=()=>{ const e=(me.email||'').toLowerCase(), n=(me.name||'').toLowerCase(); return (S.staff.find(x=>x.uid&&x.uid===me.id)||S.staff.find(x=>!x.uid&&e&&(x.email||'').toLowerCase()===e)||S.staff.find(x=>n&&(x.name||'').toLowerCase()===n))?.id||null; };
 const meetStart=m=>Date.parse(m.start_iso||m.start||'');
 const meetEnd=m=>meetStart(m)+(MEET_MIN[m.duration]||60)*6e4;
 const canEditMeet=m=>isAdmin||(m.organizer_uid&&m.organizer_uid===me.id);
@@ -1930,10 +1930,10 @@ function meetDrawer(m){
 /* ===================== PROFILE PHOTOS (v76) ===================== */
 // every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
 const lcE=s=>String(s||'').trim().toLowerCase();
-const isMyStaff=s=>!!me.email&&lcE(s.email)===lcE(me.email);
+const isMyStaff=s=>s.uid?s.uid===me.id:(!!me.email&&lcE(s.email)===lcE(me.email));
 function avatarFor(email){ const e=lcE(email); return e?S.avatars.find(a=>lcE(a.email)===e):null; }
 function pickPhoto(a,s){ const at=a&&a.photo?Date.parse(a.at||0)||0:-1, st=s&&s.photo?Date.parse(s.photo_at||0)||0:-1; return at<0&&st<0?'':(at>=st?a.photo:s.photo); }
-const staffPhotoRef=s=>pickPhoto(avatarFor(s.email),s);
+const staffPhotoRef=s=>pickPhoto((s.uid&&S.avatars.find(a=>a.id===s.uid))||avatarFor(s.email),s);
 const myPhotoRef=()=>pickPhoto(S.avatars.find(a=>a.id===me.id),S.staff.find(isMyStaff));
 function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhotoRef(); const h=r?photoTag(r).replace(' data-zoom',''):esc(initials(me.name||'You')); if(el.__h!==h){ el.innerHTML=h; el.__h=h; } }
 function myPhotoDrawer(){ const r=myPhotoRef(), mine=S.avatars.find(a=>a.id===me.id), card=S.staff.find(isMyStaff);
@@ -1949,11 +1949,11 @@ async function myPhotoUpload(file){ if(!db||!me.id) return; const l=$('#myphLbl'
 // v77: logins without a Staff card still appear in Staff; members add / edit their own card (name, position, department, phone, station)
 const MY_FIELDS=()=>STAFF_FIELDS.filter(f=>['name','position','department','phone','station'].includes(f.k));
 async function loadPeople(){ try{ S.people=(await user?.people?.())||[]; }catch(_){ S.people=[]; } renderAll(); }
-function loginOnly(){ return (S.people||[]).filter(p=>p.email&&!S.staff.some(s=>lcE(s.email)===lcE(p.email))).map(p=>({id:'login:'+p.id,uid:p.id,name:p.name||p.email,position:p.roleTxt||'',department:'',email:p.email,station:'NEXUS login – no staff details yet',_login:true})); }
+function loginOnly(){ return (S.people||[]).filter(p=>p.email&&!S.staff.some(s=>s.uid?s.uid===p.id:lcE(s.email)===lcE(p.email))).map(p=>({id:'login:'+p.id,uid:p.id,name:p.name||p.email,position:p.roleTxt||'',department:'',email:p.email,station:'NEXUS login – no staff details yet',_login:true})); }
 function myDetails(){ const card=S.staff.find(isMyStaff);
   formDrawer(card?'My staff details':'Add my staff details',MY_FIELDS(),card||{name:me.name||'',station:'Head Office – Dar es Salaam'},async v=>{
     if(card){ await patch('staff',card.id,v); logAct(`Updated own staff details: ${v.name}`); }
-    else { if(!await put('staff','u-'+me.id,{...v,email:lcE(me.email),status:'Active',n_email:'Yes'})) return false; logAct(`Added own staff card: ${v.name}`); }
+    else { if(!await put('staff','u-'+me.id,{...v,email:lcE(me.email),uid:me.id,status:'Active',n_email:'Yes'})) return false; logAct(`Added own staff card: ${v.name}`); }
   },{sub:'Status, email and alert settings are managed by an administrator.',saveLabel:'Save my details'}); }
 /* ===================== STAFF ===================== */
 const STAFF_FIELDS=[{k:'name',label:'Full name',req:1},{k:'position',label:'Position',req:1},{k:'department',label:'Department',type:'select',options:['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT']},
@@ -1983,13 +1983,10 @@ function pageTasks(){
 
 /* ===================== COMPLIANCE ===================== */
 const DOC_FIELDS=[{k:'name',label:'Document',req:1},{k:'number',label:'Number'},{k:'issuer',label:'Issued by'},{k:'expiry',label:'Expiry date',type:'date'},{k:'holder',label:'Kept by'},{k:'note',label:'Note',type:'textarea'}];
-function pageDocs(){
-  const rows=[...S.compliance].sort((a,b)=>(a.expiry||'9').localeCompare(b.expiry||'9'));
-  return `<div class="banner"><div>Tenders are lost when a certificate has lapsed on submission day. NEXUS warns 45 days before each expiry.</div></div>
-  <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addDoc">Add document</button></div>
-  <div class="card">${pageDocsTable()}</div>`;
-}
-function pageDocsTable(){ const rows=[...S.compliance].sort((a,b)=>(a.expiry||'9').localeCompare(b.expiry||'9'));
+// v84: compliance certificates live in Office Records → Legal (reminders, files, owner). Old list items not yet moved still show here.
+const compLegacy=()=>(S.compliance||[]).filter(c=>!c.merged);
+function compItems(){ return [...(S.records||[]).filter(r=>r.folder==='legal'&&recExp(r)).map(r=>({id:r.id,name:r.title,number:r.ref,issuer:r.party,expiry:recExp(r),_rec:1})),...compLegacy()]; }
+function pageDocsTable(){ const rows=[...compLegacy()].sort((a,b)=>(a.expiry||'9').localeCompare(b.expiry||'9'));
   return `<div class="tbl-wrap"><table><thead><tr><th>Document</th><th>Number</th><th>Expiry</th><th>Status</th><th class="hide-m">Kept by</th></tr></thead><tbody>
   ${rows.map(d=>{const dl=daysLeft(d.expiry);return `<tr class="click" data-editdoc="${esc(d.id)}"><td class="ttl2">${esc(d.name)}<div class="sub">${esc(d.issuer||'')}</div></td><td class="mono small">${esc(d.number||'—')}</td><td class="small">${fmtD(d.expiry)}</td><td>${dl==null?'<span class="chip amb">add expiry date</span>':dl<0?'<span class="chip bad">expired</span>':dl<=45?`<span class="chip amb">${Math.ceil(dl)} days left</span>`:'<span class="chip good">valid</span>'}</td><td class="hide-m small">${esc(d.holder||'')}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">No certificates yet.</td></tr>'}</tbody></table></div>`;
 }
@@ -2032,7 +2029,7 @@ function pageRecords(){
   const replies=all.filter(r=>r.folder==='letters'&&r.reply_by&&!/replied|closed/i.test(r.status||'')).length;
   const month=today().slice(0,7), added=all.filter(r=>(r.created_at||'').startsWith(month)).length;
   const head=`<div class="grid g4">
-    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${all.length}</span><span class="s">${S.compliance.length} compliance certificates too</span></div>
+    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${all.length}</span><span class="s">${compLegacy().length} compliance certificates too</span></div>
     <div class="card kpi ${soon?'hot':'grn'}"><span class="label">Expiring ≤ 60 days</span><span class="v num">${soon}</span><span class="s">contracts, guarantees, insurance, licences</span></div>
     <div class="card kpi ${replies?'amb':'grn'}"><span class="label">Letters awaiting reply</span><span class="v num">${replies}</span><span class="s">with a reply-by date</span></div>
     <div class="card kpi grn"><span class="label">Added this month</span><span class="v num">${added}</span><span class="s">${esc(new Date().toLocaleDateString('en-GB',{month:'long'}))}</span></div></div>
@@ -2040,13 +2037,13 @@ function pageRecords(){
     <button class="btn" data-act="recLetter">Register letter</button><button class="btn pri" data-act="recAdd">Add record</button></div>`;
   if(q){ const hits=all.filter(r=>recSearchText(r).includes(q)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     return head+`<p class="muted">${hits.length} record${hits.length===1?'':'s'} match "${esc(UI.rq)}"</p>`+recRows(hits); }
-  if(!fk){ return head+`<div class="grid g3">${REC_FOLDERS.map(f=>{ const n=all.filter(r=>r.folder===f.k).length+(f.k==='legal'?S.compliance.length:0);
-      const ex=all.filter(r=>r.folder===f.k&&recExp(r)&&daysLeft(recExp(r)+'T23:59')<=60).length+(f.k==='legal'?S.compliance.filter(c=>{const d=daysLeft(c.expiry);return d!=null&&d<=45;}).length:0);
+  if(!fk){ return head+`<div class="grid g3">${REC_FOLDERS.map(f=>{ const n=all.filter(r=>r.folder===f.k).length+(f.k==='legal'?compLegacy().length:0);
+      const ex=all.filter(r=>r.folder===f.k&&recExp(r)&&daysLeft(recExp(r)+'T23:59')<=60).length+(f.k==='legal'?compLegacy().filter(c=>{const d=daysLeft(c.expiry);return d!=null&&d<=45;}).length:0);
       return `<button class="tile" data-rfolder="${f.k}" style="grid-template-columns:auto 1fr"><span class="ti" style="font-size:20px">${f.i}</span><span class="tt">${esc(f.t)} <span class="num" style="font-size:14px;color:var(--muted)">${n}</span></span><span class="ts">${esc(f.d)}${ex?` · <b style="color:var(--bad)">${ex} expiring</b>`:''}${f.lvl!=='all'?' · '+(f.lvl==='admin'?'🔐':'🔒'):''}</span></button>`; }).join('')}</div>
-    <p class="sub">Each record has an access level: <b>All staff</b>, <b>Management</b> (administrators + Finance) or <b>Administrators only</b>. The database enforces it – people never receive records above their level. Files are private and open through short-lived secure links.</p>`; }
+    <p class="sub">🔒 Each record has an access level; files open through secure links.</p>`; }
   const f=recFolder(fk), list=all.filter(r=>r.folder===fk).sort((a,b)=>(b.date||b.created_at||'').localeCompare(a.date||a.created_at||''));
-  const comp=fk==='legal'?`<div class="card"><div class="hd"><h2>Compliance certificates</h2><span class="sub">warned 45 days before expiry</span><div class="sp"></div><button class="btn sm" data-act="addDoc">Add certificate</button></div>${pageDocsTable()}</div>`:'';
-  return head+`<div class="toolbar"><button class="btn" data-rfolder="">← All folders</button><h2 style="font-size:19px">${f.i} ${esc(f.t)}</h2><span class="sub">${list.length} record${list.length===1?'':'s'}</span></div>`+comp+(fk==='legal'&&list.length?'<h3 style="margin-top:6px">Other legal records</h3>':'')+(fk==='legal'&&!list.length?'':recRows(list));
+  const comp=fk==='legal'&&compLegacy().length?`<div class="card"><div class="hd"><h2>Not yet moved</h2><span class="sub">old compliance list</span></div>${pageDocsTable()}</div>`:'';
+  return head+`<div class="toolbar"><button class="btn" data-rfolder="">← All folders</button><h2 style="font-size:19px">${f.i} ${esc(f.t)}</h2><span class="sub">${list.length} record${list.length===1?'':'s'}</span></div>`+comp+recRows(list);
 }
 function recFields(r, folder){
   const fo=folder||r.folder||'contracts', L=REC_LEVELS.filter(([k])=>recLvlOk(k));
@@ -2160,10 +2157,7 @@ function pageSettings(){
 /* ===================== ABOUT ===================== */
 function pageAbout(){
   const c=company();
-  const ph=[['1','Now','Working system (this release)','Own server and database (Supabase) with personal logins and roles, Tender Radar with AI bid advice (Groq) and F-02 scoring, cloud Tender Scanner (GitHub) checking every 5–15 minutes, automatic email alerts straight from the Staff page, a document folder per tender, Projects, Site Reports with photos, QS Studio with AI BoQ drafting and Excel export, Procurement approvals, Finance ledger with AI risk check, Staff, Tasks, Compliance, live alerts. Installs on Android, iPhone and Windows from the browser.'],
-    ['2','Next','Installers and domain','Windows setup and Android app (APK) that open NEXUS like a normal program; a company address such as nexus.nordictz.co.tz; nightly backups of the database to the office.'],
-    ['3','Then','Store apps','Google Play and Apple App Store listings and a signed Windows installer built from the same code. Needs a Google Play developer account and an Apple Developer Program membership. Adds offline site reports that send when signal returns, GPS-stamped photos and push notifications.'],
-    ['4','Later','Deeper integration','Payment certificates and valuations, stock and plant tracking, payroll link, TRA EFD receipts, bank statement import, dashboards for clients and consultants.']];
+
   return `<section class="blueprint"><div class="toolbar"><img alt="Nordic Construction logo" src="${LOGO}" style="height:44px"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
     <p class="muted">Built for ${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</p></section>
   <div class="card"><div class="hd"><h2>Install NEXUS as an app</h2><span class="chip good">Free · no store needed</span></div><div class="bd grid g3 small">
@@ -2172,7 +2166,6 @@ function pageAbout(){
     <div><div class="label">Windows</div><p><a href="downloads/NORDIC-NEXUS-Setup.exe" download><b>Download NEXUS Setup</b></a> and run it: NEXUS gets its own icon on the Desktop and Start menu. If Windows shows “Windows protected your PC”, click <b>More info</b> → <b>Run anyway</b>.</p></div>
   </div><div class="bd small muted" style="padding-top:0">Each person has their own NEXUS login: tap <b>Sign up</b> on the sign-in screen and an administrator approves you. The apps always open the latest NEXUS, so there is nothing to update.</div></div>
   <div class="grid g2">
-    <div class="card"><div class="hd"><h2>Roadmap</h2></div><div class="bd">${ph.map(([n,w,t,d])=>`<div class="phase"><div><div class="n">${n}</div><div class="label">${w}</div></div><div><h3>${t}</h3><p class="small muted" style="margin-top:4px">${d}</p></div></div>`).join('')}</div></div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card"><div class="hd"><h2>Developers</h2></div><div class="list">
         <div class="li"><div class="av">EF</div><div class="grow"><div class="ttl2">Engineer Frank</div><div class="sub">System design & development</div></div></div>
@@ -2180,7 +2173,7 @@ function pageAbout(){
       <div class="card"><div class="hd"><h2>Company</h2></div><div class="bd small"><dl class="kv">
         <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd class="mono">${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
         <dt>Vision</dt><dd>${esc(c.vision)}</dd><dt>Core values</dt><dd>${esc(c.values)}</dd></dl></div></div>
-      <div class="card"><div class="hd"><h2>How the scanner connects</h2></div><div class="bd small muted">The cloud Tender Scanner (GitHub Actions) runs every 5–15 minutes and checks 11 sources – NeST every 5 minutes, DDO and TANROADS every 15, World Bank every 30 and the rest hourly: NeST (every Mainland public entity, including TANESCO, TAA and NHC), World Bank, AfDB (Tanzania), DDO Tenders (newspaper, private, donor and NGO tenders), TANROADS, TARURA, TPA, RUWASA, Bank of Tanzania, TEITI and CRDB. ZPPDA Zanzibar and NMB are switched off until their sites can be read, updates the Pipeline workbook, creates a folder per new Pursue/Check tender and sends the alerts. Every 10 minutes from 06:00 to 23:00 NEXUS copies new tenders and changed deadlines from the scanner, keeping all edits made in NEXUS, writes AI bid advice and sends the email alerts.</div></div>
+      
     </div><p class="small muted" style="margin-top:12px">Page background photos: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> (free licence) – photographers listed in img/bg/sources.txt.</p></div>`;
 }
 
@@ -2255,7 +2248,7 @@ async function askSend(text){
   const snap={today:new Date().toString(), tenders:openTenders().map(t=>({title:t.title,client:t.client,no:t.no,location:t.location,category:t.category,deadline:t.deadline,screen:t.screen,status:t.status,ai:t.ai?.verdict})),
     projects:S.projects.map(p=>({name:p.name,client:p.client,location:p.location,status:p.status,progress:p.progress})), recent_reports:S.reports.slice(-15).map(r=>({project:projName(r.project_id),date:r.date,work:r.work_done,issues:r.issues,hse:r.hse})),
     procurement:S.procurement.map(p=>({item:p.item,status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').map(t=>({title:t.title,who:staffName(t.assignee),due:t.due})),
-    staff:S.staff.filter(s=>s.status!=='Left').map(s=>({name:s.name,position:s.position})), compliance:S.compliance.map(c=>({name:c.name,expiry:c.expiry})),
+    staff:S.staff.filter(s=>s.status!=='Left').map(s=>({name:s.name,position:s.position})), compliance:compItems().map(c=>({name:c.name,expiry:c.expiry})),
     finance_summary:(isAdmin||isFin)?{records:S.finance.length}:'restricted'};
   const turns=[{role:'user',content:`You are NORDIC NEXUS, the AI assistant of Nordic Construction Company Ltd (Tanzania): an experienced construction professional – quantity surveyor, contracts manager, site engineer and tender adviser. Answer practically and concisely in the language the user writes in (English or Swahili).
 RULES
@@ -2360,7 +2353,7 @@ const BID_CHECK = [
   ['sub','Bid submitted on NeST / delivered, receipt saved']];
 function checklistState(t){ const c=t.checklist||{}; const done=BID_CHECK.filter(([k])=>c[k]).length; return {done,total:BID_CHECK.length,pct:Math.round(done/BID_CHECK.length*100)}; }
 function complianceFor(tag, deadline){
-  const d=S.compliance.find(c=>(c.name||'').toLowerCase().includes(tag.toLowerCase())); if(!d) return null;
+  const d=compItems().find(c=>(c.name||'').toLowerCase().includes(tag.toLowerCase())); if(!d) return null;
   if(!d.expiry) return {cls:'amb',text:'expiry not recorded'};
   const ok=new Date(d.expiry)>=(toDate(deadline)||new Date());
   return ok?{cls:'good',text:'valid to '+fmtD(d.expiry)}:{cls:'bad',text:'expires '+fmtD(d.expiry)+' – before deadline'};
@@ -2430,6 +2423,10 @@ function certState(c){
   if(c.status==='Submitted'){ const s=daysLeft(c.submitted); return s!=null&&s<-14?{cls:'amb',label:'Awaiting certification 14d+'}:{cls:'blue',label:'Submitted'}; }
   return {cls:'',label:c.status||'Draft'};
 }
+// v84: a certificate marked Paid records the receipt in Finance once (linked by cert_id; Finance can still edit it)
+async function certToFinance(c){ if(!money()||!c||(S.finance||[]).some(f=>f.cert_id===c.id)) return false; const amt=+c.paid_amount||+c.amount||0; if(!amt) return false;
+  const p=byId('projects',c.project_id);
+  return !!(await put('finance',null,{date:c.paid_date||today(),type:'Income',category:'Payment certificate (IPC)',amount:amt,project_id:c.project_id||'',party:p?.client||'',ref:c.no||'',method:'Bank transfer',note:`Received for ${c.no||'certificate'} (recorded automatically when marked Paid)`,cert_id:c.id})); }
 function pageCerts(){
   if(!money()) return noMoney('Payment Certificates');
   const cs=[...S.certificates].sort((a,b)=>(b.certified||b.submitted||'').localeCompare(a.certified||a.submitted||''));
@@ -2471,7 +2468,7 @@ function weekData(){
     paidWeek:S.certificates.filter(c=>c.status==='Paid'&&inWeek(c.paid_date)),
     pendingPR:S.procurement.filter(p=>p.status==='Requested'),
     overdueTasks:S.tasks.filter(t=>t.status!=='Done'&&t.due&&daysLeft(t.due+'T23:59')<0),
-    compliance:S.compliance.filter(c=>{const d=daysLeft(c.expiry); return d!=null&&d<=45;})};
+    compliance:compItems().filter(c=>{const d=daysLeft(c.expiry); return d!=null&&d<=45;})};
 }
 function reportBody(w, forDoc){
   const tr=(cells)=>`<tr>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
@@ -2912,7 +2909,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,docs:pageDocs,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -2968,7 +2965,7 @@ function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clea
 // objectives, a notice board, department tasks and quick links. Administrators manage everything;
 // Head / Deputy manage their own department (mandate, objectives, notices, adding unassigned staff, removing members).
 const DEPT_DEFAULT=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
-const DEPT_LINKS={'Management':[['dash','Command Centre'],['report','Weekly Report'],['tenders','Tender Radar']],'Technical / Projects':[['projects','Projects'],['pm','Programme'],['reports','Site Reports'],['plant','Plant & Equipment']],
+const DEPT_LINKS={'Management':[['dash','Command Centre'],['report','Management Report'],['tenders','Tender Radar']],'Technical / Projects':[['projects','Projects'],['pm','Programme'],['reports','Site Reports'],['plant','Plant & Equipment']],
   'Quantity Surveying':[['qs','QS Studio'],['tenders','Tender Radar'],['certs','Payment Certificates']],'Procurement':[['procure','Procurement'],['plant','Plant & Equipment']],
   'Finance & Admin':[['finance','Finance'],['certs','Payment Certificates'],['records','Office Records']],'HSE':[['reports','Site Reports'],['records','Office Records']],'Site':[['reports','Site Reports'],['tasks','Tasks'],['plant','Plant & Equipment']],'ICT':[['settings','Company & Security'],['about','About NEXUS']]};
 const DEPT_OBJ_ST=['On track','At risk','Behind','Done'];
@@ -2991,6 +2988,7 @@ const deptNotes=d=>(S.deptnotes||[]).filter(n=>lcN(n.dept)===lcN(d.name)).sort((
 function staffChip(s,role){ if(!s) return `<span class="sub">${role?esc(role)+': not set':'— not set —'}</span>`; const r=staffPhotoRef(s); return `<span class="dp-chip"><span class="dp-av">${r?photoTag(r).replace(' data-zoom',''):esc(initials(s.name))}</span><span><b>${esc(s.name)}</b>${role?`<span class="sub" style="display:block">${esc(role)}</span>`:''}</span></span>`; }
 // keep the Staff form's department list in step with the departments
 { const f=STAFF_FIELDS.find(x=>x.k==='department'); if(f) Object.defineProperty(f,'options',{get:()=>deptNames(),configurable:true}); }
+{ const lf={k:'uid',label:'NEXUS login',type:'select',help:'Links this card to a person\'s login – their photo, tasks and chat follow it'}; Object.defineProperty(lf,'options',{get:()=>[['','— not linked —'],...(S.people||[]).map(p=>[p.id,(p.name||p.email)+' · '+p.email])],configurable:true}); STAFF_FIELDS.splice(4,0,lf); }
 
 function pageDepts(){
   const L=deptList(), mine=myCard()&&deptByName(myCard().department);
@@ -3004,7 +3002,7 @@ function pageDepts(){
   return `<div class="toolbar"><span class="muted">${L.length} departments · ${S.staff.filter(s=>s.status!=='Left').length} staff</span><div class="sp"></div>${mine?`<button class="btn" data-open="dept:${esc(mine.name)}">My department</button>`:''}${isAdmin?'<button class="btn pri" data-act="deptNew">New department</button>':''}</div>
   <div class="dp-grid">${L.map(card).join('')}</div>
   ${unassigned.length?`<div class="card"><div class="hd"><h2>Not in a department</h2><span class="sub">${unassigned.length}</span></div><div class="bd dp-faces" style="flex-wrap:wrap;gap:10px">${unassigned.map(s=>staffChip(s,s.position)).join('')}</div></div>`:''}
-  <p class="sub">Each department's Head and Deputy run their department page: mandate, objectives, notices and members.${isAdmin?' Administrators set the Head and Deputy.':''}</p>`;
+  `;
 }
 
 function pageDept(){
@@ -3113,8 +3111,8 @@ document.addEventListener('click', async e=>{
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
   if(el.dataset.ttab){ UI.ttab=el.dataset.ttab; renderView(true); return; }
   if((el.dataset.deptrm||el.dataset.deptnote||el.dataset.deptobjrm!==undefined)&&await deptClick(el)) return;
-  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
-  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); toast(`${c.no} marked ${st.toLowerCase()}. Open it to adjust dates or amount.`); return; }
+  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); if(v.status==='Paid'&&c.status!=='Paid'&&await certToFinance({...c,...v,paid_date:v.paid_date||today()})) toast('Receipt recorded in Finance.'); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
+  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); const fin=st==='Paid'?await certToFinance({...c,...up}):false; toast(`${c.no} marked ${st.toLowerCase()}${fin?' – receipt recorded in Finance':''}. Open it to adjust dates or amount.`); return; }
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
@@ -3148,7 +3146,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.delsup){ if(await confirmBox('Remove this supplier?','Remove',true)) await remove('suppliers',el.dataset.delsup); return; }
   if(el.dataset.delfin){ if(!isAdmin) return; const f=byId('finance',el.dataset.delfin); if(await confirmBox(`Delete this ${f?.type?.toLowerCase()} of ${tzs(f?.amount)}? This cannot be undone.`,'Delete',true)){ await remove('finance',el.dataset.delfin); logAct(`Deleted finance record ${f?.category} ${tzs(f?.amount)}`);} return; }
   if(el.dataset.editstaff){ const s=byId('staff',el.dataset.editstaff); formDrawer('Edit staff member',STAFF_FIELDS,s,async v=>{ await patch('staff',s.id,v); logAct(`Updated staff: ${v.name}`); }); return; }
-  if(el.dataset.mkstaff){ const p=(S.people||[]).find(x=>x.id===el.dataset.mkstaff); if(!p) return; formDrawer('Create staff card',STAFF_FIELDS,{name:p.name,email:p.email,status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); return; }
+  if(el.dataset.mkstaff){ const p=(S.people||[]).find(x=>x.id===el.dataset.mkstaff); if(!p) return; formDrawer('Create staff card',STAFF_FIELDS,{name:p.name,email:p.email,uid:p.id,status:'Active',station:'Head Office – Dar es Salaam',n_email:'Yes'},async v=>{ await put('staff',safeId(v.name.toLowerCase()).slice(0,50)+'-'+uid().slice(-4),v); logAct(`Added staff: ${v.name} (${v.position})`); }); return; }
   if(el.dataset.delstaff){ const s=byId('staff',el.dataset.delstaff); if(await confirmBox(`Remove ${s?.name} from NEXUS? Past records keep their name.`,'Remove',true)){ await remove('staff',s.id); logAct(`Removed staff: ${s?.name}`); toast('Removed.'); } return; }
   if(el.dataset.deltask){ if(await confirmBox('Delete this task?','Delete',true)) await remove('tasks',el.dataset.deltask); return; }
   if(el.dataset.editdoc){ const d=byId('compliance',el.dataset.editdoc); formDrawer('Compliance document',DOC_FIELDS,d,async v=>{ await patch('compliance',d.id,v); logAct(`Updated compliance: ${v.name}`); },{sub:'Compliance'}); return; }
@@ -3216,7 +3214,7 @@ document.addEventListener('click', async e=>{
     case 'recAiFill': recAiFill(); break;
     case 'recLog': recShowLog(); break;
     case 'addTask': formDrawer('New task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),{priority:'Normal'},async v=>{ await put('tasks',null,{...v,status:'To do',created_by:me.name||'',created_uid:me.id||'',...(v.assignee?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`New task: ${v.title}`); }); break;
-    case 'addDoc': formDrawer('Add compliance document',DOC_FIELDS,{},async v=>{ await put('compliance',null,v); }); break;
+    case 'addDoc': go('records'); UI.rfolder='legal'; recOpenForm({}, {folder:'legal'}); break;
     case 'saveCompany': { const v=readForm(CO_FIELDS,$('#view')); if(!v) return; try{ await db.doc('settings/company').set({...company(),...v,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company profile'); toast('Company profile saved.'); }catch(err){ handleErr(err); } } break;
     case 'saveForm': { const v=readForm(drawer.fields); if(!v) return; el.disabled=true; const ok=await drawer.onSave(v); el.disabled=false; if(ok!==false){ closeDrawer(); toast('Saved.'); } } break;
     case 'askSend': askSend(); break;
