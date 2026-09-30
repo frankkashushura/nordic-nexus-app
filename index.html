@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=93"></script>
+<script src="config.js?v=94"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=93"></script>
-<script src="nexus-chat.js?v=93"></script>
+<script src="nexus-sb.js?v=94"></script>
+<script src="nexus-chat.js?v=94"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -629,6 +629,7 @@ const ICON = {
   tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/>',
   docs:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
   alerts:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
+  hub:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
   office:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4M7 13h10M7 17h7"/><path d="M15 7v5l2-1.5 2 1.5V7"/>',
   deadlines:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
@@ -666,6 +667,7 @@ const PAGES = [
   {k:'staff', t:'Staff'},
   {g:'Office'},
   {k:'office', t:'NEXUS Office'},
+  {k:'hub', t:'Digital Hub'},
   {k:'records', t:'Office Records'},
   {k:'settings', t:'Company & Security'},
   {k:'about', t:'About NEXUS'}
@@ -3026,7 +3028,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -5215,6 +5217,121 @@ function oxfFromTemplate(k){ const C=(title,opts,req=true,multi=false)=>({id:uid
     staff:['Staff feedback survey','Your honest feedback helps us make Nordic a better place to work.',[C('Department',(S.departments||[]).map(d=>d.name).filter(Boolean).concat(['Other']).slice(0,12)),R('I have the tools and information I need'),R('Communication from management'),R('Safety on our sites'),T('One thing we should start doing',true),T('One thing we should stop doing',true)]]}[k]||['Untitled form','',[]];
   oxfOpen({title:F[0],desc:F[1],qs:F[2],open:true,tpl:k},'build'); if(k!=='blank') oxfChanged(); }
 
+/* ---------------- v94 DIGITAL HUB – social networks, search engines, web browsing, Tanzania portals ---------------- */
+// Websites open in a new browser tab (they cannot be shown inside NEXUS: most sites forbid it and NEXUS blocks embedded pages for safety).
+const DH_ENGINES=[
+  ['google','Google','https://www.google.com/search?q='],
+  ['bing','Bing','https://www.bing.com/search?q='],
+  ['ddg','DuckDuckGo','https://duckduckgo.com/?q='],
+  ['scholar','Scholar','https://scholar.google.com/scholar?q='],
+  ['images','Images','https://www.google.com/search?tbm=isch&q='],
+  ['youtube','YouTube','https://www.youtube.com/results?search_query='],
+  ['maps','Maps','https://www.google.com/maps/search/'],
+  ['wiki','Wikipedia','https://en.wikipedia.org/w/index.php?search=']];
+// [name, url, colour, short mark, note]
+const DH_CATS=[
+  {k:'social',t:'Social networks',items:[
+    ['Facebook','https://www.facebook.com','#1877F2','f'],['Instagram','https://www.instagram.com','#D62976','IG'],['LinkedIn','https://www.linkedin.com','#0A66C2','in'],
+    ['X (Twitter)','https://x.com','#111111','X'],['WhatsApp Web','https://web.whatsapp.com','#25D366','WA'],['YouTube','https://www.youtube.com','#FF0000','▶'],
+    ['TikTok','https://www.tiktok.com','#111111','TT'],['Telegram','https://web.telegram.org','#229ED9','TG'],['Threads','https://www.threads.net','#111111','@']]},
+  {k:'search',t:'Search engines & AI',items:[
+    ['Google','https://www.google.com','#4285F4','G'],['Bing','https://www.bing.com','#008373','b'],['DuckDuckGo','https://duckduckgo.com','#DE5833','D'],
+    ['Google Scholar','https://scholar.google.com','#4A6EE0','S'],['Wikipedia','https://www.wikipedia.org','#555555','W'],
+    ['Claude','https://claude.ai','#D97757','C'],['ChatGPT','https://chatgpt.com','#10A37F','AI']]},
+  {k:'work',t:'Email, meetings & tools',items:[
+    ['Gmail','https://mail.google.com','#EA4335','M'],['Outlook.com','https://outlook.live.com','#0F6CBD','O'],['Google Drive','https://drive.google.com','#1FA463','D'],
+    ['Google Meet','https://meet.google.com','#00897B','Me'],['Zoom','https://zoom.us','#0B5CFF','Z'],['Microsoft Teams','https://teams.microsoft.com','#5B5FC7','T'],
+    ['Google Maps','https://www.google.com/maps','#34A853','⌖'],['Google Earth','https://earth.google.com/web','#1A73E8','E'],['Google Translate','https://translate.google.com','#4285F4','文'],
+    ['Currency (XE)','https://www.xe.com','#0A1F44','$']]},
+  {k:'tz',t:'Tanzania – tenders, registration & compliance',items:[
+    ['NeST (e-procurement)','https://nest.go.tz','#1B5E20','NeST'],['PPRA','https://www.ppra.go.tz','#2E7D32','PPRA'],['CRB','https://www.crb.go.tz','#1565C0','CRB'],
+    ['BRELA','https://www.brela.go.tz','#0D47A1','BR'],['TRA','https://www.tra.go.tz','#C62828','TRA'],['NSSF','https://www.nssf.go.tz','#00695C','NSSF'],
+    ['WCF','https://www.wcf.go.tz','#283593','WCF'],['OSHA','https://www.osha.go.tz','#EF6C00','OSHA'],['ERB','https://www.erb.go.tz','#37474F','ERB'],
+    ['AQRB','https://www.aqrb.go.tz','#4E342E','AQRB'],['NEMC','https://www.nemc.or.tz','#2E7D32','NEMC'],['Ajira Portal','https://portal.ajira.go.tz','#1E88E5','AJ'],
+    ['TMA – weather','https://www.meteo.go.tz','#0277BD','☁'],['Government portal','https://www.tanzania.go.tz','#1B5E20','TZ']]},
+  {k:'news',t:'News',items:[
+    ['Daily News','https://dailynews.co.tz','#0D47A1','DN'],['The Citizen','https://www.thecitizen.co.tz','#B71C1C','TC'],['Mwananchi','https://www.mwananchi.co.tz','#C62828','MW'],
+    ['BBC Swahili','https://www.bbc.com/swahili','#BB1919','BBC'],['BBC News','https://www.bbc.com/news','#BB1919','BBC']]}];
+const DH_CSS=`
+.dh{max-width:1180px;margin:0 auto}
+.dh-hero{border-radius:18px;padding:26px 22px 20px;background:linear-gradient(135deg,var(--accent) 0%,color-mix(in srgb,var(--accent) 55%,#0b1b2b) 100%);color:#fff;box-shadow:var(--shadow);margin-bottom:18px}
+.dh-hero h2{margin:0 0 4px;font-size:22px;letter-spacing:.2px}.dh-hero p{margin:0 0 14px;opacity:.85;font-size:13px}
+.dh-box{display:flex;gap:8px;background:#fff;border-radius:14px;padding:6px;align-items:center}
+.dh-box input{flex:1;border:0;outline:0;font-size:16px;padding:10px 12px;color:#111;background:transparent;min-width:0}
+.dh-box button{border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;white-space:nowrap}
+.dh-box .dh-go2{background:#eef1f5;color:#223}
+.dh-eng{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.dh-eng button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
+.dh-eng button.on{background:#fff;color:var(--accent-ink,#123);border-color:#fff;font-weight:600}
+.dh-sec{margin:20px 0 6px}.dh-sec .hdx{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.dh-sec h3{margin:0;font-size:15px}.dh-sec .hdx .sp{flex:1}
+.dh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.dh-t{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;border:1px solid var(--line);background:var(--panel);border-radius:14px;cursor:pointer;color:var(--ink);text-decoration:none;transition:transform .12s,box-shadow .12s}
+.dh-t:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.dh-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.3px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+.dh-ic.sm{font-size:11.5px}.dh-n{font-size:12.5px;text-align:center;line-height:1.25}
+.dh-st{position:absolute;top:4px;right:6px;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer;opacity:0;padding:2px}
+.dh-t:hover .dh-st,.dh-st.on{opacity:1}.dh-st.on{color:#F5B301}
+.dh-x{position:absolute;top:4px;left:6px;border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px}
+.dh-recent{display:flex;gap:6px;flex-wrap:wrap}.dh-recent a{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--ink);text-decoration:none;background:var(--panel)}
+.dh-note{font-size:12px;color:var(--muted);margin:18px 0 6px}
+.dh-empty{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:14px}
+@media (max-width:600px){.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dh-t{padding:10px 3px 9px;border-radius:12px}.dh-ic{width:40px;height:40px;border-radius:11px;font-size:13px}.dh-ic.sm{font-size:10px}.dh-n{font-size:11px}.dh-st{opacity:1;font-size:13px;top:1px;right:3px}.dh-hero h2{font-size:19px}.dh-box input{font-size:15px}.dh-hero{padding:18px 14px}.dh-box .dh-go2{display:none}}`;
+const dhKey=k=>'nx_hub_'+k+'_'+(me&&me.id||'x');
+const dhGet=k=>{ try{ return JSON.parse(localStorage.getItem(dhKey(k))||'[]'); }catch(_){ return []; } };
+const dhSet=(k,v)=>{ try{ localStorage.setItem(dhKey(k),JSON.stringify(v)); }catch(_){} };
+const dhUrlLike=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(s)&&!/\s/.test(s);
+const dhHttps=s=>{ s=String(s||'').trim(); if(!s) return ''; if(/^http:\/\//i.test(s)) s='https://'+s.slice(7); if(!/^https:\/\//i.test(s)) s='https://'+s; return safeUrl(s); };
+const dhHost=u=>{ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(_){ return u; } };
+function dhMark(n,url,c){ const h=dhHost(url); for(const cat of DH_CATS) for(const i of cat.items){ const ih=dhHost(i[1]); if(h===ih||h.endsWith('.'+ih)) return {c:i[2],m:i[3]}; } return {c,m:(n||'?').replace(/[^A-Za-z0-9]/g,'').slice(0,2).toUpperCase()||'★'}; }
+function dhCompany(){ return ((S.hub&&S.hub.company)||[]).filter(x=>x&&safeUrl(x.url)); }
+function dhAll(){ const L=[]; DH_CATS.forEach(c=>c.items.forEach(i=>L.push({n:i[0],url:i[1],c:i[2],m:i[3]}))); dhCompany().forEach(x=>L.push({n:x.n,url:x.url,...dhMark(x.n,x.url,'#0B3D5C')})); dhGet('mine').forEach(x=>L.push({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')})); return L; }
+function dhOpen(url,name){ url=safeUrl(url); if(!url) return toast('That web address is not valid.');
+  const r=dhGet('recent').filter(x=>x.url!==url); r.unshift({n:name||dhHost(url),url}); dhSet('recent',r.slice(0,8));
+  const w=window.open(url,'_blank','noopener'); if(!w) location.href=url; if(route==='hub') setTimeout(()=>renderView(),50); }
+function dhTile(x,opts={}){ const fav=dhGet('fav').includes(x.url), mk=String(x.m||'');
+  return `<div class="dh-t" role="link" tabindex="0" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}" title="${esc(dhHost(x.url))}">
+    ${opts.del?`<button class="dh-x" data-dhdel="${esc(x.url)}" title="Remove from my links" aria-label="Remove">✕</button>`:''}
+    <button class="dh-st ${fav?'on':''}" data-dhfav="${esc(x.url)}" title="${fav?'Remove from favourites':'Add to favourites'}" aria-label="Favourite">${fav?'★':'☆'}</button>
+    <span class="dh-ic ${mk.length>2?'sm':''}" style="background:${esc(x.c||'#546E7A')}">${esc(mk)}</span><span class="dh-n">${esc(x.n)}</span></div>`; }
+function pageHub(){
+  if(!document.getElementById('dhCss')){ const s=document.createElement('style'); s.id='dhCss'; s.textContent=DH_CSS; document.head.appendChild(s); }
+  const eng=UI.dheng||'google', all=dhAll(), favs=dhGet('fav').map(u=>all.find(x=>x.url===u)).filter(Boolean), mine=dhGet('mine'), rec=dhGet('recent'), co=dhCompany();
+  const coTiles=co.map(x=>({n:x.n,url:x.url,...dhMark(x.n,x.url,'#0B3D5C')}));
+  const sec=(k,t,body,btn='')=>`<div class="dh-sec" data-dhsec="${k}"><div class="hdx"><h3>${t}</h3><div class="sp"></div>${btn}</div>${body}</div>`;
+  return `<div class="dh">
+  <div class="dh-hero"><h2>Digital Hub</h2><p>Search the web, open a website, or jump to social networks and the portals we use every day.</p>
+    <form class="dh-box" data-dhform="1" autocomplete="off"><input id="dhq" type="search" placeholder="Search ${esc((DH_ENGINES.find(e=>e[0]===eng)||DH_ENGINES[0])[1])} or type a web address (e.g. nest.go.tz)" aria-label="Search or web address" enterkeyhint="go">
+      <button type="submit">Search</button><button type="button" class="dh-go2" data-dhgo="1" title="Open as a website">Open site</button></form>
+    <div class="dh-eng">${DH_ENGINES.map(e=>`<button type="button" data-dheng="${e[0]}" class="${e[0]===eng?'on':''}">${e[1]}</button>`).join('')}</div></div>
+  ${rec.length?`<div class="dh-sec"><div class="hdx"><h3>Recently opened</h3><div class="sp"></div><button class="btn sm" data-dhclear="1">Clear</button></div><div class="dh-recent">${rec.map(x=>`<a href="${esc(x.url)}" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}">${esc(x.n)}</a>`).join('')}</div></div>`:''}
+  ${sec('fav','★ My favourites',favs.length?`<div class="dh-grid">${favs.map(x=>dhTile(x)).join('')}</div>`:'<div class="dh-empty">Tap the ☆ on any tile to pin it here.</div>')}
+  ${sec('co',`${esc(company().name||'Company')} online`,coTiles.length?`<div class="dh-grid">${coTiles.map(x=>dhTile(x)).join('')}</div>`:`<div class="dh-empty">${isAdmin?'Add the company’s Facebook, LinkedIn, Instagram, website and other pages so everyone can find them here.':'The administrator has not added the company’s pages yet.'}</div>`,isAdmin?'<button class="btn sm" data-dhco="1">Edit company pages</button>':'')}
+  ${sec('mine','My links',mine.length?`<div class="dh-grid">${mine.map(x=>dhTile({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')},{del:1})).join('')}</div>`:'<div class="dh-empty">Add websites you use often – only you see them (saved on this device).</div>','<button class="btn sm" data-dhadd="1">+ Add link</button>')}
+  ${DH_CATS.map(c=>sec(c.k,c.t,`<div class="dh-grid">${c.items.map(i=>dhTile({n:i[0],url:i[1],c:i[2],m:i[3]})).join('')}</div>`)).join('')}
+  <div class="dh-note">Websites open in a new browser tab, so NEXUS stays open here. On the phone app they open in your phone’s browser. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
+}
+function dhSubmit(asSite){ const i=document.getElementById('dhq'); const s=(i&&i.value||'').trim(); if(!s) return i&&i.focus();
+  if(asSite||dhUrlLike(s)){ const u=dhHttps(s); if(u) return dhOpen(u,dhHost(u)); if(asSite) return toast('That does not look like a web address.'); }
+  const e=DH_ENGINES.find(x=>x[0]===(UI.dheng||'google'))||DH_ENGINES[0]; dhOpen(e[2]+encodeURIComponent(s),e[1]+': '+s.slice(0,40)); }
+document.addEventListener('submit',e=>{ if(e.target.closest&&e.target.closest('[data-dhform]')){ e.preventDefault(); dhSubmit(false); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('.dh-t')&&!e.target.closest('button')){ const t=e.target.closest('.dh-t'); dhOpen(t.dataset.dhopen,t.dataset.dhname); } });
+document.addEventListener('click',async e=>{
+  const el=e.target.closest('[data-dheng],[data-dhgo],[data-dhfav],[data-dhdel],[data-dhadd],[data-dhco],[data-dhclear],[data-dhopen]'); if(!el) return;
+  if(el.dataset.dheng){ UI.dheng=el.dataset.dheng; const q=document.getElementById('dhq')?.value||''; renderView(true); const i=document.getElementById('dhq'); if(i){ i.value=q; i.focus(); } return; }
+  if(el.dataset.dhgo) return dhSubmit(true);
+  if(el.dataset.dhfav){ e.preventDefault(); e.stopPropagation(); const f=dhGet('fav'), u=el.dataset.dhfav; dhSet('fav',f.includes(u)?f.filter(x=>x!==u):[...f,u]); return renderView(true); }
+  if(el.dataset.dhdel){ e.preventDefault(); e.stopPropagation(); const u=el.dataset.dhdel; dhSet('mine',dhGet('mine').filter(x=>x.url!==u)); dhSet('fav',dhGet('fav').filter(x=>x!==u)); return renderView(true); }
+  if(el.dataset.dhclear){ dhSet('recent',[]); return renderView(true); }
+  if(el.dataset.dhadd) return formDrawer('Add a link',[{k:'n',label:'Name',req:1,ph:'e.g. Supplier price list'},{k:'url',label:'Web address',req:1,ph:'e.g. www.example.co.tz'}],{},async v=>{ const u=dhHttps(v.url); if(!u){ toast('That web address is not valid.'); return false; } dhSet('mine',[...dhGet('mine').filter(x=>x.url!==u),{n:String(v.n).trim().slice(0,40),url:u}]); renderView(true); },{sub:'Digital Hub · only you see it',saveLabel:'Add link'});
+  if(el.dataset.dhco){ if(!isAdmin) return; const txt=dhCompany().map(x=>`${x.n} | ${x.url}`).join('\n');
+    return formDrawer('Company pages',[{k:'lines',label:'One page per line:  Name | web address',type:'textarea',ph:'Facebook | https://www.facebook.com/…\nLinkedIn | https://www.linkedin.com/company/…\nWebsite | https://…'}],{lines:txt},async v=>{
+      const bad=[], L=String(v.lines||'').split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split('|'); const n=(p.length>1?p[0]:dhHost(dhHttps(p[0]))).trim(), u=dhHttps(p.length>1?p.slice(1).join('|'):p[0]); if(!u){ bad.push(s); return null; } return {n:n.slice(0,40)||dhHost(u),url:u}; }).filter(Boolean);
+      if(bad.length){ toast('Not a valid web address: '+bad[0]); return false; }
+      try{ await db.doc('settings/hub').set({company:L.slice(0,30),updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company pages in Digital Hub'); }catch(err){ toast('Could not save: '+(err.message||err)); return false; } },{sub:'Digital Hub · everyone sees these',saveLabel:'Save'}); }
+  if(el.dataset.dhopen){ e.preventDefault(); dhOpen(el.dataset.dhopen,el.dataset.dhname); }
+});
+
 /* ---------------- NEXUS Office start page (Microsoft 365 style) ---------------- */
 const OXH_CSS=`
 .oxh{display:flex;gap:0;background:#fff;border:1px solid #E1DFDD;border-radius:6px;overflow:hidden;min-height:70vh;color:#252423;font:14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
@@ -5695,6 +5812,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('settings/hub').onSnapshot(s=>{ S.hub=s.exists?s.data():null; if(route==='hub') renderAll(); }, ()=>{});
   db.doc('settings/company').onSnapshot(s=>{ S.company=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('activity/'+new Date().toISOString().slice(0,7)).onSnapshot(s=>{ S.activity=s.exists?(s.data().entries||[]):[]; if(route==='settings') renderAll(); }, ()=>{});
   { const op=new URLSearchParams(location.search).get('open'); if(op){ try{ history.replaceState(null,'',location.pathname); }catch(_){} setTimeout(()=>window.NX_OPEN(op),1200); } }
