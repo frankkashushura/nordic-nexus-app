@@ -2380,7 +2380,6 @@ function pageHome(){
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(firstSeen(b))||0)-(Date.parse(firstSeen(a))||0));
   return `${annHome()}
-  ${myDay()}
   <section class="home-hero">
     <div class="hh-photo" role="img" aria-label="NHC Clock Tower building, built by Nordic Construction"></div>
     <div class="hh-diamond d1"></div><div class="hh-diamond d2"></div><div class="hh-diamond d3"></div>
@@ -2395,6 +2394,7 @@ function pageHome(){
       </div>
     </div>
   </section>
+  ${myDay()}
   <section class="card">
     <div class="hd"><h2>Tender notifications</h2><span class="sub">${notes.length} open · Pursue and Check · newest first</span><div class="sp"></div><button class="btn sm" data-go="tenders">Tender Radar</button></div>
     <div class="list">${notes.length?notes.map(t=>{const d=daysLeft(t.deadline), f=daysLeft(t.date_found), isNew=f!=null&&f>-2;
