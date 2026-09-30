@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=110"></script>
+<script src="config.js?v=111"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=110"></script>
-<script src="nexus-chat.js?v=110"></script>
+<script src="nexus-sb.js?v=111"></script>
+<script src="nexus-chat.js?v=111"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -558,7 +558,7 @@ body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -777,6 +777,7 @@ function computeAlerts(){
   if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   if(poCan()) poList().filter(poLate).forEach(o=>A.push({lvl:'bad', kind:'Late delivery', text:`${o.po_no} ${o.item} – ${o.supplier}`, sub:`Promised ${fmtD(o.delivery_date)} · ${poPct(o)}% received`, go:['route','procure'], sort:16, at:o.delivery_date}));
+  if(isAdmin||isProcOff()) fleet().forEach(v=>{ const st=vlStats(v); if(st.kmLeft!=null&&st.kmLeft<=500) A.push({lvl:'warn', kind:'Vehicle service', text:`${v.name} ${v.reg_no||''}`, sub:st.kmLeft!=null&&st.kmLeft<=500?(st.kmLeft<0?`service overdue by ${(-st.kmLeft).toLocaleString('en-US')} km`:`${st.kmLeft.toLocaleString('en-US')} km to next service`):`service due ${fmtD(st.nextDate)}`, go:['route','plant'], sort:22, at:st.nextDate||''}); st.defects.filter(d=>d.severity==='Unsafe – do not drive').forEach(d=>A.push({lvl:'bad', kind:'Unsafe vehicle', text:`${v.name}: ${d.text}`, sub:`reported by ${d.by||''} ${fmtD(d.date)}`, go:['route','plant'], sort:9, at:d.created_at||d.date})); if(st.low.length) A.push({lvl:'warn', kind:'Fuel check', text:`${v.name}: fuel economy dropped`, sub:`${st.low.length} fill${st.low.length>1?'s':''} over 20% below normal – check for leaks or misuse`, go:['route','plant'], sort:23, at:''}); });
   lvToDecide().forEach(l=>A.push({lvl:'warn', kind:'Leave to approve', text:`${l.name}: ${l.days} days ${String(l.type).toLowerCase()} leave`, sub:`${fmtD(l.from)} – ${fmtD(l.to)}`, go:['route','hr'], sort:19, at:l.requested_at||l.updated_at}));
   lvList().filter(l=>l.by_uid===me.id&&['Approved','Rejected'].includes(l.status)&&l.decided_at&&Date.now()-Date.parse(l.decided_at)<7*864e5).forEach(l=>A.push({lvl:l.status==='Approved'?'blue':'bad', kind:'Your leave', text:`Leave ${fmtD(l.from)} – ${fmtD(l.to)} ${l.status.toLowerCase()}`, sub:`by ${l.decided_by||''}${l.decision_note?': '+l.decision_note:''}`, go:['route','hr'], sort:15, at:l.decided_at}));
   hrSoon().forEach(x=>A.push({lvl:x.d<=7?'bad':'warn', kind:x.kind, text:`${x.s.name} – ${fmtD(x.date)}`, sub:x.d<0?'date has passed – update the staff record':`in ${Math.ceil(x.d)} days`, go:['route','hr'], sort:21, at:x.date}));
@@ -3479,11 +3480,84 @@ async function pmApplyReport(){
 }
 
 /* ===================== PLANT & EQUIPMENT ===================== */
+/* ===================== PHASE 5 · VEHICLE LOG (v111): trips, fuel, service, defects =====================
+   Vehicles are Plant & Equipment items with category "Vehicle" (heavy plant can be logged too).
+   Collection "vlog": {kind trip|fuel|service|defect, plant_id, date, driver, by, by_uid, project_id,
+     trip: from_place, to_place, purpose, odo_start, odo_end · fuel: litres, cost, station, odo, full · service: odo, cost, garage, work, next_km, next_date
+     defect: text, severity, photo, fixed, fixed_at}
+   Everyone except viewers adds entries in their own name; only the author or an administrator corrects them (DB guard_vlog). */
+const VL_KINDS={trip:['🛣️','Trip'],fuel:['⛽','Fuel'],service:['🔧','Service'],defect:['⚠️','Defect']};
+const fleet=()=>(S.plant||[]).filter(x=>x.category==='Vehicle'||x.log).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+const vlList=()=>(S.vlog||[]).filter(x=>!x.deleted);
+const vlOf=id=>vlList().filter(x=>x.plant_id===id).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+function vlOdo(v){ let m=+v.odometer||0; for(const e of vlOf(v.id)) m=Math.max(m,+e.odo_end||0,+e.odo||0); return m; }
+function vlStats(v,days=30){ const L=vlOf(v.id), since=ymd(new Date(Date.now()-days*864e5)), R=L.filter(e=>e.date>=since);
+  const km=R.filter(e=>e.kind==='trip').reduce((a,e)=>a+Math.max(0,(+e.odo_end||0)-(+e.odo_start||0)),0), F=R.filter(e=>e.kind==='fuel'), litres=F.reduce((a,e)=>a+(+e.litres||0),0), fcost=F.reduce((a,e)=>a+(+e.cost||0),0);
+  const fills=L.filter(e=>e.kind==='fuel'&&+e.odo>0).sort((a,b)=>(+a.odo)-(+b.odo)); let kmF=0,lF=0; const eco=[];
+  for(let i=1;i<fills.length;i++){ const d=(+fills[i].odo)-(+fills[i-1].odo), l=+fills[i].litres||0; if(d>0&&l>0){ eco.push({id:fills[i].id,kpl:d/l}); if(fills[i].date>=ymd(new Date(Date.now()-90*864e5))){ kmF+=d; lF+=l; } } }
+  const kpl=lF?kmF/lF:null, svc=L.filter(e=>e.kind==='service').slice(-1)[0], odo=vlOdo(v);
+  const nextKm=+svc?.next_km||(+v.next_service_km||0)||null, nextDate=svc?.next_date||v.service_due||'';
+  const defects=L.filter(e=>e.kind==='defect'&&!e.fixed);
+  const avg=eco.length?eco.reduce((a,x)=>a+x.kpl,0)/eco.length:null, low=eco.filter(x=>avg&&eco.length>=3&&x.kpl<avg*0.8).map(x=>x.id);
+  return {km,litres,fcost,kpl,odo,nextKm,kmLeft:nextKm?nextKm-odo:null,nextDate,defects,low,cpk:km?fcost/km:null,last:L.slice(-1)[0]}; }
+const vlDue=v=>{ const s=vlStats(v); return (s.kmLeft!=null&&s.kmLeft<=500)||(s.nextDate&&daysLeft(s.nextDate+'T23:59')<=7); };
+
+function fleetTab(){
+  const V=fleet(), f=UI.vlv||'', mo=UI.vlm||today().slice(0,7);
+  if(!V.length) return `<div class="card empty">No vehicles yet. Add your vehicles in Plant & Equipment with category <b>Vehicle</b> (registration number, current odometer), then log trips and fuel here.</div>`;
+  const cards=V.map(v=>{ const s=vlStats(v); return `<div class="card" style="padding:14px"><div class="toolbar"><div style="flex:1;min-width:0"><div class="ttl2">${esc(v.name)}</div><div class="sub mono">${esc(v.reg_no||'')}${v.project_id?' · '+esc(projName(v.project_id)):''}</div></div>${s.defects.length?`<span class="chip bad">${s.defects.length} defect${s.defects.length>1?'s':''}</span>`:''}${vlDue(v)?'<span class="chip amb">service due</span>':''}</div>
+    <div class="grid g4" style="gap:6px;margin:8px 0"><div><span class="label">Odometer</span><div class="num">${s.odo?s.odo.toLocaleString('en-US')+' km':'—'}</div></div><div><span class="label">30 days</span><div class="num">${s.km.toLocaleString('en-US')} km</div></div><div><span class="label">Fuel 30 d</span><div class="num">${Math.round(s.litres)} L · ${tzsShort(s.fcost)}</div></div><div><span class="label">Economy</span><div class="num">${s.kpl?s.kpl.toFixed(1)+' km/L':'—'}</div></div></div>
+    <div class="sub">${s.nextKm?`Next service at ${s.nextKm.toLocaleString('en-US')} km (${s.kmLeft<0?'overdue by '+(-s.kmLeft).toLocaleString('en-US'):s.kmLeft.toLocaleString('en-US')+' km to go'})`:s.nextDate?'Next service '+fmtD(s.nextDate):'Record a service to track the next one'}${s.low.length?' · <b style="color:var(--bad)">low fuel economy on '+s.low.length+' fill'+(s.low.length>1?'s':'')+' – check</b>':''}</div>
+    ${isViewer()?'':`<div class="toolbar" style="margin-top:8px;gap:6px;flex-wrap:wrap">${Object.entries(VL_KINDS).map(([k,[i,l]])=>`<button class="btn sm${k==='trip'?' pri':''}" data-vl="add:${k}:${esc(v.id)}">${i} ${l}</button>`).join('')}</div>`}</div>`; }).join('');
+  const L=vlList().filter(e=>(!f||e.plant_id===f)&&String(e.date).startsWith(mo)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  const lowIds=new Set(V.flatMap(v=>vlStats(v).low));
+  return `<div class="grid g2">${cards}</div>
+  <div class="toolbar"><select class="inp" id="vlv" style="width:auto" aria-label="Vehicle"><option value="">All vehicles</option>${V.map(v=>`<option value="${esc(v.id)}" ${f===v.id?'selected':''}>${esc(v.name)} ${esc(v.reg_no||'')}</option>`).join('')}</select><input class="inp" id="vlm" type="month" value="${esc(mo)}" style="width:auto" aria-label="Month"><div class="sp"></div><button class="btn" data-vl="csv">Export CSV</button></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Vehicle</th><th>Entry</th><th class="hide-m">Driver</th><th class="r">km / L</th><th class="r">TZS</th><th></th></tr></thead><tbody>
+  ${L.map(e=>{ const v=byId('plant',e.plant_id)||{}, [i,l]=VL_KINDS[e.kind]||['','']; const km=e.kind==='trip'?Math.max(0,(+e.odo_end||0)-(+e.odo_start||0)):null;
+    const txt=e.kind==='trip'?`${esc(e.from_place||'')} → ${esc(e.to_place||'')}${e.purpose?` · ${esc(e.purpose)}`:''}${e.project_id?` · ${esc(projName(e.project_id))}`:''}`:e.kind==='fuel'?`${esc(e.station||'Fuel')}${e.odo?` · at ${(+e.odo).toLocaleString('en-US')} km`:''}${e.full?' · full tank':''}${lowIds.has(e.id)?' <span class="chip bad">low km/L</span>':''}`:e.kind==='service'?`${esc(e.garage||'')} ${esc(e.work||'')}${e.next_km?` · next ${(+e.next_km).toLocaleString('en-US')} km`:''}`:`${esc(e.text||'')} ${e.fixed?'<span class="chip good">fixed</span>':`<span class="chip ${e.severity==='Unsafe – do not drive'?'bad':'amb'}">${esc(e.severity||'open')}</span>`}`;
+    return `<tr><td class="small mono">${fmtD(e.date)}</td><td class="small">${esc(v.name||'')}<div class="sub mono">${esc(v.reg_no||'')}</div></td><td><span title="${l}">${i}</span> ${txt}</td><td class="hide-m small">${esc(e.driver||e.by||'')}</td><td class="r num">${km!=null?km.toLocaleString('en-US')+' km':e.kind==='fuel'?esc(e.litres)+' L':''}</td><td class="r num">${+e.cost?Math.round(+e.cost).toLocaleString('en-US'):''}</td>
+      <td>${e.photo?`<span class="thumb" style="display:inline-block;width:40px;height:30px;overflow:hidden;border-radius:4px">${photoTag(e.photo)}</span>`:''}${e.kind==='defect'&&!e.fixed&&(isAdmin||isProcOff()||e.by_uid===me.id)?`<button class="btn sm" data-vl="fix:${esc(e.id)}">Fixed</button>`:''}${(isAdmin||e.by_uid===me.id)?`<button class="btn sm" data-vl="del:${esc(e.id)}" aria-label="Delete entry">✕</button>`:''}</td></tr>`; }).join('')||'<tr><td colspan="7"><div class="empty">No entries this month.</div></td></tr>'}
+  </tbody></table></div></div>`;
+}
+function vlForm(kind,pid){ const v=byId('plant',pid); if(!v) return; const s=vlStats(v), [i,l]=VL_KINDS[kind], sid=myStaffId();
+  const drv=[['',me.name||'Me'],...S.staff.filter(x=>x.status!=='Left'&&x.id!==sid).map(x=>[x.name,x.name])];
+  const F={trip:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'driver',label:'Driver',type:'select',options:drv},{k:'from_place',label:'From',req:1,ph:'Yard / Dar'},{k:'to_place',label:'To',req:1,ph:'Site / supplier'},{k:'purpose',label:'Purpose',ph:'Deliver cement to site'},{k:'project_id',label:'Project',type:'select',options:projOpts('— none / office —')},{k:'odo_start',label:'Odometer at start (km)',type:'number',def:s.odo||'',req:1},{k:'odo_end',label:'Odometer at end (km)',type:'number',req:1}],
+    fuel:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'driver',label:'Driver',type:'select',options:drv},{k:'litres',label:'Litres',type:'number',req:1},{k:'cost',label:'Amount paid (TZS)',type:'number',req:1},{k:'odo',label:'Odometer now (km)',type:'number',def:s.odo||'',req:1},{k:'full',label:'Tank filled to full?',type:'select',options:[['1','Yes – full tank'],['','No – part fill']],def:'1'},{k:'station',label:'Filling station',ph:'e.g. Puma Mbezi'},{k:'project_id',label:'Project',type:'select',options:projOpts('— none / office —')}],
+    service:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'odo',label:'Odometer (km)',type:'number',def:s.odo||'',req:1},{k:'garage',label:'Garage'},{k:'work',label:'Work done',type:'textarea',ph:'Oil + filters, brake pads…'},{k:'cost',label:'Cost (TZS)',type:'number'},{k:'next_km',label:'Next service at (km)',type:'number',def:s.odo?s.odo+(+v.service_km||5000):''},{k:'next_date',label:'Or next service date',type:'date'}],
+    defect:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'text',label:'What is wrong',req:1,full:1,ph:'e.g. Front left tyre worn, brake light not working'},{k:'severity',label:'How serious',type:'select',options:['Minor','Needs repair soon','Unsafe – do not drive']}]}[kind];
+  UI.vlph=null;
+  formDrawer(`${i} ${l} – ${v.name} ${v.reg_no||''}`,F,{},async x=>{
+    if(kind==='trip'){ if(+x.odo_end<=+x.odo_start){ toast('The end odometer must be more than the start.'); return false; } if(+x.odo_end-(+x.odo_start)>2000&&!await confirmBox(`${(+x.odo_end-(+x.odo_start)).toLocaleString('en-US')} km in one trip – correct?`,'Yes')) return false; if(s.odo&&+x.odo_start<s.odo-5&&!await confirmBox(`The start odometer (${x.odo_start}) is lower than the last reading (${s.odo}). Save anyway?`,'Save')) return false; }
+    if((kind==='fuel'||kind==='service')&&s.odo&&+x.odo<s.odo-5&&!await confirmBox(`The odometer (${x.odo}) is lower than the last reading (${s.odo.toLocaleString('en-US')}). Save anyway?`,'Save')) return false;
+    if(kind==='fuel'){ x.full=!!x.full; if(+x.litres>250&&!await confirmBox(`${x.litres} litres – correct?`,'Yes')) return false; }
+    const rec={...x,kind,plant_id:pid,driver:x.driver||me.name||'',by:me.name||'',by_uid:me.id||'',created_at:new Date().toISOString(),...(UI.vlph?{photo:UI.vlph}:{})};
+    const id=await put('vlog',null,rec); if(!id) return false;
+    if(kind==='service') await patch('plant',pid,{service_due:x.next_date||'',next_service_km:x.next_km||'',status:v.status==='Under repair'?'Working':v.status});
+    if(kind==='defect'&&x.severity==='Unsafe – do not drive') await patch('plant',pid,{status:'Under repair'});
+    logAct(`${l} logged for ${v.name}${kind==='trip'?` (${(+x.odo_end-(+x.odo_start))} km)`:kind==='fuel'?` (${x.litres} L)`:''}`); return true; },{saveLabel:'Save',sub:kind==='defect'?'Unsafe defects mark the vehicle Under repair and alert the administrators':'Vehicle log'});
+  if(kind==='defect'||kind==='fuel') setTimeout(()=>{ const f=document.querySelector('#overlay .form'); if(f) f.insertAdjacentHTML('beforeend',`<div class="fld full"><label>${kind==='fuel'?'Photo of the receipt (optional)':'Photo (optional)'}</label><label class="btn sm" style="cursor:pointer;width:max-content">📷 Add photo<input type="file" accept="image/*" capture="environment" data-vlph hidden></label><span class="sub" id="vlphs"></span></div>`); },30);
+}
+document.addEventListener('change',async e=>{ const el=e.target;
+  if(el.id==='vlv'){ UI.vlv=el.value; return renderView(true); } if(el.id==='vlm'){ UI.vlm=el.value; return renderView(true); }
+  if('vlph' in (el.dataset||{})&&el.files?.[0]){ const s=$('#vlphs'); if(s) s.textContent='Uploading…'; try{ UI.vlph=await storePhoto(el.files[0]); if($('#vlphs')) $('#vlphs').textContent='✓ Photo added'; }catch(err){ if($('#vlphs')) $('#vlphs').textContent='Upload failed'; } } });
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-vl]'); if(!el) return; const [a,x,y]=el.dataset.vl.split(':');
+  if(a==='ptab'){ UI.plt=x; return renderView(true); }
+  if(a==='add') return vlForm(x,y);
+  if(a==='fix'){ const r=byId('vlog',x); if(!r) return; await patch('vlog',x,{fixed:true,fixed_at:new Date().toISOString(),fixed_by:me.name||''}); const v=byId('plant',r.plant_id); if(v&&v.status==='Under repair'&&!vlOf(v.id).some(q=>q.id!==x&&q.kind==='defect'&&!q.fixed&&q.severity==='Unsafe – do not drive')) await patch('plant',v.id,{status:'Working'}); logAct(`Defect fixed on ${v?.name||'vehicle'}`); return; }
+  if(a==='del'){ if(!await confirmBox('Delete this log entry?','Delete',true)) return; await remove('vlog',x); return; }
+  if(a==='csv'){ const rows=[['Date','Vehicle','Reg','Type','From','To','Purpose','Project','Odo start','Odo end','km','Litres','Odometer','Cost TZS','Driver','Note']];
+    vlList().sort((p,q)=>String(p.date).localeCompare(String(q.date))).forEach(r=>{ const v=byId('plant',r.plant_id)||{}; rows.push([r.date,v.name||'',v.reg_no||'',r.kind,r.from_place||'',r.to_place||'',r.purpose||'',r.project_id?projName(r.project_id):'',r.odo_start||'',r.odo_end||'',r.kind==='trip'?Math.max(0,(+r.odo_end||0)-(+r.odo_start||0)):'',r.litres||'',r.odo||'',r.cost||'',r.driver||r.by||'',r.kind==='defect'?r.text:r.kind==='service'?[r.garage,r.work].filter(Boolean).join(' – '):r.station||'']); });
+    const csv=rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    try{ await downloads.save({filename:`NEXUS vehicle log ${today()}.csv`,data:new TextEncoder().encode('﻿'+csv),type:'text/csv'}); }catch(err){ if(err?.code!=='declined') toast('Download failed.'); } return; }
+});
+
 const PLANT_FIELDS=[{k:'name',label:'Item',req:1,ph:'e.g. Concrete mixer 350L'},{k:'category',label:'Category',type:'select',options:['Heavy plant','Light plant','Vehicle','Scaffolding & formwork','Tools','Surveying equipment','Generator / pump']},
-  {k:'reg_no',label:'Registration / serial no.'},{k:'ownership',label:'Ownership',type:'select',options:['Owned','Hired']},{k:'supplier',label:'Hired from'},
+  {k:'reg_no',label:'Registration / serial no.'},{k:'odometer',label:'Odometer now (km – vehicles)',type:'number'},{k:'service_km',label:'Service every (km)',type:'number',ph:'5000'},{k:'ownership',label:'Ownership',type:'select',options:['Owned','Hired']},{k:'supplier',label:'Hired from'},
   {k:'hire_rate',label:'Hire rate per day (TZS)',type:'number'},{k:'project_id',label:'Currently at',type:'select'},{k:'status',label:'Condition',type:'select',options:['Working','Idle','Under repair','Written off']},
   {k:'service_due',label:'Next service due',type:'date'},{k:'insurance_expiry',label:'Insurance / road licence expiry',type:'date'},{k:'inspection_due',label:'Safety inspection due (OSHA)',type:'date'},{k:'notes',label:'Notes',type:'textarea'}];
-function pagePlant(){
+function pagePlant(){ const t=UI.plt==='log'?'log':'eq'; const seg=`<div class="toolbar"><div class="seg"><button data-vl="ptab:eq" aria-pressed="${t==='eq'}">Equipment</button><button data-vl="ptab:log" aria-pressed="${t==='log'}">Vehicle log</button></div></div>`; return seg+(t==='log'?fleetTab():plantMain()); }
+function plantMain(){
   const L=[...S.plant].sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(a.name||'').localeCompare(b.name||''));
   const due=x=>{const ds=[['Service',x.service_due],['Insurance',x.insurance_expiry],['Inspection',x.inspection_due]].map(([k,v])=>[k,daysLeft(v)]).filter(([,d])=>d!=null&&d<=14); return ds;};
   const hiredIdle=L.filter(x=>x.ownership==='Hired'&&x.status==='Idle');
@@ -3704,6 +3778,7 @@ function deadlineItems(){
     const due=new Date(Date.parse(dlYmd(c.certified)+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10);
     add(due,'payment',c.no||'Certificate',projName(c.project_id),'go:certs',isFin||pm(c.project_id)); }
   for(const q of S.procurement||[]) if(!q.example&&q.needed_by&&!/delivered|rejected/i.test(q.status||'')) add(q.needed_by,'purchase',`${q.pr_no||''} ${q.item||''}`.trim(),`${q.status||'Requested'} · needed on site`,'go:procure',q.requested_uid===me.id||isProcOff());
+  for(const v of fleet()){ const st=vlStats(v); if(st.nextDate) add(st.nextDate,'task',`Vehicle service: ${v.name} ${v.reg_no||''}`,'Plant & Equipment','go:plant',isProcOff()); }
   for(const x of hrSoon()) add(x.date,'task',`${x.kind}: ${x.s.name}`,'Staff record','go:hr',isAdmin);
   for(const l of lvToDecide()) add(l.from,'task',`Leave to approve: ${l.name}`,`${l.days} days from ${fmtD(l.from)}`,'go:hr',true);
   for(const o of poList()){ if(o.po_no&&['Ordered','Part-delivered'].includes(o.status)&&o.delivery_date) add(o.delivery_date,'purchase',`${o.po_no} ${o.item||''}`,`${o.supplier||''} · delivery due · ${poPct(o)}% received`,'go:procure',isProcOff());
