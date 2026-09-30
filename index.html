@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=92"></script>
+<script src="config.js?v=93"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=92"></script>
-<script src="nexus-chat.js?v=92"></script>
+<script src="nexus-sb.js?v=93"></script>
+<script src="nexus-chat.js?v=93"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -555,7 +555,7 @@ const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
 let db=null, assets=null, sample=null, user=null, downloads=null;
-let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, canWrite=true;
+let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, isQSRole=false, canWrite=true;
 let route = 'home', routeArg = null; window.NX_ROUTE=()=>route;
 let drawer = null;           // {type, id, form:bool}
 const UI = {tq:'', tscreen:'Open', tcat:'All', rproj:'All', fproj:'All', ftype:'All', ptab:'board', qtab:'boqs', staffq:'', chat:[], busy:{}};
@@ -674,9 +674,12 @@ const TABS = ['home','chat','projects','reports','more'];
 /* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
 const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
 const isProcOff=()=>typeof isProc!=='undefined'&&isProc;   // Procurement Officer role
+/* v93: Quantity Surveyor role – fills and edits payment certificates (IPCs); cannot mark Paid or remove them */
+const isQSr=()=>typeof isQSRole!=='undefined'&&!!isQSRole;
+const certOk=()=>money()||isQSr();
 const canApprovePR=p=>isAdmin||(isProcOff()&&!(p.requested_uid&&p.requested_uid===me.id));
 const MONEY_PAGES=['certs','report','finance'];
-const navPages=()=>{ const L=PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k)); return L.filter((p,i)=>!p.g||(L[i+1]&&!L[i+1].g)); };
+const navPages=()=>{ const L=PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k)||(p.k==='certs'&&isQSr())); return L.filter((p,i)=>!p.g||(L[i+1]&&!L[i+1].g)); };
 const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
 const PROJ_MONEY=['contract_sum','budget'], VO_MONEY=['value_claimed','value_approved'];
 const projFields=()=>PROJECT_FIELDS.filter(f=>money()||!PROJ_MONEY.includes(f.k));
@@ -776,7 +779,7 @@ function computeAlerts(){
       const dl=t.due?daysLeft(t.due+'T23:59'):null; if(dl!=null&&dl>=0&&dl<2) A.push({lvl:'warn', kind:'Task due', text:t.title, sub:`Due ${dl<1?'today':'tomorrow'} · ${fmtD(t.due)}`, go:['route','tasks'], sort:6, at:new Date(Date.parse(t.due+'T07:00:00+03:00')-864e5).toISOString(), nk:'taskdue|'+t.id+'|'+t.due}); }); }
   S.tasks.filter(t=>tStage(t)!=='Done' && t.due && daysLeft(t.due+'T23:59')<0 && (isAdmin||(myStaffId()&&t.assignee===myStaffId()))).forEach(t=>A.push({lvl:'bad', kind:'Overdue task', text:t.title, sub:`${staffName(t.assignee)} · due ${fmtD(t.due)}`, go:['route','tasks'], sort:5, at:t.due?t.due+'T23:59:00+03:00':''}));
   S.reports.filter(r=>r.hse && r.hse.trim() && !/^(none|nil|no)\b/i.test(r.hse.trim()) && daysLeft(r.date)>-7).forEach(r=>A.push({lvl:'bad', kind:'HSE', text:`HSE note on ${projName(r.project_id)}`, sub:r.hse.slice(0,90), go:['report',r.id], sort:2, at:r.updated_at||r.date}));
-  (money()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
+  (certOk()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
   if(typeof syncHealth==='function' && S.sync && syncHealth().cls==='bad') A.push({lvl:'bad', kind:'Tender scanning', text:syncHealth().label, sub:'Check the Actions tab of the nordic-tender-scanner repository on GitHub', go:['route','tenders'], sort:1});
   if(isAdmin && window.NX_BACKUP_CARD && S.backup!==undefined){ const bk=S.backup, age=bk&&bk.last_ok?(Date.now()-Date.parse(bk.last_ok))/36e5:1e9; if(age>48||bk?.error) A.push({lvl:'bad', kind:'Backup', text:bk?.error?'The last automatic backup failed':'No backup in the last 2 days', sub:bk?.error?String(bk.error).slice(0,90):'Company & Security → Backups → Back up now', go:['route','settings'], sort:2}); else if(bk?.mail_error) A.push({lvl:'warn', kind:'Backup', text:'Backup saved, but the email copy was not sent', sub:String(bk.mail_error).slice(0,90), go:['route','settings'], sort:6}); }
@@ -2527,6 +2530,8 @@ const CERT_FIELDS=[
   {k:'retention',label:'Retention held this certificate (TZS)',type:'number'},{k:'status',label:'Status',type:'select',options:['Draft','Submitted','Certified','Paid']},
   {k:'certified',label:'Date certified',type:'date'},{k:'terms',label:'Payment period (days after certification)',type:'number',def:28},
   {k:'paid_date',label:'Date paid',type:'date'},{k:'paid_amount',label:'Amount received (TZS)',type:'number'},{k:'notes',label:'Notes',type:'textarea'}];
+/* QS: no Paid status, no payment fields (Finance / MD record payment) */
+const certFields=c=>CERT_FIELDS.filter(f=>money()||!['paid_date','paid_amount'].includes(f.k)).map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f.k==='status'&&!money()?{...f,options:c&&c.status==='Paid'?['Paid']:['Draft','Submitted','Certified']}:f);
 function certDue(c){ const b=toDate(c.certified); if(!b) return null; const d=new Date(b); d.setDate(d.getDate()+(+c.terms||28)); return d; }
 function certState(c){
   if(c.status==='Paid') return {cls:'good',label:'Paid'};
@@ -2540,7 +2545,7 @@ async function certToFinance(c){ if(!money()||!c||(S.finance||[]).some(f=>f.cert
   const p=byId('projects',c.project_id);
   return !!(await put('finance',null,{date:c.paid_date||today(),type:'Income',category:'Payment certificate (IPC)',amount:amt,project_id:c.project_id||'',party:p?.client||'',ref:c.no||'',method:'Bank transfer',note:`Received for ${c.no||'certificate'} (recorded automatically when marked Paid)`,cert_id:c.id})); }
 function pageCerts(){
-  if(!money()) return noMoney('Payment Certificates');
+  if(!certOk()) return `<div class="card empty">Payment Certificates are for administrators, Finance and Quantity Surveyors only.</div>`;
   const cs=[...S.certificates].sort((a,b)=>(b.certified||b.submitted||'').localeCompare(a.certified||a.submitted||''));
   const outstanding=cs.filter(c=>c.status==='Certified'), overdue=outstanding.filter(c=>certState(c).cls==='bad');
   const sum=a=>a.reduce((x,c)=>x+(+c.amount||0),0), yr=new Date().getFullYear();
@@ -2559,7 +2564,7 @@ function pageCerts(){
   <div class="toolbar"><span class="muted">Payment period defaults to 28 days after certification; change it per certificate to match the contract.</span><div class="sp"></div><button class="btn pri" data-act="addCert">New certificate</button></div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Certificate</th><th>Project</th><th class="r">Net amount</th><th>Status</th><th class="hide-m">Submitted</th><th class="hide-m">Certified</th><th></th></tr></thead><tbody>
   ${cs.map(c=>{const st=certState(c);return `<tr class="click" data-editcert="${esc(c.id)}"><td class="ttl2 mono">${esc(c.no)}</td><td>${esc(projName(c.project_id))}</td><td class="r num">${tzs(c.amount).replace('TZS ','')}</td><td><span class="chip ${st.cls}">${esc(st.label)}</span></td><td class="hide-m small">${fmtD(c.submitted)}</td><td class="hide-m small">${fmtD(c.certified)}</td>
-    <td>${c.status==='Submitted'?`<button class="btn sm" data-certstep="${esc(c.id)}:Certified">Certified</button>`:c.status==='Certified'?`<button class="btn sm pri" data-certstep="${esc(c.id)}:Paid">Paid</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No payment certificates recorded yet. Add each IPC when it is submitted, then mark it certified and paid – NEXUS warns when payment is late.</div></td></tr>'}
+    <td>${c.status==='Submitted'?`<button class="btn sm" data-certstep="${esc(c.id)}:Certified">Certified</button>`:c.status==='Certified'&&money()?`<button class="btn sm pri" data-certstep="${esc(c.id)}:Paid">Paid</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No payment certificates recorded yet. Add each IPC when it is submitted, then mark it certified and paid – NEXUS warns when payment is late.</div></td></tr>'}
   </tbody></table></div></div>`;
 }
 
@@ -3210,7 +3215,7 @@ function deadlineItems(){
   for(const r of S.records||[]){ if(r.folder==='contracts'&&r.dlp_end&&dlDays(dlYmd(r.dlp_end))>=0) add(r.dlp_end,'dlp',r.title||'Contract','Release retention after this date','rec:'+r.id,sid&&r.owner===sid);
     else if(r.folder!=='contracts'&&recExp(r)) add(recExp(r),'doc',r.title||'Document',[r.ref,r.party].filter(Boolean).join(' · '),'rec:'+r.id,sid&&r.owner===sid); }
   for(const c of compLegacy()) add(c.expiry,'doc',c.name,c.issuer||'','go:records',false);
-  if(money()) for(const c of S.certificates||[]){ if(c.example||c.status!=='Certified'||!dlYmd(c.certified)) continue;
+  if(certOk()) for(const c of S.certificates||[]){ if(c.example||c.status!=='Certified'||!dlYmd(c.certified)) continue;
     const due=new Date(Date.parse(dlYmd(c.certified)+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10);
     add(due,'payment',c.no||'Certificate',projName(c.project_id),'go:certs',isFin||pm(c.project_id)); }
   for(const q of S.procurement||[]) if(!q.example&&q.needed_by&&!/delivered|rejected/i.test(q.status||'')) add(q.needed_by,'purchase',`${q.pr_no||''} ${q.item||''}`.trim(),`${q.status||'Requested'} · needed on site`,'go:procure',q.requested_uid===me.id||isProcOff());
@@ -3238,7 +3243,7 @@ document.addEventListener('change',e=>{ if(e.target?.id==='dlk'){ UI.dlk=e.targe
 
 /* ===== v2.12 ROLE HOME ("My day"), GLOBAL SEARCH, QUICK ADD ===== */
 const isFinR=()=>typeof isFin!=='undefined'&&!!isFin;
-const myRole=()=>isAdmin?'admin':isFinR()?'finance':isProcOff()?'procurement':canWrite===false?'viewer':'staff';
+const myRole=()=>isAdmin?'admin':isFinR()?'finance':isProcOff()?'procurement':isQSr()?'qs':canWrite===false?'viewer':'staff';
 const myDept=()=>String(byId('staff',myStaffId())?.department||'');
 const isQS=()=>/quantity|qs|estimat|tender/i.test(myDept());
 function mdCard(title,go,body,count){ return `<div class="card"><div class="hd"><h2>${title}</h2>${count!=null?`<span class="chip ${count?'warn':'good'}">${count}</span>`:''}<div class="sp"></div>${go?`<button class="btn sm" data-go="${go}">Open</button>`:''}</div><div class="list">${body}</div></div>`; }
@@ -3259,12 +3264,12 @@ function myDay(){
   if(role!=='procurement') tile(tasks.length,'My tasks','data-go="tasks"',tasks.some(t=>t.due&&t.due<td)?'hot':'');
   if(myProj.length) tile(myTodo.length?'To do':'✓','Site report',myTodo.length?`data-act="newReport" data-proj="${esc(myTodo[0].id)}"`:'data-go="reports"',myTodo.length?'hot':'ok');
   if(role==='admin') tile(wait.length,'To approve','data-go="procure"',wait.length?'hot':'');
-  if(role==='admin'||role==='finance') tile(certs.length,late.length?`Unpaid · ${late.length} late`:'Unpaid IPCs','data-go="certs"',late.length?'hot':'');
-  if(role==='admin'||isQS()) tile(t7.length,'Tenders ≤ 7 days','data-go="tenders"',t7.some(t=>!t.owner)?'hot':'');
+  if(role==='admin'||role==='finance'||role==='qs') tile(certs.length,late.length?`Unpaid · ${late.length} late`:'Unpaid IPCs','data-go="certs"',late.length?'hot':'');
+  if(role==='admin'||role==='qs'||isQS()) tile(t7.length,'Tenders ≤ 7 days','data-go="tenders"',t7.some(t=>!t.owner)?'hot':'');
   if(role==='admin') tile(`${rep.length}/${act.length}`,'Sites reported','data-go="reports"',rep.length<act.length?'hot':'ok');
   // one short "next up" line list (max 3)
   const next=mine.slice(0,3);
-  const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',staff:'Staff',viewer:'Viewer'};
+  const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',qs:'Quantity Surveyor',staff:'Staff',viewer:'Viewer'};
   return `<section class="myday"><div class="toolbar" style="margin-bottom:10px"><div class="label">My day · ${RT[role]}</div><div class="sp"></div>${qaButtons().slice(0,2).map(([a,l])=>`<button class="btn sm ${a==='newReport'?'pri':''}" data-act="${a}">${l}</button>`).join('')}</div>
     <div class="md-tiles">${T.slice(0,6).join('')}</div>
     ${next.length?`<div class="md-next">${next.map(x=>`<button class="md-row" ${x.go.startsWith('go:')?`data-go="${esc(x.go.slice(3))}"`:x.go.startsWith('rec:')?`data-rec="${esc(x.go.slice(4))}"`:`data-open="${esc(x.go)}"`}><span>${DL_KIND[x.kind][0]}</span><span class="grow md-t">${esc(x.title)}</span><span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${x.n<0?`${-x.n}d late`:x.n===0?'today':x.n===1?'tomorrow':x.n+' days'}</span></button>`).join('')}</div>`:''}
@@ -3274,6 +3279,7 @@ function myDay(){
 function qaButtons(){ if(canWrite===false) return []; const role=myRole(), L=[];
   L.push(['newReport','📋 Site report']); L.push(['addTask','✅ Task']); L.push(['addPR','🛒 Purchase request']);
   if(role==='admin'||role==='finance'){ L.push(['addCert','💰 Payment certificate']); L.push(['addFin','🧾 Finance entry']); }
+  if(role==='qs') L.splice(2,0,['addCert','💰 Payment certificate']);
   L.push(['addTender','🏗️ Tender']); L.push(['addMeeting','📅 Meeting']); L.push(['recAdd','📁 Office record']);
   if(role==='procurement') L.splice(0,3,['addPR','🛒 Purchase request'],['addSupplier','🏪 Supplier'],['newReport','📋 Site report'],['addTask','✅ Task']);
   if(role==='finance') L.unshift(L.splice(L.findIndex(x=>x[0]==='addFin'),1)[0]);
@@ -3295,7 +3301,7 @@ function searchAll(q){ q=q.trim().toLowerCase(); if(q.length<2) return []; const
   S.reports.forEach(r=>has(r.work_done,r.issues,r.author,projName(r.project_id))&&push('Site reports',`data-open="report:${esc(r.id)}"`,`${projName(r.project_id)} · ${fmtD(r.date)}`,String(r.work_done||'').slice(0,90)));
   (S.tasks||[]).forEach(t=>has(t.title,t.notes)&&push('Tasks','data-go="tasks"',t.title,[t.status,staffName(t.assignee)].filter(Boolean).join(' · ')));
   (S.boqs||[]).forEach(b=>has(b.title,b.client)&&push('BoQs',`data-boq="${esc(b.id)}"`,b.title,b.client||''));
-  if(money()) (S.certificates||[]).forEach(c=>has(c.no,projName(c.project_id))&&push('Payment certificates','data-go="certs"',c.no||'Certificate',[projName(c.project_id),c.status].join(' · ')));
+  if(certOk()) (S.certificates||[]).forEach(c=>has(c.no,projName(c.project_id))&&push('Payment certificates','data-go="certs"',c.no||'Certificate',[projName(c.project_id),c.status].join(' · ')));
   (S.meetings||[]).forEach(m=>has(m.title,m.agenda)&&push('Meetings','data-go="meetings"',m.title,fmtD(m.date||m.start)));
   return out.slice(0,60); }
 function searchOpen(){ if($('#nxSearch')) return; const d=document.createElement('div'); d.id='nxSearch'; d.className='nx-search';
@@ -5328,8 +5334,8 @@ document.addEventListener('click', async e=>{
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
   if(el.dataset.ttab){ UI.ttab=el.dataset.ttab; renderView(true); return; }
   if((el.dataset.deptrm||el.dataset.deptnote||el.dataset.deptobjrm!==undefined)&&await deptClick(el)) return;
-  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); if(v.status==='Paid'&&c.status!=='Paid'&&await certToFinance({...c,...v,paid_date:v.paid_date||today()})) toast('Receipt recorded in Finance.'); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
-  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); const fin=st==='Paid'?await certToFinance({...c,...up}):false; toast(`${c.no} marked ${st.toLowerCase()}${fin?' – receipt recorded in Finance':''}. Open it to adjust dates or amount.`); return; }
+  if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',certFields(c),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); if(v.status==='Paid'&&c.status!=='Paid'&&await certToFinance({...c,...v,paid_date:v.paid_date||today()})) toast('Receipt recorded in Finance.'); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
+  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); if(!c||(st==='Paid'&&!money())) return; const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); const fin=st==='Paid'?await certToFinance({...c,...up}):false; toast(`${c.no} marked ${st.toLowerCase()}${fin?' – receipt recorded in Finance':''}. Open it to adjust dates or amount.`); return; }
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
@@ -5440,7 +5446,7 @@ document.addEventListener('click', async e=>{
     case 'askRetry': { if(UI.busy.ask) break; const last=UI.chat.length-1; if(last<1||UI.chat[last].role!=='assistant') break; const q=UI.chat[last-1].content; UI.chat.splice(last-1,2); askSend(q); } break;
     case 'saveChecklist': if(T){ const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); await patch('tenders',T.id,{checklist:cl}); const s=checklistState({checklist:cl}); logAct(`Bid checklist for "${T.title}": ${s.done}/${s.total}`); toast(`Checklist saved: ${s.done} of ${s.total} done.`); } break;
     case 'saveOutcome': if(T){ const v=readForm(OUTCOME_FIELDS.map(f=>({...f,k:'o_'+f.k}))); if(!v) return; const up={}; OUTCOME_FIELDS.forEach(f=>{ up[f.k]=v['o_'+f.k]; }); await patch('tenders',T.id,up); logAct(`Recorded bid result for "${T.title}"`); toast('Result saved.'); } break;
-    case 'addCert': formDrawer('New payment certificate',CERT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f),{status:'Submitted',submitted:today(),terms:28},async v=>{ await put('certificates',null,v); logAct(`Recorded ${v.no} for ${projName(v.project_id)} – ${tzs(v.amount)}`); },{sub:'Payment certificates',saveLabel:'Save certificate'}); break;
+    case 'addCert': if(!certOk()) break; formDrawer('New payment certificate',certFields(null),{status:'Submitted',submitted:today(),terms:28},async v=>{ await put('certificates',null,v); logAct(`Recorded ${v.no} for ${projName(v.project_id)} – ${tzs(v.amount)}`); },{sub:'Payment certificates',saveLabel:'Save certificate'}); break;
     case 'aiWeekly': aiWeekly(); break;
     case 'testEmail': { if(!window.NX_SB){ toast('Available in the standalone NEXUS only.'); break; } toast('Sending test email…'); try{ const tok=(await NX_SB.auth.getSession()).data.session?.access_token; const r=await fetch(NEXUS_CONFIG.url+'/functions/v1/tender-sync?test=1',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:'{}'}); const j=await r.json(); if(!r.ok) toast(j.message||j.error||'Test failed'); else if(j.configured===false) toast('Gmail password missing in Supabase secrets.'); else toast(`Test sent to ${j.sent.length} of ${j.recipients.length}${j.failed.length?' – '+j.failed.length+' failed':''}.`); logAct('Sent a test email alert'); }catch(e){ toast('Test failed: '+e.message); } } break;
     case 'copyRecipients': { const txt=JSON.stringify(recipList()); const ta=$('#recipOut'); let copied=false; try{ await navigator.clipboard.writeText(txt); copied=true; }catch(_){ if(ta){ ta.value=txt; ta.hidden=false; ta.focus(); ta.select(); } }
@@ -5678,7 +5684,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   try{ if(window.NX_READY) await window.NX_READY; }catch(_){ return; }
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
-  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
+  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); isQSRole=!!(await user.isQS?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
     $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
   loadPeople(); nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';

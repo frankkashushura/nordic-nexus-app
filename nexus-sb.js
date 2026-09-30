@@ -140,6 +140,7 @@
     async can(what) { if (what === 'data.write') return profile?.role !== 'viewer'; return true; },
     async isFinance() { return profile?.role === 'finance'; },
     async isProcurement() { return profile?.role === 'procurement'; },
+    async isQS() { return profile?.role === 'qs'; },
     async people() { const { data, error } = await sb.from('profiles').select('user_id,name,email,role,active,pending'); if (error) return []; return (data || []).filter(p => p.active !== false && !p.pending).map(p => ({ id: p.user_id, name: p.name || '', email: p.email || '', role: p.role, roleTxt: ROLE_TXT[p.role] || p.role })); }
   };
 
@@ -608,7 +609,7 @@
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-nxbk]'); if (b) { e.preventDefault(); bkDo(b.dataset.nxbk); } });
 
   /* ================= account menu + login management ================= */
-  const ROLE_TXT = { admin: 'Administrator', finance: 'Finance', procurement: 'Procurement Officer', staff: 'Staff', viewer: 'Viewer (read only)' };
+  const ROLE_TXT = { admin: 'Administrator', finance: 'Finance', procurement: 'Procurement Officer', qs: 'Quantity Surveyor', staff: 'Staff', viewer: 'Viewer (read only)' };
   window.NX_ROLE = () => ROLE_TXT[profile?.role] || '';
   function attachMenu() {
     const who = document.querySelector('.who'); if (!who) return;
