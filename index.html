@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=106"></script>
+<script src="config.js?v=107"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=106"></script>
-<script src="nexus-chat.js?v=106"></script>
+<script src="nexus-sb.js?v=107"></script>
+<script src="nexus-chat.js?v=107"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5449,15 +5449,17 @@ const BB_TIPS=[
   ['plant','Stay out of the swing zone','Keep people outside the working radius of excavators and cranes; use barriers and a banksman.','hse'],
   ['plant','Trained operators only','Only trained, authorised people may operate plant – keys stay with the supervisor.','hse']];
 /* v103: SITE BILLBOARD = live construction NEWS (Edge Function `news` → system/news, hourly) + tips. Themes per device. */
-const BB={i:0,paused:false,timer:null,cat:'all',when:'all',dur:10000,el:0,last:0,theme:(()=>{ try{ return localStorage.getItem('nx_bb_theme')||'led'; }catch(_){ return 'led'; } })()};
+const BB={i:0,paused:false,timer:null,cat:'all',when:'all',dur:10000,el:0,last:0,theme:(()=>{ try{ return localStorage.getItem('nx_bb_theme')||'led'; }catch(_){ return 'led'; } })(),lang:(()=>{ try{ return localStorage.getItem('nx_bb_lang')||'all'; }catch(_){ return 'all'; } })()};
+const BB_LANGS=[['all','🌐 All languages'],['en','English'],['sw','Kiswahili'],['fr','Français']];
 const BB_TOPIC={africa:['🌍','Tanzania & Africa','#0E9F6E'],accident:['🚨','Accidents','#E02424'],safety:['🦺','Safety','#FF8A00'],tech:['🤖','Technology','#3F83F8'],design:['📐','Structures & design','#9061F9'],pm:['📊','Projects & PM','#0694A2'],industry:['🏗️','Industry','#C27803'],tip:['💡','Tips','#FACA15']};
 const BB_THEMES=[['led','Night LED'],['blueprint','Blueprint'],['site','Site hazard'],['paper','Newspaper']];
 const bbAgo=iso=>{ const t=Date.parse(iso); if(!t) return ''; const m=Math.round((Date.now()-t)/6e4); if(m<60) return m<=1?'just now':m+' min ago'; const h=Math.round(m/60); if(h<24) return h+' h ago'; const d=Math.round(h/24); if(d===1) return 'yesterday'; if(d<7) return d+' days ago'; return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'}); };
 const bbAge=iso=>{ const d=(Date.now()-Date.parse(iso))/864e5; return d<1.2?'today':d<7?'week':d<21?'recent':'older'; };
 function bbItems(){
-  const news=((S.news&&S.news.items)||[]).filter(n=>n&&n.title&&safeUrl(n.link)).map(n=>({k:'news',topic:BB_TOPIC[n.topic]?n.topic:'industry',title:n.title,sum:n.sum||'',img:safeUrl(n.img||''),src:n.source||'',link:n.link,at:n.at}));
+  const news=((S.news&&S.news.items)||[]).filter(n=>n&&n.title&&safeUrl(n.link)&&(BB.lang==='all'||(n.lang||'en')===BB.lang)).map(n=>({k:'news',topic:BB_TOPIC[n.topic]?n.topic:'industry',title:n.title,sum:n.sum||'',img:safeUrl(n.img||''),src:n.source||'',link:n.link,at:n.at}));
   const co=((S.bbtips&&S.bbtips.tips)||[]).filter(x=>x&&x.t).map(x=>({k:'tip',topic:'tip',title:x.t,sum:x.b||'',src:company().name||'Nordic Construction',link:safeUrl(x.u||''),own:1}));
   const tips=BB_TIPS.map(x=>({k:'tip',topic:'tip',tcat:x[0],title:x[1],sum:x[2],src:(BB_SRC[x[3]]||[''])[0],link:(BB_SRC[x[3]]||['',''])[1]}));
+  const tipOk=BB.lang==='all'||BB.lang==='en'; if(!tipOk){ co.length=0; tips.length=0; }
   let L;
   if(BB.cat==='tip') L=[...co,...tips];
   else { let N=news.filter(n=>BB.cat==='all'||n.topic===BB.cat);
@@ -5488,7 +5490,8 @@ function bbHtml(){
   return `<section class="bb th-${esc(BB.theme)}" id="bb" aria-label="Construction news">
     <div class="bb-top"><span class="bb-live"><i></i>NEXUS NEWS</span>
       <select class="bb-sel" id="bbCat" aria-label="Topic">${cats.map(([k,l])=>`<option value="${k}" ${BB.cat===k?'selected':''}>${l}</option>`).join('')}</select>
-      <select class="bb-sel" id="bbWhen" aria-label="When">${[['all','All dates'],['today','Today'],['week','This week'],['older','Older']].map(([k,l])=>`<option value="${k}" ${BB.when===k?'selected':''}>${l}</option>`).join('')}</select>
+      <select class="bb-sel" id="bbLang" aria-label="Language">${BB_LANGS.map(([k,l])=>`<option value="${k}" ${BB.lang===k?'selected':''}>${l}</option>`).join('')}</select>
+      <select class="bb-sel bb-when" id="bbWhen" aria-label="When">${[['all','All dates'],['today','Today'],['week','This week'],['older','Older']].map(([k,l])=>`<option value="${k}" ${BB.when===k?'selected':''}>${l}</option>`).join('')}</select>
       <span class="bb-upd">${upd?'updated '+esc(bbAgo(upd)):''}</span><span class="sp"></span>
       <select class="bb-sel bb-thm" id="bbTheme" aria-label="Style">${BB_THEMES.map(([k,l])=>`<option value="${k}" ${BB.theme===k?'selected':''}>🎨 ${l}</option>`).join('')}</select>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Company tips">✎</button>':''}</div>
     <div class="bb-run">${L.length?`<div class="bb-track" style="animation-duration:${secs}s">${row}${row}</div>`:'<div class="bb-none">No stories in this view yet.</div>'}</div></section>`; }
@@ -5504,7 +5507,8 @@ function bbTick(){ if(BB.timer) return; BB.el=0; BB.last=Date.now(); BB.timer=se
 document.addEventListener('error',e=>{ const i=e.target; if(i&&i.dataset&&i.dataset.bbimg) i.remove(); },true);
 document.addEventListener('change',e=>{ if(e.target.id==='bbTheme'){ BB.theme=e.target.value; try{ localStorage.setItem('nx_bb_theme',BB.theme); }catch(_){} const el=document.getElementById('bb'); if(el) el.className='bb th-'+BB.theme; }
   if(e.target.id==='bbWhen'){ BB.when=e.target.value; if(BB.cat==='tip') BB.cat='all'; bbRefresh(); }
-  if(e.target.id==='bbCat'){ BB.cat=e.target.value; bbRefresh(); } });
+  if(e.target.id==='bbCat'){ BB.cat=e.target.value; bbRefresh(); }
+  if(e.target.id==='bbLang'){ BB.lang=e.target.value; try{ localStorage.setItem('nx_bb_lang',BB.lang); }catch(_){} if(BB.cat==='tip'&&BB.lang!=='en'&&BB.lang!=='all') BB.cat='all'; bbRefresh(); } });
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-bbnav],[data-bbpause],[data-bbcat],[data-bbedit],[data-bbjump]'); if(!b) return;
   if(b.dataset.bbnav){ bbShow(+b.dataset.bbnav); return; }
   if(b.dataset.bbjump){ bbShow(0,+b.dataset.bbjump); return; }
@@ -5546,7 +5550,7 @@ const BB_CSS=`
 .bb-tx em{font-style:normal;font-size:12px;color:var(--mu);white-space:nowrap}
 .bb-i+.bb-i{border-left:0}.bb-i{border-right:2px solid var(--ln)}
 .bb-none{padding:20px 14px;color:var(--mu);font-size:13px}
-@media (max-width:640px){.bb-top{padding:6px 10px;gap:6px;flex-wrap:nowrap}.bb-upd,.bb-thm,.bb-ed{display:none}.bb-live{font-size:13px;letter-spacing:1.2px}.bb-sel{max-width:108px;font-size:11.5px;padding:3px 8px}.bb-run{height:70px}.bb-i{padding:0 24px 0 10px;height:50px}.bb-hl{font-size:15.5px}.bb-th{width:48px;height:48px}}
+@media (max-width:640px){.bb-top{padding:6px 10px;gap:6px;flex-wrap:nowrap}.bb-upd,.bb-thm,.bb-ed,.bb-when{display:none}.bb-live{font-size:13px;letter-spacing:1.2px}.bb-sel{max-width:108px;font-size:11.5px;padding:3px 8px}.bb-run{height:70px}.bb-i{padding:0 24px 0 10px;height:50px}.bb-hl{font-size:15.5px}.bb-th{width:48px;height:48px}}
 @media (prefers-reduced-motion:reduce){.bb-track{animation:none;overflow-x:auto}.bb-live i,.bb-dot{animation:none}}`;
 function pageOffice(){
   if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
