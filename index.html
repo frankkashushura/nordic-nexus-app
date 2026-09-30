@@ -156,7 +156,8 @@ textarea.inp{min-height:84px;resize:vertical}
 .li.nt-new .ttl2,.li.nt-unread .ttl2{font-weight:700}
 .li.nt-read{opacity:.62}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.myday{margin:4px 0 18px}
+.myday{margin:16px 0 18px}
+.home-hero{min-height:0!important}.home-hero .hh-text{padding:clamp(18px,3vw,30px);gap:8px;max-width:680px}.home-hero .hh-title{font-size:clamp(40px,6vw,68px)}.home-hero .hh-slogan{font-size:clamp(17px,2vw,22px)}.home-hero .hh-sub,.home-hero .hh-text>.toolbar{display:none}.home-hero .hh-diamond.d3{width:120px;height:120px;top:-50px;right:-50px}
 .md-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .md-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);border-top:3px solid var(--accent);background:var(--panel);box-shadow:var(--shadow);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:transform .12s}
 .md-tile:hover{transform:translateY(-2px)}.md-tile.hot{border-top-color:var(--bad)}.md-tile.ok{border-top-color:var(--good)}
@@ -2385,8 +2386,7 @@ function pageHome(){
   const c=company(), open=openTenders();
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(firstSeen(b))||0)-(Date.parse(firstSeen(a))||0));
-  return `${annHome()}
-  <section class="home-hero">
+  return `<section class="home-hero">
     <div class="hh-photo" role="img" aria-label="NHC Clock Tower building, built by Nordic Construction"></div>
     <div class="hh-diamond d1"></div><div class="hh-diamond d2"></div><div class="hh-diamond d3"></div>
     <div class="hh-text">
@@ -2401,6 +2401,7 @@ function pageHome(){
     </div>
   </section>
   ${myDay()}
+  ${annHome()}
   <section class="card">
     <div class="hd"><h2>Tender notifications</h2><span class="sub">${notes.length} open · newest ${Math.min(5,notes.length)} shown</span><div class="sp"></div><button class="btn sm" data-go="tenders">Tender Radar</button></div>
     <div class="list">${notes.length?notes.slice(0,5).map(t=>{const d=daysLeft(t.deadline), f=daysLeft(t.date_found), isNew=f!=null&&f>-2;
