@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=108"></script>
+<script src="config.js?v=109"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=108"></script>
-<script src="nexus-chat.js?v=108"></script>
+<script src="nexus-sb.js?v=109"></script>
+<script src="nexus-chat.js?v=109"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -558,7 +558,7 @@ body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -2792,6 +2792,8 @@ async function certToFinance(c){ if(!money()||!c||(S.finance||[]).some(f=>f.cert
   return !!(await put('finance',null,{date:c.paid_date||today(),type:'Income',category:'Payment certificate (IPC)',amount:amt,project_id:c.project_id||'',party:p?.client||'',ref:c.no||'',method:'Bank transfer',note:`Received for ${c.no||'certificate'} (recorded automatically when marked Paid)`,cert_id:c.id})); }
 function pageCerts(){
   if(!certOk()) return `<div class="card empty">Payment Certificates are for administrators, Finance and Quantity Surveyors only.</div>`;
+  const ct=`<div class="toolbar"><div class="seg">${[['certs','Certificates'],['val','Valuations'],...(money()?[['cost','Cost control']]:[])].map(([k,l])=>`<button data-p5v="ctab:${k}" aria-pressed="${(UI.ctab||'certs')===k}">${l}</button>`).join('')}</div></div>`;
+  if(UI.ctab==='val') return ct+valTab(); if(UI.ctab==='cost'&&money()) return ct+costTab();
   const cs=[...S.certificates].sort((a,b)=>(b.certified||b.submitted||'').localeCompare(a.certified||a.submitted||''));
   const outstanding=cs.filter(c=>c.status==='Certified'), overdue=outstanding.filter(c=>certState(c).cls==='bad');
   const sum=a=>a.reduce((x,c)=>x+(+c.amount||0),0), yr=new Date().getFullYear();
@@ -2799,7 +2801,7 @@ function pageCerts(){
   const byProj=S.projects.map(p=>{const pc=cs.filter(c=>c.project_id===p.id); if(!pc.length&&!p.contract_sum) return null;
     const gross=Math.max(0,...pc.map(c=>+c.gross||0)), ret=pc.reduce((x,c)=>x+(+c.retention||0),0), paid=pc.filter(c=>c.status==='Paid').reduce((x,c)=>x+(+c.paid_amount||+c.amount||0),0);
     return {p,gross,ret,paid,pct:p.contract_sum&&gross?gross/p.contract_sum*100:null,n:pc.length};}).filter(Boolean);
-  return `<div class="grid g4">
+  return ct+`<div class="grid g4">
     <div class="card kpi ${outstanding.length?'amb':'grn'}"><span class="label">Certified, not yet paid</span><span class="v num">${tzsShort(sum(outstanding))}</span><span class="s">${outstanding.length} certificate${outstanding.length===1?'':'s'}</span></div>
     <div class="card kpi ${overdue.length?'hot':'grn'}"><span class="label">Overdue payments</span><span class="v num">${tzsShort(sum(overdue))}</span><span class="s">${overdue.length} past the payment period</span></div>
     <div class="card kpi blu"><span class="label">Awaiting certification</span><span class="v num">${tzsShort(sum(cs.filter(c=>c.status==='Submitted')))}</span><span class="s">${cs.filter(c=>c.status==='Submitted').length} submitted</span></div>
@@ -2813,6 +2815,155 @@ function pageCerts(){
     <td>${c.status==='Submitted'?`<button class="btn sm" data-certstep="${esc(c.id)}:Certified">Certified</button>`:c.status==='Certified'&&money()?`<button class="btn sm pri" data-certstep="${esc(c.id)}:Paid">Paid</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No payment certificates recorded yet. Add each IPC when it is submitted, then mark it certified and paid – NEXUS warns when payment is late.</div></td></tr>'}
   </tbody></table></div></div>`;
 }
+
+/* ===================== PHASE 5 · QS VALUATION & COST CONTROL (v109) =====================
+   Collection "valuations" (admin, Finance, QS – same as certificates):
+   {project_id, boq_id, no, date, done:{"bi.ii":qty to date}, vos:[{id,ref,d,amount}], mos, ret_pct, ret_limit, adv_to_date, vat_pct,
+    status Draft|Submitted, cert_id, by, prev_net (frozen when submitted)}
+   Valuation = measured work to date (BoQ qty × rate) + variations + materials on site − retention − advance recovery − previously certified. */
+const valList=()=>(S.valuations||[]).filter(v=>!v.deleted);
+const valOfProj=pid=>valList().filter(v=>v.project_id===pid).sort((a,b)=>(+a.no||0)-(+b.no||0));
+const valPrev=v=>{ const L=valOfProj(v.project_id).filter(x=>(+x.no||0)<(+v.no||0)); return L[L.length-1]||null; };
+const projBoqs=pid=>(S.boqs||[]).filter(b=>b.project_id===pid);
+function valCalc(v,b){ b=b||byId('boqs',v.boq_id)||{bills:[]}; const done=v.done||{}, prev=valPrev(v), pd=prev?.done||{};
+  let work=0, workPrev=0, contract=0; const bills=(b.bills||[]).map((bl,bi)=>{ let t=0,tp=0,c=0; (bl.items||[]).forEach((it,ii)=>{ if(oxIsHead(it)) return; const r=+it.rate||0, k=bi+'.'+ii; c+=(+it.qty||0)*r; t+=(+done[k]||0)*r; tp+=(+pd[k]||0)*r; }); work+=t; workPrev+=tp; contract+=c; return {name:bl.name,t,tp,c}; });
+  const vo=(v.vos||[]).reduce((a,x)=>a+(+x.amount||0),0), mos=+v.mos||0, gross=work+vo+mos;
+  const retBase=work+vo; let ret=retBase*((+v.ret_pct||0)/100); if(+v.ret_limit>0) ret=Math.min(ret,+v.ret_limit);
+  const adv=+v.adv_to_date||0, net=gross-ret-adv;
+  const prevNet=v.status==='Submitted'&&v.prev_net!=null?+v.prev_net:(prev?valCalc(prev).net:0);
+  const due=net-prevNet, vat=due*((v.vat_pct??18)/100);
+  return {bills,work,workPrev,contract,vo,mos,gross,ret,adv,net,prevNet,due,vat,total:due+vat,pct:contract?work/contract*100:0};
+}
+const valCan=()=>certOk();
+
+function valTab(){
+  if(!valCan()) return '';
+  const pf=UI.valp||'', L=valList().filter(v=>!pf||v.project_id===pf).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(+b.no||0)-(+a.no||0));
+  const withBoq=S.projects.filter(p=>projBoqs(p.id).length);
+  return `<div class="toolbar"><select class="inp" id="valp" style="width:auto" aria-label="Project"><option value="">All projects</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${pf===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><div class="sp"></div><button class="btn pri" data-p5v="new">New valuation</button></div>
+  ${!withBoq.length?'<div class="banner warn"><div><b>No contract BoQ is linked to a project yet.</b> In QS Studio open the priced contract BoQ and set its Project – valuations measure work against it.</div></div>':''}
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Valuation</th><th>Project</th><th class="r">Work done to date</th><th class="r">% of BoQ</th><th class="r">Due this time (incl. VAT)</th><th>Status</th></tr></thead><tbody>
+  ${L.map(v=>{ const c=valCalc(v); const cert=v.cert_id?byId('certificates',v.cert_id):null; return `<tr class="click" data-p5v="open:${esc(v.id)}" style="cursor:pointer"><td class="ttl2">Valuation No. ${esc(v.no)}<div class="sub">${fmtD(v.date)} · ${esc(v.by||'')}</div></td><td class="small">${esc(projName(v.project_id))}</td><td class="r num">${tzsShort(c.gross)}</td><td class="r num">${c.pct.toFixed(1)}%</td><td class="r num">${tzsShort(c.total)}</td><td><span class="chip ${v.status==='Submitted'?'good':'amb'}">${v.status==='Submitted'?'Submitted':'Draft'}</span>${cert?`<div class="sub">→ ${esc(cert.no)} · ${esc(cert.status)}</div>`:''}</td></tr>`; }).join('')||'<tr><td colspan="6"><div class="empty">No valuations yet. Press <b>New valuation</b> at the end of each month: enter the quantity done to date for each BoQ item, NEXUS prices it and makes the IPC.</div></td></tr>'}
+  </tbody></table></div></div>`;
+}
+
+async function valNew(){ const opts=S.projects.filter(p=>projBoqs(p.id).length); if(!opts.length) return toast('Link a priced BoQ to the project first (QS Studio → BoQ → Project).');
+  formDrawer('New valuation',[{k:'project_id',label:'Project',type:'select',req:1,options:[['','— choose —'],...opts.map(p=>[p.id,p.name])]},{k:'date',label:'Valuation date',type:'date',def:today(),req:1}],{project_id:UI.valp||''},async x=>{
+    const bl=projBoqs(x.project_id); if(!bl.length) return toast('This project has no BoQ.');
+    const L=valOfProj(x.project_id), last=L[L.length-1];
+    if(last&&last.status!=='Submitted'){ toast(`Valuation No. ${last.no} is still a draft – finish or submit it first.`); openDrawer('p5val',last.id); return false; }
+    const p=byId('projects',x.project_id)||{};
+    const v={project_id:x.project_id,boq_id:last?.boq_id||bl.sort((a,b)=>boqTotals(b).grand-boqTotals(a).grand)[0].id,no:(+last?.no||0)+1,date:x.date,done:{...(last?.done||{})},
+      vos:(last?.vos||[]).map(o=>({...o})),mos:0,ret_pct:last?.ret_pct??(+p.retention_pct||5),ret_limit:last?.ret_limit??'',adv_to_date:last?.adv_to_date||0,vat_pct:last?.vat_pct??(byId('boqs',bl[0].id)?.vat??18),status:'Draft',by:me.name||'',by_uid:me.id||''};
+    const id=await put('valuations',null,v); if(!id) return false; logAct(`Started valuation No. ${v.no} for ${p.name}`);
+    for(let k=0;k<30&&!byId('valuations',id);k++) await new Promise(r=>setTimeout(r,100)); setTimeout(()=>openDrawer('p5val',id),50); return true; },{saveLabel:'Start valuation'}); }
+
+function valDrawer(v){
+  const b=byId('boqs',v.boq_id)||{bills:[]}, c=valCalc(v,b), ro=v.status==='Submitted'||!valCan(), prev=valPrev(v), pd=prev?.done||{}, done=v.done||{}, n=x=>Math.round(+x||0).toLocaleString('en-US');
+  const q=UI.valq||'', open=drawer.bill??0;
+  const billRows=(b.bills||[]).map((bl,bi)=>{ const bt=c.bills[bi]; const pc=bt.c?bt.t/bt.c*100:0;
+    const head=`<div class="toolbar click" data-p5v="bill:${bi}" style="cursor:pointer;padding:8px 0;border-top:1px solid var(--line)"><b style="flex:1">${bi+1}. ${esc(bl.name||'')}</b><span class="num small">${n(bt.t)} / ${n(bt.c)}</span><span class="chip ${pc>=99.5?'good':pc>0?'blue':''}">${pc.toFixed(0)}%</span><span>${open===bi?'▾':'▸'}</span></div>`;
+    if(open!==bi&&!q) return head;
+    const rows=(bl.items||[]).map((it,ii)=>({it,ii})).filter(({it})=>!q||String(it.desc||'').toLowerCase().includes(q.toLowerCase())||String(it.ref||'').toLowerCase().includes(q.toLowerCase()));
+    if(q&&!rows.some(r=>!oxIsHead(r.it))) return '';
+    return head+`${ro?'':`<div class="toolbar small" style="gap:6px;margin:4px 0 6px"><span class="sub">Whole bill:</span>${[25,50,75,100].map(p=>`<button class="btn sm" data-p5v="billpct:${bi}:${p}">${p}%</button>`).join('')}<button class="btn sm" data-p5v="billpct:${bi}:0">Clear</button></div>`}
+      <div class="tbl-wrap"><table class="small"><thead><tr><th>Item</th><th>Description</th><th>Unit</th><th class="r">BoQ qty</th><th class="r">Rate</th><th class="r">Previous</th><th class="r" style="min-width:96px">Done to date</th><th class="r">Amount</th></tr></thead><tbody>
+      ${rows.map(({it,ii})=>{ const k=bi+'.'+ii; if(oxIsHead(it)) return `<tr><td class="mono">${esc(it.ref||'')}</td><td colspan="7"><b>${esc(it.desc||'')}</b></td></tr>`; const d=done[k], over=+d>(+it.qty||0)*1.0001&&+it.qty>0;
+        return `<tr><td class="mono">${esc(it.ref||'')}</td><td style="min-width:180px">${esc(String(it.desc||'').slice(0,140))}</td><td>${esc(it.unit||'')}</td><td class="r num">${esc(it.qty??'')}</td><td class="r num">${n(it.rate)}</td><td class="r num">${pd[k]!=null&&pd[k]!==''?esc(pd[k]):'—'}</td>
+        <td class="r">${ro?`<span class="num">${d??'—'}</span>`:`<input class="inp num" style="width:90px;text-align:right;padding:3px 6px${over?';border-color:var(--bad)':''}" id="vq_${bi}_${ii}" data-vk="${k}" type="number" step="any" value="${esc(d??'')}" title="${over?'More than the BoQ quantity – remeasured?':''}">`}</td><td class="r num">${n((+d||0)*(+it.rate||0))}</td></tr>`; }).join('')}</tbody></table></div>`; }).join('');
+  const vos=(S.variations||[]).filter(x=>x.project_id===v.project_id&&x.status==='Approved'&&+x.value_approved>0);
+  const sumRow=(l,val,cls='')=>`<tr class="${cls}"><td>${l}</td><td class="r num">${val}</td></tr>`;
+  const cert=v.cert_id?byId('certificates',v.cert_id):null;
+  const body=`<div class="toolbar" style="flex-wrap:wrap;gap:6px"><span class="chip ${v.status==='Submitted'?'good':'amb'}">${v.status==='Submitted'?'Submitted':'Draft'}</span><span class="chip">${esc(projName(v.project_id))}</span><span class="chip">BoQ: ${esc(b.title||'—')}</span>${prev?`<span class="chip">Previous: No. ${esc(prev.no)} (${fmtD(prev.date)})</span>`:''}${cert?`<span class="chip blue">${esc(cert.no)} · ${esc(cert.status)}</span>`:''}</div>
+   <div class="grid g4" style="margin:10px 0">
+    <div class="card kpi blu"><span class="label">Measured work</span><span class="v num">${tzsShort(c.work)}</span><span class="s">${c.pct.toFixed(1)}% of BoQ ${tzsShort(c.contract)}</span></div>
+    <div class="card kpi grn"><span class="label">This period</span><span class="v num">${tzsShort(c.work-c.workPrev)}</span><span class="s">measured since No. ${prev?esc(prev.no):'—'}</span></div>
+    <div class="card kpi amb"><span class="label">Due this certificate</span><span class="v num">${tzsShort(c.total)}</span><span class="s">incl. VAT ${v.vat_pct??18}%</span></div>
+    <div class="card kpi"><span class="label">Retention to date</span><span class="v num">${tzsShort(c.ret)}</span><span class="s">${v.ret_pct||0}%${+v.ret_limit>0?' · limit '+tzsShort(v.ret_limit):''}</span></div></div>
+   ${ro?'':`<div class="toolbar" style="gap:8px;flex-wrap:wrap"><label class="small">Date <input class="inp" id="v_date" type="date" value="${esc(v.date||'')}" style="width:auto"></label>${projBoqs(v.project_id).length>1?`<label class="small">BoQ <select class="inp" id="v_boq" style="width:auto">${projBoqs(v.project_id).map(x=>`<option value="${esc(x.id)}" ${x.id===v.boq_id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>`:''}<input class="inp search" id="valq" type="search" placeholder="Find item (e.g. blockwork)" value="${esc(q)}" style="max-width:240px"></div>`}
+   <div class="card"><div class="hd"><h2>Measured work (quantity done to date)</h2></div><div class="bd">${billRows||'<div class="empty">The BoQ has no items.</div>'}</div></div>
+   <div class="card"><div class="hd"><h2>Variations, materials on site, deductions</h2></div><div class="bd">
+     <div class="label">Approved variations – value done to date</div>
+     ${vos.length?`<div class="tbl-wrap"><table class="small"><tbody>${vos.map(x=>{ const cur=(v.vos||[]).find(o=>o.id===x.id); return `<tr><td>${esc(x.ref||'')} ${esc(String(x.description||'').slice(0,80))}<div class="sub">approved ${tzs(x.value_approved)}</div></td><td class="r">${ro?`<span class="num">${n(cur?.amount)}</span>`:`<input class="inp num" style="width:140px;text-align:right" data-vvo="${esc(x.id)}" id="vvo_${esc(x.id)}" type="number" step="any" value="${esc(cur?.amount??'')}" placeholder="0">`}</td></tr>`; }).join('')}</tbody></table></div>`:'<p class="sub">No approved variations with a value for this project.</p>'}
+     <div class="form" style="margin-top:8px">${[['mos','Materials on site (TZS)',v.mos],['ret_pct','Retention %',v.ret_pct],['ret_limit','Retention limit (TZS, blank = none)',v.ret_limit],['adv_to_date','Advance payment recovered to date (TZS)',v.adv_to_date],['vat_pct','VAT %',v.vat_pct??18]].map(([k,l,val])=>`<div class="fld"><label for="v_${k}">${l}</label>${ro?`<div class="num">${esc(val??'')}</div>`:`<input class="inp" id="v_${k}" data-vf="${k}" type="number" step="any" value="${esc(val??'')}">`}</div>`).join('')}</div></div></div>
+   <div class="card"><div class="hd"><h2>Valuation summary</h2></div><div class="tbl-wrap"><table><tbody>
+     ${sumRow('Measured work done to date',n(c.work))}${sumRow('Variations to date',n(c.vo))}${sumRow('Materials on site',n(c.mos))}${sumRow('<b>Gross valuation</b>','<b>'+n(c.gross)+'</b>')}
+     ${sumRow(`Less retention (${v.ret_pct||0}%)`,'('+n(c.ret)+')')}${sumRow('Less advance payment recovered','('+n(c.adv)+')')}${sumRow('<b>Net valuation to date</b>','<b>'+n(c.net)+'</b>')}
+     ${sumRow(`Less previously certified${prev?' (No. '+esc(prev.no)+')':''}`,'('+n(c.prevNet)+')')}${sumRow('<b>Amount due this certificate (excl. VAT)</b>','<b>'+n(c.due)+'</b>')}${sumRow(`VAT ${v.vat_pct??18}%`,n(c.vat))}${sumRow('<b>TOTAL DUE (TZS)</b>','<b>'+n(c.total)+'</b>')}
+   </tbody></table></div></div>`;
+  const foot=`<button class="btn" data-p5v="xlsx">Valuation (Excel)</button><button class="btn" data-p5v="docx">IPC summary (Word)</button><div class="sp"></div>${!ro?`<button class="btn" data-p5v="save">Save draft</button><button class="btn pri" data-p5v="submit">Submit & create IPC</button>`:''}${v.status!=='Submitted'&&(isAdmin||valCan())?'<button class="btn danger" data-p5v="del" aria-label="Delete draft">✕</button>':''}`;
+  return drawerShell(`Valuation No. ${v.no} – ${projName(v.project_id)}`,'Interim valuation',body,foot).replace('class="drawer"','class="drawer" style="width:min(1100px,100vw)"');
+}
+function valRead(v){ const up={done:{...(v.done||{})}}; document.querySelectorAll('#overlay [data-vk]').forEach(el=>{ const k=el.dataset.vk; if(el.value==='') delete up.done[k]; else up.done[k]=+el.value; });
+  const vos=[...(v.vos||[])]; document.querySelectorAll('#overlay [data-vvo]').forEach(el=>{ const x=byId('variations',el.dataset.vvo); const i=vos.findIndex(o=>o.id===el.dataset.vvo); const o={id:el.dataset.vvo,ref:x?.ref||'',d:String(x?.description||'').slice(0,120),amount:el.value===''?0:+el.value}; if(i>=0) vos[i]=o; else if(o.amount) vos.push(o); }); up.vos=vos;
+  document.querySelectorAll('#overlay [data-vf]').forEach(el=>{ up[el.dataset.vf]=el.value===''?(el.dataset.vf==='ret_limit'?'':0):+el.value; });
+  const d=$('#v_date'); if(d&&d.value) up.date=d.value; const bq=$('#v_boq'); if(bq&&bq.value!==v.boq_id) up.boq_id=bq.value; return up; }
+let valSaveT=null;
+function valAutosave(){ clearTimeout(valSaveT); valSaveT=setTimeout(async()=>{ if(!drawer||drawer.type!=='p5val') return; const v=byId('valuations',drawer.id); if(!v||v.status==='Submitted') return; await patch('valuations',v.id,valRead(v)); },900); }
+
+function valXlsx(v){ const b=byId('boqs',v.boq_id)||{bills:[]}, c=valCalc(v,b), p=byId('projects',v.project_id)||{}, pd=valPrev(v)?.done||{}, done=v.done||{};
+  const rows=[[{v:(company().name||'').toUpperCase(),s:1}],[{v:`INTERIM VALUATION No. ${v.no} – ${p.name||''}`,s:9}],[{v:`Valuation date ${fmtD(v.date)} · BoQ: ${b.title||''}`,s:8}],[],
+    [{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'BoQ qty',s:2},{v:'Rate',s:2},{v:'BoQ amount',s:2},{v:'Previous qty',s:2},{v:'Qty to date',s:2},{v:'Amount to date',s:2},{v:'This period',s:2}]];
+  const tot=[]; (b.bills||[]).forEach((bl,bi)=>{ rows.push([{v:`BILL ${bi+1}`,s:11},{v:String(bl.name||'').toUpperCase(),s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11}]); const r0=rows.length+1;
+    (bl.items||[]).forEach((it,ii)=>{ if(oxIsHead(it)){ rows.push([{v:it.ref||'',s:9},{v:it.desc||'',s:9}]); return; } const r=rows.length+1, k=bi+'.'+ii, q=it.qty===''||it.qty==null?null:+it.qty, rt=+it.rate||0, pv=pd[k]==null||pd[k]===''?null:+pd[k], dn=done[k]==null||done[k]===''?null:+done[k];
+      rows.push([{v:it.ref||'',s:10},{v:it.desc||'',s:3},{v:it.unit||'',s:10},{v:q,s:4},{v:rt,s:4},{f:`IF(D${r}="",0,D${r}*E${r})`,v:(q||0)*rt,s:5},{v:pv,s:4},{v:dn,s:4},{f:`IF(H${r}="",0,H${r}*E${r})`,v:(dn||0)*rt,s:5},{f:`I${r}-IF(G${r}="",0,G${r}*E${r})`,v:((dn||0)-(pv||0))*rt,s:5}]); });
+    const r1=rows.length; rows.push([{v:'',s:6},{v:`TOTAL BILL ${bi+1}`,s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{f:`SUM(F${r0}:F${r1})`,v:c.bills[bi].c,s:7},{v:'',s:6},{v:'',s:6},{f:`SUM(I${r0}:I${r1})`,v:c.bills[bi].t,s:7},{f:`SUM(J${r0}:J${r1})`,v:c.bills[bi].t-c.bills[bi].tp,s:7}]); tot.push(rows.length); rows.push([]); });
+  const s=[[{v:(company().name||'').toUpperCase(),s:1}],[{v:`VALUATION SUMMARY – No. ${v.no}`,s:9}],[{v:`${p.name||''}${p.contract_no?' · Contract No. '+p.contract_no:''} · ${fmtD(v.date)}`,s:8}],[],[{v:'Description',s:2},{v:'Amount (TZS)',s:2}]];
+  const line=(l,val,st=3,ms=5)=>s.push([{v:l,s:st},{v:Math.round(val),s:ms}]);
+  line('Measured work done to date',c.work); line('Variations to date',c.vo); line('Materials on site',c.mos); line('GROSS VALUATION',c.gross,6,7); line(`Less retention (${v.ret_pct||0}%)`,-c.ret); line('Less advance payment recovered',-c.adv); line('NET VALUATION TO DATE',c.net,6,7); line('Less previously certified',-c.prevNet); line('AMOUNT DUE (excl. VAT)',c.due,6,7); line(`VAT ${v.vat_pct??18}%`,c.vat); line('TOTAL DUE',c.total,6,7);
+  return oxXlsx([{name:'Summary',rows:s,cols:[52,22],merges:['A1:B1','A2:B2','A3:B3']},{name:'Measurement',rows,cols:[8,56,7,11,13,16,11,11,16,16],freeze:5,landscape:true,merges:['A1:J1','A2:J2','A3:J3']}]); }
+function valDocBody(v){ const b=byId('boqs',v.boq_id)||{bills:[]}, c=valCalc(v,b), p=byId('projects',v.project_id)||{}, n=x=>Math.round(+x||0).toLocaleString('en-US');
+  return `${oxP('INTERIM PAYMENT APPLICATION',{style:'Title'})}${oxTbl([['Project',p.name||''],['Contract No.',p.contract_no||'…'],['Employer',p.client||'…'],['Consultant',p.consultant||'…'],['Valuation No.',String(v.no)],['Valuation date',fmtD(v.date)]],{widths:[2600,7140],shade:true,header:false})}
+  ${oxH('1. Work done by bill',2)}${oxTbl([['Bill','Description','Contract amount','Done to date','%'],...c.bills.map((x,i)=>[String(i+1),x.name||'',n(x.c),n(x.t),x.c?(x.t/x.c*100).toFixed(1)+'%':'']),['','TOTAL MEASURED WORK',n(c.contract),n(c.work),c.pct.toFixed(1)+'%']],{widths:[700,4240,1700,1700,1400]})}
+  ${oxH('2. Valuation summary',2)}${oxTbl([['Description','Amount (TZS)'],['Measured work done to date',n(c.work)],['Variations to date',n(c.vo)],['Materials on site',n(c.mos)],['GROSS VALUATION',n(c.gross)],[`Less retention (${v.ret_pct||0}%)`,'('+n(c.ret)+')'],['Less advance payment recovered','('+n(c.adv)+')'],['NET VALUATION TO DATE',n(c.net)],['Less previously certified','('+n(c.prevNet)+')'],['AMOUNT DUE (excl. VAT)',n(c.due)],[`VAT ${v.vat_pct??18}%`,n(c.vat)],['TOTAL AMOUNT DUE',n(c.total)]],{widths:[6740,3000]})}
+  ${oxP('We submit the above for your valuation and certification. The detailed measurement is attached.',{before:200})}
+  ${oxTbl([['Prepared by (Contractor QS)','Checked by (Consultant QS)'],[`${me.name||''}\n\nSignature: ……………………\nDate: ……………`,`\n\nSignature: ……………………\nDate: ……………`]],{widths:[4870,4870]})}`; }
+
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-p5v]'); if(!el) return; const [a,x1,x2]=el.dataset.p5v.split(':');
+  if(a==='new') return valNew(); if(a==='open') return openDrawer('p5val',x1); if(a==='ctab'){ UI.ctab=x1; return renderView(true); }
+  if(!drawer||drawer.type!=='p5val') return; const v=byId('valuations',drawer.id); if(!v) return;
+  if(a==='bill'){ drawer.bill=drawer.bill===+x1?-1:+x1; return renderDrawer(); }
+  if(a==='billpct'){ const b=byId('boqs',v.boq_id); const up=valRead(v); (b?.bills?.[+x1]?.items||[]).forEach((it,ii)=>{ if(oxIsHead(it)) return; const k=x1+'.'+ii; if(+x2===0) delete up.done[k]; else up.done[k]=Math.round((+it.qty||0)*(+x2)/100*1000)/1000; }); clearTimeout(valSaveT); await patch('valuations',v.id,up); drawer.bill=+x1; return; }
+  if(a==='save'){ clearTimeout(valSaveT); await patch('valuations',v.id,valRead(v)); toast('Valuation saved.'); return; }
+  if(a==='xlsx'||a==='docx'){ clearTimeout(valSaveT); if(v.status!=='Submitted') await patch('valuations',v.id,valRead(v)); try{ await loadScript(XLSX_URL); }catch(err){ return toast(err.message); } const vv=byId('valuations',v.id)||v, p=projName(vv.project_id);
+    if(a==='xlsx') await oxSave(`Valuation ${vv.no} – ${p}`,valXlsx(vv),'xlsx'); else await oxSave(`IPC application ${vv.no} – ${p}`,oxDocx(valDocBody(vv)),'docx'); return; }
+  if(a==='submit'){ clearTimeout(valSaveT); const up=valRead(v); const vv={...v,...up}; const c=valCalc(vv);
+    if(!(c.due>0)&&!await confirmBox(`The amount due is ${tzs(c.total)} – submit anyway?`,'Submit')) return;
+    if(!await confirmBox(`Submit Valuation No. ${v.no} and create IPC ${v.no} for ${tzs(c.total)} (incl. VAT)? The valuation is then locked.`,'Submit & create IPC')) return;
+    const prevRet=valPrev(vv)?valCalc(valPrev(vv)).ret:0;
+    const cid=await put('certificates',null,{project_id:v.project_id,no:`IPC ${String(v.no).padStart(2,'0')}`,period_end:vv.date,submitted:today(),gross:Math.round(c.gross),amount:Math.round(c.total),retention:Math.round(c.ret-prevRet),status:'Submitted',terms:28,val_id:v.id,
+      notes:`From Valuation No. ${v.no}: amount due ${Math.round(c.due).toLocaleString('en-US')} + VAT ${Math.round(c.vat).toLocaleString('en-US')}. Retention to date ${Math.round(c.ret).toLocaleString('en-US')}.`});
+    if(!cid) return; await patch('valuations',v.id,{...up,status:'Submitted',cert_id:cid,prev_net:c.prevNet,submitted_at:new Date().toISOString(),submitted_by:me.name||''});
+    logAct(`Submitted Valuation No. ${v.no} (${projName(v.project_id)}) – IPC ${tzs(c.total)}`); toast('Submitted – IPC created in Payment Certificates.'); return; }
+  if(a==='del'){ if(!await confirmBox(`Delete draft Valuation No. ${v.no}?`,'Delete',true)) return; if(await remove('valuations',v.id)){ closeDrawer(); logAct(`Deleted draft valuation No. ${v.no}`); } return; }
+});
+document.addEventListener('input',e=>{ if(!drawer||drawer.type!=='p5val') return; const el=e.target; if(el.id==='valq'){ UI.valq=el.value; clearTimeout(valSaveT); const v=byId('valuations',drawer.id); if(v&&v.status!=='Submitted') patch('valuations',v.id,valRead(v)); return renderDrawer(); } if(el.dataset.vk!=null||el.dataset.vvo!=null||el.dataset.vf!=null) valAutosave(); });
+document.addEventListener('change',e=>{ const el=e.target; if(el.id==='valp'){ UI.valp=el.value; return renderView(true); } if(drawer?.type==='p5val'&&(el.id==='v_date'||el.id==='v_boq')){ const v=byId('valuations',drawer.id); if(v) patch('valuations',v.id,valRead(v)); } });
+
+/* ---------- cost control (administrators and Finance – uses the ledger) ---------- */
+function costRows(){ return S.projects.map(p=>{ const vos=(S.variations||[]).filter(x=>x.project_id===p.id&&x.status==='Approved').reduce((a,x)=>a+(+x.value_approved||0),0);
+  const rev=(+p.contract_sum||0)+vos, exp=S.finance.filter(f=>f.project_id===p.id&&f.type==='Expense'&&!f.example), cost=exp.reduce((a,f)=>a+(+f.amount||0),0);
+  const certs=(S.certificates||[]).filter(c=>c.project_id===p.id&&!c.example), certified=Math.max(0,...certs.filter(c=>['Certified','Paid'].includes(c.status)).map(c=>+c.gross||0)), received=S.finance.filter(f=>f.project_id===p.id&&f.type==='Income'&&!f.example).reduce((a,f)=>a+(+f.amount||0),0);
+  const lastVal=valOfProj(p.id).slice(-1)[0], valued=lastVal?valCalc(lastVal).gross:certified;
+  const commit=poList().filter(o=>o.project_id===p.id&&o.po_no&&o.status!=='Cancelled').reduce((a,o)=>{ const pr=byId('procurement',o.pr_id); return a+Math.max(0,poTotal(o)-(pr?prPaid(pr):0)); },0);
+  const done=rev?Math.min(1,valued/rev):((+p.progress||0)/100);
+  const fcTrend=done>=0.1?cost/done:null, budget=+p.budget||0, fc=(fcTrend==null&&!budget)?null:Math.max(cost+commit,fcTrend??0,fcTrend==null?budget:0);
+  const byCat={}; exp.forEach(f=>{ byCat[f.category||'Other']=(byCat[f.category||'Other']||0)+(+f.amount||0); });
+  return {p,rev,vos,cost,commit,certified,received,valued,done,budget,fc,margin:rev&&fc!=null?rev-fc:null,byCat,loss:valued>0&&cost>valued}; }).filter(r=>r.rev||r.cost||r.valued); }
+function costTab(){ if(!money()) return '<div class="card empty">Cost control uses the Finance ledger – administrators and Finance only.</div>';
+  const R=costRows(), sel=UI.costp&&R.find(r=>r.p.id===UI.costp)||null, n=tzsShort;
+  return `<div class="card"><div class="hd"><h2>Cost control by project</h2></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="r">Contract + VOs</th><th class="r">Work valued</th><th class="r">Cost to date</th><th class="r hide-m">Committed (POs)</th><th class="r">Forecast final cost</th><th class="r">Forecast margin</th></tr></thead><tbody>
+  ${R.map(r=>`<tr class="click" data-p5v="cost:${esc(r.p.id)}" style="cursor:pointer${sel&&sel.p.id===r.p.id?';background:rgba(47,111,181,.12)':''}"><td class="ttl2">${esc(r.p.name)}${r.loss?' <span class="chip bad" title="Cost to date is more than the value of work done">cost > value</span>':''}<div class="sub">${Math.round(r.done*100)}% done by value</div></td><td class="r num">${n(r.rev)}</td><td class="r num">${n(r.valued)}</td><td class="r num">${n(r.cost)}</td><td class="r num hide-m">${n(r.commit)}</td><td class="r num">${r.fc==null?'<span class="sub" title="Too early – less than 10% done and no budget">—</span>':n(r.fc)}</td><td class="r num">${r.margin==null?'—':`<span class="chip ${r.margin<0?'bad':r.rev&&r.margin/r.rev<0.05?'amb':'good'}">${n(r.margin)}${r.rev?' · '+(r.margin/r.rev*100).toFixed(0)+'%':''}</span>`}</td></tr>`).join('')||'<tr><td colspan="7"><div class="empty">Add contract sums to projects and record costs in Finance to see cost control.</div></td></tr>'}
+  </tbody></table></div></div>
+  ${sel?(()=>{ const cats=Object.entries(sel.byCat).sort((a,b)=>b[1]-a[1]), mx=Math.max(1,...cats.map(x=>x[1]));
+    return `<div class="card"><div class="hd"><h2>${esc(sel.p.name)}</h2></div><div class="bd"><div class="grid g4">
+      <div class="card kpi blu"><span class="label">Revised contract</span><span class="v num">${n(sel.rev)}</span><span class="s">incl. ${n(sel.vos)} approved variations</span></div>
+      <div class="card kpi ${sel.loss?'hot':'grn'}"><span class="label">Value vs cost</span><span class="v num">${n(sel.valued-sel.cost)}</span><span class="s">work valued − cost to date</span></div>
+      <div class="card kpi amb"><span class="label">Cash position</span><span class="v num">${n(sel.received-sel.cost)}</span><span class="s">received ${n(sel.received)} − spent</span></div>
+      <div class="card kpi"><span class="label">Budget</span><span class="v num">${sel.budget?n(sel.budget):'—'}</span><span class="s">${sel.budget?Math.round((sel.cost+sel.commit)/sel.budget*100)+'% used or committed':'set a budget on the project'}</span></div></div>
+      <div class="label" style="margin-top:10px">Cost by category</div>${cats.map(([k,val])=>`<div class="toolbar small"><span style="width:200px">${esc(k)}</span><div class="bar" style="flex:1"><i style="width:${val/mx*100}%"></i></div><span class="num" style="width:90px;text-align:right">${n(val)}</span></div>`).join('')||'<p class="sub">No costs recorded against this project yet.</p>'}
+      <p class="sub">Forecast final cost = the higher of cost + open purchase orders, and cost ÷ % of work done (once over 10% done). Margin = revised contract − forecast.</p></div></div>`; })():'<p class="sub">Click a project for its cost breakdown.</p>'}`; }
+document.addEventListener('click',e=>{ const el=e.target.closest('[data-p5v^="cost:"]'); if(!el) return; UI.costp=el.dataset.p5v.slice(5); renderView(true); });
 
 /* ===================== WEEKLY MANAGEMENT REPORT ===================== */
 function weekData(){
@@ -3308,6 +3459,7 @@ function renderDrawer(){
   else if(t==='report-form'){ html=reportForm(drawer.id?byId('reports',drawer.id)||{}:{}, drawer.proj); drawer.form=true; }
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?`<div style="flex:1"></div><button class="btn danger" data-act="delForm">${esc(drawer.delLabel||'Delete')}</button>`:''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
+  else if(t==='p5val'){ const x=byId('valuations',drawer.id); if(!x) return closeDrawer(); html=valDrawer(x); }
   else if(t==='p5po'){ const x=byId('po',drawer.id); if(!x) return closeDrawer(); html=poDrawer(x); }
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
