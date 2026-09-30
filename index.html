@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=107"></script>
+<script src="config.js?v=108"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=107"></script>
-<script src="nexus-chat.js?v=107"></script>
+<script src="nexus-sb.js?v=108"></script>
+<script src="nexus-chat.js?v=108"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -558,7 +558,7 @@ body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -773,6 +773,7 @@ function computeAlerts(){
   if(typeof recAlerts==='function') recAlerts(A);
   if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
+  if(poCan()) poList().filter(poLate).forEach(o=>A.push({lvl:'bad', kind:'Late delivery', text:`${o.po_no} ${o.item} – ${o.supplier}`, sub:`Promised ${fmtD(o.delivery_date)} · ${poPct(o)}% received`, go:['route','procure'], sort:16, at:o.delivery_date}));
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
   { const sid=myStaffId(), now=Date.now(); (S.meetings||[]).filter(m=>m.status!=='Cancelled'&&meetEnd(m)>now&&((sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id)).forEach(m=>{ const t=meetStart(m), inv=sid&&(m.invitees||[]).includes(sid), ans=inv?(m.responses||{})[sid]:null;
@@ -1936,16 +1937,235 @@ const prCat=p=>{ const t=(p.item+' '+(p.justification||'')).toLowerCase(); retur
 function pageProcure(){
   const val=s=>S.procurement.filter(p=>p.status===s).reduce((a,p)=>a+(+p.est_cost||0),0);
   return `<div class="grid g4">${PR_STAGES.map(s=>`<div class="card kpi ${s==='Requested'?'amb':s==='Delivered'?'grn':'blu'}"><span class="label">${s}</span><span class="v num">${S.procurement.filter(p=>p.status===s).length}</span><span class="s">${tzsShort(val(s))}</span></div>`).join('')}</div>
-  <div class="toolbar"><div class="seg">${[['board','Requests'],['suppliers','Suppliers']].map(([k,l])=>`<button data-ptab="${k}" aria-pressed="${UI.ptab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-  ${UI.ptab==='board'?'<button class="btn" data-act="exportProc">Export CSV</button><button class="btn pri" data-act="addPR">New purchase request</button>':'<button class="btn pri" data-act="addSupplier">Add supplier</button>'}</div>
-  ${UI.ptab==='board'?`<div class="cols">${PR_STAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.procurement.filter(p=>p.status===s).length}</span></h3>
+  <div class="toolbar"><div class="seg">${[['board','Requests'],['orders','RFQs & orders'],['suppliers','Suppliers']].map(([k,l])=>`<button data-ptab="${k}" aria-pressed="${UI.ptab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
+  ${UI.ptab==='board'?'<button class="btn" data-act="exportProc">Export CSV</button><button class="btn pri" data-act="addPR">New purchase request</button>':UI.ptab==='orders'?'':'<button class="btn pri" data-act="addSupplier">Add supplier</button>'}</div>
+  ${UI.ptab==='orders'?poTab():UI.ptab==='board'?`<div class="cols">${PR_STAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.procurement.filter(p=>p.status===s).length}</span></h3>
     ${S.procurement.filter(p=>p.status===s).sort((a,b)=>(a.needed_by||'').localeCompare(b.needed_by||'')).map(p=>`<div class="tcard"><div class="toolbar"><span class="mono sub">${esc(p.pr_no||'')}</span>${p.example?'<span class="chip ex">example</span>':''}</div><b>${esc(p.item)}</b><span class="sub">${esc(projName(p.project_id))}${p.qty?` · ${esc(p.qty)} ${esc(p.unit||'')}`:''}</span><span class="num small">${tzs(p.est_cost)}</span>${p.supplier?`<span class="sub">Supplier: ${esc(p.supplier)}</span>`:''}${p.needed_by?`<span class="sub">Needed ${fmtD(p.needed_by)}</span>`:''}<span class="sub">By ${esc(p.requested_by||'')}${p.approved_by?' · approved by '+esc(p.approved_by):''}</span>${s!=='Requested'?`<span class="sub">🔒 Locked${p.approved_at?' – '+(s==='Rejected'?'rejected ':'approved ')+fmtD(p.approved_at):''}${p.ordered_at?' · ordered '+fmtD(p.ordered_at):''}${p.delivered_at?' · delivered '+fmtD(p.delivered_at):''}</span>`:p.notified_at?'<span class="sub">✉ Approvers emailed</span>':''}
       ${(money()||isProcOff())&&s!=='Requested'?(()=>{const y=prPay(p);return `<span class="sub"><span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span> ${y.paid?tzs(y.paid)+' paid'+(y.left?' · '+tzs(y.left)+' left':''):''}</span>`})():''}
-      <div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(canApprovePR(p)?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered">Mark ordered</button>`:s==='Ordered'?`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`:''}${canDelPR()?`<div class="sp"></div><button class="btn sm danger" data-delpr="${esc(p.id)}" title="Remove this purchase record" aria-label="Remove">✕</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
+      <div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(canApprovePR(p)?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>'):s==='Approved'?(poForPR(p.id)?`<button class="btn sm pri" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).rfq_no||'RFQ')} · ${(poForPR(p.id).quotes||[]).length} quote${(poForPR(p.id).quotes||[]).length===1?'':'s'}</button>`:poCan()?`<button class="btn sm pri" data-p5="start:${esc(p.id)}">Get quotes / order</button><button class="btn sm" data-pr="${esc(p.id)}:Ordered" title="Already ordered outside NEXUS">Mark ordered</button>`:''):s==='Ordered'?(poForPR(p.id)?`<button class="btn sm pri" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).po_no||'')} · record delivery</button>`:`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`):s==='Delivered'&&poForPR(p.id)?`<button class="btn sm" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).po_no||'Order')}</button>`:''}${canDelPR()?`<div class="sp"></div><button class="btn sm danger" data-delpr="${esc(p.id)}" title="Remove this purchase record" aria-label="Remove">✕</button>`:''}</div></div>`).join('')||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
     ${money()?(()=>{const w=S.procurement.filter(p=>['Approved','Ordered','Delivered'].includes(p.status)&&!p.example&&prPay(p).st!=='Paid');return w.length?`<p class="sub">Awaiting payment: <b>${w.length}</b> approved purchase${w.length>1?'s':''} · ${tzs(w.reduce((a,p)=>a+prPay(p).left,0))} still to pay.</p>`:''})():''}
     ${S.procurement.some(p=>p.status==='Rejected')?`<p class="sub">${S.procurement.filter(p=>p.status==='Rejected').length} rejected request(s) kept for the record${canDelPR()?': '+S.procurement.filter(p=>p.status==='Rejected').map(p=>`<span class="chip">${esc(p.pr_no||'')} ${esc(p.item||'')} <a data-delpr="${esc(p.id)}" style="cursor:pointer;margin-left:4px" title="Remove" aria-label="Remove">✕</a></span>`).join(' '):' (locked).'}</p>`:''}`
-  :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Supplier</th><th>Supplies</th><th>Phone</th><th>Email</th><th>Rating</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>`<tr><td class="ttl2">${esc(s.name)} ${s.example?'<span class="chip ex">example</span>':''}</td><td>${esc(s.category||'')}</td><td class="mono">${esc(s.phone||'')}</td><td>${esc(s.email||'')}</td><td>${'★'.repeat(+s.rating||0)}</td><td>${isAdmin||isProcOff()?`<button class="btn sm danger" data-delsup="${esc(s.id)}">Remove</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No suppliers yet.</div></td></tr>'}</tbody></table></div></div>`}`;
+  :`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Supplier</th><th>Supplies</th><th>Phone</th><th>Email</th><th>Rating</th><th class="r">Orders</th><th class="r">On time</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>{ const st=poSupStats(s.name); return `<tr><td class="ttl2">${esc(s.name)} ${s.example?'<span class="chip ex">example</span>':''}</td><td>${esc(s.category||'')}</td><td class="mono">${esc(s.phone||'')}</td><td>${esc(s.email||'')}</td><td>${'★'.repeat(+s.rating||0)}</td><td class="r num">${st.n?st.n+'<div class="sub">'+tzsShort(st.val)+'</div>':'—'}</td><td class="r">${st.ontime==null?'—':`<span class="chip ${st.ontime>=80?'good':st.ontime>=50?'amb':'bad'}">${st.ontime}%</span>`}</td><td>${isAdmin||isProcOff()?`<button class="btn sm danger" data-delsup="${esc(s.id)}">Remove</button>`:''}</td></tr>`; }).join('')||'<tr><td colspan="8"><div class="empty">No suppliers yet.</div></td></tr>'}</tbody></table></div></div>`}`;
 }
+
+/* ===================== PHASE 5 · BUYING (v108): RFQ → quotes → Purchase Order → deliveries (GRN) =====================
+   Collection "po" – one record per approved purchase request that goes out to suppliers:
+   {pr_id, pr_no, project_id, item, lines:[{d,q,u,r}], status RFQ|Ordered|Part-delivered|Delivered|Cancelled,
+    rfq_no, rfq_at, rfq_by, due, spec, invited:[{s,email,phone}], quotes:[{s,email,phone,amount,days,valid,note,at,by}], chosen,
+    po_no, po_at, po_by, supplier, supplier_email, supplier_phone, vat incl|add|none, deliver_to, delivery_date, terms, amount,
+    deliveries:[{grn,date,q:[..],dn,cond,by,note,photo,at}]}
+   Administrators and the Procurement Officer run RFQs and issue orders; anyone (site storekeeper) records deliveries (DB guard_po). */
+const PO_ST=['RFQ','Ordered','Part-delivered','Delivered','Cancelled'];
+const poCan=()=>isAdmin||isProcOff();
+const poList=()=>(S.po||[]).filter(x=>!x.deleted);
+const poForPR=id=>poList().find(x=>x.pr_id===id&&x.status!=='Cancelled');
+const poLines=o=>Array.isArray(o.lines)&&o.lines.length?o.lines:[{d:o.item||'',q:1,u:''}];
+const poRec=(o,i)=>(o.deliveries||[]).reduce((a,d)=>a+(+(d.q||[])[i]||0),0);
+const poSub=o=>poLines(o).reduce((a,l)=>a+(+l.q||0)*(+l.r||0),0);
+const poVat=o=>o.vat==='add'?Math.round(poSub(o)*0.18):0;
+const poTotal=o=>poSub(o)+poVat(o);
+const poPct=o=>{ const L=poLines(o), T=L.reduce((a,l)=>a+(+l.q||0),0); if(!T) return o.status==='Delivered'?100:0; return Math.round(L.reduce((a,l,i)=>a+Math.min(+l.q||0,poRec(o,i)),0)/T*100); };
+const poLate=o=>['Ordered','Part-delivered'].includes(o.status)&&o.delivery_date&&o.delivery_date<today();
+const poNo=(pre,get)=>{ const y=new Date().getFullYear(), re=new RegExp('^'+pre+'-'+y+'-(\\d+)$'); let n=0; for(const x of poList()) for(const v of [].concat(get(x)||[])){ const m=String(v||'').match(re); if(m) n=Math.max(n,+m[1]); } return `${pre}-${y}-${String(n+1).padStart(3,'0')}`; };
+const poStChip=o=>`<span class="chip ${o.status==='Delivered'?'good':o.status==='Cancelled'?'':o.status==='RFQ'?'amb':poLate(o)?'bad':'blue'}">${o.status==='RFQ'?'Waiting for quotes':esc(o.status)}${poLate(o)?' · late':''}</span>`;
+const poQuoteMin=o=>{ const q=(o.quotes||[]).filter(x=>+x.amount>0); return q.length?Math.min(...q.map(x=>+x.amount)):0; };
+const supByName=n=>(S.suppliers||[]).find(s=>lcN(s.name)===lcN(n));
+function poSupStats(name){ const L=poList().filter(o=>o.po_no&&lcN(o.supplier)===lcN(name)&&o.status!=='Cancelled'); const done=L.filter(o=>o.status==='Delivered'&&o.delivery_date);
+  const ontime=done.filter(o=>{ const last=(o.deliveries||[]).map(d=>d.date).sort().pop(); return last&&last<=o.delivery_date; }).length;
+  return {n:L.length,val:L.reduce((a,o)=>a+poTotal(o),0),ontime:done.length?Math.round(ontime/done.length*100):null}; }
+
+async function poSave(id,data){ const r=await put('po',id,data); return r; }
+async function poPatch(id,data){ await patch('po',id,data); }
+
+/* ---------- start an RFQ from an approved purchase request ---------- */
+async function poStart(prId){ const p=byId('procurement',prId); if(!p) return; const ex=poForPR(prId); if(ex) return openDrawer('p5po',ex.id);
+  if(!poCan()) return toast('Only an administrator or the Procurement Officer can request quotations.');
+  const sup=p.supplier?supByName(p.supplier):null;
+  const id=await poSave(null,{pr_id:p.id,pr_no:p.pr_no||'',project_id:p.project_id||'',item:p.item||'',lines:[{d:p.item||'',q:+p.qty||1,u:p.unit||''}],status:'RFQ',
+    rfq_no:poNo('RFQ',x=>x.rfq_no),rfq_at:new Date().toISOString(),rfq_by:me.name||'',due:'',spec:p.justification||'',est:+p.est_cost||0,needed_by:p.needed_by||'',
+    invited:p.supplier?[{s:sup?.name||p.supplier,email:sup?.email||'',phone:sup?.phone||''}]:[],quotes:[],deliveries:[],created_uid:me.id||''});
+  if(id){ logAct(`Started request for quotation for ${p.pr_no||''} "${p.item}"`); for(let k=0;k<30&&!byId('po',id);k++) await new Promise(r=>setTimeout(r,100)); UI.ptab='orders'; openDrawer('p5po',id); renderView(true); }
+}
+
+/* ---------- page: RFQs & orders tab (inside Procurement) ---------- */
+function poTab(){
+  const L=poList(), f=UI.pof||'open';
+  const rows=L.filter(o=>f==='all'||(f==='open'?!['Delivered','Cancelled'].includes(o.status):f==='done'?o.status==='Delivered':o.status==='Cancelled'))
+    .sort((a,b)=>(poLate(b)-poLate(a))||String(a.delivery_date||a.due||'9').localeCompare(String(b.delivery_date||b.due||'9')));
+  const m=today().slice(0,7), monthVal=L.filter(o=>o.po_no&&String(o.po_at||'').startsWith(m)&&o.status!=='Cancelled').reduce((a,o)=>a+poTotal(o),0);
+  const ready=S.procurement.filter(p=>p.status==='Approved'&&!p.example&&!poForPR(p.id));
+  return `<div class="grid g4">
+    <div class="card kpi amb"><span class="label">Waiting for quotes</span><span class="v num">${L.filter(o=>o.status==='RFQ').length}</span><span class="s">open RFQs</span></div>
+    <div class="card kpi blu"><span class="label">On order</span><span class="v num">${L.filter(o=>['Ordered','Part-delivered'].includes(o.status)).length}</span><span class="s">${L.filter(o=>o.status==='Part-delivered').length} part-delivered</span></div>
+    <div class="card kpi ${L.some(poLate)?'hot':'grn'}"><span class="label">Late deliveries</span><span class="v num">${L.filter(poLate).length}</span><span class="s">past the promised date</span></div>
+    <div class="card kpi grn"><span class="label">Ordered this month</span><span class="v num">${tzsShort(monthVal)}</span><span class="s">${m}</span></div></div>
+  ${ready.length&&poCan()?`<div class="banner"><div><b>${ready.length} approved request${ready.length>1?'s':''} ready to buy.</b> Ask suppliers for prices (RFQ) or order directly.</div><div class="toolbar">${ready.slice(0,4).map(p=>`<button class="btn sm pri" data-p5="start:${esc(p.id)}">${esc(p.pr_no||'')} ${esc(String(p.item||'').slice(0,28))}</button>`).join('')}</div></div>`:''}
+  <div class="toolbar"><div class="seg">${[['open','Open'],['done','Delivered'],['cancel','Cancelled'],['all','All']].map(([k,l])=>`<button data-p5="pof:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div><div class="sp"></div></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>Item</th><th class="hide-m">Project</th><th class="hide-m">Supplier</th><th class="r">Value</th><th class="hide-m">Due</th><th>Status</th></tr></thead><tbody>
+  ${rows.map(o=>{ const pc=poPct(o); return `<tr class="click" data-p5="open:${esc(o.id)}" style="cursor:pointer"><td class="mono small">${esc(o.po_no||o.rfq_no||'')}<div class="sub">${esc(o.pr_no||'')}</div></td><td><div class="ttl2">${esc(o.item||'')}</div><div class="sub">${o.status==='RFQ'?`${(o.quotes||[]).length} quote${(o.quotes||[]).length===1?'':'s'} of ${(o.invited||[]).length} asked`:esc(poLines(o).length+' line'+(poLines(o).length>1?'s':''))}</div></td><td class="hide-m small">${esc(o.project_id?projName(o.project_id):'Office')}</td><td class="hide-m small">${esc(o.supplier||'—')}</td><td class="r num">${o.po_no?tzsShort(poTotal(o)):poQuoteMin(o)?'<span class="sub">from </span>'+tzsShort(poQuoteMin(o)):'—'}</td><td class="hide-m small">${fmtD(o.po_no?o.delivery_date:o.due)}</td><td>${poStChip(o)}${o.po_no&&o.status!=='Cancelled'?`<div class="bar" style="margin-top:4px;min-width:70px"><i style="width:${pc}%;background:${pc>=100?'var(--good)':'var(--blue,#2F6FB5)'}"></i></div>`:''}</td></tr>`; }).join('')||`<tr><td colspan="7"><div class="empty">${f==='open'?'No open RFQs or orders. Approved purchase requests get a “Get quotes” button.':'Nothing here.'}</div></td></tr>`}
+  </tbody></table></div></div>
+  <p class="sub">Flow: purchase request approved → <b>Get quotes</b> (RFQ to suppliers by e-mail or printed) → record quotes and choose → <b>Issue PO</b> (Word on the official letterhead) → site records each <b>delivery (GRN)</b>. The purchase request moves to Ordered / Delivered automatically.</p>`;
+}
+
+/* ---------- drawer ---------- */
+function poDrawer(o){
+  const can=poCan(), L=poLines(o), st=o.status, M=drawer.mode||'';
+  const lineRows=L.map((l,i)=>{ const rec=poRec(o,i);
+    if(st==='RFQ'&&can&&M!=='issue') return `<tr><td>${i+1}</td><td><input class="inp" id="pl_d_${i}" value="${esc(l.d||'')}" aria-label="Description"></td><td style="width:80px"><input class="inp" id="pl_u_${i}" value="${esc(l.u||'')}" aria-label="Unit"></td><td style="width:90px"><input class="inp" id="pl_q_${i}" type="number" step="any" value="${esc(l.q??'')}" aria-label="Quantity"></td><td>${L.length>1?`<button class="btn sm" data-p5="dline:${i}" aria-label="Remove line">✕</button>`:''}</td></tr>`;
+    return `<tr><td>${i+1}</td><td>${esc(l.d||'')}</td><td>${esc(l.u||'')}</td><td class="r num">${esc(l.q??'')}</td>${o.po_no?`<td class="r num">${l.r!=null?Math.round(+l.r).toLocaleString('en-US'):'—'}</td><td class="r num">${Math.round((+l.q||0)*(+l.r||0)).toLocaleString('en-US')}</td><td class="r num">${rec}${rec>=(+l.q||0)&&+l.q?' ✓':''}</td>`:''}</tr>`; }).join('');
+  const lines=`<div class="card"><div class="hd"><h2>Items</h2><div class="sp"></div>${st==='RFQ'&&can&&M!=='issue'?'<button class="btn sm" data-p5="aline">+ Line</button><button class="btn sm pri" data-p5="slines">Save items</button>':''}</div><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>Description</th><th>Unit</th><th class="r">Qty</th>${o.po_no?'<th class="r">Rate</th><th class="r">Amount</th><th class="r">Received</th>':''}${st==='RFQ'&&can&&M!=='issue'?'<th></th>':''}</tr></thead><tbody>${lineRows}</tbody>
+    ${o.po_no?`<tfoot><tr><td colspan="5" class="r">${o.vat==='add'?'Subtotal':o.vat==='incl'?'Total (VAT inclusive)':'Total'}</td><td class="r num"><b>${Math.round(poSub(o)).toLocaleString('en-US')}</b></td><td></td></tr>${o.vat==='add'?`<tr><td colspan="5" class="r">VAT 18%</td><td class="r num">${poVat(o).toLocaleString('en-US')}</td><td></td></tr><tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${Math.round(poTotal(o)).toLocaleString('en-US')}</b></td><td></td></tr>`:''}</tfoot>`:''}</table></div></div>`;
+
+  // RFQ – invited suppliers + quotes
+  let rfq='';
+  if(o.rfq_no&&(st==='RFQ'||(o.quotes||[]).length)){
+    const qmin=poQuoteMin(o), inv=o.invited||[];
+    rfq=`<div class="card"><div class="hd"><h2>Quotations</h2><span class="sub">&nbsp;${esc(o.rfq_no)}${o.due?' · due '+fmtD(o.due):''}</span><div class="sp"></div>${st==='RFQ'&&can?'<button class="btn sm" data-p5="rfqdoc">RFQ (Word)</button><button class="btn sm" data-p5="rfqmail">E-mail RFQ</button>':''}</div><div class="bd">
+      ${st==='RFQ'&&can?`<div class="label">Suppliers asked</div><div class="toolbar" style="flex-wrap:wrap;gap:6px">${inv.map((s,i)=>`<span class="chip blue">${esc(s.s)}${s.email?'':' <span title="No e-mail">✉̸</span>'} <a data-p5="dinv:${i}" style="cursor:pointer;margin-left:4px" aria-label="Remove">✕</a></span>`).join('')||'<span class="sub">Nobody yet – add at least three suppliers for a fair comparison.</span>'}</div>
+        <div class="toolbar" style="margin-top:6px"><select class="inp" id="p5inv" style="max-width:260px" aria-label="Add supplier"><option value="">+ Add supplier from list…</option>${(S.suppliers||[]).filter(s=>!inv.some(x=>lcN(x.s)===lcN(s.name))).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}${s.category?' · '+esc(s.category):''}</option>`).join('')}</select>
+        <input class="inp" id="p5due" type="date" value="${esc(o.due||'')}" style="max-width:170px" title="Quotations due by" aria-label="Quotations due by"><button class="btn sm" data-p5="sdue">Set due date</button></div>`:''}
+      <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Supplier</th><th class="r">Total (TZS)</th><th class="r">Delivery</th><th class="hide-m">Valid to</th><th class="hide-m">Note</th><th></th></tr></thead><tbody>
+      ${(o.quotes||[]).map((q,i)=>`<tr ${o.chosen===i?'style="background:rgba(46,160,67,.13);box-shadow:inset 3px 0 0 var(--good)"':''}><td class="ttl2">${esc(q.s)}${+q.amount===qmin&&(o.quotes||[]).length>1?' <span class="chip good">lowest</span>':''}${o.chosen===i?' <span class="chip blue">chosen</span>'+(o.choose_reason?`<div class="sub">Reason: ${esc(o.choose_reason)}</div>`:''):''}</td><td class="r num">${Math.round(+q.amount||0).toLocaleString('en-US')}${o.est?`<div class="sub">${(q.amount/o.est*100-100>=0?'+':'')+Math.round(q.amount/o.est*100-100)}% vs estimate</div>`:''}</td><td class="r small">${q.days!=null&&q.days!==''?esc(q.days)+' days':'—'}</td><td class="hide-m small">${fmtD(q.valid)}</td><td class="hide-m small">${esc(q.note||'')}</td>
+        <td>${st==='RFQ'&&can?`<div class="toolbar">${o.chosen===i?'':`<button class="btn sm" data-p5="choose:${i}">Choose</button>`}<button class="btn sm" data-p5="dquote:${i}" aria-label="Remove quote">✕</button></div>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No quotations recorded yet.</div></td></tr>'}</tbody></table></div>
+      ${st==='RFQ'&&can&&M.startsWith('why:')?(()=>{ const i=+M.slice(4), q=o.quotes?.[i]; return q?`<div class="banner warn" style="margin-top:8px"><div style="flex:1"><b>${esc(q.s)} is not the lowest quotation</b> (${tzs(q.amount)} vs ${tzs(poQuoteMin(o))}). Give the reason – it is recorded for audit.<input class="inp" id="pq_why" style="margin-top:6px" placeholder="e.g. lowest bidder cannot deliver before the pour date"></div><div class="toolbar"><button class="btn sm" data-p5="mode:">Cancel</button><button class="btn sm pri" data-p5="choosewhy:${i}">Choose</button></div></div>`:''; })():''}
+      ${st==='RFQ'&&can?(M==='quote'?`<div class="form" style="margin-top:10px"><div class="fld"><label for="pq_s">Supplier *</label><select class="inp" id="pq_s">${[...inv.map(s=>s.s),...(S.suppliers||[]).map(s=>s.name).filter(n=>!inv.some(x=>lcN(x.s)===lcN(n)))].filter(n=>!(o.quotes||[]).some(q=>lcN(q.s)===lcN(n))).map(n=>`<option>${esc(n)}</option>`).join('')}<option value="__other">Other (type below)…</option></select></div>
+          <div class="fld"><label for="pq_o">Other supplier name</label><input class="inp" id="pq_o" placeholder="only if not in the list"></div>
+          <div class="fld"><label for="pq_a">Total quoted (TZS) *</label><input class="inp" id="pq_a" type="number" step="any"></div><div class="fld"><label for="pq_d">Delivery (days)</label><input class="inp" id="pq_d" type="number" step="1"></div>
+          <div class="fld"><label for="pq_v">Valid until</label><input class="inp" id="pq_v" type="date"></div><div class="fld"><label for="pq_n">Note (VAT, transport, brand…)</label><input class="inp" id="pq_n"></div></div>
+          <div class="toolbar"><div class="sp"></div><button class="btn" data-p5="mode:">Cancel</button><button class="btn pri" data-p5="squote">Save quotation</button></div>`
+        :`<div class="toolbar" style="margin-top:8px"><button class="btn sm" data-p5="mode:quote">+ Record a quotation</button><div class="sp"></div>${o.chosen!=null&&o.quotes?.[o.chosen]?`<button class="btn sm pri" data-p5="mode:issue">Issue PO to ${esc(o.quotes[o.chosen].s)}</button>`:''}<button class="btn sm" data-p5="mode:direct" title="Order without comparing quotations">Order directly</button></div>`):''}
+    </div></div>`;
+  }
+
+  // issue PO form
+  let issue='';
+  if(st==='RFQ'&&can&&(M==='issue'||M==='direct')){
+    const q=M==='issue'?o.quotes?.[o.chosen]:null, sq=q?(supByName(q.s)||{}):{}, Tq=L.reduce((a,l)=>a+(+l.q||0),0);
+    const rate=(l)=>q&&+q.amount?(L.length===1?(+q.amount)/(+l.q||1):Math.round((+q.amount)*(+l.q||0)/(Tq||1)/(+l.q||1))):'';
+    issue=`<div class="card"><div class="hd"><h2>Issue purchase order</h2></div><div class="bd"><div class="form">
+      ${q?`<div class="fld full"><label>Supplier</label><div class="ttl2">${esc(q.s)}</div></div>`:`<div class="fld"><label for="pi_s">Supplier *</label><select class="inp" id="pi_s"><option value="">— choose —</option>${(S.suppliers||[]).map(s=>`<option>${esc(s.name)}</option>`).join('')}<option value="__other">Other…</option></select></div><div class="fld"><label for="pi_so">Other supplier name</label><input class="inp" id="pi_so"></div>`}
+      <div class="fld"><label for="pi_e">Supplier e-mail</label><input class="inp" id="pi_e" type="email" value="${esc(q?.email||sq.email||'')}"></div><div class="fld"><label for="pi_p">Supplier phone</label><input class="inp" id="pi_p" value="${esc(q?.phone||sq.phone||'')}"></div>
+      <div class="fld"><label for="pi_dd">Delivery date *</label><input class="inp" id="pi_dd" type="date" value="${esc(q&&q.days!==''&&q.days!=null?ymd(new Date(Date.now()+(+q.days)*864e5)):(o.needed_by||''))}"></div>
+      <div class="fld"><label for="pi_to">Deliver to</label><input class="inp" id="pi_to" value="${esc(o.project_id?(byId('projects',o.project_id)?.location?projName(o.project_id)+' site, '+byId('projects',o.project_id).location:projName(o.project_id)+' site'):'Nordic head office')}"></div>
+      <div class="fld"><label for="pi_t">Payment terms</label><input class="inp" id="pi_t" value="30 days after delivery and receipt of a valid tax invoice (EFD)"></div>
+      <div class="fld"><label for="pi_v">VAT</label><select class="inp" id="pi_v"><option value="incl">Prices include VAT 18%</option><option value="add">Add VAT 18% on top</option><option value="none">No VAT (not VAT registered)</option></select></div></div>
+      <div class="label" style="margin-top:8px">Rates (TZS per unit)</div><div class="tbl-wrap"><table><thead><tr><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Rate</th></tr></thead><tbody>${L.map((l,i)=>`<tr><td>${esc(l.d)}</td><td class="r num">${esc(l.q)}</td><td>${esc(l.u||'')}</td><td style="width:150px"><input class="inp" id="pi_r_${i}" type="number" step="any" value="${esc(rate(l)===''?'':Math.round(rate(l)*100)/100)}"></td></tr>`).join('')}</tbody></table></div>
+      ${q?`<p class="sub">Quoted total: <b>${tzs(q.amount)}</b>. Rates are pre-filled from it – adjust if the supplier priced lines separately.</p>`:''}
+      <div class="toolbar"><div class="sp"></div><button class="btn" data-p5="mode:">Cancel</button><button class="btn pri" data-p5="issue">Issue purchase order</button></div></div></div>`;
+  }
+
+  // PO + deliveries
+  let po='';
+  if(o.po_no){
+    const outst=L.map((l,i)=>Math.max(0,(+l.q||0)-poRec(o,i)));
+    po=`<div class="card"><div class="hd"><h2>Purchase order</h2><div class="sp"></div><button class="btn sm" data-p5="podoc">PO (Word)</button>${can&&st!=='Cancelled'?'<button class="btn sm" data-p5="pomail">E-mail PO</button>':''}</div><div class="bd small">
+      <div class="grid g2"><div><span class="label">Supplier</span><div class="ttl2">${esc(o.supplier||'')}</div><div class="sub">${esc([o.supplier_phone,o.supplier_email].filter(Boolean).join(' · '))}</div></div>
+      <div><span class="label">Delivery</span><div>${fmtD(o.delivery_date)} · ${esc(o.deliver_to||'')}</div><div class="sub">${esc(o.terms||'')}</div></div></div>
+      <div class="sub" style="margin-top:6px">Issued ${fmtD(o.po_at)} by ${esc(o.po_by||'')}</div></div></div>
+    <div class="card"><div class="hd"><h2>Deliveries</h2><span class="sub">&nbsp;${poPct(o)}% received</span><div class="sp"></div>${['Ordered','Part-delivered'].includes(st)&&M!=='grn'&&!isViewer()?'<button class="btn sm pri" data-p5="mode:grn">Record delivery</button>':''}</div><div class="bd">
+      ${(o.deliveries||[]).length?`<div class="tbl-wrap"><table><thead><tr><th>GRN</th><th>Date</th><th>Received</th><th class="hide-m">Condition</th><th class="hide-m">By</th><th></th></tr></thead><tbody>${(o.deliveries||[]).map((d,k)=>`<tr><td class="mono small">${esc(d.grn||'')}<div class="sub">${d.dn?'DN '+esc(d.dn):''}</div></td><td class="small">${fmtD(d.date)}</td><td class="small">${L.map((l,i)=>+(d.q||[])[i]?`${esc((d.q||[])[i])} ${esc(l.u||'')} ${esc(String(l.d||'').slice(0,30))}`:'').filter(Boolean).join('<br>')||'—'}${d.note?`<div class="sub">${esc(d.note)}</div>`:''}</td><td class="hide-m"><span class="chip ${d.cond==='Good'?'good':'amb'}">${esc(d.cond||'Good')}</span></td><td class="hide-m small">${esc(d.by||'')}</td><td>${d.photo?`<span class="thumb" style="display:inline-block;width:44px;height:34px;overflow:hidden;border-radius:4px">${photoTag(d.photo)}</span>`:''}<button class="btn sm" data-p5="grndoc:${k}">GRN</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nothing received yet.</div>'}
+      ${M==='grn'?`<div class="form" style="margin-top:10px"><div class="fld"><label for="pg_dt">Date received *</label><input class="inp" id="pg_dt" type="date" value="${today()}"></div><div class="fld"><label for="pg_dn">Supplier delivery note no.</label><input class="inp" id="pg_dn"></div>
+        ${L.map((l,i)=>`<div class="fld"><label for="pg_q_${i}">${esc(String(l.d||'Item').slice(0,40))} (${esc(l.u||'qty')}) – outstanding ${outst[i]}</label><input class="inp" id="pg_q_${i}" type="number" step="any" value="${outst[i]||''}"></div>`).join('')}
+        <div class="fld"><label for="pg_c">Condition</label><select class="inp" id="pg_c"><option>Good</option><option>Damaged</option><option>Short / wrong items</option><option>Rejected</option></select></div>
+        <div class="fld"><label for="pg_by">Received by</label><input class="inp" id="pg_by" value="${esc(me.name||'')}"></div>
+        <div class="fld full"><label for="pg_n">Note</label><input class="inp" id="pg_n" placeholder="e.g. 5 bags torn, returned to driver"></div>
+        <div class="fld full"><label>Photo of the delivery / delivery note</label><div class="toolbar"><label class="btn sm" style="cursor:pointer">📷 ${drawer.gphoto?'Change photo':'Add photo'}<input type="file" accept="image/*" capture="environment" data-p5ph hidden></label>${drawer.gphoto?`<span class="thumb" style="display:inline-block;width:60px;height:44px;overflow:hidden;border-radius:4px">${photoTag(drawer.gphoto)}</span>`:drawer.gbusy?'<span class="spin"></span> uploading…':''}</div></div></div>
+        <div class="toolbar"><div class="sp"></div><button class="btn" data-p5="mode:">Cancel</button><button class="btn pri" data-p5="sgrn" ${drawer.gbusy?'disabled':''}>Save delivery</button></div>`:''}
+    </div></div>`;
+  }
+  const pr=byId('procurement',o.pr_id);
+  const head=`<div class="toolbar" style="flex-wrap:wrap;gap:6px">${poStChip(o)}${o.pr_no?`<span class="chip">From ${esc(o.pr_no)}</span>`:''}${o.project_id?`<span class="chip">${esc(projName(o.project_id))}</span>`:''}${o.est?`<span class="chip">Estimate ${tzs(o.est)}</span>`:''}${o.needed_by?`<span class="chip ${o.needed_by<today()&&!['Delivered','Cancelled'].includes(st)?'bad':''}">Needed ${fmtD(o.needed_by)}</span>`:''}</div>
+    ${pr?.requested_by?`<p class="sub">Requested by ${esc(pr.requested_by)}${pr.approved_by?' · approved by '+esc(pr.approved_by):''}</p>`:''}
+    ${st==='RFQ'&&can&&M!=='issue'?`<div class="fld full"><label for="p5spec">Specification / notes for suppliers</label><textarea class="inp" id="p5spec" rows="2">${esc(o.spec||'')}</textarea></div>`:o.spec?`<p class="small">${esc(o.spec)}</p>`:''}`;
+  const foot=`${can&&['RFQ','Ordered'].includes(st)&&!(o.deliveries||[]).length?'<button class="btn danger" data-p5="cancel">Cancel '+(o.po_no?'order':'RFQ')+'</button>':''}${isAdmin&&(st==='Cancelled'||st==='RFQ')?'<button class="btn danger" data-p5="del">Delete</button>':''}<div class="sp"></div><button class="btn" data-act="close">Close</button>`;
+  return drawerShell(`${o.po_no||o.rfq_no||'Order'} – ${o.item||''}`,o.po_no?'Purchase order':'Request for quotation',head+lines+rfq+issue+po,foot);
+}
+const isViewer=()=>canWrite===false;
+
+/* ---------- Word documents on the official letterhead ---------- */
+function poInfo(rows){ return oxTbl(rows,{widths:[2600,7140],shade:true,header:false}); }
+function poSign(){ const c=company(); return `${oxP('For and on behalf of '+(c.name||'Nordic Construction Company Limited'),{b:true,before:240})}${oxTbl([['Prepared by','Approved by'],[`${me.name||''}\n\nSignature: ……………………\nDate: ……………`,`\n\nSignature: ……………………\nDate: ……………`]],{widths:[4870,4870]})}`; }
+function poRfqBody(o){ const c=company(), p=byId('projects',o.project_id)||{}, L=poLines(o);
+  return `${oxP('REQUEST FOR QUOTATION',{style:'Title'})}${poInfo([['RFQ No.',o.rfq_no||''],['Date',fmtD(o.rfq_at||today())],['Project',p.name||'Nordic head office'],['Delivery to',p.location||c.address||''],['Quotation due',o.due?fmtD(o.due):'Within 3 working days'],['Contact',[me.name,me.email].filter(Boolean).join(' · ')]])}
+  ${oxP('Dear Sir / Madam,',{before:200})}${oxP('You are kindly invited to submit your best quotation for the supply and delivery of the items listed below. Please state the rate for each item, the total, the delivery period and the validity of your offer.')}
+  ${o.spec?oxP([oxR('Specification: ',{b:true}),oxR(o.spec)]):''}
+  ${oxTbl([['No.','Description','Unit','Qty','Rate (TZS)','Amount (TZS)'],...L.map((l,i)=>[String(i+1),l.d||'',l.u||'',String(l.q??''),'','']),['','TOTAL','','','','']],{widths:[700,4140,900,900,1500,1600]})}
+  ${oxH('Conditions',2)}${oxP('1. Prices to be quoted in Tanzanian Shillings and to state clearly whether VAT (18%) is included.')}${oxP('2. Prices to include delivery to the address above, loading and off-loading.')}${oxP('3. State the delivery period in days from receipt of our Purchase Order and the validity of the offer (minimum 30 days).')}${oxP('4. Payment will be made against our Purchase Order, a signed delivery note and a valid tax invoice (EFD receipt).')}${oxP('5. This request is not an order. Only a Purchase Order signed by an authorised officer of '+(c.name||'the company')+' is binding.')}
+  ${poSign()}`; }
+function poPoBody(o){ const c=company(), p=byId('projects',o.project_id)||{}, L=poLines(o), n=v=>Math.round(+v||0).toLocaleString('en-US');
+  const tot=[[ '', o.vat==='add'?'SUBTOTAL':o.vat==='incl'?'TOTAL (VAT INCLUSIVE)':'TOTAL','','','',n(poSub(o))]];
+  if(o.vat==='add') tot.push(['','VAT 18%','','','',n(poVat(o))],['','TOTAL','','','',n(poTotal(o))]);
+  return `${oxP('PURCHASE ORDER',{style:'Title'})}${poInfo([['PO No.',o.po_no||''],['Date',fmtD(o.po_at||today())],['Supplier',[o.supplier,o.supplier_phone,o.supplier_email].filter(Boolean).join(' · ')],['Our reference',[o.pr_no,o.rfq_no].filter(Boolean).join(' / ')],['Project',p.name||'Nordic head office'],['Deliver to',o.deliver_to||''],['Delivery date',fmtD(o.delivery_date)],['Payment terms',o.terms||'']])}
+  ${oxP('Please supply and deliver the following items in accordance with your quotation and the conditions below:',{before:200})}
+  ${oxTbl([['No.','Description','Unit','Qty','Rate (TZS)','Amount (TZS)'],...L.map((l,i)=>[String(i+1),l.d||'',l.u||'',String(l.q??''),n(l.r),n((+l.q||0)*(+l.r||0))]),...tot],{widths:[700,4140,900,900,1500,1600]})}
+  ${oxH('Conditions',2)}${oxP('1. Quote this PO number on your delivery note and invoice. Deliveries without a PO number may be refused.')}${oxP('2. Goods are received and checked on site; short, damaged or wrong items will be rejected and must be replaced at your cost.')}${oxP('3. Payment: '+(o.terms||'as agreed')+'. Invoices must match this order and be supported by a signed Goods Received Note.')}${oxP('4. Late delivery must be notified in writing before the delivery date.')}
+  ${poSign()}${oxH('Supplier acceptance',2)}${oxP('We accept this order and its conditions.  Name: ……………………………   Signature & stamp: ……………………   Date: ……………')}`; }
+function poGrnBody(o,k){ const d=(o.deliveries||[])[k]||{}, L=poLines(o), p=byId('projects',o.project_id)||{};
+  const prev=i=>(o.deliveries||[]).slice(0,k).reduce((a,x)=>a+(+(x.q||[])[i]||0),0);
+  return `${oxP('GOODS RECEIVED NOTE',{style:'Title'})}${poInfo([['GRN No.',d.grn||''],['Date received',fmtD(d.date)],['PO No.',o.po_no||''],['Supplier',o.supplier||''],['Supplier delivery note',d.dn||'—'],['Project / store',p.name||'Nordic head office'],['Condition',d.cond||'Good']])}
+  ${oxTbl([['No.','Description','Unit','Ordered','Previously received','Received now','Balance'],...L.map((l,i)=>{ const pv=prev(i), now=+(d.q||[])[i]||0; return [String(i+1),l.d||'',l.u||'',String(l.q??''),String(pv),String(now),String(Math.max(0,(+l.q||0)-pv-now))]; })],{widths:[600,3540,800,1000,1300,1300,1200]})}
+  ${d.note?oxP([oxR('Remarks: ',{b:true}),oxR(d.note)],{before:120}):''}
+  ${oxTbl([['Received by (storekeeper)','Checked by (site engineer)','Delivered by (driver)'],[`${d.by||''}\n\nSignature: ……………`,'\n\nSignature: ……………','Name: ……………\nVehicle: ……………\nSignature: ……………']],{widths:[3240,3250,3250]})}`; }
+async function poDoc(o,kind,k){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return null; }
+  const body=kind==='rfq'?poRfqBody(o):kind==='po'?poPoBody(o):poGrnBody(o,k); return oxDocx(body); }
+const poDocName=(o,kind,k)=>kind==='rfq'?`${o.rfq_no} – Request for quotation – ${o.item}`:kind==='po'?`${o.po_no} – Purchase order – ${o.supplier}`:`${(o.deliveries||[])[k]?.grn||'GRN'} – Goods received – ${o.item}`;
+async function poMail(o,kind){ const bytes=await poDoc(o,kind); if(!bytes) return; const name=poDocName(o,kind).replace(/[\\/:*?"<>|]+/g,'-')+'.docx', p=byId('projects',o.project_id)||{};
+  const to=kind==='rfq'?(o.invited||[]).map(s=>s.email).filter(Boolean).join('; '):(o.supplier_email||'');
+  const P=s=>`<p>${s}</p>`, body=kind==='rfq'?P('Dear Sir/Madam,')+P(`Please find attached our Request for Quotation <b>${esc(o.rfq_no)}</b> for <b>${esc(o.item)}</b>${p.name?' for our project '+esc(p.name):''}.`)+P(`Kindly send us your best quotation${o.due?' by <b>'+esc(fmtD(o.due))+'</b>':''}, stating rates, VAT, delivery period and validity.`)
+    :P('Dear Sir/Madam,')+P(`Please find attached our Purchase Order <b>${esc(o.po_no)}</b> for <b>${esc(o.item)}</b>, to be delivered to ${esc(o.deliver_to||'site')} by <b>${esc(fmtD(o.delivery_date))}</b>.`)+P('Kindly confirm acceptance of the order and quote the PO number on your delivery note and invoice.');
+  oxoOpen({to,subject:kind==='rfq'?`Request for quotation ${o.rfq_no} – ${o.item}`:`Purchase order ${o.po_no} – ${o.item}`,html:body+oxoSig(),copy:true,att:[{name,size:bytes.length,type:OX_MIME.docx,ext:'docx',bytes}]});
+  if(kind==='rfq'&&!to) toast('None of the suppliers asked has an e-mail address – add the recipients in To.'); }
+
+/* ---------- actions ---------- */
+function poReadLines(o){ const L=poLines(o).map((l,i)=>({...l,d:($('#pl_d_'+i)?.value??l.d).trim(),u:($('#pl_u_'+i)?.value??l.u).trim(),q:$('#pl_q_'+i)?+$('#pl_q_'+i).value||0:l.q})); return L; }
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-p5]'); if(!el) return; const [a,arg='']=el.dataset.p5.split(/:(.*)/s);
+  if(a==='pof'){ UI.pof=arg; return renderView(true); }
+  if(a==='start') return poStart(arg);
+  if(a==='open') return openDrawer('p5po',arg);
+  if(!drawer||drawer.type!=='p5po') return; const o=byId('po',drawer.id); if(!o) return;
+  const specNow=()=>{ const s=$('#p5spec'); return s&&s.value!==(o.spec||'')?{spec:s.value}:{}; };
+  if(a==='mode'){ drawer.mode=arg; if(arg!=='grn'){ drawer.gphoto=null; } return renderDrawer(); }
+  if(a==='aline'){ const L=poReadLines(o); L.push({d:'',q:1,u:''}); await poPatch(o.id,{lines:L,...specNow()}); return; }
+  if(a==='dline'){ const L=poReadLines(o); L.splice(+arg,1); await poPatch(o.id,{lines:L,...specNow()}); return; }
+  if(a==='slines'){ const L=poReadLines(o).filter(l=>l.d); if(!L.length) return toast('Add at least one item.'); await poPatch(o.id,{lines:L,...specNow()}); toast('Items saved.'); return; }
+  if(a==='dinv'){ const inv=[...(o.invited||[])]; inv.splice(+arg,1); await poPatch(o.id,{invited:inv}); return; }
+  if(a==='sdue'){ await poPatch(o.id,{due:$('#p5due')?.value||'',...specNow()}); toast('Due date saved.'); return; }
+  if(a==='rfqdoc'||a==='podoc'||a==='grndoc'){ const kind=a==='rfqdoc'?'rfq':a==='podoc'?'po':'grn'; if(kind==='rfq'&&Object.keys(specNow()).length) await poPatch(o.id,specNow()); const b=await poDoc({...o,...specNow()},kind,+arg); if(b&&await oxSave(poDocName(o,kind,+arg),b,'docx')) logAct(`Printed ${kind.toUpperCase()} ${kind==='rfq'?o.rfq_no:kind==='po'?o.po_no:''}`); return; }
+  if(a==='rfqmail'||a==='pomail'){ if(a==='rfqmail'&&Object.keys(specNow()).length) await poPatch(o.id,specNow()); return poMail({...o,...specNow()},a==='rfqmail'?'rfq':'po'); }
+  if(a==='squote'){ let s=$('#pq_s')?.value||''; if(s==='__other') s=($('#pq_o')?.value||'').trim(); const amt=+($('#pq_a')?.value||0); if(!s) return toast('Choose or type the supplier.'); if(!(amt>0)) return toast('Enter the quoted total.');
+    const sup=supByName(s)||{}, inv=(o.invited||[]).find(x=>lcN(x.s)===lcN(s))||{};
+    const Q=[...(o.quotes||[]),{s,email:inv.email||sup.email||'',phone:inv.phone||sup.phone||'',amount:amt,days:$('#pq_d')?.value===''?'':+$('#pq_d').value,valid:$('#pq_v')?.value||'',note:($('#pq_n')?.value||'').trim(),at:new Date().toISOString(),by:me.name||''}];
+    drawer.mode=''; await poPatch(o.id,{quotes:Q,...(o.chosen==null&&Q.length===1?{}:{})}); logAct(`Recorded quotation from ${s} (${tzs(amt)}) for ${o.rfq_no}`); return; }
+  if(a==='dquote'){ const Q=[...(o.quotes||[])]; Q.splice(+arg,1); let ch=o.chosen; if(ch===+arg) ch=null; else if(ch!=null&&ch>+arg) ch--; await poPatch(o.id,{quotes:Q,chosen:ch??null}); return; }
+  if(a==='choose'||a==='choosewhy'){ const i=+arg, q=o.quotes?.[i]; if(!q) return; const min=poQuoteMin(o); let why='';
+    if(+q.amount>min){ if(a==='choose'){ drawer.mode='why:'+i; return renderDrawer(); } why=($('#pq_why')?.value||'').trim(); if(!why) return toast('Give the reason for not choosing the lowest quotation.'); }
+    drawer.mode=''; await poPatch(o.id,{chosen:i,choose_reason:why,chosen_by:me.name||''}); logAct(`Chose ${q.s} for ${o.rfq_no}${why?' – '+why:''}`); return; }
+  if(a==='issue'){ const direct=drawer.mode==='direct'; const q=direct?null:o.quotes?.[o.chosen];
+    let sup=q?q.s:($('#pi_s')?.value||''); if(sup==='__other') sup=($('#pi_so')?.value||'').trim(); if(!sup) return toast('Choose the supplier.');
+    const dd=$('#pi_dd')?.value; if(!dd) return toast('Enter the delivery date.');
+    const L=poLines(o).map((l,i)=>({...l,r:+($('#pi_r_'+i)?.value||0)})); if(L.some(l=>!(l.r>0))) return toast('Enter a rate for every line.');
+    const vat=$('#pi_v')?.value||'incl', draft={...o,lines:L,vat};
+    if(!await confirmBox(`Issue purchase order to ${sup} for ${tzs(poTotal(draft))}? The purchase request will be marked Ordered.`,'Issue PO')) return;
+    const up={status:'Ordered',po_no:poNo('PO',x=>x.po_no),po_at:new Date().toISOString(),po_by:me.name||'',supplier:sup,supplier_email:($('#pi_e')?.value||'').trim(),supplier_phone:($('#pi_p')?.value||'').trim(),
+      delivery_date:dd,deliver_to:($('#pi_to')?.value||'').trim(),terms:($('#pi_t')?.value||'').trim(),vat,lines:L,amount:poTotal(draft),direct:direct||false};
+    if(direct&&!(o.quotes||[]).length) up.direct_reason='Ordered without quotations';
+    drawer.mode=''; await poPatch(o.id,up); const pr=byId('procurement',o.pr_id);
+    if(pr&&pr.status==='Approved') await patch('procurement',pr.id,{status:'Ordered',ordered_by:me.name||'',ordered_at:new Date().toISOString()});
+    logAct(`Issued purchase order ${up.po_no} to ${sup} – ${tzs(up.amount)} (${o.item})`); toast(`${up.po_no} issued – print it or e-mail it to the supplier.`); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); return; }
+  if(a==='sgrn'){ if(drawer.gbusy) return; const L=poLines(o), q=L.map((l,i)=>+($('#pg_q_'+i)?.value||0)); if(!q.some(x=>x>0)) return toast('Enter the quantity received.'); const dt=$('#pg_dt')?.value||today();
+    const over=L.some((l,i)=>poRec(o,i)+q[i]>(+l.q||0)*1.1+0.001); if(over&&!await confirmBox('More than ordered is being received (over 10%). Record it anyway?','Record')) return;
+    const all=[...(o.deliveries||[])]; const grn=poNo('GRN',x=>(x.deliveries||[]).map(d=>d.grn)); all.push({grn,date:dt,q,dn:($('#pg_dn')?.value||'').trim(),cond:$('#pg_c')?.value||'Good',by:($('#pg_by')?.value||me.name||'').trim(),note:($('#pg_n')?.value||'').trim(),photo:drawer.gphoto||'',at:new Date().toISOString(),by_uid:me.id||''});
+    const done=L.every((l,i)=>all.reduce((a,d)=>a+(+(d.q||[])[i]||0),0)>=(+l.q||0));
+    drawer.mode=''; drawer.gphoto=null; await poPatch(o.id,{deliveries:all,status:done?'Delivered':'Part-delivered'});
+    const pr=byId('procurement',o.pr_id); if(done&&pr&&pr.status==='Ordered') await patch('procurement',pr.id,{status:'Delivered',delivered_by:me.name||'',delivered_at:new Date().toISOString()});
+    logAct(`Recorded delivery ${grn} for ${o.po_no} (${o.item})${done?' – order complete':''}`); toast(done?`${grn} saved – order fully delivered.`:`${grn} saved – ${poPct({...o,deliveries:all})}% received.`); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); return; }
+  if(a==='cancel'){ if(!await confirmBox(`Cancel ${o.po_no||o.rfq_no}? ${o.po_no?'Tell the supplier the order is cancelled.':''}`,'Cancel it',true)) return; await poPatch(o.id,{status:'Cancelled',cancelled_by:me.name||'',cancelled_at:new Date().toISOString()}); logAct(`Cancelled ${o.po_no||o.rfq_no} (${o.item})`); return; }
+  if(a==='del'){ if(!await confirmBox(`Delete ${o.po_no||o.rfq_no} for everyone?`,'Delete',true)) return; if(await remove('po',o.id)){ logAct(`Deleted ${o.po_no||o.rfq_no}`); closeDrawer(); } return; }
+});
+document.addEventListener('change',async e=>{ const el=e.target; if(!drawer||drawer.type!=='p5po') return; const o=byId('po',drawer.id); if(!o) return;
+  if(el.id==='p5inv'&&el.value){ const s=byId('suppliers',el.value); if(s) await poPatch(o.id,{invited:[...(o.invited||[]),{s:s.name,email:s.email||'',phone:s.phone||''}]}); return; }
+  if('p5ph' in (el.dataset||{})&&el.files?.[0]){ drawer.gbusy=true; renderDrawer(); try{ drawer.gphoto=await storePhoto(el.files[0]); }catch(err){ toast('Photo upload failed: '+(err.message||err)); } drawer.gbusy=false; renderDrawer(); }
+});
 
 /* ===================== FINANCE ===================== */
 const FIN_FIELDS=[{k:'date',label:'Date',type:'date',req:1},{k:'type',label:'Type',type:'select',options:['Expense','Income']},
@@ -3088,6 +3308,7 @@ function renderDrawer(){
   else if(t==='report-form'){ html=reportForm(drawer.id?byId('reports',drawer.id)||{}:{}, drawer.proj); drawer.form=true; }
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?`<div style="flex:1"></div><button class="btn danger" data-act="delForm">${esc(drawer.delLabel||'Delete')}</button>`:''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
+  else if(t==='p5po'){ const x=byId('po',drawer.id); if(!x) return closeDrawer(); html=poDrawer(x); }
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
   else if(t==='bqgen'){ html=bgDrawer(); drawer.form=true; }
@@ -3248,6 +3469,8 @@ function deadlineItems(){
     const due=new Date(Date.parse(dlYmd(c.certified)+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10);
     add(due,'payment',c.no||'Certificate',projName(c.project_id),'go:certs',isFin||pm(c.project_id)); }
   for(const q of S.procurement||[]) if(!q.example&&q.needed_by&&!/delivered|rejected/i.test(q.status||'')) add(q.needed_by,'purchase',`${q.pr_no||''} ${q.item||''}`.trim(),`${q.status||'Requested'} · needed on site`,'go:procure',q.requested_uid===me.id||isProcOff());
+  for(const o of poList()){ if(o.po_no&&['Ordered','Part-delivered'].includes(o.status)&&o.delivery_date) add(o.delivery_date,'purchase',`${o.po_no} ${o.item||''}`,`${o.supplier||''} · delivery due · ${poPct(o)}% received`,'go:procure',isProcOff());
+    else if(o.status==='RFQ'&&o.due) add(o.due,'purchase',`${o.rfq_no} ${o.item||''}`,'Quotations due','go:procure',isProcOff()); }
   for(const t of S.tasks||[]) if(!t.example&&t.due&&!/^(done|complete|closed)/i.test(t.status||'')) add(t.due,'task',t.title,staffName(t.assignee)||'Unassigned','go:tasks',sid&&t.assignee===sid);
   return out.sort((a,b)=>a.d.localeCompare(b.d));
 }
