@@ -156,7 +156,13 @@ textarea.inp{min-height:84px;resize:vertical}
 .li.nt-new .ttl2,.li.nt-unread .ttl2{font-weight:700}
 .li.nt-read{opacity:.62}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.myday{margin-bottom:16px}.myday .grid{align-items:start}.myday .list .li{padding:8px 12px}
+.myday{margin:4px 0 18px}
+.md-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.md-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);border-top:3px solid var(--accent);background:var(--panel);box-shadow:var(--shadow);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:transform .12s}
+.md-tile:hover{transform:translateY(-2px)}.md-tile.hot{border-top-color:var(--bad)}.md-tile.ok{border-top-color:var(--good)}
+.md-n{font:600 28px/1 var(--f-display)}.md-l{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+.md-next{margin-top:10px;display:grid;gap:6px}.md-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.md-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qa-menu{position:fixed;z-index:90;min-width:220px;padding:4px 0;box-shadow:0 12px 32px rgba(0,0,0,.35)}.qa-it{display:block;width:100%;text-align:left;padding:9px 14px;background:none;border:0;color:inherit;font:inherit;cursor:pointer}.qa-it:hover{background:rgba(127,127,127,.15)}
 .nx-search{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);display:flex;justify-content:center;align-items:flex-start;padding:8vh 12px 12px}.nx-sbox{width:min(640px,100%);padding:10px}
 .qa-fab{display:none}
@@ -2396,8 +2402,8 @@ function pageHome(){
   </section>
   ${myDay()}
   <section class="card">
-    <div class="hd"><h2>Tender notifications</h2><span class="sub">${notes.length} open · Pursue and Check · newest first</span><div class="sp"></div><button class="btn sm" data-go="tenders">Tender Radar</button></div>
-    <div class="list">${notes.length?notes.map(t=>{const d=daysLeft(t.deadline), f=daysLeft(t.date_found), isNew=f!=null&&f>-2;
+    <div class="hd"><h2>Tender notifications</h2><span class="sub">${notes.length} open · newest ${Math.min(5,notes.length)} shown</span><div class="sp"></div><button class="btn sm" data-go="tenders">Tender Radar</button></div>
+    <div class="list">${notes.length?notes.slice(0,5).map(t=>{const d=daysLeft(t.deadline), f=daysLeft(t.date_found), isNew=f!=null&&f>-2;
       return `<div class="li" style="cursor:pointer" data-open="tender:${esc(t.id)}"><div class="stripe ${d<=3?'bad':d<=7?'warn':'blue'}"></div>
         <div class="grow"><div class="toolbar" style="gap:6px"><span class="label">${d<=3?'Closing very soon':d<=7?'Closing this week':'Open tender'}</span>${isNew?'<span class="chip blue">New</span>':''}${screenChip(t.screen)}</div>
         <div class="ttl2">${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · ${esc(t.location||'')} · closes ${fmtDT(t.deadline)}</div></div>${daysChip(t.deadline)}</div>`}).join('')
@@ -3223,30 +3229,30 @@ function mdCard(title,go,body,count){ return `<div class="card"><div class="hd">
 const mdLi=(attr,title,sub,chip='')=>`<div class="li" style="cursor:pointer" ${attr}><div class="grow"><div class="ttl2">${title}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>${chip}</div>`;
 const mdEmpty=t=>`<div class="empty small">${t}</div>`;
 function myDay(){
-  const role=myRole(), sid=myStaffId(), td=today(), dl=deadlineItems();
-  const mine=dl.filter(x=>x.mine&&x.n<=14), when=n=>n<0?`${-n}d late`:n===0?'today':n===1?'tomorrow':`${n} days`;
-  const dlCard=mdCard('Due for me','deadlines',(mine.length?mine.slice(0,6).map(x=>mdLi(x.go.startsWith('go:')?`data-go="${esc(x.go.slice(3))}"`:x.go.startsWith('rec:')?`data-rec="${esc(x.go.slice(4))}"`:`data-open="${esc(x.go)}"`,`${DL_KIND[x.kind][0]} ${esc(x.title)}`,`${DL_KIND[x.kind][1]}${x.sub?' · '+esc(x.sub):''}`,`<span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${when(x.n)}</span>`)).join(''):mdEmpty('Nothing due for you in the next 2 weeks.')),mine.filter(x=>x.n<=3).length);
-  const cards=[dlCard];
-  // site report for my project(s)
-  const myProj=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')&&sid&&(p.reporter===sid||p.manager===sid));
-  if(myProj.length) cards.push(mdCard("Today's site report",'reports',myProj.slice(0,4).map(p=>{ const done=S.reports.some(r=>r.project_id===p.id&&r.date===td);
-    return mdLi(`data-act="newReport" data-proj="${esc(p.id)}"`,esc(p.name),done?'Filed today – tap to add another':'Not filed yet – takes about a minute',`<span class="chip ${done?'good':'warn'}">${done?'✓ Filed':'To do'}</span>`); }).join(''),myProj.filter(p=>!S.reports.some(r=>r.project_id===p.id&&r.date===td)).length));
-  // my tasks
-  const tasks=(S.tasks||[]).filter(t=>!t.example&&sid&&t.assignee===sid&&!/^(done|complete|closed)/i.test(t.status||'')).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
-  cards.push(mdCard('My tasks','tasks',tasks.length?tasks.slice(0,5).map(t=>mdLi('data-go="tasks"',esc(t.title),`${esc(t.status||'To do')}${t.project_id?' · '+esc(projName(t.project_id)):''}`,t.due?`<span class="chip ${t.due<td?'bad':''}">${fmtD(t.due)}</span>`:'')).join(''):mdEmpty('No open tasks for you.'),tasks.filter(t=>t.due&&t.due<td).length));
-  const PR=S.procurement||[];
-  if(role==='admin'||role==='procurement'){ const wait=PR.filter(p=>!p.example&&(p.status||'Requested')==='Requested'&&canApprovePR(p)), app=PR.filter(p=>p.status==='Approved'), ord=PR.filter(p=>p.status==='Ordered');
-    cards.push(mdCard('Purchases','procure',[mdLi('data-go="procure"','Waiting for your approval',wait.slice(0,3).map(p=>esc(p.item||'')).join(' · ')||'None',`<span class="chip ${wait.length?'warn':'good'}">${wait.length}</span>`),mdLi('data-go="procure"','Approved – to order','',`<span class="chip">${app.length}</span>`),mdLi('data-go="procure"','Ordered – awaiting delivery','',`<span class="chip">${ord.length}</span>`)].join(''),wait.length)); }
-  if(role==='admin'||role==='finance'){ const due=(S.certificates||[]).filter(c=>!c.example&&c.status==='Certified'), ov=due.filter(c=>{ const d=dlYmd(c.certified); return d&&dlDays(new Date(Date.parse(d+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10))<0; });
-    const tot=due.reduce((a,c)=>a+(+c.amount||0),0);
-    cards.push(mdCard('Money to collect','certs',[mdLi('data-go="certs"','Certified, not yet paid',tzs(tot),`<span class="chip">${due.length}</span>`),mdLi('data-go="certs"','Overdue for payment',ov.slice(0,3).map(c=>esc(c.no||'')).join(' · ')||'None',`<span class="chip ${ov.length?'bad':'good'}">${ov.length}</span>`)].join(''),ov.length)); }
-  if(role==='admin'||isQS()){ const t7=openTenders().filter(t=>t.screen!=='Drop'&&daysLeft(t.deadline)<=7&&(role==='admin'||/pursue/i.test(t.screen||'')||t.owner===sid));
-    cards.push(mdCard('Tenders closing this week','tenders',t7.length?t7.slice(0,5).map(t=>mdLi(`data-open="tender:${esc(t.id)}"`,esc(t.title),`${esc(t.client||'')}${t.owner?' · '+esc(staffName(t.owner)):' · no owner yet'}`,daysChip(t.deadline))).join(''):mdEmpty('No Pursue tenders close in the next 7 days.'),t7.filter(t=>!t.owner).length)); }
-  if(role==='admin'){ const act=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')), miss=act.filter(p=>!S.reports.some(r=>r.project_id===p.id&&r.date===td));
-    cards.push(mdCard('Sites today','reports',act.length?act.slice(0,6).map(p=>{ const r=S.reports.find(x=>x.project_id===p.id&&x.date===td); return mdLi(r?`data-open="report:${esc(r.id)}"`:`data-open="project:${esc(p.id)}"`,esc(p.name),r?`${esc(r.author||'')} · ${r.workforce??'?'} workers${r.hse_incident?' · 🦺 incident':''}`:'No report yet',`<span class="chip ${r?(r.hse_incident?'bad':'good'):'warn'}">${r?'✓':'—'}</span>`); }).join(''):mdEmpty('No active projects.'),miss.length)); }
+  const role=myRole(), sid=myStaffId(), td=today(), dl=deadlineItems(), T=[];
+  const tile=(n,label,attr,cls)=>T.push(`<button class="md-tile ${cls||''}" ${attr}><span class="md-n">${n}</span><span class="md-l">${label}</span></button>`);
+  const mine=dl.filter(x=>x.mine&&x.n<=7), soon=mine.filter(x=>x.n<=3);
+  const PR=S.procurement||[], wait=PR.filter(p=>!p.example&&(p.status||'Requested')==='Requested'&&canApprovePR(p));
+  const certs=(S.certificates||[]).filter(c=>!c.example&&c.status==='Certified'), late=certs.filter(c=>{ const d=dlYmd(c.certified); return d&&dlDays(new Date(Date.parse(d+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10))<0; });
+  const tasks=(S.tasks||[]).filter(t=>!t.example&&sid&&t.assignee===sid&&!/^(done|complete|closed)/i.test(t.status||''));
+  const t7=openTenders().filter(t=>/pursue|check/i.test(t.screen||'')&&daysLeft(t.deadline)<=7);
+  const act=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')), rep=act.filter(p=>S.reports.some(r=>r.project_id===p.id&&r.date===td));
+  const myProj=act.filter(p=>sid&&(p.reporter===sid||p.manager===sid)), myTodo=myProj.filter(p=>!rep.includes(p));
+  if(role==='procurement'){ tile(wait.length,'To approve','data-go="procure"',wait.length?'hot':''); tile(PR.filter(p=>p.status==='Approved').length,'To order','data-go="procure"'); tile(PR.filter(p=>p.status==='Ordered').length,'Awaiting delivery','data-go="procure"'); }
+  tile(mine.length,'Due this week','data-go="deadlines"',soon.length?'hot':'');
+  if(role!=='procurement') tile(tasks.length,'My tasks','data-go="tasks"',tasks.some(t=>t.due&&t.due<td)?'hot':'');
+  if(myProj.length) tile(myTodo.length?'To do':'✓','Site report',myTodo.length?`data-act="newReport" data-proj="${esc(myTodo[0].id)}"`:'data-go="reports"',myTodo.length?'hot':'ok');
+  if(role==='admin') tile(wait.length,'To approve','data-go="procure"',wait.length?'hot':'');
+  if(role==='admin'||role==='finance') tile(certs.length,late.length?`Unpaid · ${late.length} late`:'Unpaid IPCs','data-go="certs"',late.length?'hot':'');
+  if(role==='admin'||isQS()) tile(t7.length,'Tenders ≤ 7 days','data-go="tenders"',t7.some(t=>!t.owner)?'hot':'');
+  if(role==='admin') tile(`${rep.length}/${act.length}`,'Sites reported','data-go="reports"',rep.length<act.length?'hot':'ok');
+  // one short "next up" line list (max 3)
+  const next=mine.slice(0,3);
   const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',staff:'Staff',viewer:'Viewer'};
-  return `<section class="myday"><div class="toolbar" style="margin-bottom:10px"><div><div class="label">My day · ${RT[role]}${myDept()?' · '+esc(myDept()):''}</div></div><div class="sp"></div>${qaButtons().slice(0,4).map(([a,l,x])=>`<button class="btn sm ${a==='newReport'?'pri':''}" data-act="${a}" ${x||''}>${l}</button>`).join('')}</div>
-    <div class="grid g3">${cards.join('')}</div></section>`;
+  return `<section class="myday"><div class="toolbar" style="margin-bottom:10px"><div class="label">My day · ${RT[role]}</div><div class="sp"></div>${qaButtons().slice(0,2).map(([a,l])=>`<button class="btn sm ${a==='newReport'?'pri':''}" data-act="${a}">${l}</button>`).join('')}</div>
+    <div class="md-tiles">${T.slice(0,6).join('')}</div>
+    ${next.length?`<div class="md-next">${next.map(x=>`<button class="md-row" ${x.go.startsWith('go:')?`data-go="${esc(x.go.slice(3))}"`:x.go.startsWith('rec:')?`data-rec="${esc(x.go.slice(4))}"`:`data-open="${esc(x.go)}"`}><span>${DL_KIND[x.kind][0]}</span><span class="grow md-t">${esc(x.title)}</span><span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${x.n<0?`${-x.n}d late`:x.n===0?'today':x.n===1?'tomorrow':x.n+' days'}</span></button>`).join('')}</div>`:''}
+  </section>`;
 }
 /* quick add – what each role usually creates */
 function qaButtons(){ if(canWrite===false) return []; const role=myRole(), L=[];
