@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=97"></script>
+<script src="config.js?v=98"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=97"></script>
-<script src="nexus-chat.js?v=97"></script>
+<script src="nexus-sb.js?v=98"></script>
+<script src="nexus-chat.js?v=98"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5312,7 +5312,16 @@ function dhCompany(){ return ((S.hub&&S.hub.company)||[]).filter(x=>x&&safeUrl(x
 function dhAll(){ const L=[]; DH_CATS.forEach(c=>c.items.forEach(i=>L.push({n:i[0],url:i[1],c:i[2],m:i[3]}))); dhCompany().forEach(x=>L.push({n:x.n,url:x.url,...dhMark(x.n,x.url,'#0B3D5C')})); dhGet('mine').forEach(x=>L.push({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')})); return L; }
 function dhOpen(url,name){ url=safeUrl(url); if(!url) return toast('That web address is not valid.');
   const r=dhGet('recent').filter(x=>x.url!==url); r.unshift({n:name||dhHost(url),url}); dhSet('recent',r.slice(0,8));
-  const w=window.open(url,'_blank','noopener'); if(!w) location.href=url; if(route==='hub') setTimeout(()=>renderView(),50); }
+  dhLaunch(url); if(route==='hub') setTimeout(()=>renderView(),50); }
+/* v98: open inside NEXUS – phone app: built-in browser screen (app v1.3); computer / Windows app: a NEXUS web window (opener cut off for safety); old phone app: phone's browser */
+function dhLaunch(url){
+  const A=window.NexusAndroid;
+  if(A&&typeof A.openInApp==='function'){ try{ A.openInApp(url); return; }catch(_){} }
+  if(/NordicNexusAndroid/.test(navigator.userAgent)){ location.href=url; toast('Update the NEXUS app to open websites inside NEXUS.'); return; }
+  const W=Math.min(1280,Math.round(screen.availWidth*.9)), H=Math.min(900,Math.round(screen.availHeight*.9)), L=Math.round((screen.availWidth-W)/2), T=Math.round((screen.availHeight-H)/2);
+  let w=null; try{ w=window.open('','_blank',`popup=yes,width=${W},height=${H},left=${L},top=${T}`); }catch(_){}
+  if(w){ try{ w.opener=null; w.location.href=url; w.focus(); return; }catch(_){ try{ w.close(); }catch(__){} } }
+  const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
 function dhTile(x,opts={}){ const fav=dhGet('fav').includes(x.url), mk=String(x.m||'');
   return `<div class="dh-t" role="link" tabindex="0" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}" title="${esc(dhHost(x.url))}">
     ${opts.del?`<button class="dh-x" data-dhdel="${esc(x.url)}" title="Remove from my links" aria-label="Remove">✕</button>`:''}
@@ -5333,7 +5342,7 @@ function pageHub(){
   ${sec('co',`${esc(company().name||'Company')} online`,coTiles.length?`<div class="dh-grid">${coTiles.map(x=>dhTile(x)).join('')}</div>`:`<div class="dh-empty">${isAdmin?'Add the company’s Facebook, LinkedIn, Instagram, website and other pages so everyone can find them here.':'The administrator has not added the company’s pages yet.'}</div>`,isAdmin?'<button class="btn sm" data-dhco="1">Edit company pages</button>':'')}
   ${sec('mine','My links',mine.length?`<div class="dh-grid">${mine.map(x=>dhTile({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')},{del:1})).join('')}</div>`:'<div class="dh-empty">Add websites you use often – only you see them (saved on this device).</div>','<button class="btn sm" data-dhadd="1">+ Add link</button>')}
   ${DH_CATS.map(c=>sec(c.k,c.t,`<div class="dh-grid">${c.items.map(i=>dhTile({n:i[0],url:i[1],c:i[2],m:i[3]})).join('')}</div>`)).join('')}
-  <div class="dh-note">Websites open in a new browser tab, so NEXUS stays open here. On the phone app they open in your phone’s browser. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
+  <div class="dh-note">Websites open inside NEXUS: in the phone app on their own screen (✕ returns to NEXUS), on the computer in a NEXUS web window. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
 }
 function dhSubmit(asSite){ const i=document.getElementById('dhq'); const s=(i&&i.value||'').trim(); if(!s) return i&&i.focus();
   if(asSite||dhUrlLike(s)){ const u=dhHttps(s); if(u) return dhOpen(u,dhHost(u)); if(asSite) return toast('That does not look like a web address.'); }
