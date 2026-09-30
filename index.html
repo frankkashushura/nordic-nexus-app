@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=88"></script>
+<script src="config.js?v=89"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=88"></script>
-<script src="nexus-chat.js?v=88"></script>
+<script src="nexus-sb.js?v=89"></script>
+<script src="nexus-chat.js?v=89"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -546,7 +546,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -1408,7 +1408,7 @@ function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
   const t=boqTotals(b);
   return `<div class="toolbar"><button class="btn" data-go="qs">← All BoQs</button><div class="seg">${[['edit','Edit items'],['price','Price (QS)']].map(([k,l])=>`<button data-bx="mode" data-v="${k}" aria-pressed="${(UI.bqmode||'edit')===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xopen">📗 Open in Excel</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
+    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xedit">📗 Open in Excel</button><button class="btn" data-ox="xopen" title="Download a real .xlsx for use outside NEXUS">⬇ .xlsx</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
   <div class="card"><div class="bd"><div class="form">
     <div class="fld full"><label for="bq_title">BoQ title</label><input class="inp" id="bq_title" data-bq="title" value="${esc(b.title)}"></div>
     <div class="fld"><label for="bq_proj">Project</label><select class="inp" id="bq_proj" data-bq="project_id">${projOpts().map(([v,l])=>`<option value="${esc(v)}" ${v===(b.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -3023,7 +3023,7 @@ function renderNav(){
 function renderView(force=false){
   const v=$('#view'), a=document.activeElement;
   if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
-  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq'].includes(a.id)){ pendingView=true; return; }
+  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
   const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
@@ -3428,8 +3428,8 @@ async function boqUndoExcel(b){ if(!b?.before_excel) return; if(!(await confirmB
   const x=b.before_excel; await patch('boqs',b.id,{bills:x.bills,contingency:x.contingency,vat:x.vat,before_excel:null}); logAct(`Undid Excel update of BoQ "${b.title}"`); toast('Excel update undone.'); }
 
 /* ---------- Word writer: letterhead, styles, tables, footer ---------- */
-const oxR=(t,o={})=>{ const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}${o.caps?'<w:caps/>':''}`; return String(t??'').split('\n').map((ln,i)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${i?'<w:br/>':''}<w:t xml:space="preserve">${oxX(ln)}</w:t></w:r>`).join(''); };
-const oxP=(t,o={})=>`<w:p><w:pPr>${o.style?`<w:pStyle w:val="${o.style}"/>`:''}${o.align?`<w:jc w:val="${o.align}"/>`:''}<w:spacing w:before="${o.before||0}" w:after="${o.after??120}"/>${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="539FDC"/></w:pBdr>':''}</w:pPr>${Array.isArray(t)?t.join(''):oxR(t,o)}</w:p>`;
+const oxR=(t,o={})=>{ const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.caps?'<w:caps/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}`; return String(t??'').split('\n').map((ln,i)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${i?'<w:br/>':''}<w:t xml:space="preserve">${oxX(ln)}</w:t></w:r>`).join(''); };
+const oxP=(t,o={})=>`<w:p><w:pPr>${o.style?`<w:pStyle w:val="${o.style}"/>`:''}${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="539FDC"/></w:pBdr>':''}<w:spacing w:before="${o.before||0}" w:after="${o.after??120}"/>${o.align?`<w:jc w:val="${o.align}"/>`:''}</w:pPr>${Array.isArray(t)?t.join(''):oxR(t,o)}</w:p>`;
 const oxH=(t,l=1)=>oxP(t,{style:'Heading'+l});
 const oxHint=t=>oxP(t,{i:true,color:'6B7280'});
 function oxTbl(rows,{widths,header=true,shade}={}){ const W=widths||rows[0].map(()=>Math.floor(9900/rows[0].length));
@@ -3442,7 +3442,7 @@ function oxDocx(bodyXml,{landscape=false}={}){
   f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`;
   f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
   f['word/_rels/document.xml.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rFoot" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>${logo?`<Relationship Id="rLogo" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.${logo.ext}"/>`:''}</Relationships>`;
-  f['word/styles.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="200"/></w:pPr><w:rPr><w:b/><w:caps/><w:color w:val="182340"/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="182340"/><w:sz w:val="26"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="2F5E8E"/><w:sz w:val="23"/></w:rPr></w:style></w:styles>`;
+  f['word/styles.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="120" w:after="200"/><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:caps/><w:color w:val="182340"/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="182340"/><w:sz w:val="26"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="2F5E8E"/><w:sz w:val="23"/></w:rPr></w:style></w:styles>`;
   f['word/footer1.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="6" w:space="4" w:color="B7C0CE"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="9900"/></w:tabs></w:pPr>${oxR(`${c.name||''}${c.tin?' · TIN '+c.tin:''}`,{sz:16,color:'6B7280'})}<w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:tab/><w:t xml:space="preserve">Page </w:t></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>`;
   const pg=landscape?'<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>':'<w:pgSz w:w="11906" w:h="16838"/>';
   f['word/document.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${bodyXml}<w:sectPr><w:footerReference w:type="default" r:id="rFoot"/>${pg}<w:pgMar w:top="900" w:right="1000" w:bottom="1000" w:left="1000" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr></w:body></w:document>`;
@@ -3499,19 +3499,727 @@ function oxTemplateOpen(k){ const tp=OX_TEMPLATES.find(x=>x.k===k); if(!tp) retu
     const p=byId('projects',v.project_id), name=`${tp.t}${v.subject?' – '+v.subject:p?' – '+p.name:''}`;
     if(await oxSave(name, oxDocx(oxTemplateBody(k,v)), 'docx')) logAct(`Created ${tp.t} in Word${p?' – '+p.name:''}`); return true; },{sub:'NEXUS Office · Word',saveLabel:'Create Word file'}); }
 
-/* ---------- NEXUS Office page ---------- */
-function pageOffice(){
-  const boqs=[...S.boqs].sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))).slice(0,8);
-  return `<div class="card"><div class="bd small"><b>How it works:</b> NEXUS makes a real Microsoft file with the Nordic letterhead and data filled in → it opens in <b>Word / Excel</b> on your PC (company Office licence) or in the free Microsoft Office app on your phone → you finish it there. BoQs come back into NEXUS with <b>Update from Excel</b>; finished letters and reports go into <b>Office Records</b> (Upload new version keeps every copy).</div></div>
-  <div class="grid g2">
-   <div class="card"><div class="hd"><h2>📘 Word – documents</h2></div><div class="list">${OX_TEMPLATES.map(t=>`<div class="li" style="cursor:pointer" data-ox="tpl" data-k="${t.k}"><span style="font-size:22px">${t.ico}</span><div class="grow"><div class="ttl2">${t.t}</div><div class="sub">${t.d}</div></div><span class="chip">.docx</span></div>`).join('')}</div></div>
-   <div class="card"><div class="hd"><h2>📗 Excel – Bills of Quantities</h2><div class="sp"></div><button class="btn sm" data-go="qs">QS Studio</button></div><div class="list">${boqs.length?boqs.map(b=>{ const t=boqTotals(b); return `<div class="li"><div class="grow"><div class="ttl2">${esc(b.title)}</div><div class="sub">${(b.bills||[]).length} bills · ${money()?tzs(t.grand):''}${b.excel_at?' · from Excel '+fmtD(b.excel_at):''}</div></div><button class="btn sm" data-ox="xopen" data-id="${esc(b.id)}">Open in Excel</button><label class="btn sm" style="cursor:pointer">Update<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup="${esc(b.id)}"></label></div>`; }).join(''):'<div class="empty small">No BoQs yet – create one in QS Studio.</div>'}</div></div>
-   <div class="card"><div class="hd"><h2>📙 PowerPoint · 📅 Project · 📧 Outlook · 📋 Forms</h2><span class="chip">next step</span></div><div class="bd small muted">Progress-report slides, programme to Microsoft Project (XML) and back, emails that open as Outlook drafts with the file attached, and site forms – being added next.</div></div>
-  </div>`;
-}
 document.addEventListener('click',e=>{ const el=e.target.closest('[data-ox]'); if(!el) return; e.stopPropagation();
-  const a=el.dataset.ox; if(a==='tpl') oxTemplateOpen(el.dataset.k); else if(a==='xopen') boqOpenExcel(byId('boqs',el.dataset.id||routeArg)); else if(a==='xundo') boqUndoExcel(byId('boqs',routeArg)); },true);
+  const a=el.dataset.ox; if(a==='xedit'){ loadScript(XLSX_URL).then(()=>oxsOpenBoq(byId('boqs',routeArg))); return; } if(a==='tpl') oxTemplateOpen(el.dataset.k); else if(a==='xopen') boqOpenExcel(byId('boqs',el.dataset.id||routeArg)); else if(a==='xundo') boqUndoExcel(byId('boqs',routeArg)); },true);
 document.addEventListener('change',e=>{ const el=e.target; if(!el?.dataset||!('oxup' in el.dataset)||!el.files?.[0]) return; const b=byId('boqs',el.dataset.oxup||routeArg); boqUpdateFromExcel(b,el.files[0]); el.value=''; });
+
+/* ===================== v2.14 NEXUS OFFICE – Word & Excel editors inside NEXUS (Microsoft Office look) =====================
+   Documents are edited here and saved in NEXUS (collection "officedocs"); Download gives a real .docx / .xlsx for use outside. */
+const OXA={docx:{name:'Word',color:'#185ABD',dark:'#103F91',letter:'W',ext:'docx'},xlsx:{name:'Excel',color:'#107C41',dark:'#0B5C30',letter:'X',ext:'xlsx'},pptx:{name:'PowerPoint',color:'#C43E1C',dark:'#9A2F14',letter:'P',ext:'pptx'}};
+const oxIco=(t,sz=28)=>`<span class="oxi" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.55)}px;background:${OXA[t].color}">${OXA[t].letter}</span>`;
+const OX_CSS=`
+.oxi{display:inline-flex;align-items:center;justify-content:center;border-radius:4px;color:#fff;font:700 14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;flex:none}
+#oxApp{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#F3F2F1;color:#252423;font:13px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
+#oxApp *{box-sizing:border-box}
+#oxApp button{font:inherit;color:inherit}
+.ox-title{height:44px;display:flex;align-items:center;gap:10px;padding:0 10px;color:#fff;flex:none}
+.ox-title .oxi{background:#fff!important;color:var(--oxc)}
+.ox-title input{background:transparent;border:1px solid transparent;color:#fff;font:600 14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;padding:4px 6px;border-radius:3px;min-width:120px;max-width:44vw}
+.ox-title input:hover,.ox-title input:focus{border-color:rgba(255,255,255,.6);outline:none;background:rgba(255,255,255,.12)}
+.ox-title .st{font-size:12px;opacity:.85;white-space:nowrap}
+.ox-title .tb{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:4px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.ox-title .tb:hover{background:rgba(255,255,255,.26)}
+.ox-title .x{background:none;border:0;color:#fff;font-size:20px;width:36px;height:36px;cursor:pointer;border-radius:4px}.ox-title .x:hover{background:#C42B1C}
+.ox-tabs{display:flex;gap:2px;background:#F3F2F1;padding:0 8px;flex:none;overflow-x:auto}
+.ox-tabs button{background:none;border:0;padding:8px 12px 6px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.ox-tabs button:hover{background:#E1DFDD}.ox-tabs button.on{border-bottom-color:var(--oxc);font-weight:600;color:var(--oxc)}
+.ox-tabs button.file{color:#fff;background:var(--oxc);border-radius:3px;margin:3px 6px 3px 0;padding:4px 14px}
+.ox-rib{display:flex;align-items:stretch;gap:0;background:#fff;border-bottom:1px solid #E1DFDD;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:4px 6px;min-height:92px;flex:none;overflow-x:auto}
+.ox-grp{display:flex;flex-direction:column;padding:0 8px;border-right:1px solid #E1DFDD;flex:none}
+.ox-grp .gb{display:flex;flex-wrap:wrap;gap:2px;align-items:flex-start;flex:1;max-width:420px}
+.ox-grp .gl{font-size:11px;color:#605E5C;text-align:center;padding-top:2px}
+.ox-b{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:26px;height:26px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:none;cursor:pointer;white-space:nowrap}
+.ox-b:hover{background:#F3F2F1;border-color:#E1DFDD}.ox-b.on{background:#E1DFDD;border-color:#C8C6C4}
+.ox-b.big{flex-direction:column;height:66px;min-width:52px;padding:4px 6px;font-size:12px;line-height:1.1}.ox-b.big .bi{font-size:24px;line-height:1}
+.ox-b svg{width:16px;height:16px}
+.ox-sel{height:26px;border:1px solid #C8C6C4;border-radius:2px;background:#fff;padding:0 4px;font:inherit}
+.ox-col{position:relative}.ox-col input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.ox-col .bar{display:block;height:4px;width:16px;margin-top:-2px}
+.ox-sty{display:flex;gap:4px}.ox-sty button{width:74px;height:56px;border:1px solid #E1DFDD;background:#fff;cursor:pointer;text-align:left;padding:4px 6px;overflow:hidden}.ox-sty button:hover{border-color:var(--oxc)}
+.ox-status{height:26px;display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--oxc);color:#fff;font-size:12px;flex:none}
+.ox-status .sp{flex:1}.ox-status input[type=range]{width:110px;accent-color:#fff}
+.ox-back{position:absolute;inset:44px 0 0 0;background:#fff;display:flex;z-index:5}
+.ox-back nav{width:190px;background:var(--oxc);color:#fff;padding:14px 0;display:flex;flex-direction:column}
+.ox-back nav button{background:none;border:0;color:#fff;text-align:left;padding:11px 22px;cursor:pointer;font-size:14px}.ox-back nav button:hover,.ox-back nav button.on{background:rgba(255,255,255,.18)}
+.ox-back .bb{flex:1;padding:28px 40px;overflow:auto}.ox-back h2{font:300 30px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin:0 0 18px}
+.ox-tpl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;max-width:900px}
+.ox-tpl button{border:1px solid #E1DFDD;background:#fff;cursor:pointer;padding:0;text-align:left;border-radius:3px}.ox-tpl button:hover{border-color:var(--oxc);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ox-tpl .th{height:120px;background:#F8F8F8;display:flex;align-items:center;justify-content:center;font-size:40px;border-bottom:1px solid #EDEBE9}.ox-tpl .tn{padding:8px 10px;font-size:12.5px}
+.ox-pop{position:absolute;z-index:20;background:#fff;border:1px solid #C8C6C4;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:8px;border-radius:3px}
+.ox-dlg{position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:30}
+.ox-dlg .card2{background:#fff;padding:18px 20px;min-width:320px;box-shadow:0 10px 30px rgba(0,0,0,.3)}.ox-dlg input,.ox-dlg select{width:100%;height:30px;border:1px solid #8A8886;padding:0 6px;margin:4px 0 10px;font:inherit}
+.ox-dlg .row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}.ox-dlg .pri{background:var(--oxc);color:#fff;border:0;padding:6px 16px;cursor:pointer}.ox-dlg .sec{background:#fff;border:1px solid #8A8886;padding:6px 16px;cursor:pointer}
+#oxApp svg{width:16px;height:16px;flex:none}#oxApp .ox-b.big svg,#oxApp .bi svg{width:26px;height:26px}
+#oxApp input,#oxApp select,#oxApp textarea{background:#fff;color:#252423;box-shadow:none}#oxApp .ox-title input{background:transparent;color:#fff}
+#oxApp :focus{outline:none}#oxApp .ox-b:focus-visible,#oxApp button:focus-visible{outline:2px solid var(--oxc)}
+#oxApp th,#oxApp td{font-family:inherit;text-transform:none;letter-spacing:0}
+.ox-status{white-space:nowrap;overflow:hidden}
+@media (max-width:700px){.ox-title .t,.ox-title>span:nth-child(2),.ox-title>span:nth-child(3){display:none}.ox-status span:nth-child(3){display:none}.ox-title input{max-width:36vw}.ox-title .st{display:none}.ox-back nav{width:120px}.ox-back .bb{padding:18px}}
+`;
+function oxEnsureCss(){ if(!document.getElementById('oxCss')){ const s=document.createElement('style'); s.id='oxCss'; s.textContent=OX_CSS+(typeof OXW_CSS!=='undefined'?OXW_CSS:'')+(typeof OXS_CSS!=='undefined'?OXS_CSS:''); document.head.appendChild(s); } }
+const OXSVG={
+  undo:'<svg viewBox="0 0 16 16"><path d="M5 3L2 6l3 3M2 6h7a4 4 0 010 8H6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  redo:'<svg viewBox="0 0 16 16"><path d="M11 3l3 3-3 3M14 6H7a4 4 0 000 8h3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  al:'<svg viewBox="0 0 16 16"><path d="M2 3h12M2 6h8M2 9h12M2 12h8" stroke="currentColor" stroke-width="1.3"/></svg>',
+  ac:'<svg viewBox="0 0 16 16"><path d="M2 3h12M4 6h8M2 9h12M4 12h8" stroke="currentColor" stroke-width="1.3"/></svg>',
+  ar:'<svg viewBox="0 0 16 16"><path d="M2 3h12M6 6h8M2 9h12M6 12h8" stroke="currentColor" stroke-width="1.3"/></svg>',
+  aj:'<svg viewBox="0 0 16 16"><path d="M2 3h12M2 6h12M2 9h12M2 12h12" stroke="currentColor" stroke-width="1.3"/></svg>',
+  ul:'<svg viewBox="0 0 16 16"><circle cx="3" cy="4" r="1.2" fill="currentColor"/><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="3" cy="12" r="1.2" fill="currentColor"/><path d="M6 4h8M6 8h8M6 12h8" stroke="currentColor" stroke-width="1.3"/></svg>',
+  ol:'<svg viewBox="0 0 16 16"><text x="0" y="6" font-size="5" fill="currentColor">1</text><text x="0" y="13" font-size="5" fill="currentColor">2</text><path d="M6 4h8M6 11h8" stroke="currentColor" stroke-width="1.3"/></svg>',
+  ind:'<svg viewBox="0 0 16 16"><path d="M2 3h12M7 6h7M7 9h7M2 12h12M2 5.5l3 2-3 2z" stroke="currentColor" fill="currentColor" stroke-width="1"/></svg>',
+  out:'<svg viewBox="0 0 16 16"><path d="M2 3h12M7 6h7M7 9h7M2 12h12M5 5.5l-3 2 3 2z" stroke="currentColor" fill="currentColor" stroke-width="1"/></svg>',
+  tbl:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16" stroke="currentColor" stroke-width="1.2"/></svg>',
+  pic:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="M3 17l6-5 4 3 3-2 5 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  save:'<svg viewBox="0 0 16 16"><path d="M2 2h10l2 2v10H2z M5 2v4h6V2 M4 9h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>',
+  dl:'<svg viewBox="0 0 16 16"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2 13h12" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  sum:'<svg viewBox="0 0 24 24"><path d="M17 5H6l6 7-6 7h11" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  bd:'<svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2 8h12M8 2v12" stroke="currentColor" stroke-width=".8" stroke-dasharray="1 1"/></svg>'};
+const oxB=(act,label,{title='',big=false,cls='',style='',data=''}={})=>`<button class="ox-b ${big?'big':''} ${cls}" data-oxa="${act}" ${data} title="${esc(title||label.replace(/<[^>]+>/g,''))}" style="${style}">${label}</button>`;
+const oxG=(label,body)=>`<div class="ox-grp"><div class="gb">${body}</div><div class="gl">${label}</div></div>`;
+function oxDialog(title, fields, okLabel='OK'){ return new Promise(res=>{ const app=$('#oxApp'); const d=document.createElement('div'); d.className='ox-dlg';
+  d.innerHTML=`<div class="card2"><div style="font:600 16px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin-bottom:10px">${esc(title)}</div>${fields.map((f,i)=>`<label style="font-size:12px;color:#605E5C">${esc(f.label)}</label>${f.options?`<select data-i="${i}">${f.options.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(v)}" ${String(v)===String(f.value??'')?'selected':''}>${esc(l)}</option>`;}).join('')}</select>`:`<input data-i="${i}" type="${f.type||'text'}" value="${esc(f.value??'')}">`}`).join('')}<div class="row"><button class="sec" data-x="0">Cancel</button><button class="pri" data-x="1">${esc(okLabel)}</button></div></div>`;
+  (app||document.body).appendChild(d); const first=d.querySelector('[data-i]'); if(first){ first.focus(); first.select?.(); }
+  const done=ok=>{ const v=fields.map((_,i)=>d.querySelector(`[data-i="${i}"]`)?.value); d.remove(); res(ok?v:null); };
+  d.addEventListener('click',e=>{ const b=e.target.closest('[data-x]'); if(b) done(b.dataset.x==='1'); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); done(true); } if(e.key==='Escape') done(false); }); }); }
+/* ----- storage in NEXUS ----- */
+const oxDocs=()=>(S.officedocs||[]).filter(d=>!d.deleted);
+async function oxStore(doc){ const id=doc.id||uid(); const {id:_,...data}=doc; data.updated_by=me.name||''; if(!doc.id){ data.owner=me.name||''; data.owner_uid=me.id||''; data.created_at=new Date().toISOString(); }
+  const r=await put('officedocs',id,data); return r?id:null; }
+function oxShell(type, title, {tabs, onTab, status='', right=''}){
+  oxEnsureCss(); document.getElementById('oxApp')?.remove(); const a=OXA[type];
+  const el=document.createElement('div'); el.id='oxApp'; el.style.setProperty('--oxc',a.color); el.dataset.type=type;
+  el.innerHTML=`<div class="ox-title" style="background:${a.color}">${oxIco(type,26)}<span style="font-weight:600">${a.name}</span><span style="opacity:.6">|</span><input id="oxName" value="${esc(title)}" aria-label="Document name"><span class="st" id="oxSt">${esc(status)}</span><div style="flex:1"></div>${right}<button class="tb" data-oxa="save">${OXSVG.save}<span class="t"> Save</span></button><button class="tb" data-oxa="download">${OXSVG.dl}<span class="t"> Download .${a.ext}</span></button><button class="x" data-oxa="close" title="Close">✕</button></div>
+    <div class="ox-tabs" id="oxTabs"><button class="file" data-oxt="File">File</button>${tabs.map((t,i)=>`<button data-oxt="${t}" class="${i===0?'on':''}">${t}</button>`).join('')}</div>
+    <div class="ox-rib" id="oxRib"></div><div id="oxBody" style="flex:1;min-height:0;position:relative;display:flex;flex-direction:column"></div><div class="ox-status" id="oxStat"></div>`;
+  document.body.appendChild(el); document.body.style.overflow='hidden';
+  el.addEventListener('click',e=>{ const t=e.target.closest('[data-oxt]'); if(!t) return; el.querySelectorAll('[data-oxt]').forEach(x=>x.classList.toggle('on',x===t&&t.dataset.oxt!=='File')); onTab(t.dataset.oxt); });
+  return el; }
+function oxCloseApp(){ const a=$('#oxApp'); if(a) a.remove(); document.body.style.overflow=''; if(route==='office') renderView(true); }
+function oxSetStatus(t){ const s=$('#oxSt'); if(s) s.textContent=t; }
+function oxBackstage(type, items, onPick){ const a=$('#oxApp'); a.querySelector('.ox-back')?.remove(); const b=document.createElement('div'); b.className='ox-back';
+  b.innerHTML=`<nav><button data-bk="__close" style="font-size:20px;padding:6px 22px">←</button>${items.map((it,i)=>`<button data-bk="${it.k}" class="${i===0?'on':''}">${it.t}</button>`).join('')}</nav><div class="bb" id="oxBB"></div>`;
+  a.appendChild(b); const show=k=>{ b.querySelectorAll('[data-bk]').forEach(x=>x.classList.toggle('on',x.dataset.bk===k)); const it=items.find(x=>x.k===k); if(it?.html) $('#oxBB').innerHTML=it.html(); else if(it) { b.remove(); onPick(k); } };
+  b.addEventListener('click',e=>{ const x=e.target.closest('[data-bk]'); if(x){ if(x.dataset.bk==='__close'){ b.remove(); return; } show(x.dataset.bk); return; } const y=e.target.closest('[data-bkact]'); if(y){ b.remove(); onPick(y.dataset.bkact,y.dataset); } });
+  show(items[0].k); }
+
+/* ---------------- WORD ---------------- */
+const OXW_CSS=`
+.oxw-canvas{flex:1;overflow:auto;background:#E6E6E6;padding:24px 12px 60px}
+.oxw-page{background:#fff;margin:0 auto;box-shadow:0 0 0 1px #D2D0CE,0 2px 8px rgba(0,0,0,.16);outline:none;color:#000;font:11pt Calibri,'Segoe UI',system-ui,-apple-system,Arial,sans-serif,Arial,sans-serif;line-height:1.35;min-height:1123px;transform-origin:top center;word-wrap:break-word;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--ph) - 1px),#C8C6C4 calc(var(--ph) - 1px),#C8C6C4 var(--ph))}
+.oxw-page p{margin:0 0 8pt}.oxw-page h1{font-size:16pt;color:#2F5496;margin:12pt 0 6pt;font-weight:600}.oxw-page h2{font-size:13pt;color:#2F5496;margin:10pt 0 4pt;font-weight:600}.oxw-page h3{font-size:12pt;color:#1F3763;margin:8pt 0 4pt;font-weight:600}
+.oxw-page h1.oxt{font-size:26pt;color:#182340;font-weight:600;text-align:center;letter-spacing:.5px;text-transform:uppercase}
+.oxw-page table{border-collapse:collapse;width:100%;margin:4pt 0 8pt}.oxw-page td,.oxw-page th{border:1px solid #9E9E9E;padding:3pt 5pt;vertical-align:top;min-width:30px}.oxw-page td p,.oxw-page th p{margin:0}
+.oxw-page img{max-width:100%}.oxw-page img.sel{outline:2px solid #185ABD}
+.oxw-page ul,.oxw-page ol{margin:0 0 8pt;padding-left:26pt}
+.oxw-page .ox-pb{border-top:1px dashed #8A8886;margin:14px 0;height:0;position:relative;user-select:none}.oxw-page .ox-pb::after{content:'Page Break';position:absolute;left:50%;transform:translate(-50%,-50%);background:#fff;color:#8A8886;font-size:9pt;padding:0 6px}
+.oxw-page hr{border:0;border-top:1.5px solid #539FDC}
+.oxw-tp{display:grid;grid-template-columns:repeat(8,18px);gap:2px}.oxw-tp i{width:18px;height:18px;border:1px solid #C8C6C4;display:block}.oxw-tp i.h{background:#C7E0F4;border-color:#185ABD}
+`;
+const OXW_FONTS=['Calibri','Arial','Times New Roman','Cambria','Georgia','Segoe UI','Verdana','Tahoma','Courier New'];
+const OXW_SIZES=[8,9,10,10.5,11,12,14,16,18,20,24,28,36,48,72];
+const OXW_MARG={Normal:96,Narrow:48,Moderate:72,Wide:144};
+let OXW=null;   // current Word document state
+function oxwRibbon(tab){
+  if(tab==='Home') return oxG('Clipboard',oxB('undo',OXSVG.undo,{title:'Undo (Ctrl+Z)'})+oxB('redo',OXSVG.redo,{title:'Redo (Ctrl+Y)'})+'<br>'+oxB('cut','✂',{title:'Cut'})+oxB('copy','⧉',{title:'Copy'})+oxB('fmtclear','A<sub>✕</sub>',{title:'Clear formatting'}))
+    +oxG('Font',`<select class="ox-sel" id="oxwFont" style="width:128px">${OXW_FONTS.map(f=>`<option style="font-family:'${f}'">${f}</option>`).join('')}</select><select class="ox-sel" id="oxwSize" style="width:54px">${OXW_SIZES.map(s=>`<option ${s===11?'selected':''}>${s}</option>`).join('')}</select>${oxB('grow','A<sup>▲</sup>',{title:'Grow font'})}${oxB('shrink','A<sup>▼</sup>',{title:'Shrink font'})}<div style="flex-basis:100%;height:0"></div>`
+      +oxB('bold','<b>B</b>',{title:'Bold (Ctrl+B)'})+oxB('italic','<i style="font-family:serif">I</i>',{title:'Italic (Ctrl+I)'})+oxB('underline','<u>U</u>',{title:'Underline (Ctrl+U)'})+oxB('strikeThrough','<s>ab</s>',{title:'Strikethrough'})+oxB('subscript','x<sub>2</sub>',{title:'Subscript'})+oxB('superscript','x<sup>2</sup>',{title:'Superscript'})
+      +`<span class="ox-b ox-col" title="Text highlight colour"><span><b style="background:#FFFF00;padding:0 2px">ab</b></span><input type="color" value="#ffff00" data-oxc="hiliteColor"></span><span class="ox-b ox-col" title="Font colour"><span style="display:flex;flex-direction:column;align-items:center"><b>A</b><i class="bar" style="background:#C00000"></i></span><input type="color" value="#c00000" data-oxc="foreColor"></span>`)
+    +oxG('Paragraph',oxB('insertUnorderedList',OXSVG.ul,{title:'Bullets'})+oxB('insertOrderedList',OXSVG.ol,{title:'Numbering'})+oxB('outdent',OXSVG.out,{title:'Decrease indent'})+oxB('indent',OXSVG.ind,{title:'Increase indent'})+'<div style="flex-basis:100%;height:0"></div>'
+      +oxB('justifyLeft',OXSVG.al,{title:'Align left'})+oxB('justifyCenter',OXSVG.ac,{title:'Centre'})+oxB('justifyRight',OXSVG.ar,{title:'Align right'})+oxB('justifyFull',OXSVG.aj,{title:'Justify'})+`<select class="ox-sel" id="oxwLine" title="Line spacing" style="width:52px"><option value="">↕</option><option>1.0</option><option>1.15</option><option>1.5</option><option>2.0</option></select>`)
+    +oxG('Styles',`<div class="ox-sty">${[['P','Normal','font:11pt Calibri'],['TITLE','Title','font:600 15px Calibri;color:#182340;text-transform:uppercase'],['H1','Heading 1','font:600 14px Calibri;color:#2F5496'],['H2','Heading 2','font:600 13px Calibri;color:#2F5496'],['H3','Heading 3','font:600 12px Calibri;color:#1F3763']].map(([k,l,st])=>`<button data-oxa="style" data-v="${k}"><div style="${st};white-space:nowrap">AaBbCc</div><div style="font-size:11px;color:#605E5C;margin-top:6px">${l}</div></button>`).join('')}</div>`)
+    +oxG('Editing',oxB('find','🔍 Find',{})+'<br>'+oxB('replace','⇄ Replace',{})+'<br>'+oxB('selectAll','▭ Select all',{}));
+  if(tab==='Insert') return oxG('Pages',oxB('pagebreak','<span class="bi">⤓</span>Page<br>Break',{big:true}))
+    +oxG('Tables',`<button class="ox-b big" data-oxa="tablepick"><span class="bi">${OXSVG.tbl}</span>Table ▾</button>`)
+    +oxG('Illustrations',oxB('picture',`<span class="bi">${OXSVG.pic}</span>Pictures`,{big:true})+`<input type="file" id="oxwPic" accept="image/*" hidden>`)
+    +oxG('Nordic',oxB('letterhead','<span class="bi">🏢</span>Letter-<br>head',{big:true})+oxB('projinfo','<span class="bi">📋</span>Project<br>details',{big:true})+oxB('signature','<span class="bi">✍</span>Signature<br>block',{big:true}))
+    +oxG('Text',oxB('date','📅 Date',{})+'<br>'+oxB('hr','― Line',{})+'<br>'+oxB('link','🔗 Link',{}));
+  if(tab==='Layout') return oxG('Page Setup',`<button class="ox-b big" data-oxa="orient" data-v="p"><span class="bi">▯</span>Portrait</button><button class="ox-b big" data-oxa="orient" data-v="l"><span class="bi">▭</span>Landscape</button><div style="display:flex;flex-direction:column;gap:2px"><label style="font-size:11px">Margins</label><select class="ox-sel" id="oxwMarg">${Object.keys(OXW_MARG).map(k=>`<option ${OXW&&OXW.margin===k?'selected':''}>${k}</option>`).join('')}</select></div>`)
+    +oxG('Table',oxB('trow','+ Row below',{})+'<br>'+oxB('tcol','+ Column right',{})+'<br>'+oxB('tdelrow','− Delete row',{})+oxB('tdelcol','− Delete column',{}));
+  if(tab==='Review') return oxG('Proofing',oxB('spell','<span class="bi">ABC✓</span>Spelling',{big:true})+oxB('wcount','<span class="bi">123</span>Word<br>Count',{big:true}));
+  if(tab==='View') return oxG('Zoom',oxB('zoom','<span class="bi">🔍</span>100%',{big:true,data:'data-v="1"'})+oxB('zoom','<span class="bi">⇔</span>Page<br>width',{big:true,data:'data-v="fit"'}))+oxG('Show',oxB('print','<span class="bi">🖨</span>Print / PDF',{big:true}));
+  return '';
+}
+function oxwPage(){ return $('#oxwPage'); }
+function oxwRestore(){ const p=oxwPage(); if(!p) return; p.focus(); const r=OXW.range; if(r){ const s=getSelection(); s.removeAllRanges(); s.addRange(r); } }
+function oxwCmd(c,v=null){ oxwRestore(); document.execCommand('styleWithCSS',false,c==='hiliteColor'||c==='foreColor'); document.execCommand(c,false,v); oxwChanged(); }
+function oxwBlock(){ const s=getSelection(); let n=s.anchorNode; while(n&&n!==oxwPage()&&!(n.nodeType===1&&/^(P|H1|H2|H3|LI|DIV|TD|TH)$/.test(n.tagName))) n=n.parentNode; return n&&n!==oxwPage()?n:null; }
+function oxwSize(pt){ oxwRestore(); document.execCommand('styleWithCSS',false,false); document.execCommand('fontSize',false,'7'); oxwPage().querySelectorAll('font[size="7"]').forEach(f=>{ const s=document.createElement('span'); s.style.fontSize=pt+'pt'; s.innerHTML=f.innerHTML; f.replaceWith(s); }); oxwChanged(); }
+function oxwCurSize(){ const s=getSelection(); const n=s.anchorNode?.nodeType===3?s.anchorNode.parentNode:s.anchorNode; if(!n||!oxwPage()?.contains(n)) return 11; return Math.round(parseFloat(getComputedStyle(n).fontSize)*0.75*2)/2; }
+function oxwLayout(){ const p=oxwPage(); if(!p) return; const land=OXW.orient==='l', w=land?1123:794, h=land?794:1123, m=OXW_MARG[OXW.margin||'Normal']||96;
+  p.style.width=w+'px'; p.style.minHeight=h+'px'; p.style.padding=`${m}px ${m}px`; p.style.setProperty('--ph',h+'px'); p.style.zoom=OXW.zoom||1; oxwStatus(); }
+function oxwStatus(){ const p=oxwPage(); if(!p) return; const land=OXW.orient==='l', h=land?794:1123; const pages=Math.max(1,Math.ceil(p.scrollHeight/h)+p.querySelectorAll('.ox-pb').length*0);
+  const words=(p.innerText.match(/\S+/g)||[]).length;
+  $('#oxStat').innerHTML=`<span>Page 1 of ${pages}</span><span>${words} words</span><span>English (Tanzania)</span><span class="sp"></span><span>${OXW.project_id?esc(projName(OXW.project_id)):'No project'}</span><span>−</span><input type="range" min="50" max="200" value="${Math.round((OXW.zoom||1)*100)}" id="oxZoom"><span>${Math.round((OXW.zoom||1)*100)}%</span>`; }
+let oxwTimer=null;
+function oxwChanged(){ OXW.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxwTimer); oxwTimer=setTimeout(()=>oxwSave(true),2500); oxwStatus(); }
+async function oxwSave(auto=false){ if(!OXW) return; if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } const p=oxwPage(); if(!p) return;
+  OXW.title=$('#oxName')?.value||OXW.title; oxSetStatus('Saving…');
+  const id=await oxStore({id:OXW.id,type:'docx',title:OXW.title,html:p.innerHTML,orient:OXW.orient||'p',margin:OXW.margin||'Normal',project_id:OXW.project_id||'',tpl:OXW.tpl||''});
+  if(id){ const first=!OXW.id; OXW.id=id; OXW.dirty=false; oxSetStatus('Saved to NEXUS '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})); if(first) logAct(`Created Word document "${OXW.title}"`); } else oxSetStatus('Not saved – check connection'); }
+function oxwOpen(doc){
+  OXW={...doc,zoom:Math.min(1,Math.max(.35,(window.innerWidth-24)/(doc.orient==='l'?1123:794)))}; const tabs=['Home','Insert','Layout','Review','View'];
+  const el=oxShell('docx',doc.title||'Document',{tabs,onTab:t=>{ if(t==='File') return oxwFile(); $('#oxRib').innerHTML=oxwRibbon(t); oxwSync(); },status:doc.id?'Saved to NEXUS':'Not saved yet'});
+  $('#oxRib').innerHTML=oxwRibbon('Home');
+  $('#oxBody').innerHTML=`<div class="oxw-canvas" id="oxwCanvas"><div class="oxw-page" id="oxwPage" contenteditable="${canWrite===false?'false':'true'}" spellcheck="true">${doc.html||'<p><br></p>'}</div></div>`;
+  oxwLayout(); oxwBind(el); setTimeout(()=>{ const p=oxwPage(); p.focus(); },50);
+}
+function oxwSync(){ const s=$('#oxwSize'); if(s){ const v=oxwCurSize(); if(OXW_SIZES.includes(v)) s.value=v; }
+  ['bold','italic','underline','strikeThrough','justifyLeft','justifyCenter','justifyRight','justifyFull','insertUnorderedList','insertOrderedList'].forEach(c=>{ const b=document.querySelector(`#oxRib [data-oxa="${c}"]`); if(b) try{ b.classList.toggle('on',document.queryCommandState(c)); }catch(_){} }); }
+function oxwBind(el){
+  const page=oxwPage();
+  document.addEventListener('selectionchange',oxwSel);
+  page.addEventListener('input',oxwChanged);
+  page.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); oxwSave(); } if(e.key==='Tab'){ e.preventDefault(); document.execCommand(e.shiftKey?'outdent':'insertHTML',false,e.shiftKey?null:'&emsp;'); } });
+  page.addEventListener('click',e=>{ page.querySelectorAll('img.sel').forEach(i=>i.classList.remove('sel')); if(e.target.tagName==='IMG'){ e.target.classList.add('sel'); OXW.img=e.target; } else OXW.img=null; });
+  page.addEventListener('dblclick',async e=>{ if(e.target.tagName!=='IMG') return; const v=await oxDialog('Picture size',[{label:'Width (% of page width)',value:Math.round(e.target.offsetWidth/page.clientWidth*100),type:'number'}]); if(v){ e.target.style.width=Math.max(5,Math.min(100,+v[0]||50))+'%'; e.target.style.height='auto'; oxwChanged(); } });
+  page.addEventListener('paste',e=>{ const h=e.clipboardData?.getData('text/html'); if(h&&/urn:schemas-microsoft-com|mso-/i.test(h)){ e.preventDefault(); const d=document.createElement('div'); d.innerHTML=h; d.querySelectorAll('style,meta,link,xml,o\\:p').forEach(x=>x.remove()); d.querySelectorAll('[class]').forEach(x=>x.removeAttribute('class')); document.execCommand('insertHTML',false,d.innerHTML); } });
+  el.addEventListener('mousedown',e=>{ if(e.target.closest('#oxRib button, #oxRib .ox-col')) e.preventDefault(); });
+  el.addEventListener('click',oxwClick);
+  el.addEventListener('change',oxwChange); el.addEventListener('input',e=>{ if(e.target.id==='oxZoom'){ OXW.zoom=(+e.target.value)/100; oxwLayout(); } if(e.target.id==='oxName') oxwChanged(); });
+}
+function oxwSel(){ const p=oxwPage(); if(!p){ document.removeEventListener('selectionchange',oxwSel); return; } const s=getSelection(); if(s.rangeCount&&p.contains(s.anchorNode)){ OXW.range=s.getRangeAt(0).cloneRange(); oxwSync(); } }
+function oxwChange(e){ const t=e.target;
+  if(t.id==='oxwFont') oxwCmd('fontName',t.value);
+  else if(t.id==='oxwSize') oxwSize(+t.value);
+  else if(t.dataset.oxc){ oxwCmd(t.dataset.oxc,t.value); const bar=t.parentNode.querySelector('.bar'); if(bar) bar.style.background=t.value; }
+  else if(t.id==='oxwLine'){ const b=oxwBlock(); if(b&&t.value){ b.style.lineHeight=t.value; oxwChanged(); } t.value=''; }
+  else if(t.id==='oxwMarg'){ OXW.margin=t.value; oxwLayout(); oxwChanged(); }
+  else if(t.id==='oxwPic'&&t.files?.[0]){ oxwPicture(t.files[0]); t.value=''; } }
+async function oxwPicture(file){ const url=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file); });
+  const im=await new Promise(r=>{ const i=new Image(); i.onload=()=>r(i); i.src=url; }); const k=Math.min(1,1400/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  const png=/png/.test(file.type); oxwRestore(); document.execCommand('insertHTML',false,`<img src="${c.toDataURL(png?'image/png':'image/jpeg',.85)}" style="width:${Math.min(100,Math.round(c.width/6.5))}%;height:auto">`); oxwChanged(); }
+function oxwInsertTable(r,c){ const w=Math.floor(100/c); oxwRestore(); document.execCommand('insertHTML',false,`<table><tbody>${Array.from({length:r},(_,i)=>`<tr>${Array.from({length:c},()=>`<td style="width:${w}%">${i===0?'<b><br></b>':'<br>'}</td>`).join('')}</tr>`).join('')}</tbody></table><p><br></p>`); oxwChanged(); }
+function oxwCell(){ const s=getSelection(); let n=s.anchorNode; while(n&&n!==oxwPage()&&!(n.nodeType===1&&/^(TD|TH)$/.test(n.tagName))) n=n.parentNode; return n&&n!==oxwPage()?n:null; }
+async function oxwClick(e){ const b=e.target.closest('[data-oxa]'); if(!b) return; const a=b.dataset.oxa, v=b.dataset.v;
+  const simple=['bold','italic','underline','strikeThrough','subscript','superscript','insertUnorderedList','insertOrderedList','indent','outdent','justifyLeft','justifyCenter','justifyRight','justifyFull','undo','redo','cut','copy','selectAll'];
+  if(simple.includes(a)) return oxwCmd(a);
+  if(a==='fmtclear') return oxwCmd('removeFormat');
+  if(a==='grow'||a==='shrink'){ const cur=oxwCurSize(), i=OXW_SIZES.findIndex(s=>s>=cur); const n=OXW_SIZES[Math.max(0,Math.min(OXW_SIZES.length-1,(i<0?OXW_SIZES.length-1:i)+(a==='grow'?1:-1)))]; return oxwSize(n); }
+  if(a==='style'){ oxwRestore(); document.execCommand('formatBlock',false,v==='TITLE'?'H1':v); const bl=oxwBlock(); if(bl&&bl.tagName==='H1') bl.classList.toggle('oxt',v==='TITLE'); return oxwChanged(); }
+  if(a==='pagebreak'){ oxwRestore(); document.execCommand('insertHTML',false,'<div class="ox-pb" contenteditable="false"></div><p><br></p>'); return oxwChanged(); }
+  if(a==='tablepick'){ document.querySelector('.ox-pop')?.remove(); const pop=document.createElement('div'); pop.className='ox-pop'; const r=b.getBoundingClientRect(); pop.style.left=r.left+'px'; pop.style.top=(r.bottom+2)+'px'; pop.style.position='fixed';
+    pop.innerHTML=`<div style="font-size:12px;margin-bottom:6px" id="oxTpL">Insert Table</div><div class="oxw-tp">${Array.from({length:64},(_,i)=>`<i data-r="${Math.floor(i/8)+1}" data-c="${i%8+1}"></i>`).join('')}</div>`; $('#oxApp').appendChild(pop);
+    pop.addEventListener('mouseover',ev=>{ const t=ev.target.closest('i'); if(!t) return; const R=+t.dataset.r,C=+t.dataset.c; pop.querySelectorAll('i').forEach(x=>x.classList.toggle('h',+x.dataset.r<=R&&+x.dataset.c<=C)); $('#oxTpL').textContent=`${C} × ${R} Table`; });
+    pop.addEventListener('mousedown',ev=>{ ev.preventDefault(); const t=ev.target.closest('i'); if(!t) return; pop.remove(); oxwInsertTable(+t.dataset.r,+t.dataset.c); });
+    setTimeout(()=>document.addEventListener('mousedown',function h(ev){ if(!pop.contains(ev.target)){ pop.remove(); document.removeEventListener('mousedown',h); } }),0); return; }
+  if(a==='picture') return $('#oxwPic').click();
+  if(a==='letterhead'){ oxwRestore(); document.execCommand('insertHTML',false,oxwLetterheadHtml()); return oxwChanged(); }
+  if(a==='projinfo'){ const pv=await oxDialog('Project details table',[{label:'Project',options:projOpts('— choose —'),value:OXW.project_id||''}],'Insert'); if(!pv) return; const p=byId('projects',pv[0])||{}; OXW.project_id=pv[0]||OXW.project_id;
+    oxwRestore(); document.execCommand('insertHTML',false,`<table><tbody>${[['Project',p.name],['Contract No.',p.contract_no],['Client / Employer',p.client],['Consultant',p.consultant],['Location',p.location]].map(([k,x])=>`<tr><td style="width:30%;background:#EEF3FA"><b>${esc(k)}</b></td><td>${esc(x||'…')}</td></tr>`).join('')}</tbody></table><p><br></p>`); return oxwChanged(); }
+  if(a==='signature'){ oxwRestore(); document.execCommand('insertHTML',false,`<p>Yours faithfully,</p><p><b>For and on behalf of ${esc(company().name||'Nordic Construction Company Limited')}</b></p><p><br></p><p>……………………………………</p><p>${esc(me.name||'Name')}, Position</p>`); return oxwChanged(); }
+  if(a==='date'){ oxwRestore(); document.execCommand('insertText',false,new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})); return oxwChanged(); }
+  if(a==='hr'){ oxwRestore(); document.execCommand('insertHTML',false,'<hr><p><br></p>'); return oxwChanged(); }
+  if(a==='link'){ const lv=await oxDialog('Insert link',[{label:'Address (https://…)',value:'https://'}],'Insert'); if(lv&&lv[0]) oxwCmd('createLink',lv[0]); return; }
+  if(a==='orient'){ OXW.orient=v; oxwLayout(); return oxwChanged(); }
+  if(a==='trow'||a==='tcol'||a==='tdelrow'||a==='tdelcol'){ oxwRestore(); const c=oxwCell(); if(!c){ toast('Click inside a table first.'); return; } const tr=c.parentNode, ci=[...tr.children].indexOf(c), tb=tr.parentNode;
+    if(a==='trow'){ const n=tr.cloneNode(true); n.querySelectorAll('td,th').forEach(x=>x.innerHTML='<br>'); tr.after(n); }
+    if(a==='tcol') [...tb.rows].forEach(r=>{ const x=r.cells[ci]; if(x){ const n=x.cloneNode(false); n.innerHTML='<br>'; x.after(n); } });
+    if(a==='tdelrow'){ tr.remove(); if(!tb.rows.length) tb.closest('table').remove(); }
+    if(a==='tdelcol'){ [...tb.rows].forEach(r=>r.cells[ci]?.remove()); if(!tb.rows[0]?.cells.length) tb.closest('table').remove(); }
+    return oxwChanged(); }
+  if(a==='find'||a==='replace'){ const f=await oxDialog(a==='find'?'Find':'Replace',a==='find'?[{label:'Find what'}]:[{label:'Find what'},{label:'Replace with'}],a==='find'?'Find next':'Replace all'); if(!f||!f[0]) return;
+    if(a==='find'){ oxwPage().focus(); if(!window.find(f[0],false,false,true)) toast('Not found.'); return; }
+    const walker=document.createTreeWalker(oxwPage(),NodeFilter.SHOW_TEXT); let n,cnt=0; const re=new RegExp(f[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'); while((n=walker.nextNode())){ if(re.test(n.nodeValue)){ n.nodeValue=n.nodeValue.replace(re,()=>{cnt++; return f[1]||'';}); } re.lastIndex=0; } toast(`${cnt} replaced.`); return oxwChanged(); }
+  if(a==='wcount'){ const t=oxwPage().innerText; toast(`${(t.match(/\S+/g)||[]).length} words · ${t.replace(/\s/g,'').length} characters`); return; }
+  if(a==='spell'){ oxwPage().setAttribute('spellcheck','true'); toast('Spelling mistakes are underlined in red – right-click a word for suggestions.'); return; }
+  if(a==='zoom'){ OXW.zoom=v==='fit'?Math.min(2,($('#oxwCanvas').clientWidth-40)/(OXW.orient==='l'?1123:794)):1; return oxwLayout(); }
+  if(a==='print') return oxwPrint();
+  if(a==='save') return oxwSave();
+  if(a==='download') return oxwDownload();
+  if(a==='close'){ if(OXW.dirty) await oxwSave(true); document.removeEventListener('selectionchange',oxwSel); OXW=null; return oxCloseApp(); }
+}
+function oxwLetterheadHtml(){ const c=company(); return `<table style="border:0;border-bottom:3px solid #539FDC;width:100%"><tbody><tr><td style="border:0;width:22%;vertical-align:middle"><img src="${LOGO}" style="width:110px;height:auto"></td><td style="border:0;text-align:right;vertical-align:middle"><p style="margin:0"><b><span style="font-size:15pt;color:#182340">${esc(String(c.name||'').toUpperCase())}</span></b></p><p style="margin:0"><span style="font-size:8.5pt;color:#4B5563">${esc([c.crb_building,c.crb_civil].filter(Boolean).join(' · '))}</span></p><p style="margin:0"><span style="font-size:8.5pt;color:#4B5563">${esc([c.address,c.pobox].filter(Boolean).join(' · '))}</span></p><p style="margin:0"><span style="font-size:8.5pt;color:#4B5563">${esc([c.phone,c.email,c.web].filter(Boolean).join(' · '))}</span></p></td></tr></tbody></table><p><br></p>`; }
+function oxwFile(){ oxBackstage('docx',[
+  {k:'info',t:'Info',html:()=>`<h2>Info</h2><p><b>${esc(OXW.title)}</b></p><p style="color:#605E5C">${OXW.id?'Saved in NEXUS':'Not saved yet'}${OXW.owner?' · created by '+esc(OXW.owner):''}</p><div style="max-width:420px;margin-top:16px"><label style="font-size:12px;color:#605E5C">Linked project</label><select class="ox-sel" style="width:100%;height:32px" id="oxwProj">${projOpts('— none —').map(([v,l])=>`<option value="${esc(v)}" ${v===(OXW.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>`},
+  {k:'new',t:'New',html:()=>`<h2>New</h2><div class="ox-tpl"><button data-bkact="newblank"><div class="th">📄</div><div class="tn">Blank document</div></button><button data-bkact="newlh"><div class="th">🏢</div><div class="tn">Nordic letterhead</div></button>${OX_TEMPLATES.filter(t=>t.k!=='blank').map(t=>`<button data-bkact="newtpl" data-k="${t.k}"><div class="th">${t.ico}</div><div class="tn">${esc(t.t)}</div></button>`).join('')}</div>`},
+  {k:'open',t:'Open',html:()=>`<h2>Open</h2><p><button class="ox-b" style="border:1px solid #8A8886;height:32px;padding:0 14px" data-bkact="openpc">📂 Browse this PC (.docx)</button></p><div style="margin-top:14px">${oxDocs().filter(d=>d.type==='docx').sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))).slice(0,20).map(d=>`<div data-bkact="opendoc" data-id="${esc(d.id)}" style="display:flex;gap:10px;align-items:center;padding:8px;cursor:pointer;border-bottom:1px solid #EDEBE9">${oxIco('docx',22)}<div style="flex:1">${esc(d.title)}<div style="font-size:11.5px;color:#605E5C">${esc(d.updated_by||'')} · ${fmtDT(d.updated_at)}</div></div></div>`).join('')||'<p style="color:#605E5C">No Word documents yet.</p>'}</div>`},
+  {k:'save',t:'Save'},{k:'download',t:'Download (.docx)'},{k:'print',t:'Print / Save as PDF'},{k:'close',t:'Close'}],
+  async (k,ds)=>{ if(k==='save') return oxwSave(); if(k==='download') return oxwDownload(); if(k==='print') return oxwPrint(); if(k==='close') return oxwClick({target:{closest:()=>({dataset:{oxa:'close'}})}});
+    if(k==='newblank') return oxwOpen({title:'Document',html:'<p><br></p>'}); if(k==='newlh') return oxwOpen({title:'Letter',html:oxwLetterheadHtml()+'<p><br></p>'});
+    if(k==='newtpl') return oxwFromTemplate(ds.k); if(k==='openpc') return oxPickFile('.docx',f=>oxImportFile(f)); if(k==='opendoc') return oxOpenDoc(ds.id); });
+  document.getElementById('oxBB')?.addEventListener('change',e=>{ if(e.target.id==='oxwProj'){ OXW.project_id=e.target.value; oxwChanged(); } }); }
+function oxwPrint(){ const p=oxwPage(); if(!p) return; const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; }
+  const land=OXW.orient==='l', m=OXW_MARG[OXW.margin||'Normal']||96; w.document.write(`<!doctype html><html><head><title>${esc(OXW.title)}</title><style>@page{size:A4 ${land?'landscape':'portrait'};margin:${m/96}in}body{font:11pt Calibri,Arial,sans-serif;line-height:1.35;margin:0}${OXW_CSS.replace(/\.oxw-page/g,'body')}.ox-pb{page-break-after:always;border:0}.ox-pb::after{display:none}</style></head><body>${p.innerHTML}</body></html>`); w.document.close(); setTimeout(()=>{ w.focus(); w.print(); },400); }
+async function oxwDownload(){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } const p=oxwPage(); if(!p) return;
+  const data=oxHtmlToDocx(p,{landscape:OXW.orient==='l',margin:OXW_MARG[OXW.margin||'Normal']||96}); if(await oxSave(OXW.title||'Document',data,'docx')) logAct(`Downloaded Word document "${OXW.title}"`); }
+async function oxwFromTemplate(k){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } const tp=OX_TEMPLATES.find(x=>x.k===k); if(!tp) return;
+  const f=await oxDialog(tp.t,[{label:'Project',options:projOpts('— none —'),value:UI.oxproj||''},...(k==='tcl'?[{label:'Tender',options:[['','— choose tender —'],...S.tenders.filter(t=>!t.dup_of).slice(0,80).map(t=>[t.id,t.title])]}]:[]),{label:k==='ms'?'Activity':k==='mom'?'Meeting title':'Subject',value:''}],'Create');
+  if(!f) return; const v={project_id:f[0],tender_id:k==='tcl'?f[1]:'',subject:f[k==='tcl'?2:1],date:today(),signatory:me.name||''};
+  const html=oxDocxToHtml(oxDocx(oxTemplateBody(k,v))); const p=byId('projects',v.project_id);
+  oxwOpen({title:`${tp.t}${v.subject?' – '+v.subject:p?' – '+p.name:''}`,html:html.html,orient:'p',margin:'Normal',project_id:v.project_id,tpl:k}); oxwChanged(); }
+
+/* ---------- HTML (editor) → DOCX ---------- */
+function oxRgbHex(c){ if(!c) return ''; c=String(c).trim(); if(/^#?[0-9a-f]{6}$/i.test(c)) return c.replace('#','').toUpperCase(); const m=c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/); if(!m||(m[4]!==undefined&&+m[4]===0)) return ''; return [m[1],m[2],m[3]].map(x=>(+x).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+function oxHtmlToDocx(root,{landscape=false,margin=96}={}){
+  const media=[]; let nums=[], picId=1, E=9525; const pageW=(landscape?1123:794)-2*margin;
+  const imgRun=img=>{ const m=String(img.getAttribute('src')||'').match(/^data:image\/(png|jpe?g|gif);base64,(.*)$/); if(!m) return ''; const bin=atob(m[2]), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+    const ext=m[1]==='png'?'png':m[1]==='gif'?'gif':'jpeg', n=media.length+1; media.push({name:`image${n}.${ext}`,bytes:u,id:'rImg'+n});
+    let w=img.offsetWidth||img.naturalWidth||300, h=img.offsetHeight||(img.naturalHeight*(w/(img.naturalWidth||w)))||200; if(w>pageW){ h=h*pageW/w; w=pageW; } const id=picId++;
+    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${Math.round(w*E)}" cy="${Math.round(h*E)}"/><wp:docPr id="${id}" name="Picture ${id}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="image${n}.${ext}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rImg${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${Math.round(w*E)}" cy="${Math.round(h*E)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`; };
+  const runPr=f=>`${f.font?`<w:rFonts w:ascii="${oxX(f.font)}" w:hAnsi="${oxX(f.font)}"/>`:''}${f.b?'<w:b/>':''}${f.i?'<w:i/>':''}${f.caps?'<w:caps/>':''}${f.s?'<w:strike/>':''}${f.color?`<w:color w:val="${f.color}"/>`:''}${f.sz?`<w:sz w:val="${f.sz}"/>`:''}${f.u?'<w:u w:val="single"/>':''}${f.hl?`<w:shd w:val="clear" w:color="auto" w:fill="${f.hl}"/>`:''}${f.va?`<w:vertAlign w:val="${f.va}"/>`:''}`;
+  const runs=(node,f)=>{ let out=''; for(const n of node.childNodes){
+      if(n.nodeType===3){ const t=n.nodeValue.replace(/\s+/g,' '); if(!t) continue; const pr=runPr(f); out+=t.split(' ').map((x,i)=>`${i?`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}<w:tab/></w:r>`:''}${x?`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}<w:t xml:space="preserve">${oxX(x)}</w:t></w:r>`:''}`).join(''); continue; }
+      if(n.nodeType!==1) continue; const tg=n.tagName; if(tg==='BR'){ out+='<w:r><w:br/></w:r>'; continue; } if(tg==='IMG'){ out+=imgRun(n); continue; }
+      if(/^(TABLE|UL|OL|P|DIV|H1|H2|H3|HR)$/.test(tg)) continue;
+      const g={...f}, st=n.style; if(/^(B|STRONG)$/.test(tg)||+st.fontWeight>=600||st.fontWeight==='bold') g.b=1; if(/^(I|EM)$/.test(tg)||st.fontStyle==='italic') g.i=1; if(tg==='U'||/underline/.test(st.textDecoration)) g.u=1; if(/^(S|STRIKE|DEL)$/.test(tg)||/line-through/.test(st.textDecoration)) g.s=1;
+      if(tg==='SUB') g.va='subscript'; if(tg==='SUP') g.va='superscript'; if(tg==='A'){ g.u=1; g.color='0563C1'; }
+      const col=oxRgbHex(st.color||n.getAttribute('color')); if(col) g.color=col; const bg=oxRgbHex(st.backgroundColor); if(bg) g.hl=bg;
+      const fs=st.fontSize; if(fs){ const pt=/pt$/.test(fs)?parseFloat(fs):/px$/.test(fs)?parseFloat(fs)*.75:0; if(pt) g.sz=Math.round(pt*2); }
+      if(tg==='FONT'&&n.getAttribute('size')){ g.sz=[0,16,20,24,28,36,48,72][+n.getAttribute('size')]||g.sz; }
+      const ff=(st.fontFamily||n.getAttribute('face')||'').split(',')[0].replace(/["']/g,'').trim(); if(ff) g.font=ff;
+      out+=runs(n,g); } return out; };
+  let inCell=0;
+  const pPr=(n,extra='')=>{ const st=n.style||{}; const al=st.textAlign||n.getAttribute?.('align'); const jc=al?{left:'left',center:'center',right:'right',justify:'both'}[al]:''; const lh=parseFloat(st.lineHeight); const ml=parseFloat(st.marginLeft)||parseFloat(st.paddingLeft)||0;
+    const sp=(lh&&lh<5)||inCell?`<w:spacing${inCell?' w:after="0"':''}${lh&&lh<5?` w:line="${Math.round(240*lh)}" w:lineRule="auto"`:''}/>`:'';
+    return `<w:pPr>${extra}${sp}${ml?`<w:ind w:left="${Math.round(ml*15)}"/>`:''}${jc?`<w:jc w:val="${jc}"/>`:''}</w:pPr>`; };
+  const baseF=n=>{ const f={}; if(n.closest&&n.closest('th')) f.b=1; return f; };
+  const blocks=(node,ctx={})=>{ let out='', inline=[];
+    const flush=()=>{ if(!inline.length) return; const d=document.createElement('span'); inline.forEach(x=>d.appendChild(x.cloneNode(true))); const r=runs(d,baseF(node)); if(r.replace(/<[^>]+>/g,'').trim()||/drawing/.test(r)) out+=`<w:p>${pPr(node)}${r}</w:p>`; inline=[]; };
+    for(const n of [...node.childNodes]){
+      if(n.nodeType===3||(n.nodeType===1&&!/^(P|DIV|H1|H2|H3|H4|UL|OL|TABLE|HR|BLOCKQUOTE|LI)$/.test(n.tagName))){ inline.push(n); continue; }
+      if(n.nodeType!==1) continue; flush(); const tg=n.tagName;
+      if(tg==='DIV'&&n.classList.contains('ox-pb')){ out+='<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; continue; }
+      if(tg==='HR'){ out+='<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="539FDC"/></w:pBdr></w:pPr></w:p>'; continue; }
+      if(tg==='TABLE'){ out+=tbl(n); continue; }
+      if(tg==='UL'||tg==='OL'){ let numId; if(tg==='OL'){ nums.push('ol'); numId=nums.length+1; } else numId=1; for(const li of n.children){ if(li.tagName!=='LI') continue; const lvl=Math.min(2,ctx.lvl||0);
+          const sub=[...li.children].filter(x=>/^(UL|OL)$/.test(x.tagName)); const cl=li.cloneNode(true); cl.querySelectorAll(':scope>ul,:scope>ol').forEach(x=>x.remove());
+          out+=`<w:p>${pPr(li,`<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${lvl}"/><w:numId w:val="${numId}"/></w:numPr>`)}${runs(cl,{})}</w:p>`; sub.forEach(s=>{ const w=document.createElement('div'); w.appendChild(s.cloneNode(true)); out+=blocks(w,{lvl:lvl+1}); }); } continue; }
+      if(tg==='DIV'&&[...n.children].some(x=>/^(P|DIV|H1|H2|H3|UL|OL|TABLE)$/.test(x.tagName))){ out+=blocks(n,ctx); continue; }
+      const sty=tg==='H1'?(n.classList.contains('oxt')?'Title':'Heading1'):tg==='H2'?'Heading2':tg==='H3'||tg==='H4'?'Heading3':'';
+      const r=runs(n,baseF(n)); out+=`<w:p>${pPr(n,sty?`<w:pStyle w:val="${sty}"/>`:'')}${r}</w:p>`; }
+    flush(); return out; };
+  const tbl=t=>{ const rows=[...t.rows]; if(!rows.length) return ''; const cols=Math.max(...rows.map(r=>[...r.cells].reduce((a,c)=>a+(c.colSpan||1),0)));
+    const tw=t.getBoundingClientRect?.().width||pageW; const first=[...rows[0].cells]; let grid=[]; first.forEach(c=>{ const w=(c.getBoundingClientRect?.().width||tw/cols)/(c.colSpan||1); for(let i=0;i<(c.colSpan||1);i++) grid.push(w); });
+    while(grid.length<cols) grid.push(tw/cols); const k=Math.min(1,pageW/grid.reduce((a,b)=>a+b,0)); grid=grid.map(w=>Math.round(w*k*15));
+    const noB=t.style.border==='0px'||t.style.borderStyle==='none'||/border:\s*0/.test(t.getAttribute('style')||'');
+    const bd=noB?(/border-bottom/.test(t.getAttribute('style')||'')?`<w:bottom w:val="single" w:sz="18" w:color="539FDC"/>`:''):['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="9E9E9E"/>`).join('');
+    return `<w:tbl><w:tblPr><w:tblW w:w="${grid.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${grid.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map(r=>{ let ci=0; return `<w:tr>${[...r.cells].map(c=>{ const sp=c.colSpan||1; const w=grid.slice(ci,ci+sp).reduce((a,b)=>a+b,0); ci+=sp; const bg=oxRgbHex(c.style.backgroundColor); const cb=(c.style.border==='0px'||/border:\s*0/.test(c.getAttribute('style')||''))?'<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>':'';
+      inCell++; let inner=blocks(c); inCell--; if(!/<w:p[ >]/.test(inner)) inner+='<w:p/>'; if(/<\/w:tbl>$/.test(inner)) inner+='<w:p/>';
+      return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${sp>1?`<w:gridSpan w:val="${sp}"/>`:''}${cb}${bg?`<w:shd w:val="clear" w:color="auto" w:fill="${bg}"/>`:''}${c.style.verticalAlign==='middle'?'<w:vAlign w:val="center"/>':''}</w:tcPr>${inner}</w:tc>`; }).join('')}</w:tr>`; }).join('')}</w:tbl><w:p/>`; };
+  const body=blocks(root);
+  const f={}, c=company();
+  f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`;
+  f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  f['word/_rels/document.xml.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rNum" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rFoot" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>${media.map(m=>`<Relationship Id="${m.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`).join('')}</Relationships>`;
+  f['word/styles.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="120" w:after="200"/><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:caps/><w:color w:val="182340"/><w:sz w:val="52"/></w:rPr></w:style>${[1,2,3].map(i=>`<w:style w:type="paragraph" w:styleId="Heading${i}"><w:name w:val="heading ${i}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="${[0,240,160,120][i]}" w:after="80"/><w:outlineLvl w:val="${i-1}"/></w:pPr><w:rPr><w:b/><w:color w:val="${i===3?'1F3763':'2F5496'}"/><w:sz w:val="${[0,32,26,24][i]}"/></w:rPr></w:style>`).join('')}<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="60"/><w:contextualSpacing/></w:pPr></w:style></w:styles>`;
+  const lvls=(fmt)=>[0,1,2].map(l=>`<w:lvl w:ilvl="${l}"><w:start w:val="1"/><w:numFmt w:val="${fmt==='bullet'?'bullet':['decimal','lowerLetter','lowerRoman'][l]}"/><w:lvlText w:val="${fmt==='bullet'?['•','◦','▪'][l]:`%${l+1}.`}"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="${720*(l+1)}" w:hanging="360"/></w:pPr>${fmt==='bullet'?'<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>':''}</w:lvl>`).join('');
+  f['word/numbering.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>${lvls('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>${lvls('decimal')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>${nums.map((_,i)=>`<w:num w:numId="${i+2}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join('')}</w:numbering>`;
+  f['word/footer1.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:tabs><w:tab w:val="right" w:pos="${Math.round(pageW*15)}"/></w:tabs></w:pPr><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:t xml:space="preserve">${oxX(c.name||'')}</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:tab/><w:t xml:space="preserve">Page </w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>`;
+  const mt=Math.round(margin*15); const pg=landscape?'<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>':'<w:pgSz w:w="11906" w:h="16838"/>';
+  f['word/document.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body||'<w:p/>'}<w:sectPr><w:footerReference w:type="default" r:id="rFoot"/>${pg}<w:pgMar w:top="${mt}" w:right="${mt}" w:bottom="${mt}" w:left="${mt}" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  media.forEach(m=>f['word/media/'+m.name]=m.bytes);
+  return oxZip(f);
+}
+
+/* ---------- DOCX → HTML (open files from the PC and the Nordic templates) ---------- */
+function oxUnzip(bytes){ const cfb=XLSX.CFB.read(bytes,{type:'array'}); const get=p=>{ const e=XLSX.CFB.find(cfb,p); return e?e.content:null; }; const txt=p=>{ const c=get(p); return c?new TextDecoder().decode(c instanceof Uint8Array?c:new Uint8Array(c)):null; }; return {get,txt}; }
+function oxDocxToHtml(bytes){
+  const z=oxUnzip(bytes), W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'; const docXml=z.txt('/word/document.xml')||z.txt('word/document.xml'); if(!docXml) throw new Error('Not a Word .docx file');
+  const P=s=>new DOMParser().parseFromString(s,'application/xml'); const doc=P(docXml);
+  const rels={}; const rx=z.txt('/word/_rels/document.xml.rels')||z.txt('word/_rels/document.xml.rels'); if(rx) for(const r of P(rx).getElementsByTagName('Relationship')) rels[r.getAttribute('Id')]=r.getAttribute('Target');
+  const numFmt={}; const nx=z.txt('/word/numbering.xml')||z.txt('word/numbering.xml'); if(nx){ const nd=P(nx); const abs={}; for(const a of nd.getElementsByTagNameNS(W,'abstractNum')){ const l0=a.getElementsByTagNameNS(W,'lvl')[0]; abs[a.getAttributeNS(W,'abstractNumId')]=l0?.getElementsByTagNameNS(W,'numFmt')[0]?.getAttributeNS(W,'val')||'bullet'; } for(const n of nd.getElementsByTagNameNS(W,'num')){ numFmt[n.getAttributeNS(W,'numId')]=abs[n.getElementsByTagNameNS(W,'abstractNumId')[0]?.getAttributeNS(W,'val')]; } }
+  const kid=(el,name)=>[...el.childNodes].find(x=>x.localName===name); const kids=(el,name)=>[...el.childNodes].filter(x=>x.localName===name); const val=el=>el?.getAttributeNS(W,'val')??el?.getAttribute('w:val');
+  const img=d=>{ const blip=d.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main','blip')[0]; const id=blip?.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','embed'); const t=rels[id]; if(!t) return ''; const c=z.get('/word/'+t)||z.get('word/'+t); if(!c) return '';
+    const u=c instanceof Uint8Array?c:new Uint8Array(c); let s=''; for(let i=0;i<u.length;i+=8192) s+=String.fromCharCode.apply(null,u.subarray(i,i+8192)); const ext=(t.split('.').pop()||'png').toLowerCase().replace('jpg','jpeg');
+    const ex=d.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing','extent')[0]; const w=ex?Math.round(+ex.getAttribute('cx')/9525):0; return `<img src="data:image/${ext};base64,${btoa(s)}"${w?` style="width:${w}px;height:auto"`:''}>`; };
+  const run=r=>{ const pr=kid(r,'rPr'); let css=''; let o='',c='';
+    if(pr){ if(kid(pr,'b')&&val(kid(pr,'b'))!=='0'){ o+='<b>'; c='</b>'+c; } if(kid(pr,'i')&&val(kid(pr,'i'))!=='0'){ o+='<i>'; c='</i>'+c; } if(kid(pr,'u')&&val(kid(pr,'u'))!=='none'){ o+='<u>'; c='</u>'+c; } if(kid(pr,'strike')){ o+='<s>'; c='</s>'+c; }
+      const col=val(kid(pr,'color')); if(col&&col!=='auto') css+=`color:#${col};`; const sz=val(kid(pr,'sz')); if(sz) css+=`font-size:${+sz/2}pt;`; const f=kid(pr,'rFonts')?.getAttributeNS(W,'ascii'); if(f) css+=`font-family:'${f}';`;
+      const hl=val(kid(pr,'highlight')); if(hl) css+=`background:${hl};`; const sh=kid(pr,'shd')?.getAttributeNS(W,'fill'); if(sh&&sh!=='auto') css+=`background:#${sh};`; if(kid(pr,'caps')) css+='text-transform:uppercase;';
+      const va=val(kid(pr,'vertAlign')); if(va==='superscript'){ o+='<sup>'; c='</sup>'+c; } if(va==='subscript'){ o+='<sub>'; c='</sub>'+c; } }
+    let t=''; for(const n of r.childNodes){ const ln=n.localName; if(ln==='t') t+=esc(n.textContent); else if(ln==='tab') t+='&emsp;'; else if(ln==='br') t+=n.getAttributeNS(W,'type')==='page'?'\u0000PB\u0000':'<br>'; else if(ln==='drawing'||ln==='pict') t+=img(n); }
+    if(!t) return ''; return (css?`<span style="${css}">`:'')+o+t+c+(css?'</span>':''); };
+  const inl=p=>{ let h=''; for(const n of p.childNodes){ const ln=n.localName; if(ln==='r') h+=run(n); else if(ln==='hyperlink'||ln==='ins'||ln==='smartTag'||ln==='sdt'||ln==='sdtContent') h+=inl(n); else if(ln==='fldSimple') h+=inl(n); } return h; };
+  const para=p=>{ const pr=kid(p,'pPr'); const sty=val(pr&&kid(pr,'pStyle'))||''; const jc=val(pr&&kid(pr,'jc')); let css=jc?`text-align:${jc==='both'?'justify':jc};`:''; const shd=pr&&kid(pr,'pBdr');
+    let h=inl(p); const tag=/^Title$/i.test(sty)?'h1 class="oxt"':/heading ?1|Heading1/i.test(sty)?'h1':/heading ?2|Heading2/i.test(sty)?'h2':/heading ?[3-9]|Heading[3-9]/i.test(sty)?'h3':'p';
+    if(!h.replace(/<[^>]+>/g,'').trim()&&!/<img/.test(h)){ if(shd&&kid(shd,'bottom')) return '<hr>'; h='<br>'; }
+    const out=`<${tag}${css?` style="${css}"`:''}>${h}</${tag.split(' ')[0]}>`; return out.includes('\u0000PB\u0000')?out.split('\u0000PB\u0000').join(`</${tag.split(' ')[0]}><div class="ox-pb" contenteditable="false"></div><${tag}>`):out; };
+  const table=t=>{ const tb=kid(kid(t,'tblPr')||t,'tblBorders'); const on=n=>{ const e=tb&&kid(tb,n); return e&&!/^(nil|none)$/.test(val(e)||''); }; const full=!tb||on('left')||on('insideV'); const bb=!full&&on('bottom');
+    return `<table${full?'':` style="border:0;${bb?'border-bottom:3px solid #539FDC':''}"`}><tbody>${kids(t,'tr').map(tr=>`<tr>${kids(tr,'tc').map(tc=>{ const pr=kid(tc,'tcPr'); const sp=val(pr&&kid(pr,'gridSpan')); const f=pr&&kid(pr,'shd')?.getAttributeNS(W,'fill'); const w=pr&&kid(pr,'tcW'); const nob=pr&&kid(pr,'tcBorders');
+      return `<td${sp?` colspan="${sp}"`:''} style="${full?'':'border:0;vertical-align:middle;'}${f&&f!=='auto'?`background:#${f};`:''}${w&&w.getAttributeNS(W,'type')==='dxa'?`width:${Math.round(+w.getAttributeNS(W,'w')/15)}px;`:''}">${body(tc)}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`; };
+  const body=el=>{ let h='', list=null; const close=()=>{ if(list){ h+=`</${list}>`; list=null; } };
+    for(const n of el.childNodes){ const ln=n.localName;
+      if(ln==='p'){ const pr=kid(n,'pPr'); const np=pr&&kid(pr,'numPr'); if(np){ const id=val(kid(np,'numId')); const tp=numFmt[id]==='bullet'||!numFmt[id]?'ul':'ol'; if(list!==tp){ close(); h+=`<${tp}>`; list=tp; } h+=`<li>${inl(n)||'<br>'}</li>`; continue; } close(); h+=para(n); }
+      else if(ln==='tbl'){ close(); h+=table(n); } else if(ln==='sdt'){ const c=kid(n,'sdtContent'); if(c){ close(); h+=body(c); } } }
+    close(); return h; };
+  const bd=doc.getElementsByTagNameNS(W,'body')[0]; const html=body(bd);
+  const sz=bd.getElementsByTagNameNS(W,'pgSz')[0]; const orient=sz&&(sz.getAttributeNS(W,'orient')==='landscape'||+sz.getAttributeNS(W,'w')>+sz.getAttributeNS(W,'h'))?'l':'p';
+  return {html,orient};
+}
+function oxPickFile(accept, cb){ const i=document.createElement('input'); i.type='file'; i.accept=accept; i.onchange=()=>{ if(i.files[0]) cb(i.files[0]); }; i.click(); }
+async function oxImportFile(file){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } const name=file.name.replace(/\.[^.]+$/,'');
+  try{ const buf=new Uint8Array(await file.arrayBuffer());
+    if(/\.docx$/i.test(file.name)){ const r=oxDocxToHtml(buf); oxwOpen({title:name,html:r.html,orient:r.orient,margin:'Normal'}); oxwChanged(); return; }
+    if(/\.(xlsx|xlsm|xls|csv)$/i.test(file.name)){ const wb=XLSX.read(buf,{cellFormula:true,cellNF:true}); oxsOpen({title:name,sheets:oxsFromSheetJS(wb)}); oxsChanged(); return; }
+    toast('Open a .docx (Word) or .xlsx (Excel) file.'); }catch(e){ toast('Could not open this file: '+(e.message||e)); } }
+async function oxOpenDoc(id){ const d=byId('officedocs',id); if(!d) return toast('Document not found.'); try{ await loadScript(XLSX_URL); }catch(_){}
+  if(d.type==='docx') oxwOpen(d); else if(d.type==='xlsx') oxsOpen(d); }
+
+/* ---------------- EXCEL ---------------- */
+const OXS_CSS=`
+.oxs-fbar{display:flex;align-items:center;gap:6px;background:#fff;border-bottom:1px solid #E1DFDD;padding:4px 8px;flex:none}
+.oxs-fbar input{height:26px;border:1px solid #C8C6C4;font:13px Consolas,'Segoe UI',system-ui,-apple-system,Arial,sans-serif,monospace;padding:0 6px}.oxs-fbar #oxsName{width:84px;text-align:center}.oxs-fbar #oxsF{flex:1}
+.oxs-wrap{flex:1;overflow:auto;background:#fff;position:relative;outline:none}
+.oxs-grid{border-collapse:separate;border-spacing:0;table-layout:fixed;font:11pt Calibri,'Segoe UI',system-ui,-apple-system,Arial,sans-serif,Arial,sans-serif;color:#000}
+.oxs-grid th{position:sticky;top:0;z-index:2;font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;text-align:center;background:#F3F2F1;border-right:1px solid #D2D0CE;border-bottom:1px solid #D2D0CE;font:12px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#444;height:22px;font-weight:400;user-select:none}
+.oxs-grid th.sel{background:#D2D0CE;color:#107C41;font-weight:600;border-bottom:2px solid #107C41}
+.oxs-grid th .rs{position:absolute;right:-3px;top:0;width:6px;height:100%;cursor:col-resize}
+.oxs-grid td.rh{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;position:sticky;left:0;z-index:1;background:#F3F2F1;border-right:1px solid #D2D0CE;border-bottom:1px solid #D2D0CE;font:12px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#444;text-align:center;width:46px;user-select:none}
+.oxs-grid td.rh.sel{background:#D2D0CE;color:#107C41;font-weight:600}
+.oxs-grid th.corner{left:0;z-index:3}
+.oxs-grid td.c{border-right:1px solid #E1DFDD;border-bottom:1px solid #E1DFDD;height:21px;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:clip;cursor:cell}
+.oxs-grid td.c.in{background:#E8F2EC}.oxs-grid td.c.act{outline:2px solid #107C41;outline-offset:-2px}
+.oxs-grid td.c.bd{border:1px solid #000!important}
+.oxs-ed{position:absolute;z-index:5;border:2px solid #107C41;font:11pt Calibri,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;padding:0 2px;outline:none;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.oxs-tabs{display:flex;align-items:stretch;gap:0;background:#F3F2F1;border-top:1px solid #E1DFDD;height:30px;flex:none;overflow-x:auto}
+.oxs-tabs button{border:0;background:none;padding:0 16px;cursor:pointer;border-right:1px solid #E1DFDD;white-space:nowrap}
+.oxs-tabs button.on{background:#fff;color:#107C41;font-weight:600;border-bottom:3px solid #107C41}
+.oxs-err{color:#C00000}
+`;
+let OXS=null;  // {id,title,sheets:[{name,cells:{A1:{v,f,s}},cols:{},rows:120,colsN:26}],cur,sel:{r,c,r2,c2},boq_id}
+const oxsCol=n=>{ let s=''; n++; while(n){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
+const oxsColN=s=>{ let n=0; for(const ch of s.toUpperCase()) n=n*26+ch.charCodeAt(0)-64; return n-1; };
+const oxsRef=(r,c)=>oxsCol(c)+(r+1);
+const oxsParseRef=ref=>{ const m=String(ref).match(/^\$?([A-Z]{1,3})\$?(\d+)$/i); return m?{c:oxsColN(m[1]),r:+m[2]-1}:null; };
+function oxsSheet(){ return OXS.sheets[OXS.cur]; }
+/* ----- formula engine: tokens → parser → evaluation with dependency recursion ----- */
+const OXS_ERR=v=>typeof v==='string'&&/^#(DIV\/0!|VALUE!|REF!|NAME\?|N\/A|NUM!|CIRC!)$/.test(v);
+function oxsTok(s){ const T=[]; let i=0; while(i<s.length){ const ch=s[i];
+    if(/\s/.test(ch)){ i++; continue; }
+    if(ch==='"'){ let j=i+1,t=''; while(j<s.length){ if(s[j]==='"'){ if(s[j+1]==='"'){ t+='"'; j+=2; continue; } break; } t+=s[j++]; } T.push({t:'str',v:t}); i=j+1; continue; }
+    let m=s.slice(i).match(/^(?:'([^']+)'|([A-Za-z_][A-Za-z0-9_ .]*?))!(\$?[A-Z]{1,3}\$?\d+)(?::(\$?[A-Z]{1,3}\$?\d+))?/i);
+    if(m){ T.push({t:'ref',sh:m[1]||m[2],a:m[3],b:m[4]}); i+=m[0].length; continue; }
+    m=s.slice(i).match(/^(\$?[A-Z]{1,3}\$?\d+)(?::(\$?[A-Z]{1,3}\$?\d+))?(?![A-Za-z0-9_(])/i); if(m){ T.push({t:'ref',a:m[1],b:m[2]}); i+=m[0].length; continue; }
+    m=s.slice(i).match(/^\d+(\.\d+)?([eE][+-]?\d+)?|^\.\d+/); if(m){ T.push({t:'num',v:parseFloat(m[0])}); i+=m[0].length; continue; }
+    m=s.slice(i).match(/^[A-Za-z_][A-Za-z0-9_.]*/); if(m){ const w=m[0].toUpperCase(); i+=m[0].length; if(s[i]==='(') T.push({t:'fn',v:w}); else if(w==='TRUE'||w==='FALSE') T.push({t:'bool',v:w==='TRUE'}); else T.push({t:'name',v:w}); continue; }
+    m=s.slice(i).match(/^(<>|<=|>=|[-+*/^&=<>%(),;:])/); if(m){ T.push({t:'op',v:m[0]===';'?',':m[0]}); i+=m[0].length; continue; }
+    throw '#NAME?'; } return T; }
+function oxsParse(src){ const T=oxsTok(src); let p=0; const peek=()=>T[p], next=()=>T[p++], isOp=v=>T[p]&&T[p].t==='op'&&T[p].v===v;
+  const prim=()=>{ const t=next(); if(!t) throw '#VALUE!';
+    if(t.t==='num') return {k:'n',v:t.v}; if(t.t==='str') return {k:'s',v:t.v}; if(t.t==='bool') return {k:'b',v:t.v}; if(t.t==='ref') return {k:'r',sh:t.sh,a:t.a,b:t.b}; if(t.t==='name') throw '#NAME?';
+    if(t.t==='fn'){ next(); const args=[]; if(!isOp(')')){ args.push(cmp()); while(isOp(',')){ next(); args.push(cmp()); } } if(!isOp(')')) throw '#VALUE!'; next(); return {k:'f',n:t.v,args}; }
+    if(t.t==='op'&&t.v==='('){ const e=cmp(); if(!isOp(')')) throw '#VALUE!'; next(); return e; }
+    if(t.t==='op'&&(t.v==='-'||t.v==='+')){ const e=pow(); return t.v==='-'?{k:'neg',e}:e; } throw '#VALUE!'; };
+  const post=()=>{ let e=prim(); while(isOp('%')){ next(); e={k:'op',o:'/',a:e,b:{k:'n',v:100}}; } return e; };
+  const pow=()=>{ let e=post(); while(isOp('^')){ next(); e={k:'op',o:'^',a:e,b:post()}; } return e; };
+  const mul=()=>{ let e=pow(); while(isOp('*')||isOp('/')){ const o=next().v; e={k:'op',o,a:e,b:pow()}; } return e; };
+  const add=()=>{ let e=mul(); while(isOp('+')||isOp('-')){ const o=next().v; e={k:'op',o,a:e,b:mul()}; } return e; };
+  const cat=()=>{ let e=add(); while(isOp('&')){ next(); e={k:'op',o:'&',a:e,b:add()}; } return e; };
+  const cmp=()=>{ let e=cat(); while(peek()&&peek().t==='op'&&['=','<>','<','>','<=','>='].includes(peek().v)){ const o=next().v; e={k:'op',o,a:e,b:cat()}; } return e; };
+  const e=cmp(); if(p<T.length) throw '#VALUE!'; return e; }
+function oxsCalc(){ const memo=new Map(), busy=new Set(); const book=OXS;
+  const sheetBy=n=>n==null?null:book.sheets.find(s=>s.name.toLowerCase()===String(n).toLowerCase());
+  const val=(sh,r,c)=>{ const key=sh.name+'!'+r+','+c; if(memo.has(key)) return memo.get(key); const cell=sh.cells[oxsRef(r,c)]; if(!cell) return null;
+    if(cell.f==null){ return cell.v===''?null:cell.v; } if(busy.has(key)) return '#CIRC!'; busy.add(key); let v;
+    try{ if(!cell._ast||cell._src!==cell.f){ cell._ast=oxsParse(cell.f); cell._src=cell.f; } v=ev(cell._ast,sh); if(Array.isArray(v)) v=v[0]; if(v==null) v=0; }catch(e){ v=typeof e==='string'?e:'#VALUE!'; } busy.delete(key); memo.set(key,v); return v; };
+  const range=(n,sh)=>{ const s=n.sh!=null?sheetBy(n.sh):sh; if(!s) throw '#REF!'; const A=oxsParseRef(n.a), B=n.b?oxsParseRef(n.b):A; if(!A||!B) throw '#REF!'; const out=[]; for(let r=Math.min(A.r,B.r);r<=Math.max(A.r,B.r);r++) for(let c=Math.min(A.c,B.c);c<=Math.max(A.c,B.c);c++) out.push(val(s,r,c)); return n.b?out:out[0]; };
+  const num=v=>{ if(OXS_ERR(v)) throw v; if(v==null||v==='') return 0; if(typeof v==='boolean') return v?1:0; if(typeof v==='number') return v; const n=+String(v).replace(/,/g,''); if(isNaN(n)) throw '#VALUE!'; return n; };
+  const flat=args=>args.flatMap(a=>Array.isArray(a)?a:[a]);
+  const nums=args=>flat(args).filter(v=>{ if(OXS_ERR(v)) throw v; return typeof v==='number'; });
+  const FN={SUM:a=>nums(a).reduce((x,y)=>x+y,0),AVERAGE:a=>{ const n=nums(a); if(!n.length) throw '#DIV/0!'; return n.reduce((x,y)=>x+y,0)/n.length; },MIN:a=>{ const n=nums(a); return n.length?Math.min(...n):0; },MAX:a=>{ const n=nums(a); return n.length?Math.max(...n):0; },
+    COUNT:a=>nums(a).length,COUNTA:a=>flat(a).filter(v=>v!=null&&v!=='').length,COUNTBLANK:a=>flat(a).filter(v=>v==null||v==='').length,PRODUCT:a=>nums(a).reduce((x,y)=>x*y,1),
+    ROUND:a=>{ const f=10**num(a[1]??0); return Math.round(num(a[0])*f)/f; },ROUNDUP:a=>{ const f=10**num(a[1]??0), x=num(a[0]); return (x<0?-1:1)*Math.ceil(Math.abs(x)*f-1e-9)/f; },ROUNDDOWN:a=>{ const f=10**num(a[1]??0), x=num(a[0]); return (x<0?-1:1)*Math.floor(Math.abs(x)*f+1e-9)/f; },
+    INT:a=>Math.floor(num(a[0])),ABS:a=>Math.abs(num(a[0])),SQRT:a=>{ const x=num(a[0]); if(x<0) throw '#NUM!'; return Math.sqrt(x); },POWER:a=>num(a[0])**num(a[1]),MOD:a=>{ const d=num(a[1]); if(!d) throw '#DIV/0!'; const x=num(a[0]); return x-d*Math.floor(x/d); },PI:()=>Math.PI,
+    CEILING:a=>{ const s=num(a[1]??1)||1; return Math.ceil(num(a[0])/s)*s; },FLOOR:a=>{ const s=num(a[1]??1)||1; return Math.floor(num(a[0])/s)*s; },
+    IF:a=>{ const c=a[0]; if(OXS_ERR(c)) throw c; return (typeof c==='string'?c!=='':!!c)?(a[1]??true):(a[2]??false); },IFERROR:a=>OXS_ERR(a[0])?a[1]:a[0],
+    AND:a=>flat(a).every(v=>!!v),OR:a=>flat(a).some(v=>!!v),NOT:a=>!a[0],
+    CONCAT:a=>flat(a).map(v=>v??'').join(''),CONCATENATE:a=>flat(a).map(v=>v??'').join(''),TEXT:a=>oxsFmt(num(a[0]),/%/.test(a[1])?'pct':/0\.00/.test(a[1])?'num2':'int'),LEN:a=>String(a[0]??'').length,UPPER:a=>String(a[0]??'').toUpperCase(),LOWER:a=>String(a[0]??'').toLowerCase(),TRIM:a=>String(a[0]??'').trim(),LEFT:a=>String(a[0]??'').slice(0,num(a[1]??1)),RIGHT:a=>String(a[0]??'').slice(-num(a[1]??1)),
+    TODAY:()=>Math.floor((Date.now()+3*36e5)/864e5)+25569,NOW:()=>(Date.now()+3*36e5)/864e5+25569,
+    SUMPRODUCT:a=>{ const L=a.map(x=>Array.isArray(x)?x:[x]); let s=0; for(let i=0;i<L[0].length;i++){ let p=1; for(const l of L){ const v=l[i]; p*=typeof v==='number'?v:0; } s+=p; } return s; },
+    SUMIF:a=>{ const R=Array.isArray(a[0])?a[0]:[a[0]], S2=a[2]?(Array.isArray(a[2])?a[2]:[a[2]]):R; const t=oxsCrit(a[1]); return R.reduce((s,v,i)=>s+(t(v)&&typeof S2[i]==='number'?S2[i]:0),0); },
+    COUNTIF:a=>{ const R=Array.isArray(a[0])?a[0]:[a[0]]; const t=oxsCrit(a[1]); return R.filter(t).length; },
+    VLOOKUP:(a,n,sh)=>{ const rg=n.args[1]; if(rg.k!=='r'||!rg.b) throw '#N/A'; const s=rg.sh!=null?sheetBy(rg.sh):sh; const A=oxsParseRef(rg.a),B=oxsParseRef(rg.b); const ci=num(a[2])-1; for(let r=A.r;r<=B.r;r++){ const k=val(s,r,A.c); if(String(k).toLowerCase()===String(a[0]).toLowerCase()) return val(s,r,A.c+ci); } throw '#N/A'; }};
+  const ev=(n,sh)=>{ switch(n.k){ case 'n': case 's': case 'b': return n.v; case 'r': return range(n,sh); case 'neg': return -num(ev(n.e,sh));
+      case 'f': { const f=FN[n.n]; if(!f) throw '#NAME?'; const args=n.n==='IF'?[ev(n.args[0],sh)]:n.args.map(x=>ev(x,sh)); if(n.n==='IF'){ const c=args[0]; if(OXS_ERR(c)) throw c; const t=typeof c==='string'?c!=='':!!c; return t?(n.args[1]?ev(n.args[1],sh):true):(n.args[2]?ev(n.args[2],sh):false); } if(n.n==='IFERROR'){ return OXS_ERR(args[0])?args[1]:args[0]; } return f(args,n,sh); }
+      case 'op': { const a=ev(n.a,sh), b=ev(n.b,sh); if(n.o==='&') return `${OXS_ERR(a)?(()=>{throw a;})():a??''}${OXS_ERR(b)?(()=>{throw b;})():b??''}`;
+        if(['=','<>','<','>','<=','>='].includes(n.o)){ const x=typeof a==='number'||typeof b==='number'?num(a):String(a??'').toLowerCase(), y=typeof a==='number'||typeof b==='number'?num(b):String(b??'').toLowerCase(); return {'=':x===y,'<>':x!==y,'<':x<y,'>':x>y,'<=':x<=y,'>=':x>=y}[n.o]; }
+        const x=num(a), y=num(b); if(n.o==='/'&&y===0) throw '#DIV/0!'; return {'+':x+y,'-':x-y,'*':x*y,'/':x/y,'^':x**y}[n.o]; } } };
+  return {val,sheetBy}; }
+function oxsCrit(c){ const m=String(c??'').match(/^(<>|<=|>=|=|<|>)?(.*)$/); const op=m[1]||'=', rhs=m[2]; const n=+rhs; const isN=rhs!==''&&!isNaN(n);
+  return v=>{ const x=isN?(typeof v==='number'?v:+v):String(v??'').toLowerCase(), y=isN?n:rhs.toLowerCase(); if(isN&&isNaN(x)) return op==='<>'; return {'=':x===y,'<>':x!==y,'<':x<y,'>':x>y,'<=':x<=y,'>=':x>=y}[op]; }; }
+function oxsFmt(v,nf){ if(v==null||v==='') return ''; if(typeof v==='boolean') return v?'TRUE':'FALSE'; if(typeof v!=='number') return String(v);
+  const f=(d)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+  switch(nf){ case 'num2': return f(2); case 'int': return f(0); case 'pct': return (v*100).toLocaleString('en-US',{maximumFractionDigits:1})+'%'; case 'pctn': return v.toLocaleString('en-US',{maximumFractionDigits:2})+'%'; case 'tzs': return 'TZS '+f(0);
+    case 'date': { const d=new Date(Math.round((v-25569)*864e5)); return isNaN(d)?String(v):d.toISOString().slice(0,10); }
+    default: return Math.abs(v)>=1e11||(Math.abs(v)<1e-6&&v!==0)?v.toExponential(4):String(+v.toPrecision(11)); } }
+/* ----- rendering ----- */
+function oxsRender(){ const sh=oxsSheet(), E=oxsCalc(); OXS._E=E; const w=c=>sh.cols[c]||(c===1?260:88); const sel=OXS.sel;
+  const r1=Math.min(sel.r,sel.r2),r2=Math.max(sel.r,sel.r2),c1=Math.min(sel.c,sel.c2),c2=Math.max(sel.c,sel.c2);
+  let h=`<table class="oxs-grid" id="oxsGrid"><colgroup><col style="width:46px">${Array.from({length:sh.colsN},(_,c)=>`<col style="width:${w(c)}px">`).join('')}</colgroup><thead><tr><th class="corner" style="position:sticky;left:0"></th>${Array.from({length:sh.colsN},(_,c)=>`<th data-ch="${c}" class="${c>=c1&&c<=c2?'sel':''}" style="position:sticky;top:0">${oxsCol(c)}<span class="rs" data-rs="${c}"></span></th>`).join('')}</tr></thead><tbody>`;
+  for(let r=0;r<sh.rows;r++){ h+=`<tr style="height:${sh.rh?.[r]||22}px"><td class="rh ${r>=r1&&r<=r2?'sel':''}" data-rh="${r}">${r+1}</td>`;
+    for(let c=0;c<sh.colsN;c++){ const ref=oxsRef(r,c), cell=sh.cells[ref]; let txt='', st='', cls='c';
+      if(cell){ const v=cell.f!=null?E.val(sh,r,c):cell.v; txt=OXS_ERR(v)?`<span class="oxs-err">${v}</span>`:esc(oxsFmt(v,cell.s?.nf)); const s=cell.s||{};
+        const al=s.al||(typeof v==='number'?'right':OXS_ERR(v)?'center':'left'); st+=`text-align:${al};`; if(s.b) st+='font-weight:700;'; if(s.i) st+='font-style:italic;'; if(s.u) st+='text-decoration:underline;'; if(s.bg) st+=`background:${s.bg};`; if(s.fc) st+=`color:${s.fc};`; if(s.sz) st+=`font-size:${s.sz}pt;`; if(s.wr) st+='white-space:normal;';
+        if(s.bd) cls+=' bd'; if(typeof v==='string'&&!OXS_ERR(v)&&!s.wr&&al==='left'&&!sh.cells[oxsRef(r,c+1)]) st+='overflow:visible;position:relative;z-index:1;'; }
+      if(r>=r1&&r<=r2&&c>=c1&&c<=c2&&(r1!==r2||c1!==c2)) cls+=' in'; if(r===sel.r&&c===sel.c) cls+=' act';
+      h+=`<td class="${cls}" data-r="${r}" data-c="${c}" style="${st}">${txt}</td>`; }
+    h+='</tr>'; }
+  h+='</tbody></table>'; const wrap=$('#oxsWrap'); const sx=wrap.scrollLeft, sy=wrap.scrollTop; wrap.innerHTML=h; wrap.scrollLeft=sx; wrap.scrollTop=sy; oxsBar(); oxsStat(); }
+function oxsBar(){ const sh=oxsSheet(), s=OXS.sel, cell=sh.cells[oxsRef(s.r,s.c)]; $('#oxsName').value=(s.r!==s.r2||s.c!==s.c2)?`${oxsRef(Math.min(s.r,s.r2),Math.min(s.c,s.c2))}:${oxsRef(Math.max(s.r,s.r2),Math.max(s.c,s.c2))}`:oxsRef(s.r,s.c);
+  if(document.activeElement!==$('#oxsF')) $('#oxsF').value=cell?(cell.f!=null?'='+cell.f:(cell.v??'')):'';
+  const st=cell?.s||{}; ['b','i','u'].forEach(k=>document.querySelector(`#oxRib [data-oxa="${k}"]`)?.classList.toggle('on',!!st[k])); }
+function oxsStat(){ const sh=oxsSheet(), s=OXS.sel, E=OXS._E; const vals=[]; for(let r=Math.min(s.r,s.r2);r<=Math.max(s.r,s.r2);r++) for(let c=Math.min(s.c,s.c2);c<=Math.max(s.c,s.c2);c++){ const cell=sh.cells[oxsRef(r,c)]; if(cell){ const v=cell.f!=null?E.val(sh,r,c):cell.v; if(typeof v==='number') vals.push(v); } }
+  const sum=vals.reduce((a,b)=>a+b,0); $('#oxStat').innerHTML=`<span>Ready</span>${OXS.boq_id?`<span>🔗 Linked to BoQ: ${esc(byId('boqs',OXS.boq_id)?.title||'')}</span>`:''}<span class="sp"></span>${vals.length>1?`<span>Average: ${oxsFmt(sum/vals.length,'num2')}</span><span>Count: ${vals.length}</span><span>Sum: ${oxsFmt(sum,'num2')}</span>`:''}<span>${OXS.project_id?esc(projName(OXS.project_id)):''}</span>`; }
+function oxsTabs(){ $('#oxsTabs').innerHTML=OXS.sheets.map((s,i)=>`<button data-sht="${i}" class="${i===OXS.cur?'on':''}">${esc(s.name)}</button>`).join('')+'<button data-sht="add" title="New sheet" style="font-size:18px">⊕</button>'; }
+/* ----- editing ----- */
+let oxsHist=[], oxsFut=[];
+function oxsSnap(){ oxsHist.push(JSON.stringify(OXS.sheets.map(s=>({...s,cells:Object.fromEntries(Object.entries(s.cells).map(([k,c])=>[k,{v:c.v,f:c.f,s:c.s}]))})))); if(oxsHist.length>40) oxsHist.shift(); oxsFut=[]; }
+function oxsRestore(json){ OXS.sheets=JSON.parse(json); if(OXS.cur>=OXS.sheets.length) OXS.cur=0; oxsTabs(); oxsRender(); oxsChanged(); }
+function oxsInput(raw){ raw=String(raw??''); if(raw==='') return null; if(raw[0]==='='&&raw.length>1) return {f:raw.slice(1)}; const t=raw.trim();
+  if(/^-?[\d,]*\.?\d+(e[+-]?\d+)?$/i.test(t.replace(/,/g,''))&&/\d/.test(t)&&!/^0\d/.test(t)) return {v:+t.replace(/,/g,'')};
+  if(/^-?[\d,.]+%$/.test(t)) return {v:+t.replace(/[,%]/g,'')/100,nf:'pct'}; if(/^(true|false)$/i.test(t)) return {v:/^t/i.test(t)}; return {v:raw}; }
+function oxsSet(r,c,raw,snap=true){ const sh=oxsSheet(), ref=oxsRef(r,c); if(snap) oxsSnap(); const p=oxsInput(raw); const old=sh.cells[ref];
+  if(!p){ if(old?.s&&Object.keys(old.s).length) sh.cells[ref]={v:'',s:old.s}; else delete sh.cells[ref]; } else { const s={...(old?.s||{})}; if(p.nf&&!s.nf) s.nf=p.nf; sh.cells[ref]={...(p.f!=null?{f:p.f}:{v:p.v}),s}; }
+  if(r>=sh.rows-5) sh.rows+=50; if(c>=sh.colsN-2) sh.colsN=Math.min(200,sh.colsN+10); }
+function oxsMove(dr,dc,ext=false){ const sh=oxsSheet(), s=OXS.sel; if(ext){ s.r2=Math.max(0,s.r2+dr); s.c2=Math.max(0,s.c2+dc); } else { s.r=Math.max(0,s.r+dr); s.c=Math.max(0,s.c+dc); s.r2=s.r; s.c2=s.c; }
+  if(s.r>=sh.rows-3) sh.rows+=50; if(s.c>=sh.colsN-1) sh.colsN=Math.min(200,sh.colsN+10); oxsRender(); oxsScroll(); }
+function oxsScroll(){ const td=document.querySelector(`#oxsGrid td[data-r="${OXS.sel.r2}"][data-c="${OXS.sel.c2}"]`), w=$('#oxsWrap'); if(!td||!w) return; const a=td.getBoundingClientRect(), b=w.getBoundingClientRect();
+  if(a.bottom>b.bottom) w.scrollTop+=a.bottom-b.bottom+4; if(a.top<b.top+24) w.scrollTop-=b.top+24-a.top; if(a.right>b.right) w.scrollLeft+=a.right-b.right+4; if(a.left<b.left+46) w.scrollLeft-=b.left+46-a.left; }
+let oxsEd=null;
+function oxsEdit(initial){ oxsEndEdit(true); const td=document.querySelector(`#oxsGrid td[data-r="${OXS.sel.r}"][data-c="${OXS.sel.c}"]`); if(!td||canWrite===false) return; const w=$('#oxsWrap');
+  const cell=oxsSheet().cells[oxsRef(OXS.sel.r,OXS.sel.c)]; const inp=document.createElement('input'); inp.className='oxs-ed'; inp.value=initial!=null?initial:cell?(cell.f!=null?'='+cell.f:(cell.v??'')):'';
+  const a=td.getBoundingClientRect(), b=w.getBoundingClientRect(); inp.style.left=(a.left-b.left+w.scrollLeft)+'px'; inp.style.top=(a.top-b.top+w.scrollTop)+'px'; inp.style.minWidth=a.width+'px'; inp.style.height=a.height+'px';
+  w.appendChild(inp); inp.focus(); if(initial==null) inp.setSelectionRange(inp.value.length,inp.value.length); oxsEd={inp,r:OXS.sel.r,c:OXS.sel.c}; $('#oxsF').value=inp.value;
+  inp.addEventListener('input',()=>{ $('#oxsF').value=inp.value; inp.style.width=Math.max(a.width,inp.value.length*8+12)+'px'; });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); oxsEndEdit(); oxsMove(e.shiftKey?-1:1,0); $('#oxsWrap').focus(); } else if(e.key==='Tab'){ e.preventDefault(); oxsEndEdit(); oxsMove(0,e.shiftKey?-1:1); $('#oxsWrap').focus(); } else if(e.key==='Escape'){ oxsEndEdit(true); $('#oxsWrap').focus(); oxsBar(); } }); }
+function oxsEndEdit(cancel=false){ if(!oxsEd) return; const {inp,r,c}=oxsEd; oxsEd=null; if(!cancel){ oxsSet(r,c,inp.value); oxsChanged(); } inp.remove(); if(!cancel) oxsRender(); }
+function oxsFormat(fn){ if(canWrite===false) return; oxsSnap(); const sh=oxsSheet(), s=OXS.sel; for(let r=Math.min(s.r,s.r2);r<=Math.max(s.r,s.r2);r++) for(let c=Math.min(s.c,s.c2);c<=Math.max(s.c,s.c2);c++){ const ref=oxsRef(r,c); const cell=sh.cells[ref]||(sh.cells[ref]={v:''}); cell.s={...(cell.s||{})}; fn(cell.s,cell); } oxsRender(); oxsChanged(); }
+/* reference shifting for insert / delete of rows & columns and relative copy */
+function oxsShiftF(f, fn){ return f.split('"').map((part,i)=>i%2?part:part.replace(/((?:'[^']+'|[A-Za-z_][A-Za-z0-9_.]*)!)?(\$?)([A-Z]{1,3})(\$?)(\d+)(?::(\$?)([A-Z]{1,3})(\$?)(\d+))?(?![A-Za-z0-9_(])/g,(m,sh,d1,c1,d2,r1,d3,c2,d4,r2)=>{ const x=fn(sh?sh.replace(/!$/,'').replace(/^'|'$/g,''):null,{c:oxsColN(c1),r:+r1-1,ac:!!d1,ar:!!d2},c2?{c:oxsColN(c2),r:+r2-1,ac:!!d3,ar:!!d4}:null); if(x==null) return '#REF!'; const [A,B]=x; const w=(p)=>`${p.ac?'$':''}${oxsCol(p.c)}${p.ar?'$':''}${p.r+1}`; return `${sh||''}${w(A)}${B?':'+w(B):''}`; })).join('"'); }
+function oxsStructural(kind, at){ // kind: 'ir','dr','ic','dc'
+  oxsSnap(); const target=oxsSheet(); const isRow=kind[1]==='r', ins=kind[0]==='i';
+  const adj=(p,isEnd,inRange)=>{ const k=isRow?'r':'c'; const q={...p}; if(ins){ if(q[k]>=at) q[k]++; } else { if(q[k]>at) q[k]--; else if(q[k]===at){ if(!inRange) return null; if(isEnd) q[k]--; } } return q; };
+  for(const sh of OXS.sheets) for(const cell of Object.values(sh.cells)){ if(cell.f==null) continue;
+    cell.f=oxsShiftF(cell.f,(shn,A,B)=>{ const s=shn?OXS.sheets.find(x=>x.name.toLowerCase()===shn.toLowerCase()):sh; if(s!==target) return [A,B];
+      if(!B){ const a=adj(A,false,false); return a?[a,null]:null; } const a=adj(A,false,true), b=adj(B,true,true); if(!a||!b) return null; const k=isRow?'r':'c'; if(b[k]<a[k]) return null; return [a,b]; }); }
+  const nc={}; for(const [ref,cell] of Object.entries(target.cells)){ const p=oxsParseRef(ref); const k=isRow?'r':'c'; if(!ins&&p[k]===at) continue; if(ins?p[k]>=at:p[k]>at) p[k]+=ins?1:-1; nc[oxsRef(p.r,p.c)]=cell; } target.cells=nc;
+  if(isRow) target.rows+=ins?1:0; else target.colsN+=ins?1:0; oxsRender(); oxsChanged(); }
+/* clipboard (Excel-compatible TSV + relative formulas inside NEXUS) */
+let oxsClip=null;
+function oxsCopy(e,cut=false){ const sh=oxsSheet(), s=OXS.sel, E=OXS._E; const r1=Math.min(s.r,s.r2),r2=Math.max(s.r,s.r2),c1=Math.min(s.c,s.c2),c2=Math.max(s.c,s.c2); const rows=[], cells=[];
+  for(let r=r1;r<=r2;r++){ const row=[], cr=[]; for(let c=c1;c<=c2;c++){ const cell=sh.cells[oxsRef(r,c)]; const v=cell?(cell.f!=null?E.val(sh,r,c):cell.v):''; row.push(v==null?'':typeof v==='number'?String(v):String(v)); cr.push(cell?JSON.parse(JSON.stringify({v:cell.v,f:cell.f,s:cell.s})):null); } rows.push(row.join('\t')); cells.push(cr); }
+  const tsv=rows.join('\n'); oxsClip={tsv,cells,r:r1,c:c1,cut:cut?{sheet:OXS.cur,r1,r2,c1,c2}:null}; e.clipboardData.setData('text/plain',tsv); e.preventDefault(); }
+function oxsPaste(e){ if(canWrite===false) return; const txt=e.clipboardData.getData('text/plain'); e.preventDefault(); oxsSnap(); const sh=oxsSheet(), s=OXS.sel;
+  if(oxsClip&&txt.replace(/\r/g,'')===oxsClip.tsv){ const dr=s.r-oxsClip.r, dc=s.c-oxsClip.c;
+    if(oxsClip.cut){ const K=oxsClip.cut, src=OXS.sheets[K.sheet]; for(let r=K.r1;r<=K.r2;r++) for(let c=K.c1;c<=K.c2;c++) delete src.cells[oxsRef(r,c)]; }
+    oxsClip.cells.forEach((row,i)=>row.forEach((cell,j)=>{ const ref=oxsRef(s.r+i,s.c+j); if(!cell){ delete sh.cells[ref]; return; } const n={...cell}; if(n.f!=null&&!oxsClip.cut) n.f=oxsShiftF(n.f,(shn,A,B)=>{ const m=p=>({...p,r:p.ar?p.r:p.r+dr,c:p.ac?p.c:p.c+dc}); const a=m(A), b=B?m(B):null; if(a.r<0||a.c<0||(b&&(b.r<0||b.c<0))) return null; return [a,b]; }); sh.cells[ref]=n; }));
+    if(oxsClip.cut) oxsClip=null; }
+  else { txt.replace(/\r/g,'').replace(/\n$/,'').split('\n').forEach((line,i)=>line.split('\t').forEach((v,j)=>oxsSet(s.r+i,s.c+j,v,false))); }
+  oxsRender(); oxsChanged(); }
+function oxsFillDown(){ const sh=oxsSheet(), s=OXS.sel; const r1=Math.min(s.r,s.r2),r2=Math.max(s.r,s.r2),c1=Math.min(s.c,s.c2),c2=Math.max(s.c,s.c2); if(r1===r2) return; oxsSnap();
+  for(let c=c1;c<=c2;c++){ const src=sh.cells[oxsRef(r1,c)]; for(let r=r1+1;r<=r2;r++){ const ref=oxsRef(r,c); if(!src){ delete sh.cells[ref]; continue; } const n=JSON.parse(JSON.stringify({v:src.v,f:src.f,s:src.s})); if(n.f!=null){ const dr=r-r1; n.f=oxsShiftF(n.f,(shn,A,B)=>[{...A,r:A.ar?A.r:A.r+dr},B?{...B,r:B.ar?B.r:B.r+dr}:null]); } sh.cells[ref]=n; } } oxsRender(); oxsChanged(); }
+function oxsAutoSum(){ const sh=oxsSheet(), s=OXS.sel, E=OXS._E; let r=s.r-1; while(r>=0){ const cell=sh.cells[oxsRef(r,s.c)]; const v=cell?(cell.f!=null?E.val(sh,r,s.c):cell.v):null; if(typeof v!=='number') break; r--; }
+  if(r===s.r-1){ let c=s.c-1; while(c>=0){ const cell=sh.cells[oxsRef(s.r,c)]; const v=cell?(cell.f!=null?E.val(sh,s.r,c):cell.v):null; if(typeof v!=='number') break; c--; } if(c<s.c-1){ oxsSet(s.r,s.c,`=SUM(${oxsRef(s.r,c+1)}:${oxsRef(s.r,s.c-1)})`); oxsRender(); oxsChanged(); return; } toast('No numbers above or to the left to add up.'); return; }
+  oxsSet(s.r,s.c,`=SUM(${oxsRef(r+1,s.c)}:${oxsRef(s.r-1,s.c)})`); oxsRender(); oxsChanged(); }
+let oxsTimer=null;
+function oxsChanged(){ if(!OXS) return; OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
+function oxsClean(){ return OXS.sheets.map(s=>({name:s.name,rows:s.rows,colsN:s.colsN,cols:s.cols||{},rh:s.rh||{},cells:Object.fromEntries(Object.entries(s.cells).map(([k,c])=>[k,Object.fromEntries(Object.entries({v:c.v,f:c.f,s:c.s&&Object.keys(c.s).length?c.s:undefined}).filter(([,x])=>x!==undefined))]))})); }
+async function oxsSave(auto=false){ if(!OXS) return; if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } OXS.title=$('#oxName')?.value||OXS.title; oxSetStatus('Saving…');
+  const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),project_id:OXS.project_id||'',boq_id:OXS.boq_id||''});
+  if(id){ const first=!OXS.id; OXS.id=id; OXS.dirty=false; oxSetStatus('Saved to NEXUS '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})); if(first) logAct(`Created Excel workbook "${OXS.title}"`); } else oxSetStatus('Not saved – check connection'); }
+/* ----- ribbon ----- */
+function oxsRibbon(tab){
+  if(tab==='Home') return oxG('Clipboard',oxB('undo',OXSVG.undo,{title:'Undo (Ctrl+Z)'})+oxB('redo',OXSVG.redo,{title:'Redo (Ctrl+Y)'})+'<br>'+oxB('filldown','⬇ Fill',{title:'Fill down (Ctrl+D)'}))
+    +oxG('Font',oxB('b','<b>B</b>',{title:'Bold'})+oxB('i','<i style="font-family:serif">I</i>',{title:'Italic'})+oxB('u','<u>U</u>',{title:'Underline'})+oxB('bd',OXSVG.bd,{title:'All borders'})+`<select class="ox-sel" id="oxsSz" style="width:52px" title="Font size"><option value="">11</option>${[8,9,10,11,12,14,16,18,20,24].map(s=>`<option>${s}</option>`).join('')}</select><div style="flex-basis:100%;height:0"></div><span class="ox-b ox-col" title="Fill colour"><span style="display:flex;flex-direction:column;align-items:center">🪣<i class="bar" style="background:#FFFF00"></i></span><input type="color" value="#ffff00" data-oxsc="bg"></span><span class="ox-b ox-col" title="Font colour"><span style="display:flex;flex-direction:column;align-items:center"><b>A</b><i class="bar" style="background:#C00000"></i></span><input type="color" value="#c00000" data-oxsc="fc"></span>${oxB('nofill','⌫ Clear format',{title:'Clear formats'})}`)
+    +oxG('Alignment',oxB('al',OXSVG.al,{title:'Align left'})+oxB('ac',OXSVG.ac,{title:'Centre'})+oxB('ar',OXSVG.ar,{title:'Align right'})+'<br>'+oxB('wrap','↩ Wrap Text',{}))
+    +oxG('Number',`<select class="ox-sel" id="oxsNf" style="width:118px"><option value="">General</option><option value="num2">Number 0.00</option><option value="int">Comma #,##0</option><option value="tzs">Currency TZS</option><option value="pct">Percent %</option><option value="date">Date</option></select><div style="flex-basis:100%;height:0"></div>`+oxB('nf_tzs','TZS',{title:'Currency'})+oxB('nf_pct','%',{title:'Percent'})+oxB('nf_int',',',{title:'Comma style'}))
+    +oxG('Cells',oxB('ir','⊕ Insert row',{})+oxB('ic','⊕ Insert col',{})+'<br>'+oxB('dr','⊖ Delete row',{})+oxB('dc','⊖ Delete col',{}))
+    +oxG('Editing',oxB('autosum',`<span class="bi">${OXSVG.sum}</span>AutoSum`,{big:true})+oxB('clear','<span class="bi">⌫</span>Clear',{big:true}));
+  if(tab==='Insert') return oxG('Tables',oxB('tblstyle',`<span class="bi">${OXSVG.tbl}</span>Format as<br>Table`,{big:true}))+oxG('Nordic',oxB('insboq','<span class="bi">📗</span>BoQ bill<br>layout',{big:true})+oxB('inshead','<span class="bi">🏢</span>Company<br>heading',{big:true}));
+  if(tab==='Formulas') return oxG('Function Library',['SUM','AVERAGE','MIN','MAX','COUNT','ROUND','IF','SUMIF','VLOOKUP','SUMPRODUCT'].map(f=>oxB('fn',f,{data:`data-v="${f}"`})).join(''))+oxG('Calculation',oxB('recalc','<span class="bi">⟳</span>Calculate<br>Now',{big:true}));
+  if(tab==='Data') return oxG('Sort',oxB('sortA','A→Z Sort ascending',{})+'<br>'+oxB('sortZ','Z→A Sort descending',{}))+oxG('NEXUS BoQ',OXS.boq_id?oxB('boqsave','<span class="bi">⤴</span>Save to<br>BoQ',{big:true}):'<span style="font-size:12px;color:#605E5C;max-width:200px">Open a BoQ from QS Studio to send changes back.</span>');
+  if(tab==='View') return oxG('Zoom',oxB('zoom','100%',{data:'data-v="1"'})+oxB('zoom','125%',{data:'data-v="1.25"'})+oxB('zoom','75%',{data:'data-v=".75"'}))+oxG('Print',oxB('print','<span class="bi">🖨</span>Print / PDF',{big:true}));
+  return ''; }
+function oxsOpen(doc){
+  OXS={...doc,sheets:(doc.sheets&&doc.sheets.length?doc.sheets:[{name:'Sheet1',cells:{}}]).map(s=>({name:s.name,cells:JSON.parse(JSON.stringify(s.cells||{})),cols:s.cols||{},rh:s.rh||{},rows:Math.max(s.rows||0,60),colsN:Math.max(s.colsN||0,20)})),cur:0,sel:{r:0,c:0,r2:0,c2:0}};
+  oxsHist=[]; oxsFut=[];
+  const el=oxShell('xlsx',doc.title||'Book1',{tabs:['Home','Insert','Formulas','Data','View'],onTab:t=>{ if(t==='File') return oxsFile(); $('#oxRib').innerHTML=oxsRibbon(t); },status:doc.id?'Saved to NEXUS':'Not saved yet',right:doc.boq_id?'<button class="tb" data-oxa="boqsave">⤴ Save to BoQ</button>':''});
+  $('#oxRib').innerHTML=oxsRibbon('Home');
+  $('#oxBody').innerHTML=`<div class="oxs-fbar"><input id="oxsName" aria-label="Name box"><span style="color:#605E5C;font-style:italic;font-family:serif">fx</span><input id="oxsF" aria-label="Formula bar" autocomplete="off"></div><div class="oxs-wrap" id="oxsWrap" tabindex="0"></div><div class="oxs-tabs" id="oxsTabs"></div>`;
+  oxsTabs(); oxsRender(); oxsBind(el); $('#oxsWrap').focus(); }
+function oxsBind(el){ const w=$('#oxsWrap'); let drag=false;
+  w.addEventListener('mousedown',e=>{ const rs=e.target.closest('[data-rs]'); if(rs){ e.preventDefault(); const c=+rs.dataset.rs, x0=e.clientX, sh=oxsSheet(), w0=sh.cols[c]||(c===1?260:88); const mv=ev=>{ sh.cols[c]=Math.max(24,w0+ev.clientX-x0); document.querySelectorAll('#oxsGrid col')[c+1].style.width=sh.cols[c]+'px'; }; const up=()=>{ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); oxsChanged(); }; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); return; }
+    const td=e.target.closest('td.c'); const ch=e.target.closest('th[data-ch]'), rh=e.target.closest('td[data-rh]');
+    if(oxsEd&&td&&oxsEd.inp.value.startsWith('=')){ e.preventDefault(); const ref=oxsRef(+td.dataset.r,+td.dataset.c); const i=oxsEd.inp; const p=i.selectionStart; i.value=i.value.slice(0,p)+ref+i.value.slice(i.selectionEnd); i.focus(); i.setSelectionRange(p+ref.length,p+ref.length); $('#oxsF').value=i.value; return; }
+    if(td){ oxsEndEdit(); const r=+td.dataset.r,c=+td.dataset.c; if(e.shiftKey){ OXS.sel.r2=r; OXS.sel.c2=c; } else OXS.sel={r,c,r2:r,c2:c}; drag=true; oxsRender(); w.focus(); e.preventDefault(); }
+    else if(ch){ const c=+ch.dataset.ch; OXS.sel={r:0,c,r2:oxsSheet().rows-1,c2:c}; oxsRender(); }
+    else if(rh){ const r=+rh.dataset.rh; OXS.sel={r,c:0,r2:r,c2:oxsSheet().colsN-1}; oxsRender(); } });
+  w.addEventListener('mouseover',e=>{ if(!drag) return; const td=e.target.closest('td.c'); if(!td) return; const r=+td.dataset.r,c=+td.dataset.c; if(OXS.sel.r2!==r||OXS.sel.c2!==c){ OXS.sel.r2=r; OXS.sel.c2=c; oxsRender(); } });
+  document.addEventListener('mouseup',()=>drag=false);
+  w.addEventListener('dblclick',e=>{ if(e.target.closest('td.c')) oxsEdit(); });
+  w.addEventListener('keydown',e=>{ if(oxsEd||e.target!==w) return; const k=e.key, ctl=e.ctrlKey||e.metaKey;
+    if(ctl&&k.toLowerCase()==='z'){ e.preventDefault(); if(oxsHist.length){ oxsFut.push(JSON.stringify(oxsClean())); oxsRestore(oxsHist.pop()); } return; }
+    if(ctl&&k.toLowerCase()==='y'){ e.preventDefault(); if(oxsFut.length){ oxsHist.push(JSON.stringify(oxsClean())); oxsRestore(oxsFut.pop()); } return; }
+    if(ctl&&k.toLowerCase()==='s'){ e.preventDefault(); oxsSave(); return; } if(ctl&&k.toLowerCase()==='d'){ e.preventDefault(); oxsFillDown(); return; }
+    if(ctl&&k.toLowerCase()==='b'){ e.preventDefault(); oxsFormat(s=>s.b=!s.b); return; } if(ctl&&k.toLowerCase()==='i'){ e.preventDefault(); oxsFormat(s=>s.i=!s.i); return; } if(ctl&&k.toLowerCase()==='u'){ e.preventDefault(); oxsFormat(s=>s.u=!s.u); return; }
+    const mv={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[k]; if(mv){ e.preventDefault(); oxsMove(...mv,e.shiftKey); return; }
+    if(k==='Enter'){ e.preventDefault(); oxsMove(e.shiftKey?-1:1,0); return; } if(k==='Tab'){ e.preventDefault(); oxsMove(0,e.shiftKey?-1:1); return; }
+    if(k==='F2'){ e.preventDefault(); oxsEdit(); return; }
+    if(k==='Delete'||k==='Backspace'){ e.preventDefault(); if(canWrite===false) return; oxsSnap(); const s=OXS.sel, sh=oxsSheet(); for(let r=Math.min(s.r,s.r2);r<=Math.max(s.r,s.r2);r++) for(let c=Math.min(s.c,s.c2);c<=Math.max(s.c,s.c2);c++){ const ref=oxsRef(r,c); const cell=sh.cells[ref]; if(cell?.s) sh.cells[ref]={v:'',s:cell.s}; else delete sh.cells[ref]; } oxsRender(); oxsChanged(); return; }
+    if(!ctl&&k.length===1){ e.preventDefault(); oxsEdit(k); } });
+  w.addEventListener('copy',e=>{ if(!oxsEd) oxsCopy(e); }); w.addEventListener('cut',e=>{ if(!oxsEd) oxsCopy(e,true); }); w.addEventListener('paste',e=>{ if(!oxsEd) oxsPaste(e); });
+  const fb=$('#oxsF'); fb.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); oxsSet(OXS.sel.r,OXS.sel.c,fb.value); oxsChanged(); oxsRender(); oxsMove(1,0); w.focus(); } if(e.key==='Escape'){ oxsBar(); w.focus(); } });
+  $('#oxsName').addEventListener('keydown',e=>{ if(e.key!=='Enter') return; e.preventDefault(); const [a,b]=e.target.value.toUpperCase().split(':'); const A=oxsParseRef(a), B=b?oxsParseRef(b):A; if(A&&B){ OXS.sel={r:A.r,c:A.c,r2:B.r,c2:B.c}; oxsRender(); oxsScroll(); w.focus(); } });
+  $('#oxsTabs').addEventListener('click',async e=>{ const b=e.target.closest('[data-sht]'); if(!b) return; oxsEndEdit(); if(b.dataset.sht==='add'){ oxsSnap(); let n=OXS.sheets.length+1; while(OXS.sheets.some(s=>s.name==='Sheet'+n)) n++; OXS.sheets.push({name:'Sheet'+n,cells:{},cols:{},rh:{},rows:60,colsN:20}); OXS.cur=OXS.sheets.length-1; } else OXS.cur=+b.dataset.sht; OXS.sel={r:0,c:0,r2:0,c2:0}; oxsTabs(); oxsRender(); oxsChanged(); });
+  $('#oxsTabs').addEventListener('dblclick',async e=>{ const b=e.target.closest('[data-sht]'); if(!b||b.dataset.sht==='add') return; const i=+b.dataset.sht; const v=await oxDialog('Sheet',[{label:'Sheet name',value:OXS.sheets[i].name},{label:'Action',options:[['rename','Rename'],['delete','Delete sheet'],['left','Move left'],['right','Move right']],value:'rename'}]); if(!v) return; oxsSnap();
+    const old=OXS.sheets[i].name; if(v[1]==='rename'&&v[0].trim()&&v[0]!==old){ const nn=v[0].trim().slice(0,31).replace(/[\\/?*[\]:]/g,''); for(const s of OXS.sheets) for(const c of Object.values(s.cells)) if(c.f) c.f=c.f.replace(new RegExp(`('?)${old.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\1!`,'gi'),/\s/.test(nn)?`'${nn}'!`:`${nn}!`); OXS.sheets[i].name=nn; }
+    if(v[1]==='delete'){ if(OXS.sheets.length<2) return toast('A workbook needs at least one sheet.'); OXS.sheets.splice(i,1); OXS.cur=0; }
+    if(v[1]==='left'&&i>0){ [OXS.sheets[i-1],OXS.sheets[i]]=[OXS.sheets[i],OXS.sheets[i-1]]; OXS.cur=i-1; } if(v[1]==='right'&&i<OXS.sheets.length-1){ [OXS.sheets[i+1],OXS.sheets[i]]=[OXS.sheets[i],OXS.sheets[i+1]]; OXS.cur=i+1; }
+    oxsTabs(); oxsRender(); oxsChanged(); });
+  el.addEventListener('click',oxsClick); el.addEventListener('change',e=>{ const t=e.target;
+    if(t.id==='oxsNf'){ oxsFormat(s=>{ if(t.value) s.nf=t.value; else delete s.nf; }); } else if(t.id==='oxsSz'){ oxsFormat(s=>{ if(t.value) s.sz=+t.value; else delete s.sz; }); } else if(t.dataset.oxsc){ const k=t.dataset.oxsc; oxsFormat(s=>s[k]=t.value); const bar=t.parentNode.querySelector('.bar'); if(bar) bar.style.background=t.value; } });
+  el.addEventListener('input',e=>{ if(e.target.id==='oxName') oxsChanged(); }); }
+async function oxsClick(e){ const b=e.target.closest('[data-oxa]'); if(!b) return; const a=b.dataset.oxa, v=b.dataset.v; oxsEndEdit();
+  const s=OXS.sel, sh=oxsSheet();
+  if(a==='undo'){ if(oxsHist.length){ oxsFut.push(JSON.stringify(oxsClean())); oxsRestore(oxsHist.pop()); } return; } if(a==='redo'){ if(oxsFut.length){ oxsHist.push(JSON.stringify(oxsClean())); oxsRestore(oxsFut.pop()); } return; }
+  if(a==='b'||a==='i'||a==='u'){ const cur=sh.cells[oxsRef(s.r,s.c)]?.s?.[a]; return oxsFormat(st=>st[a]=!cur); }
+  if(a==='bd'){ const cur=sh.cells[oxsRef(s.r,s.c)]?.s?.bd; return oxsFormat(st=>st.bd=!cur); }
+  if(a==='al'||a==='ac'||a==='ar') return oxsFormat(st=>st.al={al:'left',ac:'center',ar:'right'}[a]);
+  if(a==='wrap') return oxsFormat(st=>st.wr=!st.wr);
+  if(a==='nofill') return oxsFormat((st,cell)=>{ Object.keys(st).forEach(k=>delete st[k]); });
+  if(a.startsWith('nf_')) return oxsFormat(st=>st.nf=a.slice(3));
+  if(a==='filldown') return oxsFillDown(); if(a==='autosum') return oxsAutoSum();
+  if(a==='clear'){ oxsSnap(); for(let r=Math.min(s.r,s.r2);r<=Math.max(s.r,s.r2);r++) for(let c=Math.min(s.c,s.c2);c<=Math.max(s.c,s.c2);c++) delete sh.cells[oxsRef(r,c)]; oxsRender(); return oxsChanged(); }
+  if(a==='ir') return oxsStructural('ir',Math.min(s.r,s.r2)); if(a==='dr') return oxsStructural('dr',Math.min(s.r,s.r2)); if(a==='ic') return oxsStructural('ic',Math.min(s.c,s.c2)); if(a==='dc') return oxsStructural('dc',Math.min(s.c,s.c2));
+  if(a==='fn'){ oxsEdit(`=${v}(`); return; }
+  if(a==='recalc'){ oxsRender(); return toast('Calculated.'); }
+  if(a==='sortA'||a==='sortZ'){ const r1=Math.min(s.r,s.r2),r2=Math.max(s.r,s.r2),c1=Math.min(s.c,s.c2),c2=Math.max(s.c,s.c2); if(r1===r2) return toast('Select the rows to sort first.'); oxsSnap(); const E=OXS._E; const rows=[]; for(let r=r1;r<=r2;r++){ const row=[]; for(let c=c1;c<=c2;c++) row.push(sh.cells[oxsRef(r,c)]); rows.push({row,k:(()=>{ const x=sh.cells[oxsRef(r,s.c)]; return x?(x.f!=null?E.val(sh,r,s.c):x.v):null; })()}); }
+    rows.sort((x,y)=>{ const A=x.k,B=y.k; const res=typeof A==='number'&&typeof B==='number'?A-B:String(A??'').localeCompare(String(B??'')); return a==='sortA'?res:-res; }); rows.forEach((o,i)=>o.row.forEach((cell,j)=>{ const ref=oxsRef(r1+i,c1+j); if(cell) sh.cells[ref]=cell; else delete sh.cells[ref]; })); oxsRender(); return oxsChanged(); }
+  if(a==='tblstyle'){ const r1=Math.min(s.r,s.r2),r2=Math.max(s.r,s.r2),c1=Math.min(s.c,s.c2),c2=Math.max(s.c,s.c2); oxsSnap(); for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++){ const ref=oxsRef(r,c); const cell=sh.cells[ref]||(sh.cells[ref]={v:''}); cell.s={...(cell.s||{}),bd:true,...(r===r1?{b:true,bg:'#107C41',fc:'#FFFFFF',al:'center'}:(r-r1)%2===0?{bg:'#E8F2EC'}:{})}; } oxsRender(); return oxsChanged(); }
+  if(a==='inshead'){ oxsSnap(); const c=company(); sh.cells.A1={v:String(c.name||'').toUpperCase(),s:{b:true,sz:14,fc:'#182340'}}; sh.cells.A2={v:[c.address,c.phone,c.email].filter(Boolean).join(' · '),s:{i:true,fc:'#605E5C'}}; oxsRender(); return oxsChanged(); }
+  if(a==='insboq'){ oxsSnap(); const r0=s.r; const H=['Item','Description','Unit','Qty','Rate (TZS)','Amount (TZS)']; H.forEach((h,j)=>sh.cells[oxsRef(r0,j)]={v:h,s:{b:true,bg:'#182340',fc:'#FFFFFF',al:'center',bd:true}}); for(let i=1;i<=10;i++){ for(let j=0;j<6;j++) sh.cells[oxsRef(r0+i,j)]={v:'',s:{bd:true,...(j>=3?{nf:j===5?'int':'num2'}:{})}}; sh.cells[oxsRef(r0+i,5)]={f:`IF(OR(D${r0+i+1}="",E${r0+i+1}=""),0,D${r0+i+1}*E${r0+i+1})`,s:{bd:true,nf:'int'}}; }
+    sh.cells[oxsRef(r0+11,1)]={v:'TOTAL CARRIED TO SUMMARY',s:{b:true,bg:'#DCEBF8',bd:true}}; sh.cells[oxsRef(r0+11,5)]={f:`SUM(F${r0+2}:F${r0+11})`,s:{b:true,bg:'#DCEBF8',bd:true,nf:'int'}}; sh.cols[1]=sh.cols[1]||300; oxsRender(); return oxsChanged(); }
+  if(a==='zoom'){ $('#oxsGrid').style.zoom=v; return; }
+  if(a==='print') return oxsPrint();
+  if(a==='boqsave') return oxsSaveToBoq();
+  if(a==='save') return oxsSave(); if(a==='download') return oxsDownload();
+  if(a==='close'){ if(OXS.dirty) await oxsSave(true); OXS=null; return oxCloseApp(); } }
+function oxsFile(){ oxBackstage('xlsx',[
+  {k:'info',t:'Info',html:()=>`<h2>Info</h2><p><b>${esc(OXS.title)}</b></p><p style="color:#605E5C">${OXS.id?'Saved in NEXUS':'Not saved yet'}${OXS.boq_id?' · linked to BoQ '+esc(byId('boqs',OXS.boq_id)?.title||''):''}</p><div style="max-width:420px;margin-top:16px"><label style="font-size:12px;color:#605E5C">Linked project</label><select class="ox-sel" style="width:100%;height:32px" id="oxsProj">${projOpts('— none —').map(([v2,l])=>`<option value="${esc(v2)}" ${v2===(OXS.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>`},
+  {k:'new',t:'New',html:()=>`<h2>New</h2><div class="ox-tpl"><button data-bkact="newblank"><div class="th">▦</div><div class="tn">Blank workbook</div></button><button data-bkact="newboqx"><div class="th">📗</div><div class="tn">BoQ from QS Studio</div></button></div>`},
+  {k:'open',t:'Open',html:()=>`<h2>Open</h2><p><button class="ox-b" style="border:1px solid #8A8886;height:32px;padding:0 14px" data-bkact="openpc">📂 Browse this PC (.xlsx)</button></p><div style="margin-top:14px">${oxDocs().filter(d=>d.type==='xlsx').sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))).slice(0,20).map(d=>`<div data-bkact="opendoc" data-id="${esc(d.id)}" style="display:flex;gap:10px;align-items:center;padding:8px;cursor:pointer;border-bottom:1px solid #EDEBE9">${oxIco('xlsx',22)}<div style="flex:1">${esc(d.title)}<div style="font-size:11.5px;color:#605E5C">${esc(d.updated_by||'')} · ${fmtDT(d.updated_at)}</div></div></div>`).join('')||'<p style="color:#605E5C">No workbooks yet.</p>'}</div>`},
+  {k:'save',t:'Save'},{k:'download',t:'Download (.xlsx)'},{k:'print',t:'Print / Save as PDF'},{k:'close',t:'Close'}],
+  async (k,ds)=>{ if(k==='save') return oxsSave(); if(k==='download') return oxsDownload(); if(k==='print') return oxsPrint(); if(k==='close') return oxsClick({target:{closest:()=>({dataset:{oxa:'close'}})}});
+    if(k==='newblank') return oxsOpen({title:'Book1',sheets:[{name:'Sheet1',cells:{}}]}); if(k==='newboqx'){ const v=await oxDialog('Open a BoQ',[{label:'BoQ',options:S.boqs.map(b=>[b.id,b.title])}],'Open'); if(v&&v[0]) return oxsOpenBoq(byId('boqs',v[0])); return; }
+    if(k==='openpc') return oxPickFile('.xlsx,.xlsm,.xls,.csv',f=>oxImportFile(f)); if(k==='opendoc') return oxOpenDoc(ds.id); });
+  document.getElementById('oxBB')?.addEventListener('change',e=>{ if(e.target.id==='oxsProj'){ OXS.project_id=e.target.value; oxsChanged(); } }); }
+function oxsPrint(){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; } const sh=oxsSheet(), E=OXS._E; let maxR=0,maxC=0; for(const ref of Object.keys(sh.cells)){ const p=oxsParseRef(ref); maxR=Math.max(maxR,p.r); maxC=Math.max(maxC,p.c); }
+  let h=`<table>`; for(let r=0;r<=maxR;r++){ h+='<tr>'; for(let c=0;c<=maxC;c++){ const cell=sh.cells[oxsRef(r,c)]; const v=cell?(cell.f!=null?E.val(sh,r,c):cell.v):''; const s=cell?.s||{}; h+=`<td style="${s.b?'font-weight:700;':''}${s.bg?`background:${s.bg};`:''}${s.fc?`color:${s.fc};`:''}${s.bd?'border:1px solid #000;':''}text-align:${s.al||(typeof v==='number'?'right':'left')}">${esc(oxsFmt(v,s.nf))}</td>`; } h+='</tr>'; }
+  w.document.write(`<!doctype html><html><head><title>${esc(OXS.title)}</title><style>@page{size:A4 landscape;margin:12mm}body{font:10pt Calibri,Arial}table{border-collapse:collapse}td{padding:2px 5px;white-space:nowrap}</style></head><body><h3>${esc(OXS.title)} – ${esc(sh.name)}</h3>${h}</table></body></html>`); w.document.close(); setTimeout(()=>{ w.focus(); w.print(); },400); }
+/* ----- export to a real .xlsx (styles, formulas, cached values, widths) ----- */
+function oxsToXlsx(){ const E=oxsCalc(); OXS._E=E; const styles=[], key=new Map(); const sid=s=>{ if(!s||!Object.keys(s).length) return 0; const k=JSON.stringify(s); if(!key.has(k)){ key.set(k,styles.length+1); styles.push(s); } return key.get(k); };
+  const hex=c=>'FF'+String(c||'').replace('#','').toUpperCase().padEnd(6,'0').slice(0,6);
+  const nfId={num2:4,int:3,pct:10,tzs:164,date:14,pctn:165};
+  const sheetsX=OXS.sheets.map(sh=>{ let maxR=0,maxC=0; const rows={}; for(const [ref,cell] of Object.entries(sh.cells)){ const p=oxsParseRef(ref); if(!p) continue; maxR=Math.max(maxR,p.r); maxC=Math.max(maxC,p.c); (rows[p.r]=rows[p.r]||[]).push([p.c,ref,cell]); }
+    const data=Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r+1}"${sh.rh?.[r]?` ht="${sh.rh[r]*.75}" customHeight="1"`:''}>${rows[r].sort((a,b)=>a[0]-b[0]).map(([c,ref,cell])=>{ const s=sid(cell.s); const st=s?` s="${s}"`:'';
+      if(cell.f!=null){ const v=E.val(sh,oxsParseRef(ref).r,c); const cv=typeof v==='number'&&isFinite(v)?`<v>${v}</v>`:typeof v==='boolean'?`<v>${v?1:0}</v>`:(typeof v==='string'&&!OXS_ERR(v))?`<v>${oxX(v)}</v>`:''; const t=typeof v==='string'&&!OXS_ERR(v)?' t="str"':typeof v==='boolean'?' t="b"':''; return `<c r="${ref}"${st}${t}><f>${oxX(cell.f)}</f>${cv}</c>`; }
+      const v=cell.v; if(v==null||v==='') return s?`<c r="${ref}"${st}/>`:''; if(typeof v==='number') return `<c r="${ref}"${st}><v>${v}</v></c>`; if(typeof v==='boolean') return `<c r="${ref}"${st} t="b"><v>${v?1:0}</v></c>`;
+      return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${oxX(v)}</t></is></c>`; }).join('')}</row>`).join('');
+    const cols=Array.from({length:maxC+1},(_,c)=>`<col min="${c+1}" max="${c+1}" width="${((sh.cols?.[c]||(c===1?260:88))/7).toFixed(2)}" customWidth="1"/>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${oxsRef(maxR,maxC)}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols?`<cols>${cols}</cols>`:''}<sheetData>${data}</sheetData><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`; });
+  const fonts=['<font><sz val="11"/><name val="Calibri"/></font>'], fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>'];
+  styles.forEach(s=>{ fonts.push(`<font>${s.b?'<b/>':''}${s.i?'<i/>':''}${s.u?'<u/>':''}<sz val="${s.sz||11}"/>${s.fc?`<color rgb="${hex(s.fc)}"/>`:''}<name val="Calibri"/></font>`); let fi=0; if(s.bg){ fills.push(`<fill><patternFill patternType="solid"><fgColor rgb="${hex(s.bg)}"/><bgColor indexed="64"/></patternFill></fill>`); fi=fills.length-1; }
+    const al=s.al||s.wr?`<alignment${s.al?` horizontal="${s.al}"`:''}${s.wr?' wrapText="1"':''} vertical="top"/>`:'';
+    xfs.push(`<xf numFmtId="${nfId[s.nf]||0}" fontId="${fonts.length-1}" fillId="${fi}" borderId="${s.bd?1:0}" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"${al?' applyAlignment="1">'+al+'</xf>':'/>'}`); });
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;TZS &quot;#,##0"/><numFmt numFmtId="165" formatCode="0.00&quot;%&quot;"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="2"><border/><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom></border></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const f={}; const n=sheetsX.length;
+  f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheetsX.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+  f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  f['xl/_rels/workbook.xml.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheetsX.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${n+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  f['xl/workbook.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="${OXS.cur}"/></bookViews><sheets>${OXS.sheets.map((s,i)=>`<sheet name="${oxX(s.name.slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+  f['xl/styles.xml']=stylesXml; sheetsX.forEach((x,i)=>f[`xl/worksheets/sheet${i+1}.xml`]=x); return oxZip(f); }
+async function oxsDownload(){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } oxsEndEdit(); if(await oxSave(OXS.title||'Book1',oxsToXlsx(),'xlsx')) logAct(`Downloaded Excel workbook "${OXS.title}"`); }
+/* ----- import from SheetJS workbook (files from the PC) ----- */
+function oxsFromSheetJS(wb){ const nf=z=>!z||z==='General'?undefined:/%/.test(z)?(/0\.0/.test(z)?'pct':'pct'):/TZS/.test(z)?'tzs':/0\.00/.test(z)?'num2':/#,##0/.test(z)?'int':/[dmy]/i.test(z)?'date':undefined;
+  return wb.SheetNames.filter(n=>wb.Sheets[n]&&(wb.Workbook?.Sheets?.find(s=>s.name===n)?.Hidden||0)===0).map(n=>{ const ws=wb.Sheets[n], cells={}; const rg=ws['!ref']?XLSX.utils.decode_range(ws['!ref']):{e:{r:0,c:0}};
+    for(const [ref,c] of Object.entries(ws)){ if(ref[0]==='!') continue; const s={}; const f=nf(c.z); if(f) s.nf=f; const cell=c.f?{f:c.f.replace(/^=/,'')}:{v:c.t==='n'?c.v:c.t==='b'?c.v:c.t==='d'?c.v:(c.w??c.v??'')}; if(c.t==='d'&&c.v instanceof Date){ cell.v=c.v.getTime()/864e5+25569; s.nf='date'; } if(Object.keys(s).length) cell.s=s; cells[ref]=cell; }
+    const cols={}; (ws['!cols']||[]).forEach((c,i)=>{ if(c&&(c.wpx||c.wch)) cols[i]=Math.round(c.wpx||c.wch*7.5); });
+    return {name:n.slice(0,31),cells,cols,rows:Math.max(60,rg.e.r+30),colsN:Math.max(20,rg.e.c+5)}; }); }
+/* ----- BoQ ↔ workbook ----- */
+function oxsOpenBoq(b){ if(!b) return; const wb=XLSX.read(boqToXlsx(b),{type:'array',cellFormula:true,cellNF:true}); const sheets=oxsFromSheetJS(wb);
+  const hdr={b:true,bg:'#182340',fc:'#FFFFFF',al:'center',bd:true}, tot={b:true,bg:'#DCEBF8',bd:true};
+  sheets.forEach(sh=>{ const isBill=/^bill/i.test(sh.name); sh.cols=isBill?{0:56,1:420,2:56,3:80,4:105,5:125}:sh.name==='Summary'?{0:56,1:400,2:100,3:140}:{0:40,1:44,2:380,3:50,4:70,5:90,6:80,7:300};
+    for(const [ref,c] of Object.entries(sh.cells)){ const p=oxsParseRef(ref); const txt=String(c.v??''); c.s=c.s||{};
+      if(p.r===0){ c.s.b=true; c.s.sz=14; c.s.fc='#182340'; } if(isBill&&p.r===2||sh.name==='Summary'&&p.r===4||sh.name==='Pricing basis'&&p.r===2) Object.assign(c.s,hdr);
+      else if(p.r>2&&(isBill||sh.name==='Summary')) c.s.bd=true;
+      if(/^TOTAL CARRIED|^SUB-TOTAL|^GRAND TOTAL/.test(txt)){ for(let j=0;j<(isBill?6:4);j++){ const rr=oxsRef(p.r,j); sh.cells[rr]=sh.cells[rr]||{v:''}; sh.cells[rr].s={...(sh.cells[rr].s||{}),...tot}; } }
+      if(isBill&&p.r>2&&(p.c===3||p.c===4)) c.s.nf='num2'; if(p.r>2&&((isBill&&p.c===5)||(sh.name==='Summary'&&p.c===3))) c.s.nf='int'; if(isBill&&p.r>2&&(p.c===0||p.c===2)) c.s.al='center'; } });
+  oxsOpen({title:b.title+' (BoQ)',sheets,boq_id:b.id,project_id:b.project_id||''}); }
+async function oxsSaveToBoq(){ const b=byId('boqs',OXS.boq_id); if(!b) return toast('The linked BoQ no longer exists.'); try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const wb=XLSX.read(oxsToXlsx(),{type:'array'}); const r=boqFromWorkbook(wb,b); if(r.error) return toast(r.error);
+  const t0=boqTotals(b), t1=boqTotals({...b,bills:r.bills,contingency:r.contingency,vat:r.vat});
+  const ok=await oxDialog(`Save to BoQ "${b.title}"?`,[{label:`${r.bills.length} bills · ${r.items} items · ${r.changed} changed · ${r.added} new · ${r.removed} removed`,value:`Grand total ${tzs(t0.grand)} → ${tzs(t1.grand)}`}],'Save to BoQ'); if(!ok) return;
+  await patch('boqs',b.id,{bills:r.bills,contingency:r.contingency,vat:r.vat,before_excel:{bills:b.bills||[],contingency:b.contingency??'',vat:b.vat??18,at:new Date().toISOString()},excel_at:new Date().toISOString(),excel_by:me.name||''});
+  await oxsSave(true); logAct(`Updated BoQ "${b.title}" from NEXUS Excel`); toast('BoQ updated – the previous version is kept (Undo in QS Studio).'); }
+
+/* ---------------- NEXUS Office start page (Microsoft 365 style) ---------------- */
+const OXH_CSS=`
+.oxh{display:flex;gap:0;background:#fff;border:1px solid #E1DFDD;border-radius:6px;overflow:hidden;min-height:70vh;color:#252423;font:14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
+.oxh-rail{width:68px;background:#F3F2F1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:14px;border-right:1px solid #E1DFDD;flex:none}
+.oxh-rail button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;font:11px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#323130;cursor:pointer;padding:4px}
+.oxh-rail button:hover .oxi,.oxh-rail button:hover .ic{transform:scale(1.06)}
+.oxh-rail .ic{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:17px;background:#fff;border:1px solid #E1DFDD}
+.oxh-main{flex:1;padding:22px 28px;min-width:0}
+.oxh h1{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;font:600 24px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin:0 0 4px;color:#252423;text-transform:none;letter-spacing:0}
+.oxh .sub{color:#605E5C;font-size:13px}
+.oxh-new{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0 8px}
+.oxh-new button{width:132px;border:1px solid #E1DFDD;background:#fff;border-radius:6px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:#252423}
+.oxh-new button:hover{box-shadow:0 3px 10px rgba(0,0,0,.14);border-color:#C8C6C4}
+.oxh-new .th{height:96px;display:flex;align-items:center;justify-content:center;background:#FAF9F8;border-bottom:1px solid #EDEBE9;position:relative}
+.oxh-new .th .pg{width:58px;height:74px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font-size:24px}
+.oxh-new .tn{padding:7px 9px;font-size:12.5px;line-height:1.25}
+.oxh-new .tn small{display:block;color:#605E5C;font-size:11px}
+.oxh-sec{display:flex;align-items:center;gap:14px;margin:22px 0 8px}.oxh-sec h2{font:600 16px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin:0;color:#252423;text-transform:none;letter-spacing:0}
+.oxh-sec .fl button{background:none;border:0;padding:4px 10px;cursor:pointer;border-radius:14px;color:#323130}.oxh-sec .fl button.on{background:#EDEBE9;font-weight:600}
+.oxh-sec input{background:#fff!important;color:#252423!important;margin-left:auto;height:32px;border:1px solid #C8C6C4;border-radius:4px;padding:0 10px;width:min(280px,40vw);font:inherit}
+.oxh-list{width:100%;border-collapse:collapse}.oxh-list th{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;text-align:left;font:600 12px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#605E5C;padding:8px;border-bottom:1px solid #EDEBE9;position:static;background:none;text-transform:none;letter-spacing:0}
+.oxh-list td{padding:9px 8px;border-bottom:1px solid #F3F2F1;font-size:13.5px}.oxh-list tr.r{cursor:pointer}.oxh-list tr.r:hover td{background:#F3F2F1}
+.oxh-list .nm{display:flex;align-items:center;gap:10px}
+.oxh-list .act button{background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:3px;color:#323130}.oxh-list .act button:hover{background:#E1DFDD}
+@media (max-width:700px){.oxh-rail{display:none}.oxh-main{padding:14px}.oxh-list .hm{display:none}.oxh-new button{width:calc(50% - 7px)}}
+`;
+function pageOffice(){
+  if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
+  const f=UI.oxf||'all', q=(UI.oxq||'').toLowerCase();
+  const list=oxDocs().filter(d=>(f==='all'||d.type===f||(f==='mine'&&d.owner_uid===me.id))&&(!q||(d.title||'').toLowerCase().includes(q)||projName(d.project_id).toLowerCase().includes(q))).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
+  const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const tile=(act,type,pg,t,s,extra='')=>`<button data-oxh="${act}" ${extra}><div class="th"><div class="pg" style="${type?`border-top:4px solid ${OXA[type].color}`:''}">${pg}</div></div><div class="tn">${t}${s?`<small>${s}</small>`:''}</div></button>`;
+  return `<div class="oxh"><div class="oxh-rail"><button data-oxh="home"><span class="ic">⌂</span>Home</button><button data-oxh="newdoc">${oxIco('docx')}Word</button><button data-oxh="newxls">${oxIco('xlsx')}Excel</button><button data-oxh="openpc"><span class="ic">📂</span>Open</button><button data-go="records"><span class="ic">🗄</span>Records</button></div>
+  <div class="oxh-main"><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">Create and edit Word documents and Excel workbooks here in NEXUS. Everything is saved in NEXUS – use <b>Download</b> to get a real .docx / .xlsx for use outside.</div>
+   <div class="oxh-new">
+    ${tile('newdoc','docx',oxIco('docx',30),'Blank document','Word')}
+    ${tile('newlh','docx','🏢','Nordic letter','Word · letterhead')}
+    ${OX_TEMPLATES.filter(t=>t.k!=='blank').map(t=>tile('tpl','docx',t.ico,esc(t.t),'Word template',`data-k="${t.k}"`)).join('')}
+    ${tile('newxls','xlsx',oxIco('xlsx',30),'Blank workbook','Excel')}
+    ${tile('boqx','xlsx','📗','BoQ in Excel','Excel · from QS Studio')}
+    ${tile('pptsoon','pptx',oxIco('pptx',30),'Blank presentation','PowerPoint · next update')}
+   </div>
+   <div class="oxh-sec"><h2>Recent</h2><div class="fl">${[['all','All'],['docx','Word'],['xlsx','Excel'],['mine','Mine']].map(([k,l])=>`<button data-oxf="${k}" class="${f===k?'on':''}">${l}</button>`).join('')}</div><input id="oxq" type="search" placeholder="Search documents" value="${esc(UI.oxq||'')}"></div>
+   <table class="oxh-list"><thead><tr><th>Name</th><th class="hm">Project</th><th class="hm">Modified</th><th class="hm">Owner</th><th></th></tr></thead><tbody>
+   ${list.length?list.slice(0,60).map(d=>`<tr class="r" data-oxopen="${esc(d.id)}"><td><div class="nm">${oxIco(d.type,24)}<span>${esc(d.title||'Untitled')}</span></div></td><td class="hm">${d.project_id?esc(projName(d.project_id)):''}${d.boq_id?' · 🔗 BoQ':''}</td><td class="hm">${fmtDT(d.updated_at)}</td><td class="hm">${esc(d.owner||d.updated_by||'')}</td><td class="act"><button data-oxdl="${esc(d.id)}" title="Download">${OXSVG.dl}</button>${isAdmin||d.owner_uid===me.id?`<button data-oxdel="${esc(d.id)}" title="Delete">🗑</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5" style="color:#605E5C;padding:22px 8px">No documents yet – create one above or open a file from your PC.</td></tr>`}
+   </tbody></table></div></div>`;
+}
+document.addEventListener('click',async e=>{ const t=e.target.closest('[data-oxh],[data-oxf],[data-oxopen],[data-oxdl],[data-oxdel]'); if(!t||route!=='office') return; e.stopPropagation();
+  if(t.dataset.oxdl){ e.stopPropagation(); const d=byId('officedocs',t.dataset.oxdl); if(!d) return; try{ await loadScript(XLSX_URL); }catch(_){}
+    if(d.type==='xlsx'){ OXS={...d,sheets:d.sheets,cur:0}; const data=oxsToXlsx(); OXS=null; await oxSave(d.title,data,'xlsx'); }
+    else { const host=document.createElement('div'); host.style.cssText='position:fixed;left:-9999px;top:0;width:'+(d.orient==='l'?1123:794)+'px'; host.className='oxw-page'; host.innerHTML=d.html||''; document.body.appendChild(host); await new Promise(r=>setTimeout(r,60)); const data=oxHtmlToDocx(host,{landscape:d.orient==='l',margin:OXW_MARG[d.margin||'Normal']||96}); host.remove(); await oxSave(d.title,data,'docx'); } return; }
+  if(t.dataset.oxdel){ const d=byId('officedocs',t.dataset.oxdel); if(d&&await confirmBox(`Delete "${d.title}" for everyone?`,'Delete',true)){ if(await remove('officedocs',d.id)){ logAct(`Deleted document "${d.title}"`); toast('Deleted.'); } } return; }
+  if(t.dataset.oxopen) return oxOpenDoc(t.dataset.oxopen);
+  if(t.dataset.oxf){ UI.oxf=t.dataset.oxf; return renderView(true); }
+  const a=t.dataset.oxh; try{ await loadScript(XLSX_URL); }catch(_){}
+  if(a==='newdoc') return oxwOpen({title:'Document',html:'<p><br></p>'});
+  if(a==='newlh') return oxwOpen({title:'Letter',html:oxwLetterheadHtml()+'<p><br></p>'});
+  if(a==='tpl') return oxwFromTemplate(t.dataset.k);
+  if(a==='newxls') return oxsOpen({title:'Book1',sheets:[{name:'Sheet1',cells:{}}]});
+  if(a==='openpc') return oxPickFile('.docx,.xlsx,.xlsm,.xls,.csv',f=>oxImportFile(f));
+  if(a==='boqx'){ if(!S.boqs.length) return toast('No BoQs yet – create one in QS Studio.'); oxEnsureCss(); const tmp=document.createElement('div'); tmp.id='oxApp'; tmp.style.cssText='position:fixed;inset:0;z-index:300;background:transparent'; tmp.style.setProperty('--oxc','#107C41'); document.body.appendChild(tmp);
+    const v=await oxDialog('Open a BoQ in Excel',[{label:'Bill of Quantities',options:[...S.boqs].sort((x,y)=>String(y.updated_at||'').localeCompare(String(x.updated_at||''))).map(b=>[b.id,b.title])}],'Open'); tmp.remove(); if(v&&v[0]) oxsOpenBoq(byId('boqs',v[0])); return; }
+  if(a==='pptsoon') return toast('PowerPoint is coming in the next update.');
+},true);
+document.addEventListener('input',e=>{ if(e.target.id==='oxq'){ UI.oxq=e.target.value; renderView(true); } });
+
 
 /* ===================== FORM DRAWERS ===================== */
 function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
