@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=98"></script>
+<script src="config.js?v=99"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=98"></script>
-<script src="nexus-chat.js?v=98"></script>
+<script src="nexus-sb.js?v=99"></script>
+<script src="nexus-chat.js?v=99"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5271,16 +5271,22 @@ const DH_CATS=[
     ['Daily News','https://dailynews.co.tz','#0D47A1','DN'],['The Citizen','https://www.thecitizen.co.tz','#B71C1C','TC'],['Mwananchi','https://www.mwananchi.co.tz','#C62828','MW'],
     ['BBC Swahili','https://www.bbc.com/swahili','#BB1919','BBC'],['BBC News','https://www.bbc.com/news','#BB1919','BBC']]}];
 const DH_CSS=`
-.dh{max-width:1180px;margin:0 auto}
-.dh-hero{border-radius:18px;padding:26px 22px 20px;background:linear-gradient(135deg,var(--accent) 0%,color-mix(in srgb,var(--accent) 55%,#0b1b2b) 100%);color:#fff;box-shadow:var(--shadow);margin-bottom:18px}
-.dh-hero h2{margin:0 0 4px;font-size:22px;letter-spacing:.2px}.dh-hero p{margin:0 0 14px;opacity:.85;font-size:13px}
-.dh-box{display:flex;gap:8px;background:#fff;border-radius:14px;padding:6px;align-items:center}
-.dh-box input{flex:1;border:0;outline:0;font-size:16px;padding:10px 12px;color:#111;background:transparent;min-width:0}
-.dh-box button{border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;white-space:nowrap}
-.dh-box .dh-go2{background:#eef1f5;color:#223}
-.dh-eng{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
-.dh-eng button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
-.dh-eng button.on{background:#fff;color:var(--accent-ink,#123);border-color:#fff;font-weight:600}
+.dh{max-width:1180px;margin:0 auto;min-width:0;width:100%;box-sizing:border-box;overflow-x:clip}
+.dh-hero{padding:6px 0 4px;margin-bottom:6px}
+.dh-box{display:flex;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,.10);padding:5px 5px 5px 6px;max-width:860px;width:100%;box-sizing:border-box;margin:0 auto;transition:box-shadow .15s,border-color .15s}
+.dh-box:focus-within{border-color:var(--accent);box-shadow:0 8px 26px rgba(0,0,0,.16)}
+.dh-eng{position:relative;flex:none;display:flex;align-items:center}
+.dh-eng select{appearance:none;-webkit-appearance:none;border:0;outline:0;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink);font-weight:600;font-size:13.5px;border-radius:999px;padding:9px 30px 9px 14px;cursor:pointer}
+.dh-eng::after{content:'';position:absolute;right:13px;top:50%;width:6px;height:6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.dh-eng select option{color:#111;background:#fff}
+.dh-mag{flex:none;width:34px;display:grid;place-items:center;color:var(--muted)}.dh-mag svg{width:18px;height:18px}
+.dh-box input{flex:1 1 auto;width:0;border:0;outline:0;font-size:16px;padding:10px 4px;color:var(--ink);background:transparent;min-width:0}
+.dh-box input::-webkit-search-cancel-button{cursor:pointer}
+.dh-go{flex:none;border:0;border-radius:999px;width:44px;height:44px;display:grid;place-items:center;cursor:pointer;background:var(--accent);color:#fff}.dh-go svg{width:20px;height:20px}
+.dh-rec{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;max-width:860px;margin:12px auto 0;font-size:12.5px;color:var(--muted)}
+.dh-rec a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--panel);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dh-rec a:hover{border-color:var(--accent)}.dh-rec button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12.5px;text-decoration:underline}
+.dh-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:22px 0 4px}
 .dh-sec{margin:20px 0 6px}.dh-sec .hdx{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .dh-sec h3{margin:0;font-size:15px}.dh-sec .hdx .sp{flex:1}
 .dh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
@@ -5293,10 +5299,8 @@ const DH_CSS=`
 .dh-st{position:absolute;top:4px;right:6px;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer;opacity:0;padding:2px}
 .dh-t:hover .dh-st,.dh-st.on{opacity:1}.dh-st.on{color:#F5B301}
 .dh-x{position:absolute;top:4px;left:6px;border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px}
-.dh-recent{display:flex;gap:6px;flex-wrap:wrap}.dh-recent a{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--ink);text-decoration:none;background:var(--panel)}
 .dh-note{font-size:12px;color:var(--muted);margin:18px 0 6px}
-.dh-empty{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:14px}
-@media (max-width:600px){.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dh-t{padding:10px 3px 9px;border-radius:12px}.dh-ic{width:40px;height:40px;border-radius:11px;font-size:13px}.dh-ic.sm{font-size:10px}.dh-n{font-size:11px}.dh-st{opacity:1;font-size:13px;top:1px;right:3px}.dh-hero h2{font-size:19px}.dh-box input{font-size:15px}.dh-hero{padding:18px 14px}.dh-box .dh-go2{display:none}}`;
+@media (max-width:600px){.dh-eng select{padding:9px 26px 9px 11px;font-size:13px;max-width:112px}.dh-eng::after{right:11px}.dh-mag{display:none}.dh-box input{padding-left:10px}.dh-go{width:40px;height:40px}.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dh-t{padding:10px 3px 9px;border-radius:12px}.dh-ic{width:40px;height:40px;border-radius:11px;font-size:13px}.dh-ic.sm{font-size:10px}.dh-n{font-size:11px}.dh-st{opacity:1;font-size:13px;top:1px;right:3px}.dh-hero h2{font-size:19px}.dh-box input{font-size:15px}.dh-hero{padding:18px 14px}.dh-box .dh-go2{display:none}}`;
 const dhKey=k=>'nx_hub_'+k+'_'+(me&&me.id||'x');
 const dhGet=k=>{ try{ return JSON.parse(localStorage.getItem(dhKey(k))||'[]'); }catch(_){ return []; } };
 const dhSet=(k,v)=>{ try{ localStorage.setItem(dhKey(k),JSON.stringify(v)); }catch(_){} };
@@ -5332,22 +5336,27 @@ function pageHub(){
   const eng=UI.dheng||'google', all=dhAll(), favs=dhGet('fav').map(u=>all.find(x=>x.url===u)).filter(Boolean), mine=dhGet('mine'), rec=dhGet('recent'), co=dhCompany();
   const coTiles=co.map(x=>({n:x.n,url:x.url,...dhMark(x.n,x.url,'#0B3D5C')}));
   const sec=(k,t,body,btn='')=>`<div class="dh-sec" data-dhsec="${k}"><div class="hdx"><h3>${t}</h3><div class="sp"></div>${btn}</div>${body}</div>`;
+  const engO=DH_ENGINES.find(e=>e[0]===eng)||DH_ENGINES[0];
   return `<div class="dh">
-  <div class="dh-hero"><h2>Digital Hub</h2><p>Search the web, open a website, or jump to social networks and the portals we use every day.</p>
-    <form class="dh-box" data-dhform="1" autocomplete="off"><input id="dhq" type="search" placeholder="Search ${esc((DH_ENGINES.find(e=>e[0]===eng)||DH_ENGINES[0])[1])} or type a web address (e.g. nest.go.tz)" aria-label="Search or web address" enterkeyhint="go">
-      <button type="submit">Search</button><button type="button" class="dh-go2" data-dhgo="1" title="Open as a website">Open site</button></form>
-    <div class="dh-eng">${DH_ENGINES.map(e=>`<button type="button" data-dheng="${e[0]}" class="${e[0]===eng?'on':''}">${e[1]}</button>`).join('')}</div></div>
-  ${rec.length?`<div class="dh-sec"><div class="hdx"><h3>Recently opened</h3><div class="sp"></div><button class="btn sm" data-dhclear="1">Clear</button></div><div class="dh-recent">${rec.map(x=>`<a href="${esc(x.url)}" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}">${esc(x.n)}</a>`).join('')}</div></div>`:''}
-  ${sec('fav','★ My favourites',favs.length?`<div class="dh-grid">${favs.map(x=>dhTile(x)).join('')}</div>`:'<div class="dh-empty">Tap the ☆ on any tile to pin it here.</div>')}
-  ${sec('co',`${esc(company().name||'Company')} online`,coTiles.length?`<div class="dh-grid">${coTiles.map(x=>dhTile(x)).join('')}</div>`:`<div class="dh-empty">${isAdmin?'Add the company’s Facebook, LinkedIn, Instagram, website and other pages so everyone can find them here.':'The administrator has not added the company’s pages yet.'}</div>`,isAdmin?'<button class="btn sm" data-dhco="1">Edit company pages</button>':'')}
-  ${sec('mine','My links',mine.length?`<div class="dh-grid">${mine.map(x=>dhTile({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')},{del:1})).join('')}</div>`:'<div class="dh-empty">Add websites you use often – only you see them (saved on this device).</div>','<button class="btn sm" data-dhadd="1">+ Add link</button>')}
+  <div class="dh-hero">
+    <form class="dh-box" data-dhform="1" autocomplete="off" role="search">
+      <label class="dh-eng" title="Search with"><select id="dheng" aria-label="Search engine">${DH_ENGINES.map(e=>`<option value="${e[0]}" ${e[0]===eng?'selected':''}>${e[1]}</option>`).join('')}</select></label>
+      <span class="dh-mag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
+      <input id="dhq" type="search" placeholder="Search ${esc(engO[1])} or type a web address" aria-label="Search or web address" enterkeyhint="go">
+      <button type="submit" class="dh-go" title="Search / open" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
+    ${rec.length?`<div class="dh-rec"><span>Recent:</span>${rec.slice(0,6).map(x=>`<a href="${esc(x.url)}" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}" title="${esc(x.n)}">${esc(x.n)}</a>`).join('')}<button type="button" data-dhclear="1">clear</button></div>`:''}</div>
+  ${favs.length?sec('fav','★ My favourites',`<div class="dh-grid">${favs.map(x=>dhTile(x)).join('')}</div>`):''}
+  ${coTiles.length?sec('co',`${esc(company().name||'Company')} online`,`<div class="dh-grid">${coTiles.map(x=>dhTile(x)).join('')}</div>`):''}
+  ${mine.length?sec('mine','My links',`<div class="dh-grid">${mine.map(x=>dhTile({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')},{del:1})).join('')}</div>`):''}
   ${DH_CATS.map(c=>sec(c.k,c.t,`<div class="dh-grid">${c.items.map(i=>dhTile({n:i[0],url:i[1],c:i[2],m:i[3]})).join('')}</div>`)).join('')}
-  <div class="dh-note">Websites open inside NEXUS: in the phone app on their own screen (✕ returns to NEXUS), on the computer in a NEXUS web window. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
+  <div class="dh-foot"><button class="btn sm" data-dhadd="1">+ Add my link</button>${isAdmin?'<button class="btn sm" data-dhco="1">Edit company pages</button>':''}</div>
+  <div class="dh-note">Tap ☆ on a tile to pin it to My favourites. Websites open inside NEXUS: in the phone app on their own screen (✕ returns to NEXUS), on the computer in a NEXUS web window. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
 }
 function dhSubmit(asSite){ const i=document.getElementById('dhq'); const s=(i&&i.value||'').trim(); if(!s) return i&&i.focus();
   if(asSite||dhUrlLike(s)){ const u=dhHttps(s); if(u) return dhOpen(u,dhHost(u)); if(asSite) return toast('That does not look like a web address.'); }
   const e=DH_ENGINES.find(x=>x[0]===(UI.dheng||'google'))||DH_ENGINES[0]; dhOpen(e[2]+encodeURIComponent(s),e[1]+': '+s.slice(0,40)); }
 document.addEventListener('click',e=>{ if(e.target.closest('#hubBtn')){ go('hub'); setTimeout(()=>document.getElementById('dhq')?.focus(),120); } });
+document.addEventListener('change',e=>{ if(e.target.id==='dheng'){ UI.dheng=e.target.value; const o=DH_ENGINES.find(x=>x[0]===UI.dheng)||DH_ENGINES[0], i=document.getElementById('dhq'); if(i){ i.placeholder='Search '+o[1]+' or type a web address'; i.focus(); } } });
 document.addEventListener('submit',e=>{ if(e.target.closest&&e.target.closest('[data-dhform]')){ e.preventDefault(); dhSubmit(false); } });
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('.dh-t')&&!e.target.closest('button')){ const t=e.target.closest('.dh-t'); dhOpen(t.dataset.dhopen,t.dataset.dhname); } });
 document.addEventListener('click',async e=>{
