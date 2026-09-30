@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=90"></script>
+<script src="config.js?v=91"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=90"></script>
-<script src="nexus-chat.js?v=90"></script>
+<script src="nexus-sb.js?v=91"></script>
+<script src="nexus-chat.js?v=91"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -93,7 +93,11 @@ a{color:var(--blue)}
 .iconbtn{all:unset;cursor:pointer;position:relative;width:36px;height:36px;display:grid;place-items:center;border-radius:6px;border:1px solid var(--line);background:var(--panel)}
 .iconbtn svg{width:18px;height:18px}
 .iconbtn .dot{position:absolute;top:-5px;right:-5px;background:var(--bad);color:#fff;font:600 10px/16px var(--f-mono);min-width:16px;height:16px;border-radius:8px;text-align:center;padding:0 4px}
-.who{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.who{display:flex;align-items:center;gap:8px;font-size:12.5px;position:relative}
+.who-bdg{position:absolute;left:20px;top:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#D13438;color:#fff;font:700 11px/18px system-ui,Arial,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bg,#0B1B33);animation:whoPulse 1.8s ease-in-out infinite;pointer-events:none}
+.who-alert .av{outline:2px solid #D13438;outline-offset:1px}
+@keyframes whoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.pend-card{border:2px solid #F2A900!important}.pend-card h2{color:#B7791F}
 .myph{width:132px;height:132px;margin:0 auto;border-radius:50%;overflow:hidden;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:var(--muted)}.myph img{width:100%;height:100%;object-fit:cover}
 .av{width:32px;height:32px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-weight:600;font-size:12px;overflow:hidden;flex:none}
 .av img{width:100%;height:100%;object-fit:cover}
@@ -2035,9 +2039,15 @@ function avatarFor(email){ const e=lcE(email); return e?S.avatars.find(a=>lcE(a.
 function pickPhoto(a,s){ const at=a&&a.photo?Date.parse(a.at||0)||0:-1, st=s&&s.photo?Date.parse(s.photo_at||0)||0:-1; return at<0&&st<0?'':(at>=st?a.photo:s.photo); }
 const staffPhotoRef=s=>pickPhoto((s.uid&&S.avatars.find(a=>a.id===s.uid))||avatarFor(s.email),s);
 const myPhotoRef=()=>pickPhoto(S.avatars.find(a=>a.id===me.id),S.staff.find(isMyStaff));
-function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhotoRef(); const h=r?photoTag(r).replace(' data-zoom',''):esc(initials(me.name||'You')); if(el.__h!==h){ el.innerHTML=h; el.__h=h; } }
+function renderMe(){ const el=$('#meAv'); if(!el||!me.id) return; const r=myPhotoRef(); const h=r?photoTag(r).replace(' data-zoom',''):esc(initials(me.name||'You')); if(el.__h!==h){ el.innerHTML=h; el.__h=h; }
+  // administrators (MD): logins waiting for approval show as a red badge on the profile photo
+  const w=el.parentElement, n=isAdmin?(+window.NX_PENDING||0):0; let b=w.querySelector('.who-bdg');
+  if(n>0){ if(!b){ b=document.createElement('span'); b.className='who-bdg'; w.appendChild(b); } b.textContent=n>9?'9+':String(n); w.title=`${n} login${n>1?'s':''} waiting for your approval – tap to review`; w.classList.add('who-alert'); }
+  else { b?.remove(); w.classList.remove('who-alert'); w.title='My profile'; } }
+function pendingCard(){ const n=isAdmin?(+window.NX_PENDING||0):0; if(!n) return ''; const L=Array.isArray(window.NX_PENDING_LIST)?window.NX_PENDING_LIST:[];
+  return `<div class="card pend-card"><div class="hd"><h2>⚠ Login approval needed</h2><span class="sub">${n} ${n>1?'people are':'person is'} waiting</span></div><div class="list">${L.slice(0,6).map(u=>`<div class="li"><div class="grow"><b>${esc(u.name||(u.email||'').split('@')[0]||'Someone')}</b>${u.position?` · ${esc(u.position)}`:''}<div class="sub small">${esc(u.email||'')}${u.requested_at?` · asked ${fmtDT(u.requested_at)}`:''}</div></div></div>`).join('')}</div><div class="bd" style="padding-top:8px"><button class="btn pri" data-go="logins">Review and approve</button> <span class="sub small">Choose a role, then Approve or Reject.</span></div></div>`; }
 function myPhotoDrawer(){ const r=myPhotoRef(), mine=S.avatars.find(a=>a.id===me.id), card=S.staff.find(isMyStaff);
-  return drawerShell('My profile',esc(me.name||''),`<div class="card"><div class="bd" style="text-align:center">
+  return drawerShell('My profile',esc(me.name||''),`${pendingCard()}<div class="card"><div class="bd" style="text-align:center">
     <div class="myph">${r?photoTag(r):esc(initials(me.name||'You'))}</div>
     <p class="sub" style="margin:10px 0 0">Shown in the top bar and in the Staff list.</p>
   </div></div><div class="card"><div class="hd"><h2>Theme</h2><span class="sub">How NEXUS looks for you</span></div><div class="bd">${themePicker()}
@@ -5629,7 +5639,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
   if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
-    $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile photo'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
+    $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
   loadPeople(); nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
