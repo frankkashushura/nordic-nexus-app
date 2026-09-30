@@ -435,7 +435,7 @@
     b.dataset.c = has ? 'send' : 'mic'; b.title = has ? 'Send' : 'Record a voice note'; b.innerHTML = has ? IC.send : IC.mic;
   }
   function doSend() { const t = st.root.querySelector('#nxcText'); if (!t || !t.value.trim()) return; const v = t.value; t.value = ''; t.style.height = 'auto'; roundBtn(); if (st.edit) saveEdit(st.edit, v); else sendText(v); if (!('ontouchstart' in window)) t.focus(); }
-  function closeConv() { st.cur = null; st.root.classList.remove('conv'); renderList(); renderConv(); }
+  function closeConv() { st.cur = null; st.root.classList.remove('conv'); document.body.classList.remove('nx-chatconv'); renderList(); renderConv(); }
   async function onClick(e) {
     const b = e.target.closest('[data-c]'); if (!b) { const im = e.target.closest('img[data-sp]'); if (im && im.src && window.lightbox) window.lightbox(im.src); return; }
     const [a, v] = [b.dataset.c, b.dataset.v];
@@ -464,7 +464,7 @@
     else if (a === 'jump') jump(v);
   }
   async function openThread(tid) {
-    const was = st.cur; st.cur = tid; st.root.classList.add('conv'); st.stick = true; st.reply = st.edit = null; typingChannel(tid);
+    const was = st.cur; st.cur = tid; st.root.classList.add('conv'); document.body.classList.add('nx-chatconv'); st.stick = true; st.reply = st.edit = null; typingChannel(tid);
     if (mobile() && !was && !st.pushed) { history.pushState(Object.assign({}, history.state, { nxchat: 1 }), ''); st.pushed = true; }
     renderList(); renderConv();
     if (!st.msgs[tid]) { renderMsgs(true); await loadMsgs(tid).catch(er => say('Could not load messages: ' + er.message)); }
