@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=104"></script>
+<script src="config.js?v=106"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=104"></script>
-<script src="nexus-chat.js?v=104"></script>
+<script src="nexus-sb.js?v=106"></script>
+<script src="nexus-chat.js?v=106"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5482,9 +5482,9 @@ function bbHtml(){
   const cats=[['all','All news'],['africa','🌍 Tanzania & Africa'],['safety','🦺 Safety'],['accident','🚨 Accidents'],['tech','🤖 Technology'],['design','📐 Structures'],['pm','📊 Projects & PM'],['industry','🏗️ Industry'],['tip','💡 Tips']];
   const it=x=>{ const tp=BB_TOPIC[x.topic]||BB_TOPIC.industry, age=x.at?bbAge(x.at):''; return `<a class="bb-i" style="--tc:${tp[2]}" ${x.link?`href="${esc(x.link)}" data-dhopen="${esc(x.link)}" data-dhname="${esc((x.src||'Story').slice(0,40))}"`:''} title="${esc(x.title)}">
       ${x.img?`<span class="bb-th"><img src="${esc(x.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-bbimg="1"></span>`:`<span class="bb-th bb-noimg">${tp[0]}</span>`}
-      <span class="bb-tx"><b>${age==='today'?'<i class="bb-dot"></i>':''}${esc(x.k==='tip'?(x.own?'From Nordic':'Tip'):tp[1])}</b><span class="bb-hl">${esc(x.title)}</span><em>${esc(x.src)}${x.at?' · '+esc(bbAgo(x.at)):''}</em></span></a>`; };
+      <span class="bb-tx"><b>${age==='today'?'<i class="bb-dot"></i>':''}${esc(x.k==='tip'?(x.own?'From Nordic':'Tip'):tp[1])}<em> · ${esc(x.src)}${x.at?' · '+esc(bbAgo(x.at)):''}</em></b><span class="bb-hl">${esc(x.title)}${x.sum?`<span class="bb-sm"> — ${esc(x.sum)}</span>`:''}</span></span></a>`; };
   const row=L.map(it).join('');
-  const secs=Math.max(40,L.length*7);
+  const secs=Math.max(60,L.length*14); setTimeout(bbSpeed,60);
   return `<section class="bb th-${esc(BB.theme)}" id="bb" aria-label="Construction news">
     <div class="bb-top"><span class="bb-live"><i></i>NEXUS NEWS</span>
       <select class="bb-sel" id="bbCat" aria-label="Topic">${cats.map(([k,l])=>`<option value="${k}" ${BB.cat===k?'selected':''}>${l}</option>`).join('')}</select>
@@ -5492,6 +5492,8 @@ function bbHtml(){
       <span class="bb-upd">${upd?'updated '+esc(bbAgo(upd)):''}</span><span class="sp"></span>
       <select class="bb-sel bb-thm" id="bbTheme" aria-label="Style">${BB_THEMES.map(([k,l])=>`<option value="${k}" ${BB.theme===k?'selected':''}>🎨 ${l}</option>`).join('')}</select>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Company tips">✎</button>':''}</div>
     <div class="bb-run">${L.length?`<div class="bb-track" style="animation-duration:${secs}s">${row}${row}</div>`:'<div class="bb-none">No stories in this view yet.</div>'}</div></section>`; }
+/* moving speed: same reading pace (~65 px per second) however long the stories are */
+function bbSpeed(){ const t=document.querySelector('#bb .bb-track'); if(!t) return; const w=t.scrollWidth/2; if(w>0) t.style.animationDuration=Math.max(30,Math.round(w/65))+'s'; }
 function bbShow(dir,abs){ const L=bbItems(); if(!L.length) return; BB.i=abs!=null?abs:((BB.i||0)+dir+L.length)%L.length; BB.el=0; const sc=document.getElementById('bbScreen'); if(!sc) return; sc.classList.remove('bb-in'); void sc.offsetWidth; sc.innerHTML=bbSlide(); sc.classList.add('bb-in'); const nx=document.getElementById('bbNext'); if(nx) nx.innerHTML=bbNext(); }
 function bbRefresh(){ const el=document.getElementById('bb'); if(!el) return; BB.i=0; el.outerHTML=bbHtml(); }
 function bbTick(){ if(BB.timer) return; BB.el=0; BB.last=Date.now(); BB.timer=setInterval(()=>{ const el=document.getElementById('bb'); const now=Date.now(), dt=now-BB.last; BB.last=now;
@@ -5521,29 +5523,30 @@ const BB_CSS=`
 .bb.th-site{--bg:#141414;--ln:rgba(255,212,0,.3);--mu:#c9c2a8;--ac:#FFD400;border-top:5px solid transparent;border-image:repeating-linear-gradient(-45deg,#FFD400 0 10px,#111 10px 20px) 5}
 .bb.th-paper{--bg:#FBF8F1;--ln:#e7e0cf;--tx:#1c1b18;--mu:#6b6558;--ac:#B91C1C;--chip:#f1ece0}
 .bb.th-paper .bb-hl{font-family:Georgia,"Times New Roman",serif}
-.bb-top{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.bb-top{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
 .bb-top .sp{flex:1}
-.bb-live{display:inline-flex;align-items:center;gap:7px;font:700 15px/1 var(--f-display);letter-spacing:2px;color:var(--ac);white-space:nowrap}
+.bb-live{display:inline-flex;align-items:center;gap:7px;font:700 17px/1 var(--f-display);letter-spacing:2px;color:var(--ac);white-space:nowrap}
 .bb-live i,.bb-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b30;animation:bbPulse 1.6s infinite;vertical-align:middle;margin-right:5px}
 @keyframes bbPulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.6)}70%{box-shadow:0 0 0 7px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
-.bb-sel{appearance:none;border:1px solid var(--ln);background:var(--chip);color:var(--tx);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;max-width:170px}
+.bb-sel{appearance:none;border:1px solid var(--ln);background:var(--chip);color:var(--tx);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer;max-width:170px}
 .bb-sel option{color:#111;background:#fff}
 .bb-upd{font-size:11.5px;color:var(--mu)}
 .bb-ed{border:1px solid var(--ln);background:var(--chip);color:var(--tx);border-radius:999px;width:28px;height:24px;cursor:pointer;font-size:12px}
-.bb-run{position:relative;overflow:hidden;height:62px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.bb-run{position:relative;overflow:hidden;height:82px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
 .bb-track{display:flex;width:max-content;height:100%;align-items:center;animation:bbMq linear infinite}
 .bb-run:hover .bb-track,.bb-run:focus-within .bb-track{animation-play-state:paused}
 @keyframes bbMq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.bb-i{display:flex;align-items:center;gap:9px;max-width:440px;padding:0 22px 0 12px;border-right:1px solid var(--ln);text-decoration:none;color:var(--tx);height:44px;cursor:pointer}
+.bb-i{flex:none;display:flex;align-items:center;gap:10px;padding:0 34px 0 14px;border-right:1px solid var(--ln);text-decoration:none;color:var(--tx);height:56px;cursor:pointer}
 .bb-i:hover .bb-hl{text-decoration:underline;text-decoration-color:var(--ac)}
-.bb-th{flex:none;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--tc);display:grid;place-items:center;font-size:20px}
+.bb-th{flex:none;width:56px;height:56px;border-radius:10px;overflow:hidden;background:var(--tc);display:grid;place-items:center;font-size:20px}
 .bb-th img{width:100%;height:100%;object-fit:cover}
 .bb-tx{display:flex;flex-direction:column;min-width:0;line-height:1.2}
-.bb-tx b{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tc);white-space:nowrap}
-.bb-hl{font:600 14.5px/1.25 var(--f-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:370px}
-.bb-tx em{font-style:normal;font-size:11px;color:var(--mu);white-space:nowrap}
+.bb-tx b{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--tc);white-space:nowrap}.bb-tx b em{text-transform:none;letter-spacing:0;font-weight:500}
+.bb-hl{font:600 17.5px/1.3 var(--f-body);white-space:nowrap;margin-top:2px}.bb-sm{font-weight:400;opacity:.8}
+.bb-tx em{font-style:normal;font-size:12px;color:var(--mu);white-space:nowrap}
+.bb-i+.bb-i{border-left:0}.bb-i{border-right:2px solid var(--ln)}
 .bb-none{padding:20px 14px;color:var(--mu);font-size:13px}
-@media (max-width:640px){.bb-top{padding:6px 10px;gap:6px;flex-wrap:nowrap}.bb-upd,.bb-thm,.bb-ed{display:none}.bb-live{font-size:13px;letter-spacing:1.2px}.bb-sel{max-width:108px;font-size:11.5px;padding:3px 8px}.bb-run{height:58px}.bb-i{max-width:300px;padding:0 16px 0 10px}.bb-hl{max-width:230px;font-size:13.5px}.bb-th{width:40px;height:40px}}
+@media (max-width:640px){.bb-top{padding:6px 10px;gap:6px;flex-wrap:nowrap}.bb-upd,.bb-thm,.bb-ed{display:none}.bb-live{font-size:13px;letter-spacing:1.2px}.bb-sel{max-width:108px;font-size:11.5px;padding:3px 8px}.bb-run{height:70px}.bb-i{padding:0 24px 0 10px;height:50px}.bb-hl{font-size:15.5px}.bb-th{width:48px;height:48px}}
 @media (prefers-reduced-motion:reduce){.bb-track{animation:none;overflow-x:auto}.bb-live i,.bb-dot{animation:none}}`;
 function pageOffice(){
   if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
