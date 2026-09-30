@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=86"></script>
+<script src="config.js?v=87"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=86"></script>
-<script src="nexus-chat.js?v=86"></script>
+<script src="nexus-sb.js?v=87"></script>
+<script src="nexus-chat.js?v=87"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -156,6 +156,12 @@ textarea.inp{min-height:84px;resize:vertical}
 .li.nt-new .ttl2,.li.nt-unread .ttl2{font-weight:700}
 .li.nt-read{opacity:.62}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.myday{margin-bottom:16px}.myday .grid{align-items:start}.myday .list .li{padding:8px 12px}
+.qa-menu{position:fixed;z-index:90;min-width:220px;padding:4px 0;box-shadow:0 12px 32px rgba(0,0,0,.35)}.qa-it{display:block;width:100%;text-align:left;padding:9px 14px;background:none;border:0;color:inherit;font:inherit;cursor:pointer}.qa-it:hover{background:rgba(127,127,127,.15)}
+.nx-search{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);display:flex;justify-content:center;align-items:flex-start;padding:8vh 12px 12px}.nx-sbox{width:min(640px,100%);padding:10px}
+.qa-fab{display:none}
+.stabs>[hidden]{display:none!important}
+@media (max-width:860px){ .qa-top{display:none} .qa-fab{display:flex;align-items:center;justify-content:center;position:fixed;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;border:0;z-index:41;background:var(--accent);color:#111;box-shadow:0 6px 18px rgba(0,0,0,.35)} .qa-fab svg{width:24px;height:24px} }
 .rpchip{cursor:pointer;padding:6px 10px}.rpchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .rplab{display:grid!important;grid-template-columns:34px 1fr 34px;align-items:center;gap:4px 6px!important}.rplab span{grid-column:1/-1}.rplab input{width:100%!important}.rplab .btn.sm{padding:4px 0;width:34px;min-width:0;flex:none;justify-content:center}.rplab span{min-width:0;line-height:1.15}
 .tbl-wrap{overflow-x:auto}
@@ -517,6 +523,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
       <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="ttl"><span class="label" id="crumb">NORDIC NEXUS</span><h1 id="pageTitle">Command Centre</h1></div>
       <div class="sp"></div>
+      <button class="iconbtn" id="searchBtn" aria-label="Search NEXUS" title="Search (Ctrl + K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+      <button class="iconbtn qa-top" id="qaBtn" aria-label="Add new" title="Add new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="iconbtn" id="askBtn" aria-label="Ask Nexus AI" title="Ask Nexus AI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></button>
       <button class="iconbtn" id="bellBtn" aria-label="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg><span class="dot" id="bellDot" hidden>0</span></button>
       <div class="who"><div class="av" id="meAv">··</div><span class="nm" id="meName"></span></div>
@@ -525,6 +533,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
   </div>
 </div>
 <nav class="tabbar" id="tabbar" aria-label="Quick"></nav>
+<button class="qa-fab" id="qaFab" aria-label="Add new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="overlay"></div>
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
@@ -618,29 +627,31 @@ const ICON = {
 };
 const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
 const PAGES = [
-  {g:'Overview'},
+  {g:'Today'},
   {k:'home', t:'Home'},
-  {k:'dash', t:'Command Centre'},
-  {k:'alerts', t:'Alerts & Notifications'},
   {k:'deadlines', t:'Deadlines'},
+  {k:'alerts', t:'Alerts & Notifications'},
   {k:'chat', t:'Chat'},
-  {k:'report', t:'Management Report'},
-  {g:'Winning work'},
+  {k:'dash', t:'Command Centre'},
+  {g:'Tenders & QS'},
   {k:'tenders', t:'Tender Radar'},
   {k:'qs', t:'QS Studio'},
-  {g:'Delivering work'},
+  {g:'Projects & site'},
   {k:'projects', t:'Projects'},
   {k:'pm', t:'Programme Overview'},
   {k:'reports', t:'Site Reports'},
-  {k:'certs', t:'Payment Certificates'},
-  {k:'procure', t:'Procurement'},
-  {k:'plant', t:'Plant & Equipment'},
   {k:'tasks', t:'Tasks'},
   {k:'meetings', t:'Meetings'},
-  {g:'Running the office'},
+  {k:'plant', t:'Plant & Equipment'},
+  {g:'Money & buying'},
+  {k:'procure', t:'Procurement'},
+  {k:'certs', t:'Payment Certificates'},
   {k:'finance', t:'Finance'},
+  {k:'report', t:'Management Report'},
+  {g:'People'},
   {k:'depts', t:'Departments'},
   {k:'staff', t:'Staff'},
+  {g:'Office'},
   {k:'records', t:'Office Records'},
   {k:'settings', t:'Company & Security'},
   {k:'about', t:'About NEXUS'}
@@ -651,7 +662,7 @@ const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
 const isProcOff=()=>typeof isProc!=='undefined'&&isProc;   // Procurement Officer role
 const canApprovePR=p=>isAdmin||(isProcOff()&&!(p.requested_uid&&p.requested_uid===me.id));
 const MONEY_PAGES=['certs','report','finance'];
-const navPages=()=>PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k));
+const navPages=()=>{ const L=PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k)); return L.filter((p,i)=>!p.g||(L[i+1]&&!L[i+1].g)); };
 const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
 const PROJ_MONEY=['contract_sum','budget'], VO_MONEY=['value_claimed','value_approved'];
 const projFields=()=>PROJECT_FIELDS.filter(f=>money()||!PROJ_MONEY.includes(f.k));
@@ -2214,22 +2225,22 @@ function recAlerts(A){ const sid=myStaffId(), mine=r=>isAdmin||(sid&&r.owner===s
 /* ===================== SETTINGS / SECURITY ===================== */
 const CO_FIELDS=[['name','Registered name'],['tagline','Tagline'],['founded','Formed'],['crb_building','CRB – building'],['crb_civil','CRB – civil'],['address','Head office'],['pobox','P.O. Box'],['phone','Phone'],['email','Email'],['web','Website'],['social','Social media'],['branch','Branch'],['tin','TIN'],['vrn','VRN'],['vision','Vision'],['mission','Mission'],['purpose','Purpose'],['values','Core values'],['sectors','Key sectors'],['services','Services'],['references','Reference projects (used by AI)'],['facts','Company facts (used by AI)']].map(([k,label])=>({k,label,type:['vision','mission','purpose','services','references','facts','sectors'].includes(k)?'textarea':'text'}));
 function pageSettings(){
-  const c=company(), act=[...S.activity].reverse().slice(0,40);
-  return `<div class="grid g2">
-  <div class="card"><div class="hd"><img alt="" src="${LOGO}" style="height:28px"><h2>Company profile</h2><div class="sp"></div>${isAdmin?'<button class="btn dark sm" data-act="saveCompany">Save</button>':''}</div><div class="bd">
+  const c=company(), act=[...S.activity].reverse().slice(0,40), tab=UI.stab||'company', hid=k=>tab===k?'':'hidden';
+  return `<div class="toolbar"><div class="seg" role="group" aria-label="Section">${[['company','Company'],['security','Security & backup'],['activity','Activity'],['appearance','Appearance']].map(([k,l])=>`<button data-stab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div></div>
+  <div class="grid g2 stabs">
+  <div class="card" ${hid('company')} style="grid-column:1/-1"><div class="hd"><img alt="" src="${LOGO}" style="height:28px"><h2>Company profile</h2><div class="sp"></div>${isAdmin?'<button class="btn dark sm" data-act="saveCompany">Save</button>':''}</div><div class="bd">
     <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'<p class="sub" style="margin-top:8px">Only administrators can change company details.</p>':''}</div></div>
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="card"><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
+  <div class="card" ${hid('security')}><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
       <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff sign up from the sign-in page; an administrator approves each sign-up and chooses the role before they see anything.</li>
       <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Procurement Officers also approve purchase requests (not their own) and manage suppliers. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
       <li><b>Finance is sealed.</b> Ledger records are invisible to everyone except Finance users and administrators, enforced by the database, not just hidden on screen.</li>
       <li><b>Audit trail.</b> Every change records who made it and when.</li>
       <li><b>No passwords stored.</b> NeST and bank logins never go into NEXUS.</li></ul>
       <p class="muted" style="margin-top:8px">Your role: <b>${(window.NX_ROLE&&window.NX_ROLE())||(isAdmin?'Administrator':'Staff')}</b>. Administrators manage logins from their name at the top right → Manage logins.${isAdmin?' <button class="btn sm pri" data-go="logins" style="margin-left:6px">Manage logins</button>':''}</p></div></div>
-    ${isAdmin&&window.NX_BACKUP_CARD?window.NX_BACKUP_CARD(S.backup):''}
-    <div class="card"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:420px;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
-    <div class="card"><div class="hd"><h2>Appearance</h2><span class="sub">Your choice, on this device</span></div><div class="bd">${themePicker()}</div><div class="bd toolbar" style="padding-top:0"><span class="label">Site photos</span><div class="seg">${['On','Off'].map(t=>`<button data-photos="${t}" aria-pressed="${(UI.photos||'On')===t}">${t}</button>`).join('')}</div></div></div>
-  </div></div>`;
+    ${tab==='security'&&isAdmin&&window.NX_BACKUP_CARD?window.NX_BACKUP_CARD(S.backup):''}
+    <div class="card" ${hid('activity')} style="grid-column:1/-1"><div class="hd"><h2>Activity log</h2></div><div class="list" style="max-height:70vh;overflow-y:auto">${act.map(a=>`<div class="li"><div class="grow"><div class="small">${esc(a.text)}</div><div class="sub">${esc(a.who)} · ${fmtDT(a.at)}</div></div></div>`).join('')||'<div class="empty">No activity yet.</div>'}</div></div>
+    <div class="card" ${hid('appearance')} style="grid-column:1/-1"><div class="hd"><h2>Appearance</h2><span class="sub">Your choice, on this device</span></div><div class="bd">${themePicker()}</div><div class="bd toolbar" style="padding-top:0"><span class="label">Site photos</span><div class="seg">${['On','Off'].map(t=>`<button data-photos="${t}" aria-pressed="${(UI.photos||'On')===t}">${t}</button>`).join('')}</div></div></div>
+  </div>`;
 }
 
 /* ===================== ABOUT ===================== */
@@ -2369,6 +2380,7 @@ function pageHome(){
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const notes=open.filter(t=>t.screen!=='Drop').sort((a,b)=>(Date.parse(firstSeen(b))||0)-(Date.parse(firstSeen(a))||0));
   return `${annHome()}
+  ${myDay()}
   <section class="home-hero">
     <div class="hh-photo" role="img" aria-label="NHC Clock Tower building, built by Nordic Construction"></div>
     <div class="hh-diamond d1"></div><div class="hh-diamond d2"></div><div class="hh-diamond d3"></div>
@@ -3202,13 +3214,84 @@ function pageDeadlines(){
 }
 document.addEventListener('change',e=>{ if(e.target?.id==='dlk'){ UI.dlk=e.target.value; renderView(true); } });
 
+/* ===== v2.12 ROLE HOME ("My day"), GLOBAL SEARCH, QUICK ADD ===== */
+const isFinR=()=>typeof isFin!=='undefined'&&!!isFin;
+const myRole=()=>isAdmin?'admin':isFinR()?'finance':isProcOff()?'procurement':canWrite===false?'viewer':'staff';
+const myDept=()=>String(byId('staff',myStaffId())?.department||'');
+const isQS=()=>/quantity|qs|estimat|tender/i.test(myDept());
+function mdCard(title,go,body,count){ return `<div class="card"><div class="hd"><h2>${title}</h2>${count!=null?`<span class="chip ${count?'warn':'good'}">${count}</span>`:''}<div class="sp"></div>${go?`<button class="btn sm" data-go="${go}">Open</button>`:''}</div><div class="list">${body}</div></div>`; }
+const mdLi=(attr,title,sub,chip='')=>`<div class="li" style="cursor:pointer" ${attr}><div class="grow"><div class="ttl2">${title}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>${chip}</div>`;
+const mdEmpty=t=>`<div class="empty small">${t}</div>`;
+function myDay(){
+  const role=myRole(), sid=myStaffId(), td=today(), dl=deadlineItems();
+  const mine=dl.filter(x=>x.mine&&x.n<=14), when=n=>n<0?`${-n}d late`:n===0?'today':n===1?'tomorrow':`${n} days`;
+  const dlCard=mdCard('Due for me','deadlines',(mine.length?mine.slice(0,6).map(x=>mdLi(x.go.startsWith('go:')?`data-go="${esc(x.go.slice(3))}"`:x.go.startsWith('rec:')?`data-rec="${esc(x.go.slice(4))}"`:`data-open="${esc(x.go)}"`,`${DL_KIND[x.kind][0]} ${esc(x.title)}`,`${DL_KIND[x.kind][1]}${x.sub?' · '+esc(x.sub):''}`,`<span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${when(x.n)}</span>`)).join(''):mdEmpty('Nothing due for you in the next 2 weeks.')),mine.filter(x=>x.n<=3).length);
+  const cards=[dlCard];
+  // site report for my project(s)
+  const myProj=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')&&sid&&(p.reporter===sid||p.manager===sid));
+  if(myProj.length) cards.push(mdCard("Today's site report",'reports',myProj.slice(0,4).map(p=>{ const done=S.reports.some(r=>r.project_id===p.id&&r.date===td);
+    return mdLi(`data-act="newReport" data-proj="${esc(p.id)}"`,esc(p.name),done?'Filed today – tap to add another':'Not filed yet – takes about a minute',`<span class="chip ${done?'good':'warn'}">${done?'✓ Filed':'To do'}</span>`); }).join(''),myProj.filter(p=>!S.reports.some(r=>r.project_id===p.id&&r.date===td)).length));
+  // my tasks
+  const tasks=(S.tasks||[]).filter(t=>!t.example&&sid&&t.assignee===sid&&!/^(done|complete|closed)/i.test(t.status||'')).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+  cards.push(mdCard('My tasks','tasks',tasks.length?tasks.slice(0,5).map(t=>mdLi('data-go="tasks"',esc(t.title),`${esc(t.status||'To do')}${t.project_id?' · '+esc(projName(t.project_id)):''}`,t.due?`<span class="chip ${t.due<td?'bad':''}">${fmtD(t.due)}</span>`:'')).join(''):mdEmpty('No open tasks for you.'),tasks.filter(t=>t.due&&t.due<td).length));
+  const PR=S.procurement||[];
+  if(role==='admin'||role==='procurement'){ const wait=PR.filter(p=>!p.example&&(p.status||'Requested')==='Requested'&&canApprovePR(p)), app=PR.filter(p=>p.status==='Approved'), ord=PR.filter(p=>p.status==='Ordered');
+    cards.push(mdCard('Purchases','procure',[mdLi('data-go="procure"','Waiting for your approval',wait.slice(0,3).map(p=>esc(p.item||'')).join(' · ')||'None',`<span class="chip ${wait.length?'warn':'good'}">${wait.length}</span>`),mdLi('data-go="procure"','Approved – to order','',`<span class="chip">${app.length}</span>`),mdLi('data-go="procure"','Ordered – awaiting delivery','',`<span class="chip">${ord.length}</span>`)].join(''),wait.length)); }
+  if(role==='admin'||role==='finance'){ const due=(S.certificates||[]).filter(c=>!c.example&&c.status==='Certified'), ov=due.filter(c=>{ const d=dlYmd(c.certified); return d&&dlDays(new Date(Date.parse(d+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10))<0; });
+    const tot=due.reduce((a,c)=>a+(+c.amount||0),0);
+    cards.push(mdCard('Money to collect','certs',[mdLi('data-go="certs"','Certified, not yet paid',tzs(tot),`<span class="chip">${due.length}</span>`),mdLi('data-go="certs"','Overdue for payment',ov.slice(0,3).map(c=>esc(c.no||'')).join(' · ')||'None',`<span class="chip ${ov.length?'bad':'good'}">${ov.length}</span>`)].join(''),ov.length)); }
+  if(role==='admin'||isQS()){ const t7=openTenders().filter(t=>t.screen!=='Drop'&&daysLeft(t.deadline)<=7&&(role==='admin'||/pursue/i.test(t.screen||'')||t.owner===sid));
+    cards.push(mdCard('Tenders closing this week','tenders',t7.length?t7.slice(0,5).map(t=>mdLi(`data-open="tender:${esc(t.id)}"`,esc(t.title),`${esc(t.client||'')}${t.owner?' · '+esc(staffName(t.owner)):' · no owner yet'}`,daysChip(t.deadline))).join(''):mdEmpty('No Pursue tenders close in the next 7 days.'),t7.filter(t=>!t.owner).length)); }
+  if(role==='admin'){ const act=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')), miss=act.filter(p=>!S.reports.some(r=>r.project_id===p.id&&r.date===td));
+    cards.push(mdCard('Sites today','reports',act.length?act.slice(0,6).map(p=>{ const r=S.reports.find(x=>x.project_id===p.id&&x.date===td); return mdLi(r?`data-open="report:${esc(r.id)}"`:`data-open="project:${esc(p.id)}"`,esc(p.name),r?`${esc(r.author||'')} · ${r.workforce??'?'} workers${r.hse_incident?' · 🦺 incident':''}`:'No report yet',`<span class="chip ${r?(r.hse_incident?'bad':'good'):'warn'}">${r?'✓':'—'}</span>`); }).join(''):mdEmpty('No active projects.'),miss.length)); }
+  const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',staff:'Staff',viewer:'Viewer'};
+  return `<section class="myday"><div class="toolbar" style="margin-bottom:10px"><div><div class="label">My day · ${RT[role]}${myDept()?' · '+esc(myDept()):''}</div></div><div class="sp"></div>${qaButtons().slice(0,4).map(([a,l,x])=>`<button class="btn sm ${a==='newReport'?'pri':''}" data-act="${a}" ${x||''}>${l}</button>`).join('')}</div>
+    <div class="grid g3">${cards.join('')}</div></section>`;
+}
+/* quick add – what each role usually creates */
+function qaButtons(){ if(canWrite===false) return []; const role=myRole(), L=[];
+  L.push(['newReport','📋 Site report']); L.push(['addTask','✅ Task']); L.push(['addPR','🛒 Purchase request']);
+  if(role==='admin'||role==='finance'){ L.push(['addCert','💰 Payment certificate']); L.push(['addFin','🧾 Finance entry']); }
+  L.push(['addTender','🏗️ Tender']); L.push(['addMeeting','📅 Meeting']); L.push(['recAdd','📁 Office record']);
+  if(role==='procurement') L.splice(0,3,['addPR','🛒 Purchase request'],['addSupplier','🏪 Supplier'],['newReport','📋 Site report'],['addTask','✅ Task']);
+  if(role==='finance') L.unshift(L.splice(L.findIndex(x=>x[0]==='addFin'),1)[0]);
+  return L; }
+function qaToggle(anchor){ let m=$('#qaMenu'); if(m){ m.remove(); return; } const L=qaButtons(); if(!L.length){ toast('Your login is read-only.'); return; }
+  m=document.createElement('div'); m.id='qaMenu'; m.className='qa-menu card'; m.innerHTML=`<div class="label" style="padding:6px 10px">Add new</div>`+L.map(([a,l])=>`<button class="qa-it" data-act="${a}">${l}</button>`).join('');
+  document.body.appendChild(m); const r=anchor.getBoundingClientRect(); m.style.top=Math.min(r.bottom+6,innerHeight-m.offsetHeight-8)+'px'; m.style.left=Math.max(8,Math.min(r.right-m.offsetWidth,innerWidth-m.offsetWidth-8))+'px';
+  if(r.top>innerHeight/2) m.style.top=Math.max(8,r.top-m.offsetHeight-8)+'px'; }
+document.addEventListener('click',e=>{ const q=e.target.closest('#qaBtn,#qaFab'); if(q){ e.stopPropagation(); qaToggle(q); return; } const m=$('#qaMenu'); if(m&&!e.target.closest('#qaMenu')) m.remove(); else if(m&&e.target.closest('.qa-it')) setTimeout(()=>m.remove(),0); },true);
+/* global search: one box for tenders, projects, people, suppliers, purchases, records, reports, tasks, BoQs, certificates, meetings */
+function searchAll(q){ q=q.trim().toLowerCase(); if(q.length<2) return []; const has=(...v)=>v.join(' ').toLowerCase().includes(q), out=[];
+  const push=(grp,attr,title,sub)=>out.push({grp,attr,title,sub});
+  S.tenders.forEach(t=>has(t.title,t.client,t.no,t.location)&&push('Tenders',`data-open="tender:${esc(t.id)}"`,t.title,[t.client,t.no,'closes '+fmtD(t.deadline)].filter(Boolean).join(' · ')));
+  S.projects.forEach(p=>has(p.name,p.client,p.location,p.contract_no)&&push('Projects',`data-open="project:${esc(p.id)}"`,p.name,[p.client,p.status].filter(Boolean).join(' · ')));
+  S.staff.forEach(s=>has(s.name,s.position,s.department,s.phone,s.email)&&push('Staff','data-go="staff"',s.name,[s.position,s.department,s.phone].filter(Boolean).join(' · ')));
+  (S.suppliers||[]).forEach(s=>has(s.name,s.category,s.contact,s.phone)&&push('Suppliers','data-go="procure"',s.name,[s.category,s.phone].filter(Boolean).join(' · ')));
+  (S.procurement||[]).forEach(p=>has(p.item,p.pr_no,p.supplier)&&push('Purchases','data-go="procure"',`${p.pr_no||''} ${p.item||''}`,[p.status||'Requested',projName(p.project_id)].join(' · ')));
+  (S.records||[]).forEach(r=>(typeof recLvlOk!=='function'||recLvlOk(r.level))&&has(r.title,r.ref,r.party)&&push('Office records',`data-rec="${esc(r.id)}"`,r.title,[r.ref,r.party].filter(Boolean).join(' · ')));
+  S.reports.forEach(r=>has(r.work_done,r.issues,r.author,projName(r.project_id))&&push('Site reports',`data-open="report:${esc(r.id)}"`,`${projName(r.project_id)} · ${fmtD(r.date)}`,String(r.work_done||'').slice(0,90)));
+  (S.tasks||[]).forEach(t=>has(t.title,t.notes)&&push('Tasks','data-go="tasks"',t.title,[t.status,staffName(t.assignee)].filter(Boolean).join(' · ')));
+  (S.boqs||[]).forEach(b=>has(b.title,b.client)&&push('BoQs',`data-boq="${esc(b.id)}"`,b.title,b.client||''));
+  if(money()) (S.certificates||[]).forEach(c=>has(c.no,projName(c.project_id))&&push('Payment certificates','data-go="certs"',c.no||'Certificate',[projName(c.project_id),c.status].join(' · ')));
+  (S.meetings||[]).forEach(m=>has(m.title,m.agenda)&&push('Meetings','data-go="meetings"',m.title,fmtD(m.date||m.start)));
+  return out.slice(0,60); }
+function searchOpen(){ if($('#nxSearch')) return; const d=document.createElement('div'); d.id='nxSearch'; d.className='nx-search';
+  d.innerHTML=`<div class="card nx-sbox"><div class="toolbar"><input class="inp grow" id="nxSq" type="search" placeholder="Search tenders, projects, staff, suppliers, records…" aria-label="Search NEXUS" autocomplete="off"><button class="btn" data-sclose>Close</button></div><div id="nxSres" class="list" style="max-height:62vh;overflow:auto"><div class="empty small">Type at least 2 letters. Tip: Ctrl + K opens search from anywhere.</div></div></div>`;
+  document.body.appendChild(d); setTimeout(()=>$('#nxSq')?.focus(),30); }
+function searchClose(){ $('#nxSearch')?.remove(); }
+document.addEventListener('input',e=>{ if(e.target.id!=='nxSq') return; const R=searchAll(e.target.value), box=$('#nxSres'); let g='';
+  box.innerHTML=R.length?R.map(r=>`${r.grp!==g?`<div class="label" style="padding:8px 10px 2px">${(g=r.grp)}</div>`:''}<div class="li" style="cursor:pointer" ${r.attr} data-sgo><div class="grow"><div class="ttl2">${esc(r.title)}</div><div class="sub">${esc(r.sub||'')}</div></div></div>`).join(''):`<div class="empty small">${e.target.value.trim().length<2?'Type at least 2 letters.':'Nothing found.'}</div>`; });
+document.addEventListener('click',e=>{ if(e.target.closest('#searchBtn')){ e.stopPropagation(); searchOpen(); return; } if(e.target.closest('[data-sclose]')||e.target.id==='nxSearch'){ searchClose(); return; } if(e.target.closest('[data-sgo]')) setTimeout(searchClose,0); },true);
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); searchOpen(); } else if(e.key==='Escape'&&$('#nxSearch')) searchClose(); else if(e.key==='Enter'&&e.target.id==='nxSq'){ const f=document.querySelector('#nxSres [data-sgo]'); if(f) f.click(); } });
+
 /* ===================== FORM DRAWERS ===================== */
 function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
 function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-dlf],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-dlf],[data-stab],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -3218,6 +3301,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.go==='alerts'&&route!=='alerts') nsOpened();
   if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } if(el.dataset.go==='logins'){ try{ closeDrawer(); }catch(_){} if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); return; } go(el.dataset.go); return; }
   if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else if(k==='dept') go('dept',id); else openDrawer(k,id); return; }
+  if(el.dataset.stab){ UI.stab=el.dataset.stab; renderView(true); return; }
   if(el.dataset.dlf){ UI.dlf=el.dataset.dlf; renderView(true); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
