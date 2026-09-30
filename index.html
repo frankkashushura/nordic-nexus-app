@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=87"></script>
+<script src="config.js?v=88"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=87"></script>
-<script src="nexus-chat.js?v=87"></script>
+<script src="nexus-sb.js?v=88"></script>
+<script src="nexus-chat.js?v=88"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -167,6 +167,7 @@ textarea.inp{min-height:84px;resize:vertical}
 .qa-menu{position:fixed;z-index:90;min-width:220px;padding:4px 0;box-shadow:0 12px 32px rgba(0,0,0,.35)}.qa-it{display:block;width:100%;text-align:left;padding:9px 14px;background:none;border:0;color:inherit;font:inherit;cursor:pointer}.qa-it:hover{background:rgba(127,127,127,.15)}
 .nx-search{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);display:flex;justify-content:center;align-items:flex-start;padding:8vh 12px 12px}.nx-sbox{width:min(640px,100%);padding:10px}
 .qa-fab{display:none}
+.confirm p{white-space:pre-line}
 .stabs>[hidden]{display:none!important}
 @media (max-width:860px){ .qa-top{display:none} .qa-fab{display:flex;align-items:center;justify-content:center;position:fixed;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;border:0;z-index:41;background:var(--accent);color:#111;box-shadow:0 6px 18px rgba(0,0,0,.35)} .qa-fab svg{width:24px;height:24px} }
 .rpchip{cursor:pointer;padding:6px 10px}.rpchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -624,6 +625,7 @@ const ICON = {
   tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/>',
   docs:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
   alerts:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
+  office:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4M7 13h10M7 17h7"/><path d="M15 7v5l2-1.5 2 1.5V7"/>',
   deadlines:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
   about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
@@ -659,6 +661,7 @@ const PAGES = [
   {k:'depts', t:'Departments'},
   {k:'staff', t:'Staff'},
   {g:'Office'},
+  {k:'office', t:'NEXUS Office'},
   {k:'records', t:'Office Records'},
   {k:'settings', t:'Company & Security'},
   {k:'about', t:'About NEXUS'}
@@ -1405,7 +1408,7 @@ function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
   const t=boqTotals(b);
   return `<div class="toolbar"><button class="btn" data-go="qs">← All BoQs</button><div class="seg">${[['edit','Edit items'],['price','Price (QS)']].map(([k,l])=>`<button data-bx="mode" data-v="${k}" aria-pressed="${(UI.bqmode||'edit')===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn" data-act="exportBoq">Export Excel</button>${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
+    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xopen">📗 Open in Excel</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
   <div class="card"><div class="bd"><div class="form">
     <div class="fld full"><label for="bq_title">BoQ title</label><input class="inp" id="bq_title" data-bq="title" value="${esc(b.title)}"></div>
     <div class="fld"><label for="bq_proj">Project</label><select class="inp" id="bq_proj" data-bq="project_id">${projOpts().map(([v,l])=>`<option value="${esc(v)}" ${v===(b.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -1697,6 +1700,7 @@ function bqSrcChip(it){
   if(p.s==='lib') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Library: '+(p.src||'')+(p.date?' · '+p.date:' · no price date')+(p.reg?' · '+p.reg:''))}">Library${p.old?' · old':''}</span>`;
   if(p.s==='ai') return `<span class="chip amb" title="${esc('AI estimate – check. Basis: '+(p.basis||''))}">AI estimate</span>`;
   if(p.s==='man') return `<span class="chip blue" title="${esc('Rate entered by '+(p.by||'QS')+(p.at?' on '+p.at:''))}">QS rate</span>`;
+  if(p.s==='excel') return `<span class="chip blue" title="${esc('Rate from Excel – '+(p.by||'')+(p.at?' on '+p.at:''))}">Excel</span>`;
   return '<span class="chip">Entered</span>';
 }
 function bqLibP(m){ return {s:'lib',id:m.id,src:m.source||'',date:m.price_date||'',reg:m.region||'General',old:rtCheck(m)}; }
@@ -3006,7 +3010,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -3292,6 +3296,223 @@ document.addEventListener('input',e=>{ if(e.target.id!=='nxSq') return; const R=
 document.addEventListener('click',e=>{ if(e.target.closest('#searchBtn')){ e.stopPropagation(); searchOpen(); return; } if(e.target.closest('[data-sclose]')||e.target.id==='nxSearch'){ searchClose(); return; } if(e.target.closest('[data-sgo]')) setTimeout(searchClose,0); },true);
 document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); searchOpen(); } else if(e.key==='Escape'&&$('#nxSearch')) searchClose(); else if(e.key==='Enter'&&e.target.id==='nxSq'){ const f=document.querySelector('#nxSres [data-sgo]'); if(f) f.click(); } });
 
+/* ===================== v2.13 NEXUS OFFICE =====================
+   NEXUS makes REAL Word (.docx) and Excel (.xlsx) files with the company letterhead, live formulas and styles.
+   They open in Microsoft Word / Excel on the PC (the company's Office licence) or the free Office app on phones.
+   BoQs come back: save in Excel → "Update from Excel" reads the file into the NEXUS BoQ. No extra licences, no server. */
+const oxX=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+function oxZip(files){ const CFB=XLSX.CFB, c=CFB.utils.cfb_new(), enc=new TextEncoder(); for(const [p,d] of Object.entries(files)) CFB.utils.cfb_add(c,p,typeof d==='string'?enc.encode(d):d); return new Uint8Array(CFB.write(c,{fileType:'zip',type:'array'})); }
+const OX_MIME={xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',xml:'application/xml',eml:'message/rfc822'};
+async function oxSave(name, data, ext){
+  if(!downloads){ toast('Downloads are not available in this view.'); return false; }
+  try{ await downloads.save({filename:name.replace(/[\\/:*?"<>|]+/g,'-').slice(0,90)+'.'+ext, data, type:OX_MIME[ext]}); toast(`Saved ${ext.toUpperCase()} – open it in ${ext==='xlsx'?'Excel':ext==='docx'?'Word':ext==='pptx'?'PowerPoint':'Microsoft Office'}.`); return true; }
+  catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); return false; }
+}
+function oxLogoBytes(){ try{ const m=String(LOGO).match(/^data:image\/(png|jpe?g);base64,(.*)$/); if(!m) return null; const bin=atob(m[2]), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return {bytes:u,ext:m[1]==='png'?'png':'jpeg'}; }catch(_){ return null; } }
+
+/* ---------- Excel writer (styles, formulas, widths, merges, frozen header, print setup) ---------- */
+const oxCol=n=>{ let s=''; n++; while(n){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
+// style ids: 1 title · 2 header · 3 text · 4 qty/rate 0.00 · 5 money · 6 total label · 7 total money · 8 note · 9 bold · 10 centred · 11 heading row · 12 percent
+const OX_STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="#,##0"/><numFmt numFmtId="166" formatCode="0.0&quot;%&quot;"/></numFmts>
+<fonts count="6"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><color rgb="FF182340"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF6B7280"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF182340"/><name val="Calibri"/></font></fonts>
+<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF182340"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCEBF8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/></patternFill></fill></fills>
+<borders count="2"><border/><border><left style="thin"><color rgb="FFB7C0CE"/></left><right style="thin"><color rgb="FFB7C0CE"/></right><top style="thin"><color rgb="FFB7C0CE"/></top><bottom style="thin"><color rgb="FFB7C0CE"/></bottom></border></borders>
+<cellStyleXfs count="1"><xf/></cellStyleXfs>
+<cellXfs count="13"><xf/>
+<xf fontId="2" applyFont="1"/>
+<xf fontId="4" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf borderId="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="164" borderId="1" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="165" borderId="1" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf fontId="1" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="165" fontId="1" fillId="3" borderId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf fontId="3" applyFont="1"/>
+<xf fontId="1" applyFont="1"/>
+<xf borderId="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+<xf fontId="5" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="166" borderId="1" applyNumberFormat="1" applyBorder="1"/>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function oxCellXml(ref, c){
+  if(c==null||c==='') return '';
+  const o=(typeof c==='object'&&!(c instanceof Date))?c:{v:c}; const s=o.s?` s="${o.s}"`:'';
+  if(o.f!=null){ const cv=typeof o.v==='number'&&isFinite(o.v)?`<v>${o.v}</v>`:''; return `<c r="${ref}"${s}><f>${oxX(o.f)}</f>${cv}</c>`; }
+  if(o.v==null||o.v==='') return s?`<c r="${ref}"${s}/>`:'';
+  if(typeof o.v==='number'&&isFinite(o.v)) return `<c r="${ref}"${s}><v>${o.v}</v></c>`;
+  return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${oxX(o.v)}</t></is></c>`;
+}
+function oxSheetXml(sh){
+  const rows=sh.rows.map((r,i)=>{ const cells=(r||[]).map((c,j)=>oxCellXml(oxCol(j)+(i+1),c)).join(''); const ht=sh.heights?.[i]?` ht="${sh.heights[i]}" customHeight="1"`:''; return `<row r="${i+1}"${ht}>${cells}</row>`; }).join('');
+  const cols=sh.cols?`<cols>${sh.cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
+  const pane=sh.freeze?`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze+1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`:'<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+  const merges=sh.merges?.length?`<mergeCells count="${sh.merges.length}">${sh.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:'';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>${pane}${cols}<sheetData>${rows}</sheetData>${merges}<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${sh.landscape?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;L${oxX(company().name||'')}&amp;RPage &amp;P of &amp;N</oddFooter></headerFooter></worksheet>`;
+}
+function oxXlsx(sheets){
+  const f={};
+  f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+  f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  f['xl/_rels/workbook.xml.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  f['xl/workbook.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${sheets.map((s,i)=>`<sheet name="${oxX(s.name.slice(0,31))}" sheetId="${i+1}"${s.hidden?' state="hidden"':''} r:id="rId${i+1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+  f['xl/styles.xml']=OX_STYLES;
+  sheets.forEach((s,i)=>f[`xl/worksheets/sheet${i+1}.xml`]=oxSheetXml(s));
+  return oxZip(f);
+}
+
+/* ---------- BoQ → Excel (live formulas) ---------- */
+const oxIsHead=it=>!String(it.unit||'').trim()&&(it.qty===''||it.qty==null)&&(it.rate===''||it.rate==null);
+function boqToXlsx(b){
+  const c=company(), t=boqTotals(b), sheets=[], billTot=[];
+  (b.bills||[]).forEach((bl,i)=>{
+    const rows=[[{v:`BILL No. ${i+1} – ${String(bl.name||'').toUpperCase()}`,s:1}],[{v:`${b.title||''}${b.project_id?' · '+projName(b.project_id):''}`,s:8}],[{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'Qty',s:2},{v:'Rate (TZS)',s:2},{v:'Amount (TZS)',s:2}]];
+    (bl.items||[]).forEach(it=>{ const r=rows.length+1;
+      if(oxIsHead(it)) rows.push([{v:it.ref||'',s:11},{v:it.desc||'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11}]);
+      else { const q=it.qty===''||it.qty==null?null:+it.qty, rt=it.rate===''||it.rate==null?null:+it.rate;
+        rows.push([{v:it.ref||'',s:10},{v:it.desc||'',s:3},{v:it.unit||'',s:10},{v:q,s:4},{v:rt,s:4},{f:`IF(OR(D${r}="",E${r}=""),0,D${r}*E${r})`,v:(q||0)*(rt||0),s:5}]); } });
+    const last=rows.length, tr=last+1; rows.push([{v:'',s:6},{v:'TOTAL CARRIED TO SUMMARY',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{f:`SUM(F4:F${Math.max(4,last)})`,v:t.bills[i]?.total||0,s:7}]);
+    billTot.push({sheet:`Bill ${i+1}`,row:tr,name:bl.name,total:t.bills[i]?.total||0});
+    sheets.push({name:`Bill ${i+1}`,rows,cols:[8,62,8,11,15,18],freeze:3,merges:['A1:F1','A2:F2']});
+  });
+  const sum=[[{v:(c.name||'').toUpperCase(),s:1}],[{v:b.title||'Bill of Quantities',s:9}],[{v:[b.project_id?projName(b.project_id):'',b.client||''].filter(Boolean).join(' · ')||' ',s:8}],[],[{v:'Bill',s:2},{v:'Description',s:2},{v:'',s:2},{v:'Amount (TZS)',s:2}]];
+  const r0=sum.length+1; billTot.forEach((x,i)=>sum.push([{v:i+1,s:10},{v:x.name||'',s:3},{v:'',s:3},{f:`'${x.sheet}'!F${x.row}`,v:x.total,s:5}]));
+  const rs=sum.length+1; sum.push([{v:'',s:6},{v:'SUB-TOTAL',s:6},{v:'',s:6},{f:`SUM(D${r0}:D${Math.max(r0,rs-1)})`,v:t.sub,s:7}]);
+  const rc=sum.length+1; sum.push([{v:'',s:3},{v:'Contingency (%)',s:3},{v:+b.contingency||0,s:12},{f:`D${rs}*C${rc}/100`,v:t.cont,s:5}]);
+  const rv=sum.length+1; sum.push([{v:'',s:3},{v:'VAT (%)',s:3},{v:+(b.vat??18),s:12},{f:`(D${rs}+D${rc})*C${rv}/100`,v:t.vat,s:5}]);
+  sum.push([{v:'',s:6},{v:'GRAND TOTAL (TZS)',s:6},{v:'',s:6},{f:`D${rs}+D${rc}+D${rv}`,v:t.grand,s:7}]);
+  sum.push([],[{v:'Change quantities, rates, descriptions or the % cells in Excel – totals update automatically. Then in NEXUS: QS Studio → this BoQ → "Update from Excel".',s:8}]);
+  const pb=[[{v:'PRICING BASIS (internal – do not submit)',s:1}],[],[{v:'Bill',s:2},{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'Qty',s:2},{v:'Rate',s:2},{v:'Source',s:2},{v:'Basis / library source',s:2}]];
+  (b.bills||[]).forEach((bl,i)=>(bl.items||[]).forEach(it=>{ if(oxIsHead(it)) return; const p=it.p||{}; pb.push([{v:i+1,s:10},{v:it.ref||'',s:10},{v:it.desc||'',s:3},{v:it.unit||'',s:10},{v:it.qty===''?null:+it.qty,s:4},{v:it.rate===''?null:+it.rate,s:4},{v:p.s||'',s:3},{v:p.note||p.src||p.by||'',s:3}]); }));
+  const meta=[['nexus-boq'],[b.id],[new Date().toISOString()],[me.name||'']];
+  return oxXlsx([{name:'Summary',rows:sum,cols:[8,58,14,20],merges:['A1:D1','A2:D2','A3:D3']},...sheets,{name:'Pricing basis',rows:pb,cols:[6,7,60,7,10,12,10,50],freeze:3,landscape:true},{name:'NEXUS',rows:meta,hidden:true}]);
+}
+async function boqOpenExcel(b){ if(!b) return; try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  if(await oxSave(`${b.title||'BoQ'} – NEXUS`, boqToXlsx(b), 'xlsx')) logAct(`Opened BoQ "${b.title}" in Excel`); }
+
+/* ---------- Excel → BoQ (reads the file back) ---------- */
+function boqFromWorkbook(wb, b){
+  const num=v=>{ if(v==null||v==='') return ''; const n=typeof v==='number'?v:+String(v).replace(/[, ]/g,''); return isFinite(n)?n:''; };
+  const meta=wb.Sheets.NEXUS?XLSX.utils.sheet_to_json(wb.Sheets.NEXUS,{header:1,defval:null}):[];
+  const names=wb.SheetNames.filter(n=>/^bill\s*\d+/i.test(n)).sort((a,b2)=>(+a.match(/\d+/)[0])-(+b2.match(/\d+/)[0]));
+  if(!names.length) return {error:'No "Bill 1", "Bill 2" … sheets found. Use a file made with "Open in Excel".'};
+  const old=new Map(); (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>old.set((it.ref||'')+'|'+String(it.desc||'').trim().toLowerCase(),it)));
+  let changed=0, added=0; const bills=names.map((n,bi)=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null});
+    const title=String(rows[0]?.[0]||''); const nm=(title.match(/BILL No\.?\s*\d+\s*[–-]\s*(.*)$/i)?.[1]||'').trim();
+    const prevBill=(b.bills||[])[bi]; let hi=rows.findIndex(r=>/descr/i.test(String(r?.[1]||''))); if(hi<0) hi=2;
+    const items=[];
+    for(const r of rows.slice(hi+1)){ if(!r) continue; const d=String(r[1]??'').trim(); if(/^total carried/i.test(d)) break; const ref=r[0]==null?'':String(r[0]).trim();
+      if(!d&&!ref) continue;
+      const it={ref,desc:d,unit:r[2]==null?'':String(r[2]).trim(),qty:num(r[3]),rate:num(r[4])};
+      const o=old.get(ref+'|'+d.toLowerCase());
+      if(o){ if(o.p&&String(o.rate)===String(it.rate)) it.p=o.p; else if(it.rate!=='') it.p={s:'excel',by:me.name||'',at:today()}; if(String(o.qty)!==String(it.qty)||String(o.rate)!==String(it.rate)||(o.unit||'')!==it.unit) changed++; }
+      else { added++; if(it.rate!=='') it.p={s:'excel',by:me.name||'',at:today()}; }
+      items.push(it); }
+    return {...(prevBill||{}),name:nm?nm.charAt(0)+nm.slice(1).toLowerCase():(prevBill?.name||`Bill ${bi+1}`),items};
+  });
+  let contingency=b.contingency, vat=b.vat;
+  if(wb.Sheets.Summary){ for(const r of XLSX.utils.sheet_to_json(wb.Sheets.Summary,{header:1,raw:true,defval:null})){ const l=String(r?.[1]||''); if(/^contingency/i.test(l)&&num(r[2])!=='') contingency=num(r[2]); if(/^vat/i.test(l)&&num(r[2])!=='') vat=num(r[2]); } }
+  const before=(b.bills||[]).reduce((a,bl)=>a+(bl.items||[]).length,0), after=bills.reduce((a,bl)=>a+bl.items.length,0);
+  return {bills,contingency,vat,sameBoq:!meta[1]||meta[1][0]===b.id,changed,added,removed:Math.max(0,before-(after-added)),items:after};
+}
+async function boqUpdateFromExcel(b, file){
+  if(!b||!file) return; try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  let wb; try{ wb=XLSX.read(await file.arrayBuffer(),{cellDates:true}); }catch(e){ toast('This is not an Excel file NEXUS can read.'); return; }
+  const r=boqFromWorkbook(wb,b); if(r.error){ toast(r.error); return; }
+  const t0=boqTotals(b), t1=boqTotals({...b,bills:r.bills,contingency:r.contingency,vat:r.vat});
+  const msg=`${r.sameBoq?'':'⚠ This Excel file was made from a DIFFERENT BoQ.\n\n'}Update "${b.title}" from Excel?\n\n${r.bills.length} bills · ${r.items} items\n${r.changed} changed · ${r.added} new · ${r.removed} removed\nGrand total: ${tzs(t0.grand)} → ${tzs(t1.grand)}\n\nThe previous version is kept (Undo Excel update).`;
+  if(!(await confirmBox(msg,'Update BoQ'))) return;
+  await patch('boqs',b.id,{bills:r.bills,contingency:r.contingency,vat:r.vat,before_excel:{bills:b.bills||[],contingency:b.contingency??'',vat:b.vat??18,at:new Date().toISOString()},excel_at:new Date().toISOString(),excel_by:me.name||''});
+  logAct(`Updated BoQ "${b.title}" from Excel (${r.changed} changed, ${r.added} new, ${r.removed} removed)`); toast('BoQ updated from Excel.');
+}
+async function boqUndoExcel(b){ if(!b?.before_excel) return; if(!(await confirmBox(`Go back to the BoQ as it was before the Excel update of ${fmtDT(b.excel_at)}?`,'Undo'))) return;
+  const x=b.before_excel; await patch('boqs',b.id,{bills:x.bills,contingency:x.contingency,vat:x.vat,before_excel:null}); logAct(`Undid Excel update of BoQ "${b.title}"`); toast('Excel update undone.'); }
+
+/* ---------- Word writer: letterhead, styles, tables, footer ---------- */
+const oxR=(t,o={})=>{ const pr=`${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}${o.caps?'<w:caps/>':''}`; return String(t??'').split('\n').map((ln,i)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${i?'<w:br/>':''}<w:t xml:space="preserve">${oxX(ln)}</w:t></w:r>`).join(''); };
+const oxP=(t,o={})=>`<w:p><w:pPr>${o.style?`<w:pStyle w:val="${o.style}"/>`:''}${o.align?`<w:jc w:val="${o.align}"/>`:''}<w:spacing w:before="${o.before||0}" w:after="${o.after??120}"/>${o.border?'<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="539FDC"/></w:pBdr>':''}</w:pPr>${Array.isArray(t)?t.join(''):oxR(t,o)}</w:p>`;
+const oxH=(t,l=1)=>oxP(t,{style:'Heading'+l});
+const oxHint=t=>oxP(t,{i:true,color:'6B7280'});
+function oxTbl(rows,{widths,header=true,shade}={}){ const W=widths||rows[0].map(()=>Math.floor(9900/rows[0].length));
+  return `<w:tbl><w:tblPr><w:tblW w:w="${W.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="B7C0CE"/>`).join('')}</w:tblBorders><w:tblCellMar><w:left w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map((r,i)=>`<w:tr>${r.map((c,j)=>{ const hd=(header&&i===0)||(shade&&j===0); return `<w:tc><w:tcPr><w:tcW w:w="${W[j]}" w:type="dxa"/>${hd?`<w:shd w:val="clear" w:color="auto" w:fill="${header&&i===0?'182340':'EEF3FA'}"/>`:''}</w:tcPr>${oxP(c??'',{b:hd,color:header&&i===0?'FFFFFF':undefined,after:40})}</w:tc>`; }).join('')}</w:tr>`).join('')}</w:tbl>${oxP('',{after:60})}`; }
+function oxLetterhead(){ const c=company(), logo=oxLogoBytes(); const E=9525;
+  const pic=logo?`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${110*E}" cy="${80*E}"/><wp:docPr id="1" name="Logo"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="logo.${logo.ext}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rLogo"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${110*E}" cy="${80*E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`:'';
+  return `<w:tbl><w:tblPr><w:tblW w:w="9900" w:type="dxa"/><w:tblBorders><w:bottom w:val="single" w:sz="18" w:color="539FDC"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="1900"/><w:gridCol w:w="8000"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="1900" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p>${pic}</w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="8000" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${oxP(String(c.name||'').toUpperCase(),{b:true,sz:30,color:'182340',after:20,align:'right'})}${oxP([c.crb_building,c.crb_civil].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:20,align:'right'})}${oxP([c.address,c.pobox].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:20,align:'right'})}${oxP([c.phone,c.email,c.web].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:60,align:'right'})}</w:tc></w:tr></w:tbl>${oxP('',{after:120})}`; }
+function oxDocx(bodyXml,{landscape=false}={}){
+  const c=company(), logo=oxLogoBytes(), f={};
+  f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`;
+  f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  f['word/_rels/document.xml.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rFoot" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>${logo?`<Relationship Id="rLogo" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.${logo.ext}"/>`:''}</Relationships>`;
+  f['word/styles.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="200"/></w:pPr><w:rPr><w:b/><w:caps/><w:color w:val="182340"/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="182340"/><w:sz w:val="26"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="2F5E8E"/><w:sz w:val="23"/></w:rPr></w:style></w:styles>`;
+  f['word/footer1.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="6" w:space="4" w:color="B7C0CE"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="9900"/></w:tabs></w:pPr>${oxR(`${c.name||''}${c.tin?' · TIN '+c.tin:''}`,{sz:16,color:'6B7280'})}<w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:tab/><w:t xml:space="preserve">Page </w:t></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="6B7280"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>`;
+  const pg=landscape?'<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>':'<w:pgSz w:w="11906" w:h="16838"/>';
+  f['word/document.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${bodyXml}<w:sectPr><w:footerReference w:type="default" r:id="rFoot"/>${pg}<w:pgMar w:top="900" w:right="1000" w:bottom="1000" w:left="1000" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  if(logo) f[`word/media/logo.${logo.ext}`]=logo.bytes;
+  return oxZip(f);
+}
+
+/* ---------- Word templates (filled from NEXUS data, finished in Word) ---------- */
+const OX_TEMPLATES=[
+  {k:'letter',t:'Letter',ico:'✉️',d:'Company letter with reference, date, addressee and signature block.'},
+  {k:'si',t:'Site instruction',ico:'📌',d:'Numbered instruction with reason, cost/time effect and signatures.'},
+  {k:'ms',t:'Method statement',ico:'🛠️',d:'Scope, resources, sequence, QA/QC, HSE risk table and approvals.'},
+  {k:'mom',t:'Minutes of meeting',ico:'📝',d:'Attendance, agenda items, decisions and action list.'},
+  {k:'tcl',t:'Tender cover letter',ico:'🏗️',d:'Bid submission letter with enclosures, validity and bid security.'},
+  {k:'blank',t:'Blank letterhead',ico:'📄',d:'Empty page with the Nordic letterhead and footer.'}];
+const OX_FIELDS=k=>[
+  {k:'project_id',label:'Project',type:'select',options:projOpts('— none —')},
+  ...(k==='tcl'?[{k:'tender_id',label:'Tender',type:'select',options:[['','— choose tender —'],...S.tenders.filter(t=>!t.dup_of).sort((a,b)=>String(b.deadline||'').localeCompare(String(a.deadline||''))).slice(0,80).map(t=>[t.id,`${t.title} · ${t.client||''}`])]}]:[]),
+  ...(['letter','tcl','si'].includes(k)?[{k:'to',label:k==='si'?'Issued to':'To (name, organisation, address)',type:'textarea',ph:'The Resident Engineer\nConsultant name\nP.O. Box …'}]:[]),
+  ...(k!=='blank'?[{k:'subject',label:k==='mom'?'Meeting title':k==='ms'?'Activity (e.g. Concrete works to ground floor slab)':'Subject',full:1}]:[]),
+  {k:'ref',label:'Our reference',ph:'e.g. NCL/CRDB/2026/014'},{k:'date',label:'Date',type:'date',def:today()},
+  ...(['letter','tcl','si'].includes(k)?[{k:'signatory',label:'Signed by (name, position)',ph:(me.name||'')+', Project Manager'}]:[])];
+function oxTemplateBody(k,v){
+  const p=byId('projects',v.project_id)||{}, tn=byId('tenders',v.tender_id)||{}, c=company(), d=fmtD(v.date||today());
+  const info=[['Project',p.name||'…'],['Contract No.',p.contract_no||'…'],['Client / Employer',p.client||'…'],['Consultant',p.consultant||'…'],['Location',p.location||'…']];
+  const sign=`${oxP('Yours faithfully,',{before:200})}${oxP('For and on behalf of '+(c.name||'Nordic Construction Company Limited'),{b:true})}${oxP('\n\n……………………………………',{after:40})}${oxP(v.signatory||'Name, Position')}`;
+  const toBlk=v.to?oxP(v.to):oxHint('[Addressee – name, organisation, address]');
+  let b=oxLetterhead();
+  if(k==='letter') b+=`${oxP([oxR('Our Ref: ',{b:true}),oxR(v.ref||'…')],{after:40})}${oxP([oxR('Date: ',{b:true}),oxR(d)])}${toBlk}${oxP('Dear Sir / Madam,',{before:160})}${oxP('RE: '+(v.subject||p.name||'SUBJECT'),{b:true,caps:true,border:true})}${oxHint('[Write the letter here.]')}${oxP('')}${sign}`;
+  if(k==='si') b+=`${oxP('Site Instruction No. '+(v.ref||'…'),{style:'Title'})}${oxTbl([['Item','Details'],...info,['Date',d],['Issued to',v.to||'…']],{widths:[2600,7300],shade:true})}${oxH('1. Instruction')}${oxP(v.subject||'',{b:true})}${oxHint('[Describe exactly what is to be done, where, with drawing / BoQ references.]')}${oxH('2. Reason')}${oxHint('[Why the instruction is needed.]')}${oxH('3. Effect on cost and time')}${oxTbl([['Effect','Yes / No','Estimate'],['Additional cost','',''],['Extension of time','',''],['Variation Order required','','']],{widths:[4300,2000,3600]})}${oxH('4. Signatures')}${oxTbl([['Role','Name','Signature','Date'],['Issued by (Contractor)',v.signatory||'','',''],['Received / approved by (Consultant)','','',''],['Client representative','','','']],{widths:[3000,2700,2300,1900]})}`;
+  if(k==='ms') b+=`${oxP('Method Statement',{style:'Title'})}${oxP(v.subject||'[Activity]',{align:'center',b:true,color:'2F5E8E'})}${oxTbl([['Item','Details'],...info,['Document ref.',v.ref||'…'],['Revision / date','Rev 0 · '+d]],{widths:[2600,7300],shade:true})}
+    ${oxH('1. Scope of work')}${oxHint('[What this method statement covers and the limits of the work.]')}
+    ${oxH('2. References')}${oxHint('[Drawings, specification clauses, BoQ items, standards (e.g. BS EN 206, TBS), permits.]')}
+    ${oxH('3. Resources')}${oxTbl([['Resource','Description','Quantity'],['Supervision','Site engineer, foreman',''],['Labour','Masons, carpenters, steel fixers, labourers',''],['Plant & equipment','Concrete mixer, poker vibrator, …',''],['Materials','Cement, aggregates, reinforcement, …','']],{widths:[2400,5500,2000]})}
+    ${oxH('4. Sequence of works')}${oxTbl([['Step','Activity','Responsible'],['1','',''],['2','',''],['3','',''],['4','','']],{widths:[900,6800,2200]})}
+    ${oxH('5. Quality control')}${oxTbl([['Check / test','Frequency','Acceptance criteria','Record'],['','','',''],['','','','']],{widths:[3000,1900,3000,2000]})}
+    ${oxH('6. Health, safety & environment')}${oxTbl([['Hazard','Risk (H/M/L)','Control measures','PPE'],['Working at height','','Scaffold inspected, harness',''],['Manual handling','','Team lifting, mechanical aids',''],['Plant movement','','Banksman, exclusion zone','']],{widths:[2600,1500,3900,1900]})}
+    ${oxH('7. Emergency arrangements')}${oxHint('[First aider, nearest hospital, emergency numbers, assembly point.]')}
+    ${oxH('8. Approvals')}${oxTbl([['Role','Name','Signature','Date'],['Prepared by (Contractor)','','',''],['Reviewed by (Consultant)','','',''],['Approved by','','','']],{widths:[3000,2700,2300,1900]})}`;
+  if(k==='mom') b+=`${oxP('Minutes of Meeting',{style:'Title'})}${oxP(v.subject||'[Meeting title]',{align:'center',b:true,color:'2F5E8E'})}${oxTbl([['Item','Details'],['Project',p.name||'…'],['Date / time',d+' · …'],['Venue','…'],['Chaired by','…'],['Minutes by',me.name||'…'],['Ref.',v.ref||'…']],{widths:[2600,7300],shade:true})}
+    ${oxH('1. Attendance')}${oxTbl([['Name','Organisation','Position','Signature'],['','',''+'',''],['','','',''],['','','','']],{widths:[2800,2600,2600,1900]})}
+    ${oxH('2. Matters discussed')}${oxTbl([['No.','Item','Discussion / decision','Action by','Due'],['1','Confirmation of previous minutes','','',''],['2','Progress of works','','',''],['3','Programme & delays','','',''],['4','Health & safety','','',''],['5','Payments','','',''],['6','A.O.B.','','','']],{widths:[700,2300,4100,1500,1300]})}
+    ${oxH('3. Next meeting')}${oxHint('[Date, time and venue.]')}`;
+  if(k==='tcl') b+=`${oxP([oxR('Our Ref: ',{b:true}),oxR(v.ref||'…')],{after:40})}${oxP([oxR('Date: ',{b:true}),oxR(d)])}${v.to?oxP(v.to):oxP(`The Secretary, Tender Board\n${tn.client||'[Procuring entity]'}\n${tn.location||''}`)}${oxP('Dear Sir / Madam,',{before:160})}${oxP(`RE: SUBMISSION OF BID – ${tn.no?'TENDER No. '+tn.no+' – ':''}${String(tn.title||v.subject||'[TENDER TITLE]').toUpperCase()}`,{b:true,border:true})}
+    ${oxP(`We, ${c.name||'Nordic Construction Company Limited'}, having examined the tender documents including all addenda, offer to execute the above works in conformity with the conditions of contract, specifications, drawings and bills of quantities for the sum of TZS ………………………… (in words: …………………………………………), inclusive of VAT.`)}
+    ${oxP('Our bid shall remain valid for ……… days from the date fixed for bid submission and shall remain binding upon us and may be accepted at any time before the expiration of that period.')}
+    ${oxP('We enclose a bid security of TZS ………………… / Bid-Securing Declaration as required.')}
+    ${oxP('Enclosures:',{b:true,before:120})}${oxTbl([['No.','Document','Page'],['1','Form of Bid',''],['2','Priced Bill of Quantities',''],['3','Bid Security / Bid-Securing Declaration',''],['4','CRB Registration Certificate ('+(c.crb_building||'')+')',''],['5','Tax clearance, TIN & VRN certificates',''],['6','Company profile & similar works',''],['7','Key personnel CVs & equipment list',''],['8','Power of Attorney','']],{widths:[800,7300,1800]})}${sign}`;
+  if(k==='blank') b+=`${oxP([oxR('Our Ref: ',{b:true}),oxR(v.ref||'…')],{after:40})}${oxP([oxR('Date: ',{b:true}),oxR(d)])}${oxP('')}`;
+  return b;
+}
+function oxTemplateOpen(k){ const tp=OX_TEMPLATES.find(x=>x.k===k); if(!tp) return;
+  formDrawer(`${tp.ico} ${tp.t} (Word)`,OX_FIELDS(k),{date:today(),project_id:UI.oxproj||''},async v=>{ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return false; }
+    const p=byId('projects',v.project_id), name=`${tp.t}${v.subject?' – '+v.subject:p?' – '+p.name:''}`;
+    if(await oxSave(name, oxDocx(oxTemplateBody(k,v)), 'docx')) logAct(`Created ${tp.t} in Word${p?' – '+p.name:''}`); return true; },{sub:'NEXUS Office · Word',saveLabel:'Create Word file'}); }
+
+/* ---------- NEXUS Office page ---------- */
+function pageOffice(){
+  const boqs=[...S.boqs].sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))).slice(0,8);
+  return `<div class="card"><div class="bd small"><b>How it works:</b> NEXUS makes a real Microsoft file with the Nordic letterhead and data filled in → it opens in <b>Word / Excel</b> on your PC (company Office licence) or in the free Microsoft Office app on your phone → you finish it there. BoQs come back into NEXUS with <b>Update from Excel</b>; finished letters and reports go into <b>Office Records</b> (Upload new version keeps every copy).</div></div>
+  <div class="grid g2">
+   <div class="card"><div class="hd"><h2>📘 Word – documents</h2></div><div class="list">${OX_TEMPLATES.map(t=>`<div class="li" style="cursor:pointer" data-ox="tpl" data-k="${t.k}"><span style="font-size:22px">${t.ico}</span><div class="grow"><div class="ttl2">${t.t}</div><div class="sub">${t.d}</div></div><span class="chip">.docx</span></div>`).join('')}</div></div>
+   <div class="card"><div class="hd"><h2>📗 Excel – Bills of Quantities</h2><div class="sp"></div><button class="btn sm" data-go="qs">QS Studio</button></div><div class="list">${boqs.length?boqs.map(b=>{ const t=boqTotals(b); return `<div class="li"><div class="grow"><div class="ttl2">${esc(b.title)}</div><div class="sub">${(b.bills||[]).length} bills · ${money()?tzs(t.grand):''}${b.excel_at?' · from Excel '+fmtD(b.excel_at):''}</div></div><button class="btn sm" data-ox="xopen" data-id="${esc(b.id)}">Open in Excel</button><label class="btn sm" style="cursor:pointer">Update<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup="${esc(b.id)}"></label></div>`; }).join(''):'<div class="empty small">No BoQs yet – create one in QS Studio.</div>'}</div></div>
+   <div class="card"><div class="hd"><h2>📙 PowerPoint · 📅 Project · 📧 Outlook · 📋 Forms</h2><span class="chip">next step</span></div><div class="bd small muted">Progress-report slides, programme to Microsoft Project (XML) and back, emails that open as Outlook drafts with the file attached, and site forms – being added next.</div></div>
+  </div>`;
+}
+document.addEventListener('click',e=>{ const el=e.target.closest('[data-ox]'); if(!el) return; e.stopPropagation();
+  const a=el.dataset.ox; if(a==='tpl') oxTemplateOpen(el.dataset.k); else if(a==='xopen') boqOpenExcel(byId('boqs',el.dataset.id||routeArg)); else if(a==='xundo') boqUndoExcel(byId('boqs',routeArg)); },true);
+document.addEventListener('change',e=>{ const el=e.target; if(!el?.dataset||!('oxup' in el.dataset)||!el.files?.[0]) return; const b=byId('boqs',el.dataset.oxup||routeArg); boqUpdateFromExcel(b,el.files[0]); el.value=''; });
+
 /* ===================== FORM DRAWERS ===================== */
 function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
 function openTender(id){ openDrawer('tender',id); }
@@ -3404,7 +3625,7 @@ document.addEventListener('click', async e=>{
     case 'addBill': { const b=curBoq(); await patch('boqs',b.id,{title:b.title,contingency:b.contingency,vat:b.vat,bills:[...(b.bills||[]),{name:'New bill',items:[]}]}); } break;
     case 'aiBoq': aiBoq(curBoq()); break;
     case 'applyRates': { const b=curBoq(); let n=0, nOld=0; const reg=rtBoqRegion(b); const bills=b.bills||[]; bills.forEach(bl=>(bl.items||[]).forEach(it=>{ if(it.rate===''||it.rate==null){ const m=matchRate(it.desc,it.unit,reg); if(m){ it.rate=+m.rate; it.p=bqLibP(m); n++; if(rtCheck(m)) nOld++; } } })); await patch('boqs',b.id,{bills}); toast(n?`Filled ${n} rates from the library (${reg} first, newest prices)${nOld?` – ${nOld} of them are older than 6 months: check them`:''}.`:'No empty items matched a library rate.'); } break;
-    case 'exportBoq': exportBoq(byId('boqs',routeArg)); break;
+    case 'exportBoq': boqOpenExcel(byId('boqs',routeArg)); break;
     case 'delBoq': if(await confirmBox('Delete this BoQ?','Delete',true)){ await remove('boqs',routeArg); go('qs'); } break;
     case 'addRate': formDrawer('Add rate',[{k:'desc',label:'Item description',req:1,full:1},{k:'unit',label:'Unit',req:1},{k:'rate',label:'Rate (TZS)',type:'number',req:1},{k:'source',label:'Source (project / supplier quote)'}],{},async v=>{ await put('rates',null,v); }); break;
     case 'addMeeting': meetDrawer(null); break;
