@@ -33,7 +33,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
-/** NORDIC NEXUS for Android – opens the live NEXUS web app full screen; receives push notifications (v1.2). */
+/** NORDIC NEXUS for Android – opens the live NEXUS web app full screen; receives push notifications; in-app browser for the Digital Hub (v1.3). */
 public class MainActivity extends Activity {
     static final String HOME = "https://frankkashushura.github.io/nordic-nexus-app/";
     static final String APP_HOST = "frankkashushura.github.io";
@@ -67,7 +67,7 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setSupportZoom(false);
-        s.setUserAgentString(s.getUserAgentString() + " NordicNexusAndroid/1.2");
+        s.setUserAgentString(s.getUserAgentString() + " NordicNexusAndroid/1.3");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
 
@@ -261,6 +261,16 @@ public class MainActivity extends Activity {
 
     /** Receives files from the web page and saves them to Downloads. */
     class Bridge {
+        /** v1.3: open a website inside NEXUS (in-app browser screen). */
+        @JavascriptInterface
+        public void openInApp(final String url) {
+            if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) return;
+            runOnUiThread(() -> {
+                try { startActivity(new Intent(MainActivity.this, BrowserActivity.class).setData(Uri.parse(url))); }
+                catch (Exception e) { openOutside(url); }
+            });
+        }
+
         /** This phone's push address ("" until Firebase has given one). */
         @JavascriptInterface
         public String getPushToken() { return pushToken; }
