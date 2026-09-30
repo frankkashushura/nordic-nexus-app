@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=85"></script>
+<script src="config.js?v=86"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=85"></script>
-<script src="nexus-chat.js?v=85"></script>
+<script src="nexus-sb.js?v=86"></script>
+<script src="nexus-chat.js?v=86"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -156,6 +156,8 @@ textarea.inp{min-height:84px;resize:vertical}
 .li.nt-new .ttl2,.li.nt-unread .ttl2{font-weight:700}
 .li.nt-read{opacity:.62}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.rpchip{cursor:pointer;padding:6px 10px}.rpchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rplab{display:grid!important;grid-template-columns:34px 1fr 34px;align-items:center;gap:4px 6px!important}.rplab span{grid-column:1/-1}.rplab input{width:100%!important}.rplab .btn.sm{padding:4px 0;width:34px;min-width:0;flex:none;justify-content:center}.rplab span{min-width:0;line-height:1.15}
 .tbl-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel2)}
@@ -1166,7 +1168,7 @@ const PROJECT_FIELDS=[
   {k:'status',label:'Status',type:'select',options:['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed']},
   {k:'contract_no',label:'Contract number'},{k:'contract_sum',label:'Contract sum (TZS)',type:'number'},{k:'budget',label:'Cost budget (TZS)',type:'number'},
   {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date (contract)',type:'date'},{k:'pc_date',label:'Practical completion (handover) date',type:'date'},{k:'dlp_months',label:'Defects liability period (months)',type:'number',def:12},{k:'progress',label:'Progress %',type:'number'},
-  {k:'manager',label:'Project manager',type:'select',options:[]},{k:'notes',label:'Notes',type:'textarea'}];
+  {k:'manager',label:'Project manager',type:'select',options:[]},{k:'reporter',label:'Daily site report by',type:'select',options:[],help:'Reminded at 17:00 if today\'s report is missing (else the project manager)'},{k:'notes',label:'Notes',type:'textarea'}];
 function pageProjects(){
   const st=['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed'];
   const ps=[...S.projects].sort((a,b)=>st.indexOf(a.status)-st.indexOf(b.status));
@@ -1204,7 +1206,8 @@ const REPORT_FIELDS=[
   {k:'workforce',label:'Workers on site',type:'number'},{k:'work_done',label:'Work done today',type:'textarea',req:1,ph:'e.g. Casting of ground floor columns C1–C12, 6 m³ C25'},
   {k:'materials',label:'Materials received',type:'textarea'},{k:'plant',label:'Plant & equipment on site'},
   {k:'issues',label:'Issues, delays or instructions',type:'textarea'},{k:'hse',label:'HSE: incidents, near misses, toolbox talk',type:'textarea',ph:'Write "None" if nothing to report'},
-  {k:'next_day',label:'Plan for next day',type:'textarea'}];
+  {k:'next_day',label:'Plan for next day',type:'textarea'},{k:'instructions',label:'Instructions received'},{k:'visitors',label:'Visitors'}];
+const rpLabTxt=r=>Object.entries(r.labour&&typeof r.labour==='object'?r.labour:{}).map(([k,n])=>`${k} ${n}`).join(' · ');
 function pageReports(){
   let rs=[...S.reports].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(UI.rproj!=='All') rs=rs.filter(r=>r.project_id===UI.rproj);
@@ -1217,16 +1220,82 @@ function pageReports(){
       ${(r.photos||[]).length?`<div class="photos" style="margin-top:8px;grid-template-columns:repeat(auto-fill,minmax(80px,110px))">${r.photos.slice(0,5).map(ph=>photoTag(ph)).join('')}</div>`:''}
     </div></div>`).join('')}</div></div>`).join(''):'<div class="card empty">No site reports yet. Site staff can file one from a phone in about two minutes.</div>'}`;
 }
+/* ===== v2.11 FAST SITE REPORT: chips, labour counter, copy last report, voice typing, draft kept on the phone ===== */
+const RP_TRADES=['Foreman','Masons','Carpenters','Steel fixers','Painters','Electricians','Plumbers','Welders','Labourers','Others'];
+const RP_WEATHER=['Sunny','Cloudy','Light rain','Heavy rain – work stopped','Windy'];
+const rpDraftKey=()=>'nx_rpdraft_'+(me.id||'x');
+const rpLast=pid=>[...S.reports].filter(r=>r.project_id===pid).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created_at||'').localeCompare(a.created_at||''))[0];
+function rpDefaultProject(){ const sid=myStaffId(), live=p=>!/complet|closed|cancel|hold/i.test(p.status||'');
+  const mine=[...S.reports].filter(r=>r.author===me.name).sort((a,b)=>(b.created_at||b.date||'').localeCompare(a.created_at||a.date||''))[0];
+  if(mine&&byId('projects',mine.project_id)) return mine.project_id;
+  return (S.projects.find(p=>live(p)&&sid&&p.reporter===sid)||S.projects.find(p=>live(p)&&sid&&p.manager===sid))?.id||''; }
+function rpPlantChips(pid, chosen){ const L=S.plant.filter(x=>x.project_id===pid&&x.status!=='Written off'); const sel=new Set(String(chosen||'').split(/\s*[,;]\s*/).filter(Boolean));
+  return L.length?L.map(x=>`<button type="button" class="chip rpchip" data-rpplant="${esc(x.name)}" aria-pressed="${sel.has(x.name)}">${esc(x.name)}</button>`).join(''):'<span class="sub">No plant is booked to this project in Plant & Equipment – type it below.</span>'; }
+function rpDeliveries(pid, d){ return (S.procurement||[]).filter(q=>q.project_id===pid&&/delivered/i.test(q.status||'')&&String(q.delivered_at||q.delivered||q.updated_at||'').slice(0,10)===d).map(q=>`${q.item||''}${q.qty?' – '+q.qty+(q.unit?' '+q.unit:''):''}${q.supplier?' ('+q.supplier+')':''}`); }
 function reportForm(r={}, projId){
-  const fields=REPORT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f);
-  const body=`<div class="form">${fields.map(f=>field(f, r[f.k] ?? (f.k==='date'?today():f.k==='project_id'?projId:''))).join('')}
-    <div class="fld full"><label>Programme progress <span class="sub">– update the % of activities worked on</span></label><div id="rpProg">${pmReportRows(r.project_id||projId, r.date||today())}</div></div>
-    <div class="fld full"><label for="rphotos">Photos</label><input class="inp" id="rphotos" type="file" accept="image/*" multiple><span class="sub">Photos are resized before upload so they send quickly over mobile data.</span></div></div>
+  let draft=null; if(!r.id){ try{ draft=JSON.parse(localStorage.getItem(rpDraftKey())||'null'); }catch(_){} }
+  const v={...(draft||{}),...r}; const pid=v.project_id||projId||rpDefaultProject(), d=v.date||today(), lab=v.labour||{};
+  const last=!r.id&&pid?rpLast(pid):null;
+  const tot=RP_TRADES.reduce((a,t)=>a+(+lab[t]||0),0);
+  const mic=id=>('webkitSpeechRecognition' in window||'SpeechRecognition' in window)?`<span class="toolbar" style="gap:4px;margin-top:4px"><button type="button" class="btn sm" data-rpmic="${id}:en-GB">🎤 English</button><button type="button" class="btn sm" data-rpmic="${id}:sw-TZ">🎤 Kiswahili</button></span>`:'';
+  const ta=(k,label,ph='')=>`<div class="fld full"><label for="f_${k}">${label}</label><textarea class="inp" id="f_${k}" rows="2" placeholder="${esc(ph)}">${esc(v[k]||'')}</textarea>${mic('f_'+k)}</div>`;
+  const body=`${draft&&!r.id?'<div class="card" style="padding:8px 12px;margin-bottom:8px"><span class="small">📝 Your unsent draft was restored.</span> <button type="button" class="btn sm" data-act="rpClearDraft">Start empty</button></div>':''}
+  <div class="form">
+    ${field({k:'project_id',label:'Project',type:'select',req:1,options:projOpts('— choose project —')},pid)}${field({k:'date',label:'Report date',type:'date',req:1},d)}
+    ${last?`<div class="fld full"><button type="button" class="btn" data-act="rpCopyLast" style="white-space:normal;text-align:left">↺ Same as ${fmtD(last.date)} – copy weather, workers, plant</button>${last.next_day?`<span class="sub">Planned for today on ${fmtD(last.date)}: ${esc(last.next_day.slice(0,160))} <button type="button" class="btn sm" data-act="rpUsePlan">Use as today's work</button></span>`:''}</div>`:''}
+    <div class="fld full"><label>Weather</label><input type="hidden" id="f_weather" value="${esc(v.weather||'')}"><div class="toolbar" style="gap:6px;flex-wrap:wrap">${RP_WEATHER.map(w=>`<button type="button" class="chip rpchip" data-rpweather="${esc(w)}" aria-pressed="${v.weather===w}">${{Sunny:'☀️',Cloudy:'☁️','Light rain':'🌦️','Heavy rain – work stopped':'⛈️',Windy:'💨'}[w]} ${esc(w)}</button>`).join('')}</div></div>
+    <div class="fld full"><label>Workers on site <b id="rpTot">${tot||v.workforce||0}</b> <span class="sub">– tap + / − per trade</span></label><input type="hidden" id="f_workforce" value="${tot||v.workforce||''}">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:6px">${RP_TRADES.map(t=>`<div class="rplab" style="display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:8px;padding:4px 6px"><span class="small grow">${t}</span><button type="button" class="btn sm" data-rplab="${t}:-1" aria-label="Less ${t}">−</button><input class="inp mono" style="width:40px;text-align:center;padding:4px 2px" inputmode="numeric" data-rplabv="${t}" value="${+lab[t]||0}"><button type="button" class="btn sm" data-rplab="${t}:1" aria-label="More ${t}">+</button></div>`).join('')}</div></div>
+    <div class="fld full"><label>Plant & equipment working</label><div class="toolbar" id="rpPlant" style="gap:6px;flex-wrap:wrap">${rpPlantChips(pid,v.plant)}</div><input class="inp" id="f_plant" value="${esc(v.plant||'')}" placeholder="Other plant (comma separated)" style="margin-top:6px"></div>
+    ${ta('work_done','Work done today *','e.g. Casting of ground floor columns C1–C12, 6 m³ C25')}
+    <div class="fld full"><label for="f_materials">Materials received</label><textarea class="inp" id="f_materials" rows="2">${esc(v.materials||'')}</textarea><span id="rpDel"></span></div>
+    ${ta('issues','Issues or delays','Write only if something held the work back')}
+    <div class="fld full"><label for="f_instructions">Instructions received <span class="sub">(consultant / client – who and what)</span></label><input class="inp" id="f_instructions" value="${esc(v.instructions||'')}"></div>
+    <div class="fld full"><label for="f_visitors">Visitors</label><input class="inp" id="f_visitors" value="${esc(v.visitors||'')}" placeholder="e.g. Consultant QS – measurement of substructure"></div>
+    <div class="fld full"><label for="f_hse">Safety</label><div class="toolbar" style="gap:6px;margin-bottom:6px"><button type="button" class="chip rpchip good" data-act="rpNoHse" aria-pressed="${/^none\b/i.test(v.hse||'')}">✓ No incidents today</button></div><textarea class="inp" id="f_hse" rows="2" placeholder="Incident, near miss or toolbox talk topic">${esc(v.hse||'')}</textarea></div>
+    ${ta('next_day','Plan for tomorrow')}
+    <div class="fld full"><label>Programme progress <span class="sub">– update the % of activities worked on</span></label><div id="rpProg">${pmReportRows(pid, d)}</div></div>
+    <div class="fld full"><label for="rphotos">Photos</label><input class="inp" id="rphotos" type="file" accept="image/*" multiple><span class="sub">Resized before upload so they send quickly over mobile data.</span></div></div>
     ${(r.photos||[]).length?`<div class="photos">${r.photos.map(p=>photoTag(p)).join('')}</div>`:''}`;
-  return drawerShell(r.id?'Edit site report':'New site report', 'Site report', body, `<button class="btn pri" data-act="saveReport">${spin('saveReport')}Submit report</button><button class="btn" data-act="close">Cancel</button>`);
+  setTimeout(()=>rpShowDeliveries(),0);
+  return drawerShell(r.id?'Edit site report':'Daily site report', 'About 1 minute · only “work done” is required', body, `<button class="btn pri" data-act="saveReport">${spin('saveReport')}Submit report</button><button class="btn" data-act="close">Cancel</button>`);
 }
+function rpShowDeliveries(){ const box=$('#rpDel'); if(!box) return; const L=rpDeliveries($('#f_project_id')?.value,$('#f_date')?.value);
+  box.innerHTML=L.length?`<button type="button" class="btn sm" data-act="rpAddDel" style="margin-top:4px">+ Add ${L.length} deliver${L.length>1?'ies':'y'} recorded in Procurement today</button>`:''; }
+function rpSum(){ const ins=[...document.querySelectorAll('[data-rplabv]')]; const t=ins.reduce((a,i)=>a+Math.max(0,+i.value||0),0); const o=$('#f_workforce'); if(o) o.value=t||''; const b=$('#rpTot'); if(b) b.textContent=t; rpSaveDraft(); }
+function rpLabour(){ const o={}; document.querySelectorAll('[data-rplabv]').forEach(i=>{ const n=Math.max(0,+i.value||0); if(n) o[i.dataset.rplabv]=n; }); return o; }
+function rpSaveDraft(){ if(drawer?.type!=='report-form'||drawer.id) return; const g=k=>$('#f_'+k)?.value||''; const d={project_id:g('project_id'),date:g('date'),weather:g('weather'),labour:rpLabour(),plant:g('plant'),work_done:g('work_done'),materials:g('materials'),issues:g('issues'),instructions:g('instructions'),visitors:g('visitors'),hse:g('hse'),next_day:g('next_day')};
+  try{ if(d.work_done||d.issues||d.materials||Object.keys(d.labour).length) localStorage.setItem(rpDraftKey(),JSON.stringify(d)); }catch(_){} }
+let rpRec=null;
+function rpMic(target, lang, btn){ const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
+  if(rpRec){ rpRec.stop(); rpRec=null; return; } const el=$('#'+target); if(!el) return; rpRec=new SR(); rpRec.lang=lang; rpRec.interimResults=false; rpRec.continuous=true;
+  const lbl=btn.textContent; btn.textContent='⏹ Stop'; btn.classList.add('pri');
+  rpRec.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal){ const t=e.results[i][0].transcript.trim(); el.value=(el.value?el.value.replace(/\s*$/,' '):'')+t.charAt(0).toUpperCase()+t.slice(1)+'.'; } rpSaveDraft(); };
+  rpRec.onend=()=>{ btn.textContent=lbl; btn.classList.remove('pri'); rpRec=null; }; rpRec.onerror=e=>toast(e.error==='not-allowed'?'Allow the microphone to use voice typing.':'Voice typing stopped.'); rpRec.start(); }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-rplab],[data-rpweather],[data-rpplant],[data-rpmic],[data-act="rpCopyLast"],[data-act="rpUsePlan"],[data-act="rpNoHse"],[data-act="rpAddDel"],[data-act="rpClearDraft"]'); if(!b||drawer?.type!=='report-form') return;
+  e.preventDefault(); e.stopPropagation();
+  if(b.dataset.rplab){ const [t,n]=b.dataset.rplab.split(':'); const i=document.querySelector(`[data-rplabv="${t}"]`); i.value=Math.max(0,(+i.value||0)+(+n)); rpSum(); return; }
+  if(b.dataset.rpweather){ $('#f_weather').value=b.dataset.rpweather; document.querySelectorAll('[data-rpweather]').forEach(x=>x.setAttribute('aria-pressed',x===b)); rpSaveDraft(); return; }
+  if(b.dataset.rpplant){ const on=b.getAttribute('aria-pressed')!=='true'; b.setAttribute('aria-pressed',on); const f=$('#f_plant'); const L=f.value.split(/\s*[,;]\s*/).filter(x=>x&&x!==b.dataset.rpplant); if(on) L.push(b.dataset.rpplant); f.value=L.join(', '); rpSaveDraft(); return; }
+  if(b.dataset.rpmic){ const [id,lang]=b.dataset.rpmic.split(':'); rpMic(id,lang,b); return; }
+  const act=b.dataset.act, last=rpLast($('#f_project_id')?.value);
+  if(act==='rpCopyLast'&&last){ if(last.weather){ $('#f_weather').value=last.weather; document.querySelectorAll('[data-rpweather]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.rpweather===last.weather)); }
+    const lab=last.labour||{}; document.querySelectorAll('[data-rplabv]').forEach(i=>i.value=+lab[i.dataset.rplabv]||0); if(!Object.keys(lab).length&&last.workforce){ const o=document.querySelector('[data-rplabv="Others"]'); if(o) o.value=last.workforce; }
+    if(last.plant){ $('#f_plant').value=last.plant; $('#rpPlant').innerHTML=rpPlantChips(last.project_id,last.plant); } rpSum(); toast('Copied – change what is different today.'); return; }
+  if(act==='rpUsePlan'&&last?.next_day){ const w=$('#f_work_done'); w.value=w.value?w.value+'\n'+last.next_day:last.next_day; rpSaveDraft(); w.focus(); return; }
+  if(act==='rpNoHse'){ $('#f_hse').value='None – toolbox talk held.'; b.setAttribute('aria-pressed','true'); rpSaveDraft(); return; }
+  if(act==='rpAddDel'){ const m=$('#f_materials'); const L=rpDeliveries($('#f_project_id').value,$('#f_date').value); m.value=[m.value.trim(),...L].filter(Boolean).join('\n'); b.remove(); rpSaveDraft(); return; }
+  if(act==='rpClearDraft'){ try{ localStorage.removeItem(rpDraftKey()); }catch(_){} openDrawer('report-form',null,{proj:''}); return; }
+},true);
+document.addEventListener('input',e=>{ if(drawer?.type!=='report-form') return; if(e.target.dataset?.rplabv!==undefined) rpSum(); else rpSaveDraft(); });
+document.addEventListener('change',e=>{ if(drawer?.type!=='report-form') return; if(e.target.id==='f_project_id'){ const p=$('#rpPlant'); if(p) p.innerHTML=rpPlantChips(e.target.value,$('#f_plant')?.value); } if(e.target.id==='f_project_id'||e.target.id==='f_date') rpShowDeliveries(); rpSaveDraft(); });
+/* after submitting: management summary + risk flags written by AI in the background (the report is already saved) */
+async function rpAutoSummary(id){ try{ if(!sample) return; const r=byId('reports',id)||{}; if(!r.work_done||r.ai_summary) return;
+  const out=await sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Plain text.\nProject: ${projName(r.project_id)}\n${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,labour:r.labour,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,instructions:r.instructions,visitors:r.visitors,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'});
+  if(out?.text) await patch('reports',id,{ai_summary:out.text}); }catch(e){ console.warn('auto summary skipped',e); } }
+
 function reportDrawer(r){
-  const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers',r.workforce],['Work done',r.work_done],['Materials received',r.materials],['Plant',r.plant],['Issues / delays',r.issues],['HSE',r.hse],['Next day',r.next_day]].filter(x=>x[1]!=null&&x[1]!=='');
+  const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers',r.workforce!=null&&r.workforce!==''?r.workforce+(rpLabTxt(r)?' ('+rpLabTxt(r)+')':''):''],['Work done',r.work_done],['Materials received',r.materials],['Plant',r.plant],['Issues / delays',r.issues],['Instructions received',r.instructions],['Visitors',r.visitors],['HSE',r.hse],['Next day',r.next_day]].filter(x=>x[1]!=null&&x[1]!=='');
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd class="prose">${esc(v)}</dd>`).join('')}</dl>
   ${(r.photos||[]).length?`<div class="card"><div class="hd"><h2>Photos</h2><span class="sub">${r.photos.length}</span></div><div class="bd photos">${r.photos.map(p=>photoTag(p)).join('')}</div></div>`:''}
   <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}</div></div>`;
@@ -1268,7 +1337,7 @@ async function rpDownloadWord(list, title, withPhotos=true){
   const tblPr='<w:tblPr><w:tblW w:w="9900" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="C9CED8"/><w:left w:val="single" w:sz="4" w:color="C9CED8"/><w:bottom w:val="single" w:sz="4" w:color="C9CED8"/><w:right w:val="single" w:sz="4" w:color="C9CED8"/><w:insideH w:val="single" w:sz="4" w:color="C9CED8"/><w:insideV w:val="single" w:sz="4" w:color="C9CED8"/></w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>';
   let body=rpPara(c.name.toUpperCase(),{b:1,sz:32,color:'182340',after:40})+rpPara(title,{color:'539FDC',sz:24,after:200});
   for(const r of list){
-    const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers on site',r.workforce],['Work done',r.work_done],['Materials received',r.materials],['Plant / equipment',r.plant],['Issues / delays',r.issues],['Health & safety',r.hse],['Plan for next day',r.next_day],['AI summary',r.ai_summary]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
+    const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers on site',r.workforce!=null&&r.workforce!==''?r.workforce+(rpLabTxt(r)?' ('+rpLabTxt(r)+')':''):''],['Work done',r.work_done],['Materials received',r.materials],['Plant / equipment',r.plant],['Issues / delays',r.issues],['Instructions received',r.instructions],['Visitors',r.visitors],['Health & safety',r.hse],['Plan for next day',r.next_day],['AI summary',r.ai_summary]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
     body+=rpPara(`${projName(r.project_id)} – ${fmtD(r.date)}`,{b:1,sz:26,color:'182340',before:240,after:100,border:1});
     body+=`<w:tbl>${tblPr}<w:tblGrid><w:gridCol w:w="2700"/><w:gridCol w:w="7200"/></w:tblGrid>${kv.map(([k,v])=>`<w:tr>${cell(k,1)}${cell(v,0)}</w:tr>`).join('')}</w:tbl>`;
     if(withPhotos&&(r.photos||[]).length){ const cells=[];
@@ -1286,8 +1355,8 @@ async function rpDownloadWord(list, title, withPhotos=true){
 async function rpDownloadExcel(list, title){
   if(!list.length){ toast('No site reports to download.'); return; }
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const rows=[[company().name.toUpperCase()+' – '+title],[],['Date','Project','Reported by','Weather','Workers','Work done','Materials received','Plant','Issues / delays','HSE','Next day','Photos']];
-  list.forEach(r=>rows.push([r.date||'',projName(r.project_id),r.author||'',r.weather||'',r.workforce??'',r.work_done||'',r.materials||'',r.plant||'',r.issues||'',r.hse||'',r.next_day||'',(r.photos||[]).length]));
+  const rows=[[company().name.toUpperCase()+' – '+title],[],['Date','Project','Reported by','Weather','Workers','Work done','Materials received','Plant','Issues / delays','Instructions','Visitors','HSE','Next day','Photos']];
+  list.forEach(r=>rows.push([r.date||'',projName(r.project_id),r.author||'',r.weather||'',r.workforce??'',r.work_done||'',r.materials||'',r.plant||'',r.issues||'',r.instructions||'',r.visitors||'',r.hse||'',r.next_day||'',(r.photos||[]).length]));
   const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:11},{wch:28},{wch:16},{wch:12},{wch:8},{wch:60},{wch:30},{wch:24},{wch:40},{wch:30},{wch:40},{wch:7}]; XLSX.utils.book_append_sheet(wb,ws,'Site reports');
   if(!downloads){ toast('Downloads are not available in this view.'); return; }
   try{ await downloads.save({filename:(safeId(title).slice(0,70)||'Site_reports')+'.xlsx', data:new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'}))}); logAct(`Downloaded ${list.length} site reports as Excel (${title})`); }
@@ -3228,8 +3297,8 @@ document.addEventListener('click', async e=>{
     case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ await remove('tenders',T.id); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
     case 'copyAlert': if(T){ const txt=alertText(T); try{ await navigator.clipboard.writeText(txt); toast('Alert text copied. Paste it into WhatsApp, SMS or email.'); }catch(_){ toast('Copy is blocked here. Select the text shown instead.'); } } break;
     case 'tenderToBoq': if(T){ const id=await put('boqs',null,{title:'BoQ – '+T.title,tender_id:T.id,bills:[],vat:18,contingency:0,scope:T.scope||''}); if(id){ logAct(`Started BoQ for tender "${T.title}"`); go('qs',id); } } break;
-    case 'addProject': formDrawer('New project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
-    case 'editProject': { const p=byId('projects',drawer.id); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
+    case 'addProject': formDrawer('New project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
+    case 'editProject': { const p=byId('projects',drawer.id); formDrawer('Edit project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'delProject': { const p=byId('projects',drawer.id); if(await removeProject(p)) closeDrawer(); } break;
     case 'delProjectWs': { const p=byId('projects',routeArg); if(await removeProject(p)) go('projects'); } break;
     case 'showRemovedProj': UI.showRemovedProj=!UI.showRemovedProj; renderAll(); break;
@@ -3295,7 +3364,7 @@ document.addEventListener('click', async e=>{
     case 'addRisk': formDrawer('Add risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),{kind:'Risk',status:'Open'},async v=>{ await put('risks',null,{...v,project_id:routeArg}); logAct(`Risk logged: ${v.title} – ${projName(routeArg)}`); },{sub:'Risks & issues'}); break;
     case 'addSnag': formDrawer('Add snag',SNAG_FIELDS,{status:'Open'},async v=>{ await put('snags',null,{...v,project_id:routeArg,found:today()}); },{sub:'Snags & close-out'}); break;
     case 'addPlant': formDrawer('Add plant or equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),{ownership:'Owned',status:'Working'},async v=>{ await put('plant',null,v); logAct(`Plant added: ${v.name}`); },{sub:'Plant & equipment'}); break;
-    case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>f.k==='manager'?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
+    case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual)}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
     case 'aiProject': aiProject(byId('projects',routeArg)); break;
     case 'delForm': if(drawer?.onDelete && await confirmBox(drawer.delMsg||'Delete this record? This cannot be undone.',drawer.delLabel||'Delete',true)){ const lbl=drawer.delLabel; if(await drawer.onDelete()!==false){ closeDrawer(); toast(lbl==='Remove'?'Removed.':'Deleted.'); } } break;
@@ -3309,7 +3378,10 @@ async function saveReport(){
   try{
     const ex=drawer.id?byId('reports',drawer.id):null; const photos=[...(ex?.photos||[])];
     for(const [i,f] of files.entries()){ if(btn) btn.innerHTML=`<span class="spin"></span> Photo ${i+1} of ${files.length}…`; try{ photos.push(await storePhoto(f)); }catch(e){ toast('One photo could not be uploaded.'); } }
-    if(ex) await patch('reports',ex.id,{...v,photos}); else await put('reports',null,{...v,photos,author:me.name||'',created_at:new Date().toISOString()});
+    const hse_incident=!!(v.hse&&!/^(none|nil|no|hakuna)\b/i.test(v.hse.trim())); const extra={labour:rpLabour(),hse_incident};
+    let nid=ex?.id; if(ex) await patch('reports',ex.id,{...v,...extra,photos}); else nid=await put('reports',null,{...v,...extra,photos,author:me.name||'',author_uid:me.id||'',created_at:new Date().toISOString()});
+    if(!ex){ try{ localStorage.removeItem(rpDraftKey()); }catch(_){} }
+    if(nid&&!ex) setTimeout(()=>rpAutoSummary(nid),1500);
     logAct(`${ex?'Updated':'Filed'} site report for ${projName(v.project_id)} (${v.date}, ${photos.length} photos)`);
     const nProg=await pmApplyReport();
     UI.busy.saveReport=false; closeDrawer(); toast('Site report saved.'+(nProg?` Programme updated (${nProg}).`:''));
@@ -3500,6 +3572,8 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   else if(k==='chat'){ go('chat'); if(v){ let n=0; const t=setInterval(()=>{ if((window.NX_CHAT_OPEN&&window.NX_CHAT_OPEN(v))||++n>40) clearInterval(t); },250); } }
   else if(k==='rec'&&v){ go('records'); let n=0; const t=setInterval(()=>{ if(byId('records',v)){ clearInterval(t); openDrawer('rec',v); } else if(++n>40) clearInterval(t); },250); }
   else if(k==='tender'&&v){ go('tenders'); let n=0; const t=setInterval(()=>{ if(byId('tenders',v)){ clearInterval(t); openTender(v); } else if(++n>40) clearInterval(t); },250); }
+  else if(k==='report'&&v){ go('reports'); let n=0; const t=setInterval(()=>{ if(byId('reports',v)){ clearInterval(t); openDrawer('report',v); } else if(++n>40) clearInterval(t); },250); }
+  else if(k==='project'&&v){ let n=0; const t=setInterval(()=>{ if(byId('projects',v)||++n>40){ clearInterval(t); go('project',v); } },250); }
   else if(PAGE_FN[k]) go(k);
 };
 /* ===================== START ===================== */
