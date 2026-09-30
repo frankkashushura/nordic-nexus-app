@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=101"></script>
+<script src="config.js?v=102"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=101"></script>
-<script src="nexus-chat.js?v=101"></script>
+<script src="nexus-sb.js?v=102"></script>
+<script src="nexus-chat.js?v=102"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -2445,6 +2445,7 @@ function pageHome(){
   </section>
   ${myDay()}
   ${annHome()}
+  ${typeof bbHtml==='function'?bbHtml():''}
   <section class="card">
     <div class="hd"><h2>Tender notifications</h2><span class="sub">${notes.length} open · newest ${Math.min(5,notes.length)} shown</span><div class="sp"></div><button class="btn sm" data-go="tenders">Tender Radar</button></div>
     <div class="list">${notes.length?notes.slice(0,5).map(t=>{const d=daysLeft(t.deadline), f=daysLeft(t.date_found), isNew=f!=null&&f>-2;
@@ -5383,6 +5384,130 @@ document.addEventListener('click',async e=>{
   if(el.dataset.dhopen){ e.preventDefault(); dhOpen(el.dataset.dhopen,el.dataset.dhname); }
 });
 
+/* ---------------- v102 SITE BILLBOARD (Home) – rotating construction tips, each with its trusted source ---------------- */
+// Tips are short summaries in our own words; "Read more" opens the source organisation's official guidance.
+const BB_SRC={
+  osha:['OSHA (USA)','https://www.osha.gov/construction'],
+  hse:['HSE (UK)','https://www.hse.gov.uk/construction/'],
+  oshatz:['OSHA Tanzania','https://www.osha.go.tz'],
+  niosh:['NIOSH / CDC','https://www.cdc.gov/niosh/construction/'],
+  aci:['American Concrete Institute','https://www.concrete.org'],
+  cs:['The Concrete Society (UK)','https://www.concrete.org.uk'],
+  fidic:['FIDIC','https://fidic.org'],
+  rics:['RICS','https://www.rics.org'],
+  crb:['CRB Tanzania','https://www.crb.go.tz'],
+  nemc:['NEMC Tanzania','https://www.nemc.or.tz'],
+  ppra:['PPRA Tanzania','https://www.ppra.go.tz'],
+  wcf:['WCF Tanzania','https://www.wcf.go.tz'],
+  citb:['CITB (UK)','https://www.citb.co.uk'],
+  ilo:['ILO','https://www.ilo.org']};
+const BB_CAT={safety:['🦺','Safety first','#E8671A'],concrete:['🧱','Concrete & materials','#2F80ED'],site:['📋','Site management','#16A34A'],qs:['📐','QS & contracts','#8E44AD'],tz:['🇹🇿','Tanzania compliance','#0E7C66'],plant:['🚜','Plant & equipment','#C28A00']};
+const BB_TIPS=[
+  ['safety','Protect every open edge','Falls from height are the biggest killer on sites. Fit guardrails, cover openings or use harnesses wherever people could fall about 2 m or more.','osha'],
+  ['safety','Ladders: 1 in 4 and 1 m above','Set ladders at roughly 1 out for every 4 up, tie them off, and let the stiles extend about 1 m above the landing.','osha'],
+  ['safety','Trenches need support','From about 1.5 m deep, shore, slope or box every trench. Keep spoil and plant at least 0.6 m back from the edge.','osha'],
+  ['safety','Inspect scaffolds regularly','A competent person should inspect scaffolds before first use, after any change or bad weather, and at least every 7 days – record it.','hse'],
+  ['safety','Water · Rest · Shade','In hot weather give workers cool drinking water, regular breaks in the shade and time to get used to the heat.','osha'],
+  ['safety','Stop the dust at source','Cutting blocks, tiles or concrete makes silica dust. Use water suppression or on-tool extraction plus the right mask.','hse'],
+  ['safety','Protect hearing above 85 dB','If you must shout to be heard 2 m away, noise is too high. Reduce it at source and issue hearing protection.','hse'],
+  ['safety','Never under a suspended load','Plan every lift, check slings and hooks, use a banksman and keep everyone out of the load path.','hse'],
+  ['safety','Earth-leakage protection','Run portable electric tools through an RCD / earth-leakage breaker and check cables daily for damage.','hse'],
+  ['safety','Good housekeeping saves lives','Clear walkways, stack materials safely and remove nails and off-cuts daily – slips and trips are the most common site injuries.','hse'],
+  ['safety','Five-minute toolbox talk','A short daily talk on today’s hazards keeps safety fresh and lets workers raise concerns before work starts.','citb'],
+  ['safety','Construction is high-risk work','Plan for safety from design to handover – the ILO counts construction among the most dangerous industries worldwide.','ilo'],
+  ['safety','Protect workers’ lungs and hearing','Dust, noise and heat damage health slowly. Measure exposure and rotate tasks to keep workers healthy for the long term.','niosh'],
+  ['concrete','Cure for at least 7 days','Keep fresh concrete moist and covered for at least a week (longer in hot, dry or windy weather) to reach its design strength.','aci'],
+  ['concrete','No extra water on site','Adding water to make concrete easier to place weakens it. Use an approved plasticiser instead.','cs'],
+  ['concrete','Test every pour','Do a slump test on each load and make cubes for 7- and 28-day strength – label them with date, location and mix.','cs'],
+  ['concrete','Vibrate properly, not too long','Insert the poker vertically at close, regular spacing and withdraw slowly. Stop when air bubbles stop rising.','aci'],
+  ['concrete','Cover to steel matters','Use proper spacers or cover blocks – never stones or broken blocks – so reinforcement keeps its specified cover.','cs'],
+  ['concrete','Hot-weather concreting','Pour early in the morning, shade aggregates, avoid delays between batching and placing and start curing quickly.','aci'],
+  ['concrete','Store cement dry','Keep bags off the ground on pallets, covered and stacked no higher than about 10 bags. Use oldest stock first.','cs'],
+  ['concrete','Don’t heat-bend rebar','Bend reinforcement cold to the scheduled shape. Heating changes the steel’s properties and weakens it.','cs'],
+  ['concrete','Strike formwork on time','Follow the engineer’s striking times – soffit props usually stay much longer than side forms.','cs'],
+  ['site','Keep a daily site diary','Weather, labour, plant, deliveries, visitors and instructions – a good diary wins claims. (NEXUS site report does this in 60 seconds.)','rics'],
+  ['site','Photograph hidden works','Take dated photos of reinforcement, drainage and services before they are covered – your best evidence later.','rics'],
+  ['site','Check before you sign','Count and inspect every delivery against the delivery note and the order before signing for it.','rics'],
+  ['site','Update the programme weekly','Track progress against the baseline and watch the critical path – early warning gives time to recover.','rics'],
+  ['site','Measure twice, set out once','Check setting-out with two independent measurements and confirm the diagonals before excavating.','citb'],
+  ['site','Flood-test wet areas','Test waterproofing in bathrooms, roofs and tanks with water for 24–48 hours before tiling or covering.','citb'],
+  ['qs','Notice of claim: 28 days','Under FIDIC give notice within 28 days of becoming aware of a claim event – late notice can lose the whole claim.','fidic'],
+  ['qs','Confirm verbal instructions','Put every oral instruction in writing to the Engineer at once, before doing the work.','fidic'],
+  ['qs','No instruction, no variation','Get a written variation instruction before extra work, and agree how it will be valued.','fidic'],
+  ['qs','Keep the guarantee valid','The performance security must stay valid until the Performance Certificate – extend it before it expires. (NEXUS reminds you 40 days ahead.)','fidic'],
+  ['qs','Track retention release','Retention is normally released in two parts – at taking-over and at the end of the defects period. Diary both dates.','fidic'],
+  ['qs','Measure with the consultant','Agree quantities on site with the consultant before submitting the interim payment certificate.','rics'],
+  ['qs','Know your payment period','Check the contract for payment periods and interest on late payment – chase certified IPCs on time.','fidic'],
+  ['qs','Check price adjustment','Look for a price-adjustment (escalation) clause and keep the indices and invoices it needs.','fidic'],
+  ['tz','Register the workplace','Every workplace, including construction sites, must be registered with OSHA Tanzania under the OHS Act.','oshatz'],
+  ['tz','Keep your CRB registration current','Renew CRB registration on time and make sure the class and category match the project you are bidding for.','crb'],
+  ['tz','EIA before you build','Projects listed in the EIA regulations need an NEMC environmental certificate before construction starts.','nemc'],
+  ['tz','Dispose waste properly','Take construction waste only to approved sites and never burn or dump it – NEMC can stop the works.','nemc'],
+  ['tz','Bid validity and security','Make sure your bid security covers the whole bid validity period stated in the tender documents.','ppra'],
+  ['tz','Report work injuries','Employers contribute to WCF and must report work accidents promptly so injured workers are compensated.','wcf'],
+  ['plant','Daily pre-start checks','Check tyres or tracks, fluids, brakes, lights, alarms and guards before every shift – log and fix defects.','hse'],
+  ['plant','Stay out of the swing zone','Keep people outside the working radius of excavators and cranes; use barriers and a banksman.','hse'],
+  ['plant','Trained operators only','Only trained, authorised people may operate plant – keys stay with the supervisor.','hse']];
+const BB={i:null,paused:false,timer:null,cat:'all',dur:9000,el:0,last:0};
+function bbList(){ const co=(S.bbtips&&S.bbtips.tips)||[]; const own=co.filter(x=>x&&x.t).map(x=>['company',x.t,x.b||'',null,x.u||'']); const all=[...own,...BB_TIPS]; return BB.cat==='all'?all:all.filter(x=>x[0]===BB.cat); }
+function bbStart(){ const L=bbList(); if(BB.i==null){ const d=new Date(); BB.i=(d.getDate()*7+d.getHours())%L.length; } if(BB.i>=L.length) BB.i=0; }
+function bbSlide(){ const L=bbList(); bbStart(); const x=L[BB.i]; if(!x) return '';
+  const cat=x[0]==='company'?['🏗️','From Nordic','#182340']:BB_CAT[x[0]], src=x[0]==='company'?[company().name||'Nordic Construction',x[4]]:BB_SRC[x[3]];
+  return `<div class="bb-slide" style="--bbc:${cat[2]}"><div class="bb-cat"><span>${cat[0]}</span>${esc(cat[1])}<span class="bb-n">${BB.i+1} / ${L.length}</span></div>
+    <div class="bb-t">${esc(x[1])}</div><div class="bb-b">${esc(x[2])}</div>
+    <div class="bb-src">Source: ${src&&src[1]?`<a href="${esc(src[1])}" data-dhopen="${esc(src[1])}" data-dhname="${esc(src[0])}">${esc(src[0])} ↗</a>`:esc(src?src[0]:'')}</div></div>`; }
+function bbHtml(){
+  if(!document.getElementById('bbCss')){ const s=document.createElement('style'); s.id='bbCss'; s.textContent=BB_CSS; document.head.appendChild(s); }
+  bbStart(); setTimeout(bbTick,0);
+  return `<section class="bb" id="bb" aria-roledescription="carousel" aria-label="Construction tips">
+    <div class="bb-top"><span class="bb-live"><i></i>SITE BILLBOARD</span><div class="bb-cats">${[['all','All'],...Object.entries(BB_CAT).map(([k,v])=>[k,v[0]+' '+v[1].split(' ')[0]])].map(([k,l])=>`<button data-bbcat="${k}" class="${BB.cat===k?'on':''}">${esc(l)}</button>`).join('')}</div>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Add company tips">✎</button>':''}</div>
+    <div class="bb-screen" id="bbScreen" aria-live="polite">${bbSlide()}</div>
+    <div class="bb-bot"><button data-bbnav="-1" aria-label="Previous tip">‹</button><div class="bb-bar"><i id="bbBar"></i></div><button data-bbpause="1" aria-label="Pause">${BB.paused?'▶':'❚❚'}</button><button data-bbnav="1" aria-label="Next tip">›</button></div></section>`; }
+function bbShow(dir){ const L=bbList(); if(!L.length) return; BB.i=((BB.i||0)+dir+L.length)%L.length; BB.el=0; const sc=document.getElementById('bbScreen'); if(!sc) return; sc.classList.remove('bb-in'); void sc.offsetWidth; sc.innerHTML=bbSlide(); sc.classList.add('bb-in'); }
+function bbTick(){ if(BB.timer) return; BB.el=0; BB.last=Date.now(); BB.timer=setInterval(()=>{ const el=document.getElementById('bb'); const now=Date.now(), dt=now-BB.last; BB.last=now;
+    if(!el){ clearInterval(BB.timer); BB.timer=null; return; }
+    if(BB.paused||document.hidden||el.matches(':hover')) return;
+    BB.el+=dt; const bar=document.getElementById('bbBar'); if(bar) bar.style.width=Math.min(100,BB.el/BB.dur*100)+'%';
+    if(BB.el>=BB.dur){ BB.el=0; bbShow(1); } },120); }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-bbnav],[data-bbpause],[data-bbcat],[data-bbedit]'); if(!b) return;
+  if(b.dataset.bbnav){ bbShow(+b.dataset.bbnav); return; }
+  if(b.dataset.bbpause){ BB.paused=!BB.paused; b.textContent=BB.paused?'▶':'❚❚'; return; }
+  if(b.dataset.bbcat){ BB.cat=b.dataset.bbcat; BB.i=0; document.querySelectorAll('[data-bbcat]').forEach(x=>x.classList.toggle('on',x===b)); bbShow(0); return; }
+  if(b.dataset.bbedit&&isAdmin){ const txt=((S.bbtips&&S.bbtips.tips)||[]).map(x=>[x.t,x.b,x.u].filter(Boolean).join(' | ')).join('\n');
+    formDrawer('Company tips on the billboard',[{k:'lines',label:'One tip per line:  Title | text | link (optional)',type:'textarea',ph:'Wear your helmet | Hard hats are compulsory on every Nordic site.\nConcrete cubes | Label every cube with date, pour and grade.'}],{lines:txt},async v=>{
+      const L=String(v.lines||'').split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split('|').map(x=>x.trim()); return {t:p[0].slice(0,80),b:(p[1]||'').slice(0,260),u:safeUrl(p[2]||'')}; }).filter(x=>x.t).slice(0,40);
+      try{ await db.doc('settings/billboard').set({tips:L,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company tips on the billboard'); }catch(err){ toast('Could not save: '+(err.message||err)); return false; } },{sub:'Site billboard · shown first, to everyone',saveLabel:'Save tips'}); }
+});
+// swipe on phones
+{ let x0=null; document.addEventListener('touchstart',e=>{ if(e.target.closest('#bbScreen')) x0=e.touches[0].clientX; },{passive:true});
+  document.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; x0=null; if(Math.abs(dx)>45){ bbShow(dx<0?1:-1); } },{passive:true}); }
+const BB_CSS=`
+.bb{position:relative;border-radius:18px;overflow:hidden;margin:14px 0;background:#0b1220;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.25);border:3px solid #1c2638;outline:1px solid rgba(255,255,255,.06)}
+.bb::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.07) 1px,transparent 1.4px) 0 0/6px 6px;opacity:.8}
+.bb-top{position:relative;display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,rgba(255,180,0,.12),transparent 60%)}
+.bb-live{display:inline-flex;align-items:center;gap:7px;font:800 11.5px/1 var(--f-display,inherit);letter-spacing:1.6px;color:#FFB400;white-space:nowrap}
+.bb-live i{width:8px;height:8px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.7);animation:bbPulse 1.6s infinite}
+@keyframes bbPulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.6)}70%{box-shadow:0 0 0 8px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+.bb-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}.bb-cats::-webkit-scrollbar{display:none}
+.bb-cats button{flex:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cfd6e4;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer}
+.bb-cats button.on{background:#FFB400;color:#111;border-color:#FFB400;font-weight:700}
+.bb-ed{margin-left:auto;border:0;background:rgba(255,255,255,.08);color:#fff;border-radius:8px;width:30px;height:28px;cursor:pointer}
+.bb-screen{position:relative;min-height:170px;padding:18px 22px 10px}
+.bb-screen.bb-in .bb-slide{animation:bbIn .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes bbIn{from{opacity:0;transform:translateY(14px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+.bb-slide{border-left:4px solid var(--bbc);padding-left:14px}
+.bb-cat{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:color-mix(in srgb,var(--bbc) 55%,#fff)}
+.bb-cat span:first-child{font-size:16px}.bb-n{margin-left:auto;font-weight:500;color:#8b95a8;letter-spacing:0}
+.bb-t{font:800 clamp(19px,2.6vw,26px)/1.2 var(--f-display,inherit);margin:8px 0 6px;color:#fff;text-shadow:0 0 18px rgba(255,180,0,.18)}
+.bb-b{font-size:14.5px;line-height:1.55;color:#d9dfeb;max-width:880px}
+.bb-src{margin-top:10px;font-size:12px;color:#8b95a8}.bb-src a{color:#FFB400;text-decoration:none;font-weight:600}.bb-src a:hover{text-decoration:underline}
+.bb-bot{position:relative;display:flex;align-items:center;gap:8px;padding:6px 12px 12px}
+.bb-bot button{border:0;background:rgba(255,255,255,.08);color:#fff;border-radius:8px;min-width:32px;height:28px;cursor:pointer;font-size:15px}
+.bb-bot button:hover{background:rgba(255,255,255,.16)}
+.bb-bar{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}.bb-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#FFB400,#ff7a00);transition:width .12s linear}
+@media (max-width:600px){.bb{border-radius:14px}.bb-screen{padding:14px 16px 8px;min-height:190px}.bb-b{font-size:13.5px}.bb-top{flex-wrap:wrap;gap:8px}.bb-cats{order:3;flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){.bb-screen.bb-in .bb-slide{animation:none}.bb-live i{animation:none}}`;
+
 /* ---------------- NEXUS Office start page (Microsoft 365 style) ---------------- */
 const OXH_CSS=`
 .oxh{display:flex;gap:0;background:#fff;border:1px solid #E1DFDD;border-radius:6px;overflow:hidden;min-height:70vh;color:#252423;font:14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
@@ -5863,6 +5988,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('settings/billboard').onSnapshot(s=>{ S.bbtips=s.exists?s.data():null; if(route==='home') renderAll(); }, ()=>{});
   db.doc('settings/hub').onSnapshot(s=>{ S.hub=s.exists?s.data():null; if(route==='hub') renderAll(); }, ()=>{});
   db.doc('settings/company').onSnapshot(s=>{ S.company=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('activity/'+new Date().toISOString().slice(0,7)).onSnapshot(s=>{ S.activity=s.exists?(s.data().entries||[]):[]; if(route==='settings') renderAll(); }, ()=>{});
