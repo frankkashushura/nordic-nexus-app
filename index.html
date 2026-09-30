@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=84"></script>
+<script src="config.js?v=85"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=84"></script>
-<script src="nexus-chat.js?v=84"></script>
+<script src="nexus-sb.js?v=85"></script>
+<script src="nexus-chat.js?v=85"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -606,6 +606,7 @@ const ICON = {
   tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/>',
   docs:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
   alerts:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
+  deadlines:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
   about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   report:'<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h8M9 17h5"/>',
@@ -619,6 +620,7 @@ const PAGES = [
   {k:'home', t:'Home'},
   {k:'dash', t:'Command Centre'},
   {k:'alerts', t:'Alerts & Notifications'},
+  {k:'deadlines', t:'Deadlines'},
   {k:'chat', t:'Chat'},
   {k:'report', t:'Management Report'},
   {g:'Winning work'},
@@ -954,6 +956,11 @@ function syncHealth(){
   if(sa!=null&&sa>lim) return {cls:'bad',label:'Scanner offline'};
   return {cls:'good',label:'Live'};
 }
+function sourcesCard(){
+  const src=Object.entries(S.sync?.sources||{}).sort((a,b)=>b[1].open-a[1].open||b[1].total-a[1].total), dups=(S.tenderDups||[]).length;
+  return `<div class="card"><div class="hd"><h2>Where tenders come from</h2></div><div class="bd small">${src.length?`<table><tbody>${src.slice(0,6).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r mono"><b>${v.open}</b> open</td><td class="r sub">${v.newest?fmtD(v.newest):'—'}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">Shown after the next automatic sync.</span>'}
+    <div class="sub" style="margin-top:6px">${dups?`${dups} duplicate${dups>1?'s':''} found on two sources ${dups>1?'were':'was'} merged automatically. `:''}New Pursue / Check tenders get AI advice and their key facts (value, CRB class, bid security, site visit) filled in automatically.</div></div></div>`;
+}
 function scannerCard(last){
   const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
   const nt=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0];
@@ -1005,7 +1012,7 @@ function pageTenders(){
   <div class="grid g3">
     ${scannerCard(last)}
     <div class="card"><div class="hd"><h2>AI bid advisor</h2></div><div class="bd small">Open a tender → <b>Get AI advice</b> for a Bid / Conditional / No-Bid suggestion.</div></div>
-    <div class="card"><div class="hd"><h2>Tender documents</h2></div><div class="bd small">Download from NeST, then attach to the tender here so the team shares one copy.</div></div>
+    ${sourcesCard()}
   </div>
   <div class="toolbar">
     <input class="inp search" id="tq" type="search" placeholder="Search title, client, number, place" value="${esc(UI.tq)}" aria-label="Search tenders">
@@ -1036,13 +1043,15 @@ const TENDER_FIELDS = [
 const TENDER_EDIT = [
   {k:'status',label:'Status',type:'select',options:['Watching','Preparing','Submitted','Won','Lost','No-Bid','Cancelled','Closed – missed']},
   {k:'md_decision',label:'MD decision',type:'select',options:['','Bid','Conditional','No-Bid','JV – explore']},
-  {k:'owner',label:'Owner'},{k:'docs',label:'Documents downloaded',type:'select',options:['N','Y']},
+  {k:'owner',label:'Owner',type:'select',help:'Gets the deadline reminders'},{k:'docs',label:'Documents downloaded',type:'select',options:['N','Y']},
   {k:'value',label:'Estimated value (TZS)',type:'number',help:'Only from the tender document or procurement plan'},{k:'crb',label:'CRB class required'},
-  {k:'site_visit',label:'Site visit',help:'Write as 2026-10-02 10:00 to show it on the calendar'},{k:'bid_security',label:'Bid security'},{k:'clar',label:'Clarification deadline',help:'e.g. 2026-10-01 16:00'},
+  {k:'site_visit',label:'Site visit',help:'Write as 2026-10-02 10:00 to show it on the calendar'},{k:'bid_security',label:'Bid security'},{k:'eligibility',label:'Who may bid',full:1},{k:'clar',label:'Clarification deadline',help:'e.g. 2026-10-01 16:00'},
   {k:'notes',label:'Notes',type:'textarea'}];
+{ const of=TENDER_EDIT.find(f=>f.k==='owner'); Object.defineProperty(of,'options',{get:()=>{ const act=S.staff.filter(s=>s.status!=='Left').sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const legacy=[...new Set(S.tenders.map(t=>t.owner).filter(o=>o&&!byId('staff',o)))]; return [['','— nobody yet —'],...act.map(s=>[s.id,s.name+(s.position?' · '+s.position:'')]),...legacy.map(o=>[o,o+' (old entry)'])]; },configurable:true}); }
 function tenderDrawer(t){
   const f=t.f02||{gates:{},scores:[]}, res=f02Result(f);
-  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',[fmtD(t.date_found),t.found_by,t.source].filter(x=>x&&x!=='—').join(' · ')],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
+  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',[fmtD(t.date_found),t.found_by,t.source].filter(x=>x&&x!=='—').join(' · ')],['Also listed on',(t.sources||[]).filter(x=>x&&x!==t.source).join(', ')],['Owner',t.owner?staffName(t.owner):''],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
   const docs=(t.files||[]);
   const body=`
     <div class="toolbar">${daysChip(t.deadline)} ${screenChip(t.screen)} <span class="chip">${esc(t.status||'Watching')}</span> ${t.url?`<a class="btn sm" href="${esc(t.url)}" target="_blank" rel="noopener">Open source page ↗</a>`:''}</div>
@@ -1056,7 +1065,7 @@ function tenderDrawer(t){
       <div class="toolbar" style="margin-top:8px"><button class="btn dark" data-act="saveF02">Save score</button>${t.ai?.scores?'<button class="btn" data-act="applyAiScores">Fill with AI suggestions</button>':''}</div></div></div>
     ${checklistHtml(t)}
     ${outcomeHtml(t)}
-    <div class="card"><div class="hd"><h2>Tracking</h2></div><div class="bd"><div class="form">${tenderEdit().map(fl=>field(fl,t[fl.k])).join('')}${isAdmin?'':`<div class="small muted" style="grid-column:1/-1">MD decision: <b>${esc(t.md_decision||'not decided yet')}</b> – only administrators change it.</div>`}</div>
+    <div class="card"><div class="hd"><h2>Tracking</h2></div><div class="bd"><div class="form">${tenderEdit().map(fl=>field((t.extracted||[]).includes(fl.k)?Object.assign(Object.create(fl),{help:'🤖 Read by AI from the notice – please check'}):fl,t[fl.k])).join('')}${isAdmin?'':`<div class="small muted" style="grid-column:1/-1">MD decision: <b>${esc(t.md_decision||'not decided yet')}</b> – only administrators change it.</div>`}</div>
       <div class="toolbar" style="margin-top:10px"><button class="btn dark" data-act="saveTender">Save tracking</button></div></div></div>
     <div class="card"><div class="hd"><h2>Tender documents</h2><div class="sp"></div>${assets?'<label class="btn sm" for="tdocFile" style="cursor:pointer">Attach PDF</label><input type="file" id="tdocFile" accept="application/pdf,image/*" multiple hidden>':''}</div>
       <div class="bd small">${docs.length?docs.map(d=>`<div><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a> <span class="sub">· ${esc(d.by||'')} · ${fmtD(d.at)}</span></div>`).join(''):`<span class="muted">No documents attached yet.${assets?'':' Attaching files needs editor access.'}</span>`}</div></div>`;
@@ -2909,7 +2918,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -3079,13 +3088,58 @@ async function deptClick(el){
 }
 async function deptChange(el){ const d=deptByName(routeArg); if(!d||!isDeptAdmin(d)) return; const L=[...(d.objectives||[])], i=+el.dataset.deptobj; if(!L[i]) return; L[i]={...L[i],status:el.value}; await deptObjSave(d,L); logAct(`${d.name} objective "${L[i].t}" → ${el.value}`); }
 
+/* ===== DEADLINES (v2.10): every date that matters in one list – the server sends the reminders ===== */
+const DL_KIND={tender:['🏗️','Tender'],clar:['📌','Clarification'],visit:['📌','Site visit'],activity:['📅','Programme'],completion:['🏁','Completion'],dlp:['🛠️','Defects period'],doc:['📄','Document expiry'],payment:['💰','Payment due'],purchase:['🛒','Purchase'],task:['✅','Task']};
+const dlYmd=v=>{ const m=String(v||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:''; };
+const dlDays=d=>Math.ceil((Date.parse(d+'T23:59:59+03:00')-Date.now())/864e5);
+function deadlineItems(){
+  const sid=myStaffId(), myName=(me.name||'').toLowerCase(), out=[], shut=/complet|closed|cancel|lost/i;
+  const add=(date,kind,title,sub,go,mine)=>{ const d=dlYmd(date); if(!d) return; const n=dlDays(d); if(n<-60||n>120) return; out.push({d,n,kind,title,sub,go,mine:!!mine}); };
+  const pm=pid=>{ const p=byId('projects',pid); return p&&sid&&p.manager===sid; };
+  for(const t of S.tenders){ if(t.example||t.screen==='Drop'||/no-?bid|submitted|won|lost|cancel|closed/i.test(t.status||'')) continue;
+    const mine=(sid&&t.owner===sid)||(myName&&String(t.owner||'').toLowerCase()===myName), sub=t.client||'';
+    if(dlDays(dlYmd(t.deadline))>=-1) add(t.deadline,'tender',t.title,sub,'tender:'+t.id,mine);
+    if(dlDays(dlYmd(t.clar))>=0) add(t.clar,'clar',t.title,sub,'tender:'+t.id,mine);
+    if(dlDays(dlYmd(t.site_visit))>=0) add(t.site_visit,'visit',t.title,sub,'tender:'+t.id,mine); }
+  const live=pid=>{ const p=byId('projects',pid); return p&&!shut.test(p.status||''); };
+  for(const m of S.milestones||[]) if(!m.example&&(+m.progress||0)<100&&live(m.project_id)) add(m.planned_finish,'activity',m.name,`${projName(m.project_id)} · ${+m.progress||0}% done`,'project:'+m.project_id,pm(m.project_id));
+  for(const p of S.projects) if(p.end&&!p.pc_date&&!shut.test(p.status||'')) add(p.end,'completion',p.name,'Contract completion','project:'+p.id,sid&&p.manager===sid);
+  for(const r of S.records||[]){ if(r.folder==='contracts'&&r.dlp_end&&dlDays(dlYmd(r.dlp_end))>=0) add(r.dlp_end,'dlp',r.title||'Contract','Release retention after this date','rec:'+r.id,sid&&r.owner===sid);
+    else if(r.folder!=='contracts'&&recExp(r)) add(recExp(r),'doc',r.title||'Document',[r.ref,r.party].filter(Boolean).join(' · '),'rec:'+r.id,sid&&r.owner===sid); }
+  for(const c of compLegacy()) add(c.expiry,'doc',c.name,c.issuer||'','go:records',false);
+  if(money()) for(const c of S.certificates||[]){ if(c.example||c.status!=='Certified'||!dlYmd(c.certified)) continue;
+    const due=new Date(Date.parse(dlYmd(c.certified)+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10);
+    add(due,'payment',c.no||'Certificate',projName(c.project_id),'go:certs',isFin||pm(c.project_id)); }
+  for(const q of S.procurement||[]) if(!q.example&&q.needed_by&&!/delivered|rejected/i.test(q.status||'')) add(q.needed_by,'purchase',`${q.pr_no||''} ${q.item||''}`.trim(),`${q.status||'Requested'} · needed on site`,'go:procure',q.requested_uid===me.id||isProcOff());
+  for(const t of S.tasks||[]) if(!t.example&&t.due&&!/^(done|complete|closed)/i.test(t.status||'')) add(t.due,'task',t.title,staffName(t.assignee)||'Unassigned','go:tasks',sid&&t.assignee===sid);
+  return out.sort((a,b)=>a.d.localeCompare(b.d));
+}
+function pageDeadlines(){
+  const all=deadlineItems(), mineN=all.filter(x=>x.mine).length; UI.dlf=UI.dlf||(mineN?'mine':'all'); UI.dlk=UI.dlk||'all';
+  const rows=all.filter(x=>(UI.dlf==='all'||x.mine)&&(UI.dlk==='all'||x.kind===UI.dlk));
+  const kinds=[...new Set(all.map(x=>x.kind))];
+  const grp=[['Overdue',x=>x.n<0,'bad'],['This week',x=>x.n>=0&&x.n<=7,'warn'],['Next week',x=>x.n>7&&x.n<=14,''],['Later',x=>x.n>14,'']];
+  const when=n=>n<0?`${-n} day${n===-1?'':'s'} late`:n===0?'Today':n===1?'Tomorrow':`in ${n} days`;
+  const link=g=>g.startsWith('go:')?`data-go="${esc(g.slice(3))}"`:g.startsWith('rec:')?`data-rec="${esc(g.slice(4))}"`:`data-open="${esc(g)}"`;
+  const cnt=f=>rows.filter(f).length;
+  return `<div class="grid g4" style="margin-bottom:12px">${grp.map(([l,f,c])=>`<div class="card kpi ${c==='bad'&&cnt(f)?'hot':c==='warn'?'amb':'blu'}"><span class="label">${l}</span><span class="v num">${cnt(f)}</span></div>`).join('')}</div>
+  <div class="toolbar"><div class="seg" role="group" aria-label="Whose">${[['mine',`Mine (${mineN})`],['all',`All (${all.length})`]].map(([k,l])=>`<button data-dlf="${k}" aria-pressed="${UI.dlf===k}">${l}</button>`).join('')}</div>
+    <select class="inp" id="dlk" aria-label="Type"><option value="all">All types</option>${kinds.map(k=>`<option value="${k}" ${UI.dlk===k?'selected':''}>${DL_KIND[k][1]}</option>`).join('')}</select></div>
+  ${grp.map(([l,f,c])=>{ const g=rows.filter(f); if(!g.length) return ''; return `<div class="card"><div class="hd"><h2>${l}</h2><div class="sp"></div><span class="chip ${c}">${g.length}</span></div><div class="tbl-wrap"><table><tbody>
+    ${g.map(x=>`<tr class="click" ${link(x.go)}><td style="width:118px"><span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${when(x.n)}</span><div class="sub mono">${fmtD(x.d)}</div></td>
+      <td><div class="ttl2">${DL_KIND[x.kind][0]} ${esc(x.title)}</div><div class="sub">${DL_KIND[x.kind][1]}${x.sub?' · '+esc(x.sub):''}</div></td></tr>`).join('')}</tbody></table></div></div>`; }).join('')
+    ||`<div class="card empty">${UI.dlf==='mine'?'Nothing due for you in the next 4 months. Switch to <b>All</b> to see the company list.':'No dates in the next 4 months.'}</div>`}
+  <p class="sub">Reminders go out automatically (phone + browser): tenders 14/7/3/1 days and on the day, programme activities 7/3/1, completion 30/14/7, defects period 60/30/14, payments 3 days and weekly when late, purchases 3/1. Overdue tasks go to the department Head after 1 day and to administrators after 3.</p>`;
+}
+document.addEventListener('change',e=>{ if(e.target?.id==='dlk'){ UI.dlk=e.target.value; renderView(true); } });
+
 /* ===================== FORM DRAWERS ===================== */
 function formDrawer(title, fields, values, onSave, opts={}){ openDrawer('form',null,{title,fields,values,onSave,sub:opts.sub,saveLabel:opts.saveLabel,onDelete:(isAdmin||opts.delOk)?opts.onDelete:null,delLabel:opts.delLabel,delMsg:opts.delMsg}); }
 function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-dlf],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -3095,6 +3149,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.go==='alerts'&&route!=='alerts') nsOpened();
   if(el.dataset.go){ if(el.dataset.go==='more'){ openDrawer('more'); return; } if(el.dataset.go==='logins'){ try{ closeDrawer(); }catch(_){} if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); return; } go(el.dataset.go); return; }
   if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else if(k==='dept') go('dept',id); else openDrawer(k,id); return; }
+  if(el.dataset.dlf){ UI.dlf=el.dataset.dlf; renderView(true); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
@@ -3461,7 +3516,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
-  for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
+  for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
