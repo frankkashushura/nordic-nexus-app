@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=109"></script>
+<script src="config.js?v=110"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=109"></script>
-<script src="nexus-chat.js?v=109"></script>
+<script src="nexus-sb.js?v=110"></script>
+<script src="nexus-chat.js?v=110"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -558,7 +558,7 @@ body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -620,6 +620,8 @@ function daysChip(v){
 const screenChip = s => s ? `<span class="chip ${s==='Pursue'?'good':s==='Check'?'amb':'bad'}">${esc(s)}</span>` : '';
 const verdictCls = v => /^bid/i.test(v||'') ? 'good' : /cond/i.test(v||'') ? 'warn' : /no/i.test(v||'') ? 'bad' : '';
 const ICON = {
+  hr:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 15l2.5 2.5L16 13"/>',
+  fleet:'<path d="M3 16V9l2-4h10l3 4h3v7"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
   pm:'<path d="M3 4v16h18"/><path d="M7 7h6M9 11h8M11 15h6"/>',
   records:'<path d="M3 7h6l2 2h10v11H3z"/><path d="M3 7V5h6l2 2"/><path d="M8 14h8M8 17h5"/>',
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
@@ -673,6 +675,7 @@ const PAGES = [
   {g:'People'},
   {k:'depts', t:'Departments'},
   {k:'staff', t:'Staff'},
+  {k:'hr', t:'HR & Leave'},
   {g:'Office'},
   {k:'office', t:'NEXUS Office'},
   {k:'hub', t:'Digital Hub'},
@@ -774,6 +777,9 @@ function computeAlerts(){
   if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   if(poCan()) poList().filter(poLate).forEach(o=>A.push({lvl:'bad', kind:'Late delivery', text:`${o.po_no} ${o.item} – ${o.supplier}`, sub:`Promised ${fmtD(o.delivery_date)} · ${poPct(o)}% received`, go:['route','procure'], sort:16, at:o.delivery_date}));
+  lvToDecide().forEach(l=>A.push({lvl:'warn', kind:'Leave to approve', text:`${l.name}: ${l.days} days ${String(l.type).toLowerCase()} leave`, sub:`${fmtD(l.from)} – ${fmtD(l.to)}`, go:['route','hr'], sort:19, at:l.requested_at||l.updated_at}));
+  lvList().filter(l=>l.by_uid===me.id&&['Approved','Rejected'].includes(l.status)&&l.decided_at&&Date.now()-Date.parse(l.decided_at)<7*864e5).forEach(l=>A.push({lvl:l.status==='Approved'?'blue':'bad', kind:'Your leave', text:`Leave ${fmtD(l.from)} – ${fmtD(l.to)} ${l.status.toLowerCase()}`, sub:`by ${l.decided_by||''}${l.decision_note?': '+l.decision_note:''}`, go:['route','hr'], sort:15, at:l.decided_at}));
+  hrSoon().forEach(x=>A.push({lvl:x.d<=7?'bad':'warn', kind:x.kind, text:`${x.s.name} – ${fmtD(x.date)}`, sub:x.d<0?'date has passed – update the staff record':`in ${Math.ceil(x.d)} days`, go:['route','hr'], sort:21, at:x.date}));
   S.procurement.filter(p=>p.status==='Requested').forEach(p=>A.push({lvl:'warn', kind:'Approval needed', text:`Purchase request: ${p.item}`, sub:`${projName(p.project_id)} · ${tzs(p.est_cost)}`, go:['route','procure'], sort:20, at:p.requested_at||p.updated_at}));
   // meetings I am invited to / organising
   { const sid=myStaffId(), now=Date.now(); (S.meetings||[]).filter(m=>m.status!=='Cancelled'&&meetEnd(m)>now&&((sid&&(m.invitees||[]).includes(sid))||m.organizer_uid===me.id)).forEach(m=>{ const t=meetStart(m), inv=sid&&(m.invitees||[]).includes(sid), ans=inv?(m.responses||{})[sid]:null;
@@ -2315,6 +2321,83 @@ function pageStaff(){
   ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. You can edit your own details and photo.</p>':''}`;
 }
 
+/* ===================== PHASE 5 · HR BASICS (v110): leave, who's away, contracts & probation =====================
+   "leave"  {by_uid, staff_id, name, dept, type, from, to, days, reason, cover, status Pending|Approved|Rejected|Cancelled, decided_by, decided_at, decision_note}
+            read: the person, their Head / Deputy of department, administrators, Finance (DB leave_read); approve: Head / Deputy or administrator, never your own.
+   "away"   written only by the database when leave is approved (name, dept, from, to – no type or reason) → everyone sees who is away.
+   "hrrec"  one per staff card (id = staff id): contract_type, start, contract_end, probation_end, leave_days – administrators and Finance only. */
+const LEAVE_TYPES=[['Annual','Annual leave'],['Sick','Sick leave'],['Maternity','Maternity leave'],['Paternity','Paternity leave'],['Compassionate','Compassionate leave'],['Study','Study / exam leave'],['Unpaid','Unpaid leave'],['Other','Other']];
+const LEAVE_INFO={Annual:'28 consecutive days per year (public holidays inside the leave are counted) – ELRA 2004 s.31',Sick:'126 days in a 36-month cycle: 63 on full pay, 63 on half pay – medical certificate needed',Maternity:'84 days (100 for twins or more)',Paternity:'3 days, taken within 7 days of the birth',Compassionate:'4 days (death or serious illness of a close family member)'};
+const lvDays=(a,b)=>{ if(!a||!b) return 0; const d=Math.round((Date.parse(b+'T12:00:00')-Date.parse(a+'T12:00:00'))/864e5)+1; return Math.max(0,d); };
+const lvList=()=>(S.leave||[]).filter(l=>!l.deleted);
+const hrRec=sid=>byId('hrrec',sid)||{};
+const lvEntitle=sid=>+hrRec(sid).leave_days||+(company().leave_days||0)||28;
+const lvYear=(l,y)=>String(l.from||'').slice(0,4)===String(y);
+function lvBalance(sid,y=new Date().getFullYear()){ const L=lvList().filter(l=>l.staff_id===sid&&l.type==='Annual'&&lvYear(l,y)); const used=L.filter(l=>l.status==='Approved').reduce((a,l)=>a+(+l.days||0),0), pend=L.filter(l=>l.status==='Pending').reduce((a,l)=>a+(+l.days||0),0), ent=lvEntitle(sid); return {ent,used,pend,left:ent-used}; }
+const lvDeptOf=l=>deptList().find(d=>lcN(d.name)===lcN(l.dept));
+const lvCanDecide=l=>l.by_uid!==me.id&&(isAdmin||isDeptAdmin(lvDeptOf(l)));
+const lvToDecide=()=>lvList().filter(l=>l.status==='Pending'&&lvCanDecide(l));
+const awayList=()=>(S.away||[]).filter(a=>a.to>=today()).sort((a,b)=>String(a.from).localeCompare(String(b.from)));
+const lvChip=s=>`<span class="chip ${s==='Approved'?'good':s==='Rejected'?'bad':s==='Cancelled'?'':'amb'}">${esc(s)}</span>`;
+const hrMoney=()=>money();
+function hrSoon(){ if(!hrMoney()) return []; const out=[]; for(const s of S.staff.filter(x=>x.status!=='Left')){ const r=hrRec(s.id);
+  if(r.contract_end){ const d=daysLeft(r.contract_end+'T23:59'); if(d<=60) out.push({s,kind:'Contract ends',date:r.contract_end,d}); }
+  if(r.probation_end){ const d=daysLeft(r.probation_end+'T23:59'); if(d<=14&&d>=-7) out.push({s,kind:'Probation ends',date:r.probation_end,d}); } }
+  return out.sort((a,b)=>a.d-b.d); }
+
+function pageHR(){
+  const sid=myStaffId(), dec=lvToDecide(), tabs=[['mine','My leave'],...(dec.length||isAdmin||deptList().some(d=>isDeptAdmin(d))?[['approve',`To approve${dec.length?' ('+dec.length+')':''}`]]:[]),['away',"Who's away"],...(hrMoney()?[['records','Staff records']]:[])];
+  const t=tabs.some(x=>x[0]===UI.hrt)?UI.hrt:'mine';
+  const seg=`<div class="toolbar"><div class="seg">${tabs.map(([k,l])=>`<button data-hr="tab:${k}" aria-pressed="${t===k}">${l}</button>`).join('')}</div><div class="sp"></div>${sid?'<button class="btn pri" data-hr="new">Request leave</button>':''}</div>`;
+  if(t==='approve') return seg+hrApprove(); if(t==='away') return seg+hrAway(); if(t==='records') return seg+hrRecords();
+  if(!sid) return seg+'<div class="card empty">Your login is not linked to a staff card yet, so leave cannot be requested. Ask an administrator to link it (Staff → your card → NEXUS login).</div>';
+  const b=lvBalance(sid), mine=lvList().filter(l=>l.staff_id===sid).sort((a,b)=>String(b.from).localeCompare(String(a.from)));
+  const y=new Date().getFullYear(), other=LEAVE_TYPES.filter(([k])=>k!=='Annual').map(([k,l])=>[l,mine.filter(x=>x.type===k&&x.status==='Approved'&&lvYear(x,y)).reduce((a,x)=>a+(+x.days||0),0)]).filter(x=>x[1]);
+  return seg+`<div class="grid g4">
+    <div class="card kpi ${b.left<=5?'amb':'grn'}"><span class="label">Annual leave left ${y}</span><span class="v num">${b.left}</span><span class="s">of ${b.ent} days</span></div>
+    <div class="card kpi blu"><span class="label">Taken</span><span class="v num">${b.used}</span><span class="s">annual leave days</span></div>
+    <div class="card kpi amb"><span class="label">Waiting approval</span><span class="v num">${b.pend}</span><span class="s">days requested</span></div>
+    <div class="card kpi"><span class="label">Other leave ${y}</span><span class="v num">${other.reduce((a,x)=>a+x[1],0)}</span><span class="s">${other.map(x=>esc(x[0].replace(' leave',''))+' '+x[1]).join(' · ')||'none'}</span></div></div>
+  <div class="card"><div class="hd"><h2>My requests</h2></div><div class="tbl-wrap"><table><thead><tr><th>Leave</th><th>Dates</th><th class="r">Days</th><th>Status</th><th></th></tr></thead><tbody>
+  ${mine.map(l=>`<tr><td class="ttl2">${esc((LEAVE_TYPES.find(x=>x[0]===l.type)||[0,l.type])[1])}${l.cover?`<div class="sub">Cover: ${esc(staffName(l.cover))}</div>`:''}</td><td class="small">${fmtD(l.from)} – ${fmtD(l.to)}</td><td class="r num">${esc(l.days)}</td><td>${lvChip(l.status)}${l.decided_by?`<div class="sub">${esc(l.decided_by)}${l.decision_note?': '+esc(l.decision_note):''}</div>`:''}</td><td>${['Pending','Approved'].includes(l.status)&&l.to>=today()?`<button class="btn sm" data-hr="cancel:${esc(l.id)}">Cancel</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No leave requested yet.</div></td></tr>'}
+  </tbody></table></div></div><p class="sub">Your Head or Deputy of department approves your leave (the MD for Management). Only you, your department heads, administrators and Finance see the type and reason; colleagues see only that you are away.</p>`;
+}
+function hrApprove(){ const P=lvToDecide().sort((a,b)=>String(a.from).localeCompare(String(b.from))), D=lvList().filter(l=>l.status!=='Pending'&&(isAdmin||isDeptAdmin(lvDeptOf(l)))&&l.by_uid!==me.id).sort((a,b)=>String(b.decided_at||b.from).localeCompare(String(a.decided_at||a.from))).slice(0,30);
+  const row=(l,act)=>{ const b=lvBalance(l.staff_id), clash=awayList().filter(a=>a.id!==l.id&&lcN(a.dept)===lcN(l.dept)&&a.from<=l.to&&a.to>=l.from);
+    return `<tr><td class="ttl2">${esc(l.name||staffName(l.staff_id))}<div class="sub">${esc(l.dept||'')}</div></td><td>${esc((LEAVE_TYPES.find(x=>x[0]===l.type)||[0,l.type])[1])}${l.reason?`<div class="sub">${esc(l.reason)}</div>`:''}${l.cover?`<div class="sub">Cover: ${esc(staffName(l.cover))}</div>`:''}</td><td class="small">${fmtD(l.from)} – ${fmtD(l.to)}<div class="sub">${esc(l.days)} days${l.type==='Annual'?` · ${b.left} left${b.left-(+l.days||0)<0?' <b style="color:var(--bad)">– over entitlement</b>':''}`:''}</div>${clash.length?`<div class="sub" style="color:var(--amber)">Also away: ${clash.map(a=>esc(a.name)).join(', ')}</div>`:''}</td>
+      <td>${act?`<div class="toolbar"><button class="btn sm pri" data-hr="ok:${esc(l.id)}">Approve</button><button class="btn sm danger" data-hr="no:${esc(l.id)}">Reject</button></div>`:lvChip(l.status)+(l.decided_by?`<div class="sub">${esc(l.decided_by)}</div>`:'')}</td></tr>`; };
+  return `<div class="card"><div class="hd"><h2>Waiting for your decision</h2></div><div class="tbl-wrap"><table><thead><tr><th>Staff</th><th>Leave</th><th>Dates</th><th></th></tr></thead><tbody>${P.map(l=>row(l,1)).join('')||'<tr><td colspan="4"><div class="empty">Nothing to approve.</div></td></tr>'}</tbody></table></div></div>
+  ${D.length?`<div class="card"><div class="hd"><h2>Decided recently</h2></div><div class="tbl-wrap"><table><tbody>${D.map(l=>row(l,0)).join('')}</tbody></table></div></div>`:''}`; }
+function hrAway(){ const A=awayList(), t=today(), now=A.filter(a=>a.from<=t), next=A.filter(a=>a.from>t&&daysLeft(a.from)<=60);
+  const li=a=>`<div class="li"><div class="stripe ${a.from<=t?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(a.name||staffName(a.staff_id))}</div><div class="sub">${esc(a.dept||'')}</div></div><div class="small r">${fmtD(a.from)} – ${fmtD(a.to)}<div class="sub">${a.from<=t?'back '+fmtD(ymd(new Date(Date.parse(a.to+'T12:00:00')+864e5))):'in '+Math.max(0,Math.ceil(daysLeft(a.from)))+' days'}</div></div></div>`;
+  return `<div class="grid g2"><div class="card"><div class="hd"><h2>Away today (${now.length})</h2></div><div class="list">${now.map(li).join('')||'<div class="empty">Everyone is in.</div>'}</div></div>
+    <div class="card"><div class="hd"><h2>Coming up (next 60 days)</h2></div><div class="list">${next.map(li).join('')||'<div class="empty">No approved leave coming up.</div>'}</div></div></div>`; }
+function hrRecords(){ const soon=hrSoon(), L=[...S.staff].filter(s=>s.status!=='Left').sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return `${soon.length?`<div class="banner warn"><div><b>Coming up:</b> ${soon.map(x=>`${esc(x.s.name)} – ${x.kind.toLowerCase()} ${fmtD(x.date)}${x.d<0?' (passed)':''}`).join(' · ')}</div></div>`:''}
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Staff</th><th>Contract</th><th class="hide-m">Started</th><th>Contract ends</th><th class="hide-m">Probation ends</th><th class="r">Leave ${new Date().getFullYear()}</th><th></th></tr></thead><tbody>
+  ${L.map(s=>{ const r=hrRec(s.id), b=lvBalance(s.id), ce=r.contract_end?daysLeft(r.contract_end+'T23:59'):null; return `<tr><td class="ttl2">${esc(s.name)}<div class="sub">${esc(s.position||'')}${s.department?' · '+esc(s.department):''}</div></td><td class="small">${esc(r.contract_type||'—')}</td><td class="hide-m small">${fmtD(r.start)}</td><td class="small">${r.contract_end?`<span class="chip ${ce<0?'bad':ce<=30?'bad':ce<=60?'amb':''}">${fmtD(r.contract_end)}</span>`:'—'}</td><td class="hide-m small">${r.probation_end?fmtD(r.probation_end):'—'}</td><td class="r num">${b.used}/${b.ent}</td><td>${isAdmin?`<button class="btn sm" data-hr="rec:${esc(s.id)}">Edit</button>`:''}</td></tr>`; }).join('')}
+  </tbody></table></div></div><p class="sub">Visible to administrators and Finance only. NEXUS alerts administrators 60, 30 and 7 days before a contract ends and 14 days before probation ends.</p>`; }
+
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-hr]'); if(!el) return; const [a,id]=el.dataset.hr.split(':');
+  if(a==='tab'){ UI.hrt=id; return renderView(true); }
+  if(a==='new'){ const sid=myStaffId(), st=byId('staff',sid); if(!st) return toast('Your login is not linked to a staff card.');
+    const cov=[['','— nobody —'],...S.staff.filter(s=>s.id!==sid&&s.status!=='Left'&&(!st.department||lcN(s.department)===lcN(st.department))).map(s=>[s.id,s.name]),...S.staff.filter(s=>s.id!==sid&&s.status!=='Left'&&st.department&&lcN(s.department)!==lcN(st.department)).map(s=>[s.id,s.name+' ('+(s.department||'—')+')'])];
+    const b=lvBalance(sid);
+    formDrawer('Request leave',[{k:'type',label:'Type of leave',type:'select',options:LEAVE_TYPES,help:'Annual: '+b.left+' of '+b.ent+' days left this year.'},{k:'from',label:'First day',type:'date',req:1},{k:'to',label:'Last day',type:'date',req:1},{k:'cover',label:'Who covers your work',type:'select',options:cov},{k:'reason',label:'Reason / note (optional)',type:'textarea'}],{type:'Annual'},async v=>{
+      if(v.to<v.from) { toast('The last day is before the first day.'); return false; } const days=lvDays(v.from,v.to);
+      const over=lvList().find(l=>l.staff_id===sid&&['Pending','Approved'].includes(l.status)&&l.from<=v.to&&l.to>=v.from); if(over){ toast(`You already have leave ${fmtD(over.from)} – ${fmtD(over.to)} in these dates.`); return false; }
+      if(v.type==='Annual'&&days>b.left&&!await confirmBox(`This is ${days} days but only ${b.left} annual leave days are left. Send anyway?`,'Send')) return false;
+      const r=await put('leave',null,{...v,days,by_uid:me.id||'',staff_id:sid,name:st.name||me.name||'',dept:st.department||'',status:'Pending',requested_at:new Date().toISOString()});
+      if(r){ logAct(`Requested ${days} days ${v.type.toLowerCase()} leave (${fmtD(v.from)} – ${fmtD(v.to)})`); toast('Leave request sent to your Head of department.'); } return !!r; },{saveLabel:'Send request',sub:LEAVE_INFO.Annual}); return; }
+  if(a==='cancel'){ const l=byId('leave',id); if(!l||!await confirmBox(`Cancel your leave ${fmtD(l.from)} – ${fmtD(l.to)}?`,'Cancel leave',true)) return; await patch('leave',id,{status:'Cancelled',cancelled_at:new Date().toISOString()}); logAct('Cancelled leave request'); return; }
+  if(a==='ok'||a==='no'){ const l=byId('leave',id); if(!l) return; let note='';
+    if(a==='no'){ const v=await new Promise(res=>formDrawer(`Reject leave – ${l.name}`,[{k:'n',label:'Reason (sent to the staff member)',req:1,type:'textarea'}],{},async x=>{ res(x.n); return true; },{saveLabel:'Reject'})); if(!v) return; note=v; }
+    else if(!await confirmBox(`Approve ${l.days} days ${String(l.type).toLowerCase()} leave for ${l.name} (${fmtD(l.from)} – ${fmtD(l.to)})?`,'Approve')) return;
+    await patch('leave',id,{status:a==='ok'?'Approved':'Rejected',decided_by:me.name||'',decided_at:new Date().toISOString(),decision_note:note}); logAct(`${a==='ok'?'Approved':'Rejected'} leave for ${l.name} (${fmtD(l.from)} – ${fmtD(l.to)})`); toast(a==='ok'?'Approved – shown in Who\'s away.':'Rejected.'); return; }
+  if(a==='rec'){ const s=byId('staff',id); if(!s) return; const r=hrRec(id);
+    formDrawer(`Staff record – ${s.name}`,[{k:'contract_type',label:'Contract',type:'select',options:['','Permanent','Fixed term','Specific task','Casual / daily','Probation','Intern']},{k:'start',label:'Start date',type:'date'},{k:'contract_end',label:'Contract end date',type:'date'},{k:'probation_end',label:'Probation end date',type:'date'},{k:'leave_days',label:'Annual leave days per year',type:'number',ph:'28'},{k:'note',label:'Note',type:'textarea'}],r,async v=>{ const ok=await put('hrrec',id,{...r,...v,staff_id:id}); if(ok) logAct(`Updated staff record for ${s.name}`); return !!ok; },{saveLabel:'Save'}); return; }
+});
+
 /* ===================== TASKS ===================== */
 const TASK_FIELDS=[{k:'title',label:'Task',req:1,full:1},{k:'assignee',label:'Assigned to',type:'select'},{k:'project_id',label:'Project',type:'select'},{k:'due',label:'Due date',type:'date'},{k:'priority',label:'Priority',type:'select',options:['Normal','High','Urgent']},{k:'detail',label:'Details',type:'textarea'}];
 const TSTAGES=['To do','In progress','Waiting','Done'];
@@ -3423,7 +3506,7 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -3621,6 +3704,8 @@ function deadlineItems(){
     const due=new Date(Date.parse(dlYmd(c.certified)+'T12:00:00+03:00')+(+c.terms||28)*864e5).toISOString().slice(0,10);
     add(due,'payment',c.no||'Certificate',projName(c.project_id),'go:certs',isFin||pm(c.project_id)); }
   for(const q of S.procurement||[]) if(!q.example&&q.needed_by&&!/delivered|rejected/i.test(q.status||'')) add(q.needed_by,'purchase',`${q.pr_no||''} ${q.item||''}`.trim(),`${q.status||'Requested'} · needed on site`,'go:procure',q.requested_uid===me.id||isProcOff());
+  for(const x of hrSoon()) add(x.date,'task',`${x.kind}: ${x.s.name}`,'Staff record','go:hr',isAdmin);
+  for(const l of lvToDecide()) add(l.from,'task',`Leave to approve: ${l.name}`,`${l.days} days from ${fmtD(l.from)}`,'go:hr',true);
   for(const o of poList()){ if(o.po_no&&['Ordered','Part-delivered'].includes(o.status)&&o.delivery_date) add(o.delivery_date,'purchase',`${o.po_no} ${o.item||''}`,`${o.supplier||''} · delivery due · ${poPct(o)}% received`,'go:procure',isProcOff());
     else if(o.status==='RFQ'&&o.due) add(o.due,'purchase',`${o.rfq_no} ${o.item||''}`,'Quotations due','go:procure',isProcOff()); }
   for(const t of S.tasks||[]) if(!t.example&&t.due&&!/^(done|complete|closed)/i.test(t.status||'')) add(t.due,'task',t.title,staffName(t.assignee)||'Unassigned','go:tasks',sid&&t.assignee===sid);
