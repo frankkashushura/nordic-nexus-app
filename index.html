@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=135"></script>
+<script src="config.js?v=136"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=135"></script>
-<script src="nexus-chat.js?v=135"></script>
+<script src="nexus-sb.js?v=136"></script>
+<script src="nexus-chat.js?v=136"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6617,11 +6617,11 @@ function bbNext(){ const L=bbItems(); const up=[]; for(let j=1;j<=6&&L.length>1;
 function bbTicker(){ const N=((S.news&&S.news.items)||[]).filter(n=>n&&n.title).slice(0,14); if(!N.length) return ''; const t=N.map(n=>`<span>${(BB_TOPIC[n.topic]||BB_TOPIC.industry)[0]} ${esc(n.title)} <em>· ${esc(n.source||'')}</em></span>`).join(''); return `<div class="bb-tick" aria-hidden="true"><div class="bb-tk"><b>BREAKING</b></div><div class="bb-tr"><div class="bb-tm">${t}${t}</div></div></div>`; }
 function bbHtml(){
   if(!document.getElementById('bbCss')){ const s=document.createElement('style'); s.id='bbCss'; s.textContent=BB_CSS; document.head.appendChild(s); }
-  const L=bbItems().slice(0,40), upd=S.news&&S.news.at;
+  const L=bbView(), upd=S.news&&S.news.at;
   const cats=[['all','All news'],['gov','🇹🇿 Official Tanzania'],['media','📺 TV & media'],['sport','⚽ Sports'],['africa','🌍 Tanzania & Africa'],['safety','🦺 Safety'],['accident','🚨 Accidents'],['tech','🤖 Technology'],['design','📐 Structures'],['pm','📊 Projects & PM'],['industry','🏗️ Industry'],['tip','💡 Tips']];
   const it=x=>{ const tp=BB_TOPIC[x.topic]||BB_TOPIC.industry, age=x.at?bbAge(x.at):''; return `<a class="bb-i" style="--tc:${tp[2]}" ${x.link?`href="${esc(x.link)}" data-dhopen="${esc(x.link)}" data-dhname="${esc((x.src||'Story').slice(0,40))}"`:''} title="${esc(x.title)}">
       ${x.img?`<span class="bb-th"><img src="${esc(x.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-bbimg="1"></span>`:`<span class="bb-th bb-noimg">${tp[0]}</span>`}
-      <span class="bb-tx"><b>${age==='today'?'<i class="bb-dot"></i>':''}${esc(x.k==='tip'?(x.own?'From Nordic':'Tip'):tp[1])}<em> · ${esc(x.src)}${x.at?' · '+esc(bbAgo(x.at)):''}</em></b><span class="bb-hl">${esc(x.title)}${x.sum?`<span class="bb-sm"> — ${esc(x.sum)}</span>`:''}</span></span></a>`; };
+      <span class="bb-tx"><b>${BB.newL&&x.link&&BB.newL.has(x.link)?'<i class="bb-new">NEW</i>':''}${age==='today'?'<i class="bb-dot"></i>':''}${esc(x.k==='tip'?(x.own?'From Nordic':'Tip'):tp[1])}<em> · ${esc(x.src)}${x.at?' · '+esc(bbAgo(x.at)):''}</em></b><span class="bb-hl">${esc(x.title)}${x.sum?`<span class="bb-sm"> — ${esc(x.sum)}</span>`:''}</span></span></a>`; };
   const row=L.map(it).join('');
   const secs=Math.max(60,L.length*14); setTimeout(bbSpeed,60);
   return `<section class="bb th-${esc(BB.theme)}" id="bb" aria-label="Construction news">
@@ -6649,7 +6649,7 @@ function bbPosWatch(){ if(BB.posT) return; BB.posT=setInterval(()=>{ if(!documen
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) bbPosSave(); }); window.addEventListener('pagehide',bbPosSave);
   document.addEventListener('click',e=>{ if(e.target.closest('[data-go],[data-open],#nav button,.tabbar button')) bbPosSave(); },true); }
 function bbShow(dir,abs){ const L=bbItems(); if(!L.length) return; BB.i=abs!=null?abs:((BB.i||0)+dir+L.length)%L.length; BB.el=0; const sc=document.getElementById('bbScreen'); if(!sc) return; sc.classList.remove('bb-in'); void sc.offsetWidth; sc.innerHTML=bbSlide(); sc.classList.add('bb-in'); const nx=document.getElementById('bbNext'); if(nx) nx.innerHTML=bbNext(); }
-function bbRefresh(){ const el=document.getElementById('bb'); if(!el) return; bbPosSave(); BB.i=0; el.outerHTML=bbHtml(); }
+function bbRefresh(){ const el=document.getElementById('bb'); if(!el) return; bbPosSave(); BB.i=0; BB.pg=0; el.outerHTML=bbHtml(); }
 function bbTick(){ if(BB.timer) return; BB.el=0; BB.last=Date.now(); BB.timer=setInterval(()=>{ const el=document.getElementById('bb'); const now=Date.now(), dt=now-BB.last; BB.last=now;
     if(!el){ clearInterval(BB.timer); BB.timer=null; return; }
     if(BB.paused||document.hidden||el.matches(':hover')) return;
@@ -6660,17 +6660,27 @@ document.addEventListener('change',e=>{ if(e.target.id==='bbTheme'){ BB.theme=e.
   if(e.target.id==='bbWhen'){ BB.when=e.target.value; if(BB.cat==='tip') BB.cat='all'; bbRefresh(); }
   if(e.target.id==='bbCat'){ BB.cat=e.target.value; bbRefresh(); }
   if(e.target.id==='bbLang'){ BB.lang=e.target.value; try{ localStorage.setItem('nx_bb_lang',BB.lang); }catch(_){} if(BB.cat==='tip'&&BB.lang!=='en'&&BB.lang!=='all') BB.cat='all'; bbRefresh(); } });
-/* v135: refresh button – asks the news service for the latest stories now (forced only if the last update is over 2 minutes old) */
-const BB_RF={on:false};
-async function bbRefresh(){ if(BB_RF.on) return; const last=Date.parse((S.news&&S.news.at)||0)||0;
-  if(Date.now()-last<120e3){ toast('News is up to date (updated '+bbAgo(S.news.at)+').'); return; }
-  BB_RF.on=true; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.add('on')); toast('Getting the latest news…');
-  try{ const r=await fetch(NEXUS_CONFIG.url+'/functions/v1/news',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'refresh'})}); const j=await r.json().catch(()=>({}));
-    if(!r.ok||j.error) throw new Error(j.error||('HTTP '+r.status));
-    if(j.items&&!S.news) S.news=j; toast(`News updated${j.n?` – ${j.n} stories`:''}.`); }
-  catch(e){ toast('Could not refresh the news now – please try again shortly.'); }
-  finally{ BB_RF.on=false; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.remove('on')); } }
-document.addEventListener('click',e=>{ if(e.target.closest('[data-bbrf]')){ e.preventDefault(); bbRefresh(); } });
+/* v136: refresh button works like a social-media feed – every tap changes what the billboard shows:
+   new stories (since your last tap) come first with a NEW badge; if nothing new has been published, the next set of stories is brought to the front.
+   The news service is asked for fresh stories only if the last update is over 2 minutes old (protects the sources from repeated taps). */
+const BB_RF={on:false}; BB.pg=0; BB.newL=null;
+function bbView(){ const L=bbItems(), nw=BB.newL; const fresh=nw?L.filter(x=>x.link&&nw.has(x.link)):[], rest=nw?L.filter(x=>!(x.link&&nw.has(x.link))):L;
+  const off=rest.length?((BB.pg||0)*12)%rest.length:0; return [...fresh,...rest.slice(off),...rest.slice(0,off)].slice(0,40); }
+function bbRedraw(){ try{ localStorage.removeItem('nx_bb_pos'); }catch(_){} const el=document.getElementById('bb'); if(!el) return; el.outerHTML=bbHtml(); const r=document.querySelector('#bb .bb-run'); if(r){ r.classList.add('bb-flash'); setTimeout(()=>r.classList.remove('bb-flash'),700); } }
+async function bbNewsRefresh(){ if(BB_RF.on) return; const last=Date.parse((S.news&&S.news.at)||0)||0;
+  if(Date.now()-last<120e3){ BB.newL=null; BB.pg=(BB.pg||0)+1; bbRedraw(); toast('Showing more news.'); return; }
+  const before=new Set(((S.news&&S.news.items)||[]).map(n=>n.link)), at0=(S.news&&S.news.at)||'';
+  BB_RF.on=true; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.add('on')); document.getElementById('bb')?.classList.add('bb-busy');
+  let ok=false; try{ const r=await fetch(NEXUS_CONFIG.url+'/functions/v1/news',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'refresh'})}); const j=await r.json().catch(()=>({})); ok=r.ok&&!j.error;
+    if(ok) for(let k=0;k<30&&((S.news&&S.news.at)||'')===at0;k++) await new Promise(z=>setTimeout(z,200)); }   // wait for the new stories to arrive
+  catch(e){}
+  BB_RF.on=false; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.remove('on'));
+  if(!ok){ document.getElementById('bb')?.classList.remove('bb-busy'); BB.newL=null; BB.pg=(BB.pg||0)+1; bbRedraw(); toast('Could not reach the news service – showing more stories.'); return; }
+  const nw=((S.news&&S.news.items)||[]).filter(n=>n.link&&!before.has(n.link)).map(n=>n.link);
+  if(nw.length){ BB.newL=new Set(nw); BB.pg=0; } else { BB.newL=null; BB.pg=(BB.pg||0)+1; }
+  bbRedraw(); const shown=nw.length?bbView().filter(x=>BB.newL.has(x.link)).length:0;
+  toast(nw.length?(shown?`${shown} new ${shown===1?'story':'stories'}`:`${nw.length} new stories in other topics`):'No new stories yet – showing more news.'); }
+document.addEventListener('click',e=>{ if(e.target.closest('[data-bbrf]')){ e.preventDefault(); bbNewsRefresh(); } });
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-bbnav],[data-bbpause],[data-bbcat],[data-bbedit],[data-bbjump]'); if(!b) return;
   if(b.dataset.bbnav){ bbShow(+b.dataset.bbnav); return; }
   if(b.dataset.bbjump){ bbShow(0,+b.dataset.bbjump); return; }
@@ -6698,7 +6708,7 @@ const BB_CSS=`
 .bb-sel option{color:#111;background:#fff}
 .bb-upd{font-size:11.5px;color:var(--mu)}
 .bb-ed{border:1px solid var(--ln);background:var(--chip);color:var(--tx);border-radius:999px;width:28px;height:24px;cursor:pointer;font-size:12px}
-.bb-rf{font-size:15px;line-height:1;margin-left:6px;padding:0}.bb-rf.on{animation:bbspin 1s linear infinite;pointer-events:none;opacity:.7}@keyframes bbspin{to{transform:rotate(360deg)}}
+.bb-rf{font-size:15px;line-height:1;margin-left:6px;padding:0}.bb-busy .bb-run{opacity:.55;transition:opacity .3s}.bb-run.bb-flash{animation:bbflash .6s ease}@keyframes bbflash{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}.bb-new{font-style:normal;background:#ff3b30;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;letter-spacing:.5px;margin-right:6px;vertical-align:1px}.bb-rf.on{animation:bbspin 1s linear infinite;pointer-events:none;opacity:.7}@keyframes bbspin{to{transform:rotate(360deg)}}
 .bb-run{position:relative;overflow:hidden;height:82px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
 .bb-track{display:flex;width:max-content;height:100%;align-items:center;animation:bbMq linear infinite}
 .bb-run:hover .bb-track,.bb-run:focus-within .bb-track{animation-play-state:paused}
