@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=123"></script>
+<script src="config.js?v=124"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=123"></script>
-<script src="nexus-chat.js?v=123"></script>
+<script src="nexus-sb.js?v=124"></script>
+<script src="nexus-chat.js?v=124"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -2310,15 +2310,15 @@ function pageFinance(){
   const TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
   return `<div class="fin">
   <div class="fin-kpis">
-    <div class="fin-k in"><span class="fi">↓</span><div><span class="l">Money in</span><b class="num">${tzsShort(tin)}</b><small>This month: ${tzsShort(sum(mr,'Income'))}</small></div></div>
-    <div class="fin-k out"><span class="fi">↑</span><div><span class="l">Money out</span><b class="num">${tzsShort(tout)}</b><small>This month: ${tzsShort(sum(mr,'Expense'))}</small></div></div>
-    <div class="fin-k ${bal>=0?'in':'out'}"><span class="fi">=</span><div><span class="l">Balance</span><b class="num">${tzsShort(bal)}</b><small>In − out</small></div></div>
+    <div class="fin-k in"><span class="fi">↓</span><div><span class="l">Total income</span><b class="num">${tzsShort(tin)}</b><small>This month: ${tzsShort(sum(mr,'Income'))}</small></div></div>
+    <div class="fin-k out"><span class="fi">↑</span><div><span class="l">Total expenditure</span><b class="num">${tzsShort(tout)}</b><small>This month: ${tzsShort(sum(mr,'Expense'))}</small></div></div>
+    <div class="fin-k ${bal>=0?'in':'out'}"><span class="fi">=</span><div><span class="l">Net balance</span><b class="num">${tzsShort(bal)}</b><small>Income less expenditure</small></div></div>
     <div class="fin-k nt"><span class="fi">#</span><div><span class="l">Transactions</span><b class="num">${S.finance.length}</b><small>${mr.length} this month</small></div></div>
   </div>
   ${S.finance.some(f=>f.example)?`<div class="banner warn"><div><b>Example records are showing.</b> Remove them before entering real figures.</div><button class="btn sm" data-act="clearFinEx">Remove examples</button></div>`:''}
   <div class="fin-bar"><button class="btn pri" data-act="addFin">＋ Record transaction</button>
     <select class="inp" id="fproj" aria-label="Project"><option value="All">All projects</option><option value="" ${UI.fproj===''?'selected':''}>Office / overheads</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.fproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
-    <div class="seg">${[['All','All'],['Income','Money in'],['Expense','Money out']].map(([t,l])=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${l}</button>`).join('')}</div><div class="sp"></div>
+    <div class="seg">${[['All','All'],['Income','Income'],['Expense','Expenditure']].map(([t,l])=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${l}</button>`).join('')}</div><div class="sp"></div>
     <div class="fin-r2"><button class="btn" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}<span class="ai-tag">AI</span> Risk check</button><button class="btn" data-act="exportFin">Export CSV</button></div></div>
   ${risk?`<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Check again</button></div><div class="bd"><div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
     <div class="list">${(risk.findings||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div><span class="chip ${f.severity==='High'?'bad':f.severity==='Medium'?'amb':'blue'}">${esc(f.severity)}</span></div>`).join('')}</div>
