@@ -231,6 +231,9 @@
   .nxa .err{color:#B8402A;font-size:13px;min-height:1em}
   .nxa .lnk{background:none;border:0;padding:0;color:#2F6DB5;text-align:left;font-size:13px}
   .nxa .logo{display:flex;align-items:center;gap:10px}.nxa .logo img{height:36px}
+  .nxpw{position:relative;display:block}.nxpw input{width:100%;box-sizing:border-box;padding-right:44px!important}
+  .nxpw .eye{all:unset;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;cursor:pointer;color:#5A6580;border-radius:6px}
+  .nxpw .eye:hover{background:rgba(0,0,0,.06)}.nxpw .eye:focus-visible{outline:2px solid #539FDC}.nxpw .eye svg{width:20px;height:20px}
   .nxm{position:fixed;inset:0;z-index:150;background:rgba(12,17,21,.5);display:grid;place-items:center;padding:16px}
   .nxm .box{background:var(--panel,#fff);color:var(--ink,#182340);border-radius:8px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
   .nxm table{width:100%;border-collapse:collapse;font-size:13px}.nxm td,.nxm th{padding:7px 6px;border-bottom:1px solid var(--line,#D4DAE3);text-align:left;vertical-align:middle}
@@ -246,7 +249,18 @@
     let w = document.getElementById('nxAuth');
     if (!w) { w = document.createElement('div'); w.id = 'nxAuth'; w.className = 'nxa'; document.body.append(w); }
     w.innerHTML = `<form class="box" autocomplete="on" novalidate><div class="hz"></div><div class="logo"><img alt="" src="${logoSrc()}"><h1>Nordic <span>Nexus</span></h1></div>${inner}</form>`;
-    return w.querySelector('form');
+    const fm = w.querySelector('form'); addEyes(fm); return fm;
+  }
+  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.9 0 3.6-.6 5-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></svg>';
+  function addEyes(root) {
+    root.querySelectorAll('input[type=password]').forEach(inp => {
+      if (inp.parentElement.classList.contains('nxpw')) return;
+      const wrap = document.createElement('span'); wrap.className = 'nxpw'; inp.replaceWith(wrap); wrap.append(inp);
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'eye'; b.innerHTML = EYE; b.title = 'Show password'; b.setAttribute('aria-label', 'Show password'); b.setAttribute('aria-pressed', 'false');
+      b.onclick = () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.innerHTML = show ? EYE_OFF : EYE; const t = show ? 'Hide password' : 'Show password'; b.title = t; b.setAttribute('aria-label', t); b.setAttribute('aria-pressed', String(show)); inp.focus(); };
+      wrap.append(b);
+    });
   }
   const closeScreen = () => document.getElementById('nxAuth')?.remove();
 
