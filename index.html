@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=114"></script>
+<script src="config.js?v=115"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=114"></script>
-<script src="nexus-chat.js?v=114"></script>
+<script src="nexus-sb.js?v=115"></script>
+<script src="nexus-chat.js?v=115"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -590,6 +590,16 @@ th{font-size:11.5px}
 .ab-vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .ab-vals .chip{font-size:13px;padding:4px 10px}
 @media (max-width:700px){.ab-co{grid-template-columns:1fr;gap:14px}}
+/* v115 Company profile */
+.co-head{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--panel);border:1px solid var(--card-bd,var(--line));border-radius:var(--r);box-shadow:var(--shadow)}
+.co-head img{height:40px}
+.co-head .grow{flex:1;min-width:0}
+.co-head .ttl2{font-size:17px}
+.co-form{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.co-form .fld.full{grid-column:1/-1}
+.co-wide{grid-column:1/-1}
+.co-wide .co-form textarea{min-height:76px}
+@media (max-width:700px){.co-form{grid-template-columns:1fr!important}.co-head{flex-wrap:wrap}.co-head .btn{width:100%;justify-content:center;text-align:center}.co-head img{height:32px}.co-head .ttl2{font-size:15.5px}.toolbar>.seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.toolbar>.seg button{white-space:nowrap;flex:none}}
 </style>
 
 <div class="app" id="app">
@@ -2645,8 +2655,12 @@ function pageSettings(){
   const c=company(), act=[...S.activity].reverse().slice(0,40), tab=UI.stab||'company', hid=k=>tab===k?'':'hidden';
   return `<div class="toolbar"><div class="seg" role="group" aria-label="Section">${[['company','Company'],['security','Security & backup'],['activity','Activity'],['appearance','Appearance']].map(([k,l])=>`<button data-stab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div></div>
   <div class="grid g2 stabs">
-  <div class="card" ${hid('company')} style="grid-column:1/-1"><div class="hd"><img alt="" src="${LOGO}" style="height:28px"><h2>Company profile</h2><div class="sp"></div>${isAdmin?'<button class="btn dark sm" data-act="saveCompany">Save</button>':''}</div><div class="bd">
-    <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'':''}</div></div>
+  ${tab==='company'?(()=>{ const F=k=>CO_FIELDS.find(f=>f.k===k), fl=(ks,full=[])=>ks.map(k=>field({...F(k),full:full.includes(k)},c[k])).join(''), sec=(t,ks,full,cls='')=>`<div class="card ${cls}"><div class="hd"><h2>${t}</h2></div><div class="bd"><div class="form co-form">${fl(ks,full)}</div></div></div>`;
+    return `<div class="co-head" style="grid-column:1/-1"><img alt="" src="${LOGO}"><div class="grow"><div class="ttl2">${esc(c.name||'')}</div><div class="sub">${esc(c.tagline||'')}</div></div>${isAdmin?'<button class="btn pri" data-act="saveCompany">Save changes</button>':''}</div>
+    ${sec('Identity',['name','tagline','founded','crb_building','crb_civil','tin','vrn'],['name'])}
+    ${sec('Contact',['address','pobox','phone','email','web','social','branch'],['address','branch'])}
+    ${sec('Vision & values',['vision','mission','purpose','values'],['vision','mission','purpose','values'],'co-wide')}
+    ${sec('Used by NEXUS AI for tenders',['sectors','services','references','facts'],['sectors','services','references','facts'],'co-wide')}`; })():''}
   <div class="card" ${hid('security')}><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
       <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff sign up from the sign-in page; an administrator approves each sign-up and chooses the role before they see anything.</li>
       <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Procurement Officers also approve purchase requests (not their own) and manage suppliers. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
