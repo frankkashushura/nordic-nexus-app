@@ -5,16 +5,16 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=115"></script>
+<script src="config.js?v=116"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=115"></script>
-<script src="nexus-chat.js?v=115"></script>
+<script src="nexus-sb.js?v=116"></script>
+<script src="nexus-chat.js?v=116"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 :root{
   --bg:#E4E2DC; --panel:#FCFCFA; --panel2:#F1EFEA; --ink:#182340; --muted:#56607A; --line:#D3CFC6;
@@ -600,6 +600,25 @@ th{font-size:11.5px}
 .co-wide{grid-column:1/-1}
 .co-wide .co-form textarea{min-height:76px}
 @media (max-width:700px){.co-form{grid-template-columns:1fr!important}.co-head{flex-wrap:wrap}.co-head .btn{width:100%;justify-content:center;text-align:center}.co-head img{height:32px}.co-head .ttl2{font-size:15.5px}.toolbar>.seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.toolbar>.seg button{white-space:nowrap;flex:none}}
+/* ===== v116 typography & tabs ===== */
+:root{--f-body:"Inter","IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--f-display:"Barlow","Barlow Condensed","Arial Narrow",Arial,sans-serif}
+body{font-feature-settings:"cv11","ss01";letter-spacing:-.005em}
+h1,h2,h3{letter-spacing:.005em}
+.top h1{font-size:24px}
+.card>.hd h2{font-size:18px;letter-spacing:.02em}
+.kpi .v{font-size:32px}
+.kpi .label{font-size:11.5px;letter-spacing:.08em}
+.ttl2{font-weight:600}
+.btn{font-weight:600;border-radius:8px}
+/* tabs: one pill style everywhere */
+.seg{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--panel2) 85%,transparent);overflow:visible;box-shadow:inset 0 1px 2px rgba(0,0,0,.05)}
+.seg button{all:unset;cursor:pointer;padding:7px 16px;font:500 14px/1.2 var(--f-body);color:var(--muted);border:0!important;border-radius:999px;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.seg button:hover{color:var(--ink);background:color-mix(in srgb,var(--panel) 80%,transparent)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15),0 2px 8px color-mix(in srgb,var(--accent) 35%,transparent)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.toolbar>.seg:first-child{margin-bottom:2px}
+@media (max-width:700px){.toolbar>.seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.toolbar>.seg::-webkit-scrollbar{display:none}.seg button{padding:7px 13px;font-size:13.5px}.top h1{font-size:15px}}
 </style>
 
 <div class="app" id="app">
