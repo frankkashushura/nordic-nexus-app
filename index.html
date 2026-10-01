@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=118"></script>
+<script src="config.js?v=119"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=118"></script>
-<script src="nexus-chat.js?v=118"></script>
+<script src="nexus-sb.js?v=119"></script>
+<script src="nexus-chat.js?v=119"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6217,6 +6217,35 @@ const BB_CSS=`
 .bb-none{padding:20px 14px;color:var(--mu);font-size:13px}
 @media (max-width:640px){.bb-top{padding:6px 10px;gap:6px;flex-wrap:nowrap}.bb-upd,.bb-thm,.bb-ed,.bb-when{display:none}.bb-live{font-size:13px;letter-spacing:1.2px}.bb-sel{max-width:108px;font-size:11.5px;padding:3px 8px}.bb-run{height:70px}.bb-i{padding:0 24px 0 10px;height:50px}.bb-hl{font-size:15.5px}.bb-th{width:48px;height:48px}}
 @media (prefers-reduced-motion:reduce){.bb-track{animation:none;overflow-x:auto}.bb-live i,.bb-dot{animation:none}}`;
+/* ---------------- NEXUS Office start page (Microsoft 365 style) ---------------- */
+const OXH_CSS=`
+.oxh{display:flex;gap:0;background:#fff;border:1px solid #E1DFDD;border-radius:6px;overflow:hidden;min-height:70vh;color:#252423;font:14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
+.oxh-rail{width:68px;background:#F3F2F1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:14px;border-right:1px solid #E1DFDD;flex:none}
+.oxh-rail button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;font:11px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#323130;cursor:pointer;padding:4px}
+.oxh-rail button:hover .oxi,.oxh-rail button:hover .ic{transform:scale(1.06)}
+.oxh-rail .ic{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:17px;background:#fff;border:1px solid #E1DFDD}
+.oxh-main{flex:1;padding:22px 28px;min-width:0}
+.oxh h1{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;font:600 24px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin:0 0 4px;color:#252423;text-transform:none;letter-spacing:0}
+.oxh .sub{color:#605E5C;font-size:13px}
+.oxh-new{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0 8px}
+.oxh-new button{width:132px;border:1px solid #E1DFDD;background:#fff;border-radius:6px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:#252423}
+.oxh-new button:hover{box-shadow:0 3px 10px rgba(0,0,0,.14);border-color:#C8C6C4}
+.oxh-new .th{height:96px;display:flex;align-items:center;justify-content:center;background:#FAF9F8;border-bottom:1px solid #EDEBE9;position:relative}
+.oxh-new .th .pg{width:58px;height:74px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font-size:24px}
+.oxh-new .tn{padding:7px 9px;font-size:12.5px;line-height:1.25}
+.oxh-new .tn small{display:block;color:#605E5C;font-size:11px}
+.oxh-sec{display:flex;align-items:center;gap:14px;margin:22px 0 8px}.oxh-sec h2{font:600 16px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;margin:0;color:#252423;text-transform:none;letter-spacing:0}
+.oxh-sec .fl button{background:none;border:0;padding:4px 10px;cursor:pointer;border-radius:14px;color:#323130}.oxh-sec .fl button.on{background:#EDEBE9;font-weight:600}
+.oxh-sec input{background:#fff!important;color:#252423!important;margin-left:auto;height:32px;border:1px solid #C8C6C4;border-radius:4px;padding:0 10px;width:min(280px,40vw);font:inherit}
+.oxh-list{width:100%;border-collapse:collapse}.oxh-list th{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif!important;text-align:left;font:600 12px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#605E5C;padding:8px;border-bottom:1px solid #EDEBE9;position:static;background:none;text-transform:none;letter-spacing:0}
+.oxh-list td{padding:9px 8px;border-bottom:1px solid #F3F2F1;font-size:13.5px}.oxh-list tr.r{cursor:pointer}.oxh-list tr.r:hover td{background:#F3F2F1}
+.oxh-list .nm{display:flex;align-items:center;gap:10px}
+.oxh-list .act button{background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:3px;color:#323130}.oxh-list .act button:hover{background:#E1DFDD}
+
+.oxh-apps{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 4px}.oxh-apps button{display:flex;flex-direction:column;align-items:center;gap:6px;width:86px;padding:10px 4px;border:1px solid transparent;background:none;border-radius:6px;cursor:pointer;font:12.5px 'Segoe UI',system-ui,Arial,sans-serif;color:#252423}.oxh-apps button:hover{background:#F3F2F1;border-color:#E1DFDD}
+.oxh-fill{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.oxh-fill button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;padding:10px 12px;cursor:pointer;font:13px 'Segoe UI',Arial;color:#252423}.oxh-fill button:hover{border-color:#03787C}.oxh-fill b{display:block}.oxh-fill small{color:#605E5C}
+@media (max-width:700px){.oxh-apps button{width:calc(33% - 8px)}.oxh-rail{display:none}.oxh-main{padding:14px}.oxh-list .hm{display:none}.oxh-new button{width:calc(50% - 7px)}}
+`;
 function pageOffice(){
   if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
   const f=UI.oxf||'all', q=(UI.oxq||'').toLowerCase();
