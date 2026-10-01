@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=122"></script>
+<script src="config.js?v=123"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=122"></script>
-<script src="nexus-chat.js?v=122"></script>
+<script src="nexus-sb.js?v=123"></script>
+<script src="nexus-chat.js?v=123"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -619,6 +619,26 @@ h1,h2,h3{letter-spacing:.005em}
 .seg button:disabled{opacity:.45;cursor:not-allowed}
 .toolbar>.seg:first-child{margin-bottom:2px}
 @media (max-width:700px){.toolbar>.seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.toolbar>.seg::-webkit-scrollbar{display:none}.seg button{padding:7px 13px;font-size:13.5px}.top h1{font-size:15px}}
+.fin{display:flex;flex-direction:column;gap:16px}
+.fin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.fin-k{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fin-k .fi,.fin-r .fi{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 18px var(--f-body);background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+.fin-k.in .fi,.fin-r .fi.in{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.fin-k.out .fi,.fin-r .fi.out{background:color-mix(in srgb,var(--bad) 13%,transparent);color:var(--bad)}
+.fin-k .l{display:block;font-size:12.5px;color:var(--muted);font-weight:600}.fin-k b{display:block;font-size:26px;line-height:1.15;color:var(--ink)}.fin-k small{color:var(--muted);font-size:12px}
+.fin-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.fin-bar .inp{width:auto;min-width:160px;max-width:210px}.fin-r2{display:flex;gap:8px}.fin-bar .sp{flex:1}.fin-bar .ai-tag{margin-right:4px}
+.fin-led{padding:4px 0!important;overflow:hidden}
+.fin-mh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px 8px;font-weight:600;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fin-mh em{font-style:normal;margin-left:12px;text-transform:none;letter-spacing:0}.fin-mh em.in,.fin-r .num.in{color:var(--good)}.fin-mh em.out{color:var(--bad)}
+.fin-r{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);cursor:pointer}.fin-r:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.fin-r .fi{width:34px;height:34px;font-size:15px}
+.fin-r .d{flex:1;min-width:0}.fin-r .d b{display:block;font-weight:600}.fin-r .d small{color:var(--muted);font-size:12.5px}
+.fin-r .a{text-align:right;flex:none}.fin-r .a b{display:block;font-size:15px;color:var(--ink)}.fin-r .a small{color:var(--muted);font-size:12px}
+.fin-del{flex:none;border:0;background:none;color:var(--muted);opacity:.45;cursor:pointer;padding:6px;border-radius:8px;display:grid;place-items:center}.fin-del svg{width:17px;height:17px}
+.fin-r:hover .fin-del{opacity:1}.fin-del:hover{color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.fin-bud{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}.fin-bud .t{display:flex;justify-content:space-between;gap:10px;font-weight:600;font-size:13.5px;margin-bottom:6px}.fin-bud small{color:var(--muted);font-size:12px;display:block;margin-top:5px}
+@media (max-width:900px){.fin-kpis{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.fin-k{padding:12px;gap:10px}.fin-k .fi{width:32px;height:32px;font-size:15px}.fin-k b{font-size:20px}.fin-bar .btn.pri{width:100%}.fin-bar .inp{flex:1 1 100%;max-width:none;min-width:0}.fin-bar .seg{flex:1 1 100%}.fin-bar .seg button{flex:1}.fin-bar .sp{display:none}.fin-r2{flex:1 1 100%}.fin-r2 .btn{flex:1}.fin-r .d small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fin-r .d .chip{display:none}.fin-r .a b{font-size:14px}.fin-r{padding:10px 12px;gap:10px}.fin-mh{padding:12px 12px 6px}.fin-del{opacity:.6}}
 /* v117 icons without background */
 .tile .ti,.ab-ico{background:none!important;box-shadow:none!important;border:0!important}
 .tile .ti{font-size:24px}
@@ -2279,27 +2299,37 @@ function pageFinance(){
   if(!(isAdmin||isFin)) return `<div class="card empty">Finance is restricted to administrators (MD, Finance, Company Secretary). Ask an administrator for Finance access if you need it.</div>`;
   let rows=[...S.finance].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(UI.fproj!=='All') rows=rows.filter(f=>f.project_id===UI.fproj); if(UI.ftype!=='All') rows=rows.filter(f=>f.type===UI.ftype);
+  const sum=(a,t)=>a.filter(f=>f.type===t).reduce((x,f)=>x+(+f.amount||0),0);
   const m=today().slice(0,7), mr=S.finance.filter(f=>(f.date||'').startsWith(m));
-  const inc=mr.filter(f=>f.type==='Income').reduce((a,f)=>a+(+f.amount||0),0), exp=mr.filter(f=>f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
+  const tin=sum(S.finance,'Income'), tout=sum(S.finance,'Expense'), bal=tin-tout;
   const bud=S.projects.filter(p=>+p.budget>0).map(p=>({p,spent:S.finance.filter(f=>f.project_id===p.id&&f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0)}));
   const risk=UI.finRisk;
-  return `<div class="grid g4">
-    <div class="card kpi grn"><span class="label">Income this month</span><span class="v num">${tzsShort(inc)}</span><span class="s">${mr.filter(f=>f.type==='Income').length} receipts</span></div>
-    <div class="card kpi hot"><span class="label">Spending this month</span><span class="v num">${tzsShort(exp)}</span><span class="s">${mr.filter(f=>f.type==='Expense').length} payments</span></div>
-    <div class="card kpi ${inc-exp>=0?'grn':'hot'}"><span class="label">Net</span><span class="v num">${tzsShort(inc-exp)}</span><span class="s">${m}</span></div>
-    <div class="card kpi blu"><span class="label">Records</span><span class="v num">${S.finance.length}</span><span class="s">${S.finance.filter(f=>f.example).length?S.finance.filter(f=>f.example).length+' examples':'in the ledger'}</span></div></div>
-  ${S.finance.some(f=>f.example)?`<div class="banner warn"><div><b>Example records are showing.</b> They illustrate the ledger and the AI risk check. Remove them before entering real figures.</div>${isAdmin?'<button class="btn sm" data-act="clearFinEx">Remove examples</button>':''}</div>`:''}
-  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn pri sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Run check</button></div><div class="bd">
-    ${risk?`<div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
+  const mName=k=>{ const d=new Date(k+'-01T00:00:00'); return isNaN(d)?'No date':d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}); };
+  const groups=[]; rows.forEach(f=>{ const k=(f.date||'').slice(0,7); let g=groups[groups.length-1]; if(!g||g.k!==k){ g={k,rows:[]}; groups.push(g); } g.rows.push(f); });
+  const amt=n=>Math.round(+n||0).toLocaleString('en-US');
+  const TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
+  return `<div class="fin">
+  <div class="fin-kpis">
+    <div class="fin-k in"><span class="fi">↓</span><div><span class="l">Money in</span><b class="num">${tzsShort(tin)}</b><small>This month: ${tzsShort(sum(mr,'Income'))}</small></div></div>
+    <div class="fin-k out"><span class="fi">↑</span><div><span class="l">Money out</span><b class="num">${tzsShort(tout)}</b><small>This month: ${tzsShort(sum(mr,'Expense'))}</small></div></div>
+    <div class="fin-k ${bal>=0?'in':'out'}"><span class="fi">=</span><div><span class="l">Balance</span><b class="num">${tzsShort(bal)}</b><small>In − out</small></div></div>
+    <div class="fin-k nt"><span class="fi">#</span><div><span class="l">Transactions</span><b class="num">${S.finance.length}</b><small>${mr.length} this month</small></div></div>
+  </div>
+  ${S.finance.some(f=>f.example)?`<div class="banner warn"><div><b>Example records are showing.</b> Remove them before entering real figures.</div><button class="btn sm" data-act="clearFinEx">Remove examples</button></div>`:''}
+  <div class="fin-bar"><button class="btn pri" data-act="addFin">＋ Record transaction</button>
+    <select class="inp" id="fproj" aria-label="Project"><option value="All">All projects</option><option value="" ${UI.fproj===''?'selected':''}>Office / overheads</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.fproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+    <div class="seg">${[['All','All'],['Income','Money in'],['Expense','Money out']].map(([t,l])=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${l}</button>`).join('')}</div><div class="sp"></div>
+    <div class="fin-r2"><button class="btn" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}<span class="ai-tag">AI</span> Risk check</button><button class="btn" data-act="exportFin">Export CSV</button></div></div>
+  ${risk?`<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Check again</button></div><div class="bd"><div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
     <div class="list">${(risk.findings||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div><span class="chip ${f.severity==='High'?'bad':f.severity==='Medium'?'amb':'blue'}">${esc(f.severity)}</span></div>`).join('')}</div>
-    ${(risk.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended controls</div><ul class="clean small">${risk.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}`
-    :'<p class="small muted">Checks the ledger for duplicates, split payments, overspending and cash-flow gaps.</p>'}</div></div>
-  ${bud.length?`<div class="card"><div class="hd"><h2>Budget vs spend</h2></div><div class="bd" style="display:flex;flex-direction:column;gap:10px">${bud.map(({p,spent})=>{const pc=spent/p.budget*100;return `<div><div class="toolbar small"><span>${esc(p.name)}</span><div class="sp"></div><span class="num">${tzsShort(spent)} / ${tzsShort(p.budget)}</span></div><div class="bar"><i style="width:${Math.min(100,pc)}%;background:${pc>100?'var(--bad)':pc>85?'var(--amber)':'var(--good)'}"></i></div></div>`}).join('')}</div></div>`:''}
-  <div class="toolbar"><select class="inp" id="fproj" aria-label="Project"><option value="All">All projects</option><option value="" ${UI.fproj===''?'selected':''}>Office / overheads</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.fproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
-    <div class="seg">${['All','Income','Expense'].map(t=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${t}</button>`).join('')}</div><div class="sp"></div>
-    <button class="btn" data-act="exportFin">Export CSV</button><button class="btn pri" data-act="addFin">Record transaction</button></div>
-  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Description</th><th class="hide-m">Project</th><th class="hide-m">Method</th><th class="r">Amount</th><th></th></tr></thead><tbody>
-    ${rows.map(f=>`<tr class="click" data-editfin="${esc(f.id)}" title="Open to edit"><td class="mono small">${fmtD(f.date)}</td><td><div class="ttl2">${esc(f.category||'')} ${f.example?'<span class="chip ex">example</span>':''}</div><div class="sub">${esc(f.party||'')} ${f.ref&&f.ref!==f.pr_no?'· '+esc(f.ref):''}${f.pr_no?` <a class="chip blue" data-go="procure" style="cursor:pointer">🔗 ${esc(f.pr_no)}</a>`:''}</div></td><td class="hide-m small">${esc(f.project_id?projName(f.project_id):'Office')}</td><td class="hide-m small">${esc(f.method||'')}</td><td class="r num" style="color:${f.type==='Income'?'var(--good)':'var(--ink)'}">${f.type==='Income'?'+':'−'}${Math.round(+f.amount||0).toLocaleString('en-US')}</td><td>${isAdmin?`<button class="btn sm danger" data-delfin="${esc(f.id)}" aria-label="Delete">✕</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No transactions.</div></td></tr>'}</tbody></table></div></div>`;
+    ${(risk.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended controls</div><ul class="clean small">${risk.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}</div></div>`:''}
+  <div class="card fin-led">${groups.length?groups.map(g=>{ const gi=sum(g.rows,'Income'), go=sum(g.rows,'Expense'); return `<div class="fin-mh"><span>${mName(g.k)}</span><span class="num">${gi?`<em class="in">+${amt(gi)}</em>`:''}${go?`<em class="out">−${amt(go)}</em>`:''}</span></div>`+
+    g.rows.map(f=>`<div class="fin-r" data-editfin="${esc(f.id)}" title="Open to edit"><span class="fi ${f.type==='Income'?'in':'out'}">${f.type==='Income'?'↓':'↑'}</span>
+      <div class="d"><b>${esc(f.category||'Transaction')} ${f.example?'<span class="chip ex">example</span>':''}</b><small>${[esc(f.party||''),esc(f.project_id?projName(f.project_id):'Office'),esc(f.method||'')].filter(Boolean).join(' · ')}${f.pr_no?` <a class="chip blue" data-go="procure" style="cursor:pointer">🔗 ${esc(f.pr_no)}</a>`:''}</small></div>
+      <div class="a"><b class="num ${f.type==='Income'?'in':'out'}">${f.type==='Income'?'+':'−'}${amt(f.amount)}</b><small>${fmtD(f.date)}</small></div>
+      <button class="fin-del" data-delfin="${esc(f.id)}" title="Delete" aria-label="Delete">${TRASH}</button></div>`).join(''); }).join(''):'<div class="empty">No transactions yet. Click “Record transaction” to add the first one.</div>'}</div>
+  ${bud.length?`<div class="card"><div class="hd"><h2>Budget used per project</h2></div><div class="bd fin-bud">${bud.map(({p,spent})=>{const pc=spent/p.budget*100, c=pc>100?'var(--bad)':pc>85?'var(--amber)':'var(--good)';return `<div><div class="t"><span>${esc(p.name)}</span><b class="num" style="color:${c}">${pc<1&&pc>0?'<1':Math.round(pc)}%</b></div><div class="bar"><i style="width:${Math.max(pc>0?1.5:0,Math.min(100,pc))}%;background:${c}"></i></div><small>${tzsShort(spent)} spent of ${tzsShort(p.budget)} budget</small></div>`}).join('')}</div></div>`:''}
+  </div>`;
 }
 async function aiFinance(){
   const rows=S.finance.map(f=>({date:f.date,type:f.type,category:f.category,amount:+f.amount,project:f.project_id?projName(f.project_id):'Office',party:f.party,ref:f.ref,method:f.method}));
