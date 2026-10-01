@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=111"></script>
+<script src="config.js?v=112"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=111"></script>
-<script src="nexus-chat.js?v=111"></script>
+<script src="nexus-sb.js?v=112"></script>
+<script src="nexus-chat.js?v=112"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -3590,7 +3590,7 @@ function renderNav(){
   $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join('');
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
-function renderView(force=false){
+function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSave(); }catch(_){}
   const v=$('#view'), a=document.activeElement;
   if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
   if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq'].includes(a.id)){ pendingView=true; return; }
@@ -6031,9 +6031,21 @@ function bbHtml(){
       <select class="bb-sel bb-thm" id="bbTheme" aria-label="Style">${BB_THEMES.map(([k,l])=>`<option value="${k}" ${BB.theme===k?'selected':''}>🎨 ${l}</option>`).join('')}</select>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Company tips">✎</button>':''}</div>
     <div class="bb-run">${L.length?`<div class="bb-track" style="animation-duration:${secs}s">${row}${row}</div>`:'<div class="bb-none">No stories in this view yet.</div>'}</div></section>`; }
 /* moving speed: same reading pace (~65 px per second) however long the stories are */
-function bbSpeed(){ const t=document.querySelector('#bb .bb-track'); if(!t) return; const w=t.scrollWidth/2; if(w>0) t.style.animationDuration=Math.max(30,Math.round(w/65))+'s'; }
+/* v112: the strip continues where you left it – after visiting other pages, a news refresh or reopening NEXUS (story at the left edge is remembered) */
+function bbSpeed(){ const t=document.querySelector('#bb .bb-track'); if(!t) return; const w=t.scrollWidth/2; if(!(w>0)) return; const D=Math.max(30,Math.round(w/65)); t.style.animationDuration=D+'s';
+  let at=null; try{ at=JSON.parse(localStorage.getItem('nx_bb_pos')||'null'); }catch(_){}
+  const items=[...t.querySelectorAll('.bb-i')], n=items.length/2; let x=0;
+  if(at&&at.t){ const k=items.slice(0,n).findIndex(e=>e.getAttribute('title')===at.t); if(k>=0) x=items[k].offsetLeft+(at.dx||0); }
+  if(x>0&&x<w) t.style.animationDelay=(-(x/w)*D).toFixed(2)+'s';
+  BB.posOk=Date.now()+2500; bbPosWatch(); }
+function bbPosSave(){ const t=document.querySelector('#bb .bb-track'); if(!t||!BB.posOk||Date.now()<BB.posOk) return; const m=getComputedStyle(t).transform; if(!m||m==='none') return; const tx=-(new DOMMatrix(m).m41); if(!(tx>=0)) return;
+  const items=[...t.querySelectorAll('.bb-i')]; let cur=null; for(const e of items){ if(e.offsetLeft<=tx+1) cur=e; else break; } if(!cur) return;
+  try{ localStorage.setItem('nx_bb_pos',JSON.stringify({t:cur.getAttribute('title'),dx:Math.max(0,Math.round(tx-cur.offsetLeft)),at:Date.now()})); }catch(_){} }
+function bbPosWatch(){ if(BB.posT) return; BB.posT=setInterval(()=>{ if(!document.getElementById('bb')) return; if(!document.hidden) bbPosSave(); },1500);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) bbPosSave(); }); window.addEventListener('pagehide',bbPosSave);
+  document.addEventListener('click',e=>{ if(e.target.closest('[data-go],[data-open],#nav button,.tabbar button')) bbPosSave(); },true); }
 function bbShow(dir,abs){ const L=bbItems(); if(!L.length) return; BB.i=abs!=null?abs:((BB.i||0)+dir+L.length)%L.length; BB.el=0; const sc=document.getElementById('bbScreen'); if(!sc) return; sc.classList.remove('bb-in'); void sc.offsetWidth; sc.innerHTML=bbSlide(); sc.classList.add('bb-in'); const nx=document.getElementById('bbNext'); if(nx) nx.innerHTML=bbNext(); }
-function bbRefresh(){ const el=document.getElementById('bb'); if(!el) return; BB.i=0; el.outerHTML=bbHtml(); }
+function bbRefresh(){ const el=document.getElementById('bb'); if(!el) return; bbPosSave(); BB.i=0; el.outerHTML=bbHtml(); }
 function bbTick(){ if(BB.timer) return; BB.el=0; BB.last=Date.now(); BB.timer=setInterval(()=>{ const el=document.getElementById('bb'); const now=Date.now(), dt=now-BB.last; BB.last=now;
     if(!el){ clearInterval(BB.timer); BB.timer=null; return; }
     if(BB.paused||document.hidden||el.matches(':hover')) return;
