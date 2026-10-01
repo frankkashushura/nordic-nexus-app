@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=119"></script>
+<script src="config.js?v=120"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=119"></script>
-<script src="nexus-chat.js?v=119"></script>
+<script src="nexus-sb.js?v=120"></script>
+<script src="nexus-chat.js?v=120"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6219,6 +6219,33 @@ const BB_CSS=`
 @media (prefers-reduced-motion:reduce){.bb-track{animation:none;overflow-x:auto}.bb-live i,.bb-dot{animation:none}}`;
 /* ---------------- NEXUS Office start page (Microsoft 365 style) ---------------- */
 const OXH_CSS=`
+.oxn{width:100%;max-width:1180px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+.oxn-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.oxn-head>div{flex:1;min-width:200px}
+.oxn-head h1{margin:0;font:700 26px/1.2 var(--f-display);color:var(--ink);text-transform:none;letter-spacing:0}.oxn-head .sub{color:var(--muted);margin-top:2px}
+.oxn-apps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}@media (max-width:1250px){.oxn-apps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.oxn-app{position:relative;display:flex;align-items:center;gap:10px;padding:16px 14px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;text-align:left;transition:transform .12s,box-shadow .12s}
+.oxn-app{flex-direction:column;align-items:flex-start;gap:10px;padding:16px}
+@media (max-width:700px){.oxn-app{flex-direction:row;align-items:center;padding:12px 10px}}
+.oxn-app:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.oxn-app span{display:flex;flex-direction:column;min-width:0}.oxn-app b{font-size:15px}.oxn-app small{color:var(--muted);font-size:12.5px}
+.oxn-app i{position:absolute;right:12px;top:10px;font-style:normal;font-weight:700;color:var(--c);opacity:.7}
+.oxn-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.oxn-hd{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}.oxn-hd h2{margin:0;font:600 16px var(--f-body);flex:1;text-transform:none;letter-spacing:0}
+.oxn-hd input{height:36px;border:1px solid var(--line);border-radius:999px;padding:0 14px;min-width:220px;background:var(--bg);color:var(--ink)}
+.oxn-lnk{border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer}
+.oxn-tpl{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.oxn-tpl button{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;text-align:left}
+.oxn-tpl button:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 7%,transparent)}
+.oxn-tpl .ti{width:38px;height:38px;flex:none;display:grid;place-items:center;font-size:20px;border-radius:9px;background:color-mix(in srgb,var(--c) 12%,transparent)}
+.oxn-tpl b,.oxn-fill b{display:block;font-weight:600;font-size:13.5px}.oxn-tpl small,.oxn-fill small{color:var(--muted);font-size:12px}
+.oxn-fill{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.oxn-fill button{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer}
+.oxn-fl{margin-bottom:10px}
+.oxn-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-top:1px solid var(--line);cursor:pointer;border-radius:8px}.oxn-row:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.oxn-row .nm{flex:1;min-width:0}.oxn-row .nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.oxn-row .nm small{color:var(--muted);font-size:12.5px}
+.oxn-row .act{display:flex;gap:2px}.oxn-row .act button{border:0;background:none;cursor:pointer;padding:6px 8px;border-radius:6px;color:var(--ink)}.oxn-row .act button:hover{background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.oxn-row .act svg{width:16px;height:16px}
+.oxn-empty{padding:26px 8px;text-align:center;color:var(--muted)}
+@media (max-width:700px){.oxn-head h1{font-size:21px}.oxn-head .btn{width:100%}.oxn-apps{grid-template-columns:1fr 1fr;gap:8px}.oxn-app{padding:12px 10px;gap:8px}.oxn-app b{font-size:14px}.oxn-app small{font-size:11.5px}.oxn-card{padding:12px}.oxn-hd input{min-width:0;width:100%}.oxn-tpl{grid-template-columns:1fr}}
 .oxh{display:flex;gap:0;background:#fff;border:1px solid #E1DFDD;border-radius:6px;overflow:hidden;min-height:70vh;color:#252423;font:14px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}
 .oxh-rail{width:68px;background:#F3F2F1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:14px;border-right:1px solid #E1DFDD;flex:none}
 .oxh-rail button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;font:11px 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#323130;cursor:pointer;padding:4px}
@@ -6253,28 +6280,24 @@ function pageOffice(){
   const toFill=oxDocs().filter(d=>d.type==='form'&&d.open!==false&&(d.qs||[]).length&&d.owner_uid!==me.id);
   const answered=new Set((S.formresp||[]).filter(r=>r.by_uid===me.id).map(r=>r.form_id));
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
-  const tile=(act,type,pg,t,s,extra='')=>`<button data-oxh="${act}" ${extra}><div class="th"><div class="pg" style="${type?`border-top:4px solid ${OXA[type].color}`:''}">${pg}</div></div><div class="tn">${t}${s?`<small>${s}</small>`:''}</div></button>`;
-  const APPS=[['docx','newdoc'],['xlsx','newxls'],['pptx','newppt'],['mpp','newprj'],['eml','newmail'],['form','newform']];
+  const APPS=[['docx','newdoc','New document'],['xlsx','newxls','New spreadsheet'],['pptx','newppt','New presentation'],['mpp','newprj','New programme'],['eml','newmail','New e-mail'],['form','newform','New form']];
   const sub=d=>d.type==='eml'?(d.sent_at?'Sent to '+esc(String(d.to||'').split(/[;,]/)[0])+(String(d.to||'').split(/[;,]/).length>1?' +':''):'Draft'):d.type==='form'?`${d.open===false?'Closed':'Open'} · ${(d.qs||[]).length} questions`:'';
-  return `<div class="oxh"><div class="oxh-rail"><button data-oxh="home"><span class="ic">⌂</span>Home</button>${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t)}${OXA[t].name}</button>`).join('')}<button data-oxh="openpc"><span class="ic">📂</span>Open</button><button data-go="records"><span class="ic">🗄</span>Records</button></div>
-  <div class="oxh-main"><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">Word, Excel, PowerPoint, Project, Outlook and Forms – inside NEXUS. Everything is saved in NEXUS; <b>Download</b> gives a real Office file for use outside.</div>
-   <div class="oxh-apps">${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t,36)}<span>${OXA[t].name}</span></button>`).join('')}</div>
-   ${toFill.length?`<div class="oxh-sec"><h2>Forms to fill in</h2></div><div class="oxh-fill">${toFill.slice(0,8).map(d=>`<button data-oxopen="${esc(d.id)}">${oxIco('form',30)}<span><b>${esc(d.title)}</b><small>${esc(d.owner||'')}${d.project_id?' · '+esc(projName(d.project_id)):''}${answered.has(d.id)?' · <span style="color:#107C41">✔ answered</span>':''}</small></span></button>`).join('')}</div>`:''}
-   <div class="oxh-sec"><h2>Start new</h2></div>
-   <div class="oxh-new">
-    ${[[1,'newdoc','docx',oxIco('docx',30),'Blank document','Word'],[1,'newlh','docx','🏢','Nordic letter','Word · official letterhead'],[1,'newlhl','docx','🏢','Nordic letter – landscape','Word · official letterhead'],...OX_TEMPLATES.filter(t=>t.k!=='blank').map(t=>[0,'tpl','docx',t.ico,esc(t.t),'Word template',`data-k="${t.k}"`]),
-      [1,'newxls','xlsx',oxIco('xlsx',30),'Blank workbook','Excel'],[1,'boqx','xlsx','📗','BoQ in Excel','Excel · from QS Studio'],
-      [1,'newppt','pptx',oxIco('pptx',30),'Blank presentation','PowerPoint'],...OXP_TPL.filter(t=>t.k!=='blank').map(t=>[t.k==='progress'?1:0,'ppttpl','pptx',t.ico,esc(t.t),'PowerPoint',`data-k="${t.k}"`]),
-      [1,'newprj','mpp',oxIco('mpp',30),'Project programme','Project · Gantt chart'],
-      [1,'newmail','eml',oxIco('eml',30),'New e-mail','Outlook'],...OXO_TPL.filter(t=>t.k!=='blank').map(t=>[0,'mailtpl','eml',t.ico,esc(t.t),'Outlook',`data-k="${t.k}"`]),
-      [0,'newform','form',oxIco('form',30),'Blank form','Forms'],...OXF_TPL.filter(t=>t.k!=='blank').map(t=>[t.k==='hse'?1:0,'formtpl','form',t.ico,esc(t.t),'Forms',`data-k="${t.k}"`])]
-      .filter(x=>UI.oxmore||x[0]).map(x=>tile(x[1],x[2],x[3],x[4],x[5],x[6]||'')).join('')}
-    <button data-oxh="more" style="width:132px;border:1px dashed #C8C6C4;background:#FAF9F8;border-radius:6px;cursor:pointer;color:#0F6CBD;font:600 13px 'Segoe UI',Arial">${UI.oxmore?'− Fewer templates':'＋ More templates'}</button>
-   </div>
-   <div class="oxh-sec"><h2>Recent</h2><div class="fl">${[['all','All'],['docx','Word'],['xlsx','Excel'],['pptx','PowerPoint'],['eml','Outlook'],['form','Forms'],['mine','Mine']].map(([k,l])=>`<button data-oxf="${k}" class="${f===k?'on':''}">${l}</button>`).join('')}</div><input id="oxq" type="search" placeholder="Search documents" value="${esc(UI.oxq||'')}"></div>
-   <table class="oxh-list"><thead><tr><th>Name</th><th class="hm">Project</th><th class="hm">Modified</th><th class="hm">Owner</th><th></th></tr></thead><tbody>
-   ${list.length?list.slice(0,80).map(d=>`<tr class="r" data-oxopen="${esc(d.id)}"><td><div class="nm">${oxIco(d.type,24)}<span>${esc(d.title||'Untitled')}${sub(d)?`<br><small style="color:#605E5C">${sub(d)}</small>`:''}</span></div></td><td class="hm">${d.project_id?esc(projName(d.project_id)):''}${d.boq_id?' · 🔗 BoQ':''}</td><td class="hm">${fmtDT(d.sent_at||d.updated_at)}</td><td class="hm">${esc(d.owner||d.updated_by||'')}</td><td class="act">${d.type!=='form'||d.owner_uid===me.id||isAdmin?`<button data-oxdl="${esc(d.id)}" title="Download">${OXSVG.dl}</button>`:''}${isAdmin||d.owner_uid===me.id?`<button data-oxdel="${esc(d.id)}" title="Delete">🗑</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5" style="color:#605E5C;padding:22px 8px">No documents yet – create one above or open a file from your PC.</td></tr>`}
-   </tbody></table></div></div>`;
+  const TPL=[[1,'newlh','docx','🏢','Nordic letter'],[1,'boqx','xlsx','📗','BoQ in Excel'],...OXP_TPL.filter(t=>t.k!=='blank').map(t=>[t.k==='progress'?1:0,'ppttpl','pptx',t.ico,esc(t.t),`data-k="${t.k}"`]),
+    ...OXF_TPL.filter(t=>t.k!=='blank').map(t=>[t.k==='hse'?1:0,'formtpl','form',t.ico,esc(t.t),`data-k="${t.k}"`]),
+    [0,'newlhl','docx','🏢','Nordic letter – landscape'],...OX_TEMPLATES.filter(t=>t.k!=='blank').map(t=>[0,'tpl','docx',t.ico,esc(t.t),`data-k="${t.k}"`]),
+    ...OXO_TPL.filter(t=>t.k!=='blank').map(t=>[0,'mailtpl','eml',t.ico,esc(t.t),`data-k="${t.k}"`])];
+  const tpls=TPL.filter(x=>UI.oxmore||x[0]);
+  const FL=[['all','All'],['docx','Word'],['xlsx','Excel'],['pptx','PowerPoint'],['eml','E-mail'],['form','Forms'],['mine','Mine']];
+  return `<div class="oxn">
+  <div class="oxn-head"><div><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">What would you like to create today?</div></div><button class="btn" data-oxh="openpc">📂 Open a file from PC</button></div>
+  <div class="oxn-apps">${APPS.map(([t,a,l])=>`<button class="oxn-app" data-oxh="${a}" style="--c:${(OXA[t]||{}).color||'#555'}">${oxIco(t,40)}<span><b>${OXA[t].name}</b><small>${l}</small></span></button>`).join('')}</div>
+  ${toFill.length?`<div class="oxn-card"><div class="oxn-hd"><h2>Forms waiting for you</h2></div><div class="oxn-fill">${toFill.slice(0,8).map(d=>`<button data-oxopen="${esc(d.id)}">${oxIco('form',28)}<span><b>${esc(d.title)}</b><small>${esc(d.owner||'')}${d.project_id?' · '+esc(projName(d.project_id)):''}${answered.has(d.id)?' · ✔ answered':''}</small></span></button>`).join('')}</div></div>`:''}
+  <div class="oxn-card"><div class="oxn-hd"><h2>Start from a template</h2><button class="oxn-lnk" data-oxh="more">${UI.oxmore?'Show fewer':'Show all templates ('+TPL.length+')'}</button></div>
+   <div class="oxn-tpl">${tpls.map(x=>`<button data-oxh="${x[1]}" ${x[5]||''} style="--c:${(OXA[x[2]]||{}).color||'#555'}"><span class="ti">${x[3]}</span><span><b>${x[4]}</b><small>${OXA[x[2]]?OXA[x[2]].name:''}</small></span></button>`).join('')}</div></div>
+  <div class="oxn-card"><div class="oxn-hd"><h2>Recent files</h2><input id="oxq" type="search" placeholder="Search files" value="${esc(UI.oxq||'')}"></div>
+   <div class="seg oxn-fl">${FL.map(([k,l])=>`<button data-oxf="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
+   <div class="oxn-list">${list.length?list.slice(0,80).map(d=>`<div class="oxn-row" data-oxopen="${esc(d.id)}">${oxIco(d.type,30)}<div class="nm"><b>${esc(d.title||'Untitled')}</b><small>${[sub(d),d.project_id?esc(projName(d.project_id)):'',fmtDT(d.sent_at||d.updated_at),esc(d.owner||d.updated_by||'')].filter(Boolean).join(' · ')}</small></div><div class="act">${d.type!=='form'||d.owner_uid===me.id||isAdmin?`<button data-oxdl="${esc(d.id)}" title="Download">${OXSVG.dl}</button>`:''}${isAdmin||d.owner_uid===me.id?`<button data-oxdel="${esc(d.id)}" title="Delete">🗑</button>`:''}</div></div>`).join(''):`<div class="oxn-empty">No files yet. Pick an app above to create your first one.</div>`}</div></div>
+  </div>`;
 }
 document.addEventListener('click',async e=>{ const t=e.target.closest('[data-oxh],[data-oxf],[data-oxopen],[data-oxdl],[data-oxdel]'); if(!t||route!=='office') return; e.stopPropagation();
   if(t.dataset.oxdl){ const d=byId('officedocs',t.dataset.oxdl); if(!d) return; toast('Preparing file…'); try{ const r=await oxDocBytes(d); if(r&&await oxSave(d.title+(d.type==='form'?' – responses':''),r.bytes,r.ext)) logAct(`Downloaded "${d.title}"`); }catch(err){ toast('Could not build the file: '+(err.message||err)); } return; }
