@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=112"></script>
+<script src="config.js?v=113"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=112"></script>
-<script src="nexus-chat.js?v=112"></script>
+<script src="nexus-sb.js?v=113"></script>
+<script src="nexus-chat.js?v=113"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -527,6 +527,44 @@ body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 .thm .sw{height:58px;position:relative;display:flex;align-items:flex-end;gap:5px;padding:7px}
 .thm .sw i{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.2)}
 .thm b{padding:7px 9px 2px;font-size:13px} .thm span{padding:0 9px 8px;font-size:11.5px;color:var(--muted)}
+/* ===== v113 visual refresh: larger, clearer text · lighter Concrete & Earthworks · calmer page photos ===== */
+body{font-size:15px;line-height:1.55}
+.small{font-size:13.5px}
+.sub{font-size:12.75px;line-height:1.45}
+.label{font-size:11.5px}
+.card>.hd h2{font-size:17.5px}
+.kv{font-size:14px}
+.kv dt{font-weight:500}
+.ttl2{font-size:15px}
+.btn{font-size:14px}
+.btn.sm{font-size:13px}
+.inp{font-size:14.5px}
+table{font-size:14px}
+th{font-size:11.5px}
+.chip{font-size:12px}
+:root[data-theme="concrete"]{
+  --bg:#ECEAE6; --panel:#FFFFFF; --panel2:#F5F3EF; --ink:#1E2328; --muted:#596069; --line:#E2DED6;
+  --steel:#262A2F; --steel-ink:#F4F2EE; --steel-muted:#A9AEB4; --steel-line:#373C42;
+  --shadow:0 1px 2px rgba(30,34,39,.06),0 4px 14px rgba(30,34,39,.06); --hd-bg:linear-gradient(180deg,#FAF9F7,#FFFFFF); --card-bd:#DEDAD2}
+:root[data-theme="concrete"] body::before{opacity:.55;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .29 0 0 0 0 .27 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:260px 260px}
+:root[data-theme="concrete"] .top::after{background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,#262A2F 10px 20px)}
+:root[data-theme="concrete"] .card{border:1px solid var(--card-bd)}
+:root[data-theme="earthworks"]{
+  --bg:#EFE7D8; --panel:#FFFDF8; --panel2:#F6EFE1; --line:#E3D7BF; --card-bd:#DCCDAE;
+  --shadow:0 1px 2px rgba(51,41,28,.06),0 4px 14px rgba(51,41,28,.07); --hd-bg:linear-gradient(180deg,#FBF6EC,#FFFDF8)}
+:root[data-theme="earthworks"] body::before{opacity:.55}
+/* page photos: a soft band behind the page title only, never a muddy wash over the content */
+.pg-bg{height:min(300px,45vh)}
+.pg-bg::after{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 30%,transparent) 0%,color-mix(in srgb,var(--bg) 72%,transparent) 55%,var(--bg) 100%)}
+.pg-bg::before{opacity:.18}
+/* About page */
+.about-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.about-hero img{height:56px}
+.about-hero h2{font-size:26px;margin:0;letter-spacing:.02em}
+.about-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:start}
+@media (max-width:900px){.about-cols{grid-template-columns:1fr}}
+.about-foot{margin:6px 2px 0;font-size:12.5px;color:var(--muted)}
+@media (max-width:700px){body{font-size:15px}.kv{font-size:14px}.top .ttl .label{display:none!important}.top .ttl{min-width:0;flex:1}.top .ttl{overflow:hidden}.top .ttl h1{font-size:15px;letter-spacing:0;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip;word-break:normal;overflow-wrap:anywhere}.top .iconbtn{width:32px;height:32px;flex:none}.top{gap:5px!important}.top>.sp{display:none}}
 </style>
 
 <div class="app" id="app">
@@ -2601,23 +2639,22 @@ function pageSettings(){
 function pageAbout(){
   const c=company();
 
-  return `<section class="blueprint"><div class="toolbar"><img alt="Nordic Construction logo" src="${LOGO}" style="height:44px"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
+  return `<section class="blueprint"><div class="about-hero"><img alt="Nordic Construction logo" src="${LOGO}"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
     <p class="muted">Built for ${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</p></section>
   <div class="card"><div class="hd"><h2>Install NEXUS as an app</h2><span class="chip good">Free · no store needed</span></div><div class="bd grid g3 small">
     <div><div class="label">Android</div><p><a href="downloads/NORDIC-NEXUS.apk" download><b>Download the NEXUS app (APK)</b></a>, open it and tap <b>Install</b> (allow “install unknown apps” for your browser if asked). Or in Chrome: <b>⋮</b> → <b>Add to Home screen</b>.</p></div>
     <div><div class="label">iPhone · Safari</div><p>Open the link, tap <b>Share</b> → <b>Add to Home Screen</b> → <b>Add</b>.</p></div>
     <div><div class="label">Windows</div><p><a href="downloads/NORDIC-NEXUS-Setup.exe" download><b>Download NEXUS Setup</b></a> and run it: NEXUS gets its own icon on the Desktop and Start menu. If Windows shows “Windows protected your PC”, click <b>More info</b> → <b>Run anyway</b>.</p></div>
   </div><div class="bd small muted" style="padding-top:0">Each person has their own NEXUS login: tap <b>Sign up</b> on the sign-in screen and an administrator approves you. The apps always open the latest NEXUS, so there is nothing to update.</div></div>
-  <div class="grid g2">
-    <div style="display:flex;flex-direction:column;gap:14px">
+  <div class="about-cols">
       <div class="card"><div class="hd"><h2>Developers</h2></div><div class="list">
         <div class="li"><div class="av">EF</div><div class="grow"><div class="ttl2">Engineer Frank</div><div class="sub">System design & development</div></div></div>
         <div class="li"><div class="av">EM</div><div class="grow"><div class="ttl2">Engineer Michael</div><div class="sub">System design & development</div></div></div></div></div>
       <div class="card"><div class="hd"><h2>Company</h2></div><div class="bd small"><dl class="kv">
-        <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd class="mono">${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
+        <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd>${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
         <dt>Vision</dt><dd>${esc(c.vision)}</dd><dt>Core values</dt><dd>${esc(c.values)}</dd></dl></div></div>
-      
-    </div><p class="small muted" style="margin-top:12px">Page background photos: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> (free licence) – photographers listed in img/bg/sources.txt.</p></div>`;
+  </div>
+  <p class="about-foot">Page background photos: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> (free licence) – photographers listed in img/bg/sources.txt.</p>`;
 }
 
 /* ===================== ASK NEXUS ===================== */
