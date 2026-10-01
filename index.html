@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=134"></script>
+<script src="config.js?v=135"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=134"></script>
-<script src="nexus-chat.js?v=134"></script>
+<script src="nexus-sb.js?v=135"></script>
+<script src="nexus-chat.js?v=135"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6629,7 +6629,7 @@ function bbHtml(){
       <select class="bb-sel" id="bbCat" aria-label="Topic">${cats.map(([k,l])=>`<option value="${k}" ${BB.cat===k?'selected':''}>${l}</option>`).join('')}</select>
       <select class="bb-sel" id="bbLang" aria-label="Language">${BB_LANGS.map(([k,l])=>`<option value="${k}" ${BB.lang===k?'selected':''}>${l}</option>`).join('')}</select>
       <select class="bb-sel bb-when" id="bbWhen" aria-label="When">${[['all','All dates'],['today','Today'],['week','This week'],['older','Older']].map(([k,l])=>`<option value="${k}" ${BB.when===k?'selected':''}>${l}</option>`).join('')}</select>
-      <span class="bb-upd">${upd?'updated '+esc(bbAgo(upd)):''}</span><span class="sp"></span>
+      <span class="bb-upd">${upd?'updated '+esc(bbAgo(upd)):''}</span><button class="bb-ed bb-rf${BB_RF.on?' on':''}" data-bbrf="1" title="Refresh – get the latest news now" aria-label="Refresh news">⟳</button><span class="sp"></span>
       <select class="bb-sel bb-thm" id="bbTheme" aria-label="Style">${BB_THEMES.map(([k,l])=>`<option value="${k}" ${BB.theme===k?'selected':''}>🎨 ${l}</option>`).join('')}</select>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Company tips">✎</button>':''}</div>
     ${BB_PAGES[BB.cat]?`<div class="bb-offi"><b>${BB.cat==='gov'?'Official pages':'Their pages'}:</b>${BB_PAGES[BB.cat].map(([n,u])=>`<a href="${esc(u)}" data-dhopen="${esc(u)}" data-dhname="${esc(n)}">${esc(n)}</a>`).join('')}</div>`:''}
     <div class="bb-run">${L.length?`<div class="bb-track" style="animation-duration:${secs}s">${row}${row}</div>`:'<div class="bb-none">No stories in this view yet.</div>'}</div></section>`; }
@@ -6660,6 +6660,17 @@ document.addEventListener('change',e=>{ if(e.target.id==='bbTheme'){ BB.theme=e.
   if(e.target.id==='bbWhen'){ BB.when=e.target.value; if(BB.cat==='tip') BB.cat='all'; bbRefresh(); }
   if(e.target.id==='bbCat'){ BB.cat=e.target.value; bbRefresh(); }
   if(e.target.id==='bbLang'){ BB.lang=e.target.value; try{ localStorage.setItem('nx_bb_lang',BB.lang); }catch(_){} if(BB.cat==='tip'&&BB.lang!=='en'&&BB.lang!=='all') BB.cat='all'; bbRefresh(); } });
+/* v135: refresh button – asks the news service for the latest stories now (forced only if the last update is over 2 minutes old) */
+const BB_RF={on:false};
+async function bbRefresh(){ if(BB_RF.on) return; const last=Date.parse((S.news&&S.news.at)||0)||0;
+  if(Date.now()-last<120e3){ toast('News is up to date (updated '+bbAgo(S.news.at)+').'); return; }
+  BB_RF.on=true; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.add('on')); toast('Getting the latest news…');
+  try{ const r=await fetch(NEXUS_CONFIG.url+'/functions/v1/news',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'refresh'})}); const j=await r.json().catch(()=>({}));
+    if(!r.ok||j.error) throw new Error(j.error||('HTTP '+r.status));
+    if(j.items&&!S.news) S.news=j; toast(`News updated${j.n?` – ${j.n} stories`:''}.`); }
+  catch(e){ toast('Could not refresh the news now – please try again shortly.'); }
+  finally{ BB_RF.on=false; document.querySelectorAll('[data-bbrf]').forEach(b=>b.classList.remove('on')); } }
+document.addEventListener('click',e=>{ if(e.target.closest('[data-bbrf]')){ e.preventDefault(); bbRefresh(); } });
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-bbnav],[data-bbpause],[data-bbcat],[data-bbedit],[data-bbjump]'); if(!b) return;
   if(b.dataset.bbnav){ bbShow(+b.dataset.bbnav); return; }
   if(b.dataset.bbjump){ bbShow(0,+b.dataset.bbjump); return; }
@@ -6687,6 +6698,7 @@ const BB_CSS=`
 .bb-sel option{color:#111;background:#fff}
 .bb-upd{font-size:11.5px;color:var(--mu)}
 .bb-ed{border:1px solid var(--ln);background:var(--chip);color:var(--tx);border-radius:999px;width:28px;height:24px;cursor:pointer;font-size:12px}
+.bb-rf{font-size:15px;line-height:1;margin-left:6px;padding:0}.bb-rf.on{animation:bbspin 1s linear infinite;pointer-events:none;opacity:.7}@keyframes bbspin{to{transform:rotate(360deg)}}
 .bb-run{position:relative;overflow:hidden;height:82px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
 .bb-track{display:flex;width:max-content;height:100%;align-items:center;animation:bbMq linear infinite}
 .bb-run:hover .bb-track,.bb-run:focus-within .bb-track{animation-play-state:paused}
