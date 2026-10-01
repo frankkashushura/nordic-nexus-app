@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=132"></script>
+<script src="config.js?v=133"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=132"></script>
-<script src="nexus-chat.js?v=132"></script>
+<script src="nexus-sb.js?v=133"></script>
+<script src="nexus-chat.js?v=133"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -665,6 +665,8 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 @media (max-width:900px){.hse-kpis{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.hse-k{padding:11px 12px}.hse-k b{font-size:22px}.hse-row{padding:10px 12px;gap:10px}.hse-addact{grid-template-columns:1fr}.hse .toolbar>.btn{flex:1}}
 #bb .bb-offi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px 0;font-size:12.5px}#bb .bb-offi a{color:inherit;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 10px}#bb .bb-offi a:hover{border-color:#1EB53A}
+.bq-own{width:auto!important;flex:none!important;max-width:170px;height:34px;padding:4px 8px}.bq-st{width:auto!important;flex:none!important;height:34px;padding:4px 8px}.bq-fs{border:0;margin:0;padding:0;min-width:0}.bq-fs[disabled]{opacity:.6}.bq-on{display:flex;gap:4px;flex-wrap:wrap}.bq-bill>.hd{flex-wrap:wrap;gap:8px}
+.bq-notes{display:flex;flex-direction:column;gap:8px}.bq-n{border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:90%}.bq-n.me{align-self:flex-end;background:color-mix(in srgb,var(--accent) 10%,transparent)}.bq-n b{margin-right:8px}.bq-n p{margin:4px 0 0;white-space:pre-wrap}
 /* v117 icons without background */
 .tile .ti,.ab-ico{background:none!important;box-shadow:none!important;border:0!important}
 .tile .ti{font-size:24px}
@@ -700,7 +702,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -859,7 +861,7 @@ function lightbox(src){ const w=document.createElement('div'); w.className='ligh
 /* ---------- data writes ---------- */
 function needDb(){ if(!db){ toast('Saving needs the NEXUS database, which is not available in this view.'); return false;} return true; }
 async function put(col, id, data){ if(!needDb()) return null; id=id||uid(); try{ await db.doc(col+'/'+id).set({...data, updated_at:new Date().toISOString(), updated_by:me.name||''}); return id; } catch(e){ handleErr(e); return null; } }
-async function patch(col, id, data){ if(!needDb()) return; try{ await db.doc(col+'/'+id).update({...data, updated_at:new Date().toISOString(), updated_by:me.name||''}); } catch(e){ handleErr(e); } }
+async function patch(col, id, data){ if(!needDb()) return; if(col==='boqs'&&data&&Array.isArray(data.bills)&&!('before_excel' in data)&&typeof bqMerge==='function') data={...data,bills:bqMerge(id,data.bills)}; try{ await db.doc(col+'/'+id).update({...data, updated_at:new Date().toISOString(), updated_by:me.name||''}); } catch(e){ handleErr(e); } }
 async function remove(col, id){ if(!needDb()) return false; try{ await db.doc(col+'/'+id).delete(); return true; } catch(e){ handleErr(e); return false; } }
 function handleErr(e){
   const c=e?.code;
@@ -919,6 +921,7 @@ function computeAlerts(){
   });
   if(typeof recAlerts==='function') recAlerts(A);
   if(typeof hseAlerts==='function') hseAlerts(A);
+  if(typeof bqAlerts==='function') bqAlerts(A);
   if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   if(poCan()) poList().filter(poLate).forEach(o=>A.push({lvl:'bad', kind:'Late delivery', text:`${o.po_no} ${o.item} – ${o.supplier}`, sub:`Promised ${fmtD(o.delivery_date)} · ${poPct(o)}% received`, go:['route','procure'], sort:16, at:o.delivery_date}));
@@ -1590,13 +1593,14 @@ function boqEditor(b){
     <div class="fld"><label for="bq_cont">Contingency %</label><input class="inp num" id="bq_cont" type="number" step="any" data-bq="contingency" value="${esc(b.contingency??0)}"></div>
     <div class="fld"><label for="bq_vat">VAT %</label><input class="inp num" id="bq_vat" type="number" step="any" data-bq="vat" value="${esc(b.vat??18)}"></div>
   </div></div></div>
+  ${bqTeamPanel(b)}
   ${UI.bqmode==='price'?bqPriceView(b):`<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Draft items from scope</h2><div class="sp"></div>${canWrite?`<button class="btn sm" data-bx="gen" data-tid="${esc(b.tender_id||'')}">Build from tender documents</button>`:''}</div><div class="bd" style="display:flex;flex-direction:column;gap:8px">
     <textarea class="inp" id="bq_scope" placeholder="Describe the works, e.g. 'Rehabilitation of 2-classroom block: strip roof, new CGI sheets on timber trusses, plaster repairs, 3 coats emulsion, new steel doors and windows, terrazzo floor'">${esc(b.scope||'')}</textarea>
     <div class="toolbar"><button class="btn pri" data-act="aiBoq" ${UI.busy.boq?'disabled':''}>${spin('boq')}Draft bills and items</button><span class="sub">AI writes descriptions and units in standard Tanzanian BoQ style. Quantities come from your take-off; rates from the library or your pricing.</span></div></div></div>
-  ${(b.bills||[]).map((bl,bi)=>`<div class="card"><div class="hd"><span class="label mono">Bill ${bi+1}</span><input class="inp" style="flex:1;min-width:160px;font-weight:600" data-bill="${bi}" value="${esc(bl.name)}" aria-label="Bill name"><span class="num">${tzs(t.bills[bi].total)}</span><button class="btn sm danger" data-delbill="${bi}">Remove bill</button></div>
+  ${(b.bills||[]).map((bl,bi)=>bqHidden(bl)?'':`<div class="card bq-bill"><div class="hd"><span class="label mono">Bill ${bi+1}</span><input class="inp" style="flex:1;min-width:160px;font-weight:600" data-bill="${bi}" value="${esc(bl.name)}" aria-label="Bill name"><span class="num">${tzs(t.bills[bi].total)}</span>${bqBillTools(b,bl,bi)}<button class="btn sm danger" data-delbill="${bi}">Remove bill</button></div>${bqLocked(b,bl,bi)?`<div class="banner warn" style="margin:8px 12px"><div>Someone is editing this bill right now – it is locked for you for a moment.</div><button class="btn sm" data-bqt="force:${esc(bqId(bl,bi))}">Edit anyway</button></div>`:''}<fieldset class="bq-fs" ${bqLocked(b,bl,bi)?'disabled':''}>
     <div class="tbl-wrap"><table><thead><tr><th style="width:60px">Item</th><th>Description</th><th style="width:70px">Unit</th><th class="r" style="width:100px">Qty</th><th class="r" style="width:130px">Rate</th><th class="r" style="width:140px">Amount</th><th></th></tr></thead><tbody>
     ${(bl.items||[]).map((it,ii)=>`<tr><td><input class="inp mono" data-it="${bi}.${ii}.ref" value="${esc(it.ref||'')}" aria-label="Item ref"></td><td><textarea class="inp" style="min-height:38px" data-it="${bi}.${ii}.desc" aria-label="Description">${esc(it.desc||'')}</textarea></td><td><input class="inp" data-it="${bi}.${ii}.unit" value="${esc(it.unit||'')}" aria-label="Unit"></td><td><input class="inp num" style="text-align:right" type="number" step="any" data-it="${bi}.${ii}.qty" value="${esc(it.qty??'')}" aria-label="Quantity"></td><td><input class="inp num" style="text-align:right" type="number" step="any" data-it="${bi}.${ii}.rate" value="${esc(it.rate??'')}" aria-label="Rate"></td><td class="r num" id="amt_${bi}_${ii}">${((+it.qty||0)*(+it.rate||0)).toLocaleString('en-US')}</td><td><button class="btn sm" data-delit="${bi}.${ii}" aria-label="Remove item">✕</button></td></tr>`).join('')}
-    </tbody></table></div><div class="bd"><button class="btn sm" data-addit="${bi}">+ Add item</button></div></div>`).join('')}
+    </tbody></table></div><div class="bd"><button class="btn sm" data-addit="${bi}">+ Add item</button></div></fieldset></div>`).join('')}
   <div class="toolbar"><button class="btn" data-act="addBill">+ Add bill</button></div>
   `}
   <div class="card"><div class="hd"><h2>Summary</h2></div><div class="tbl-wrap"><table><tbody>
@@ -4054,6 +4058,74 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-wi
 document.addEventListener('change',e=>{ if(e.target.matches&&e.target.matches('[data-winsec]')){ UI.winsec=e.target.value; renderView(true); } });
 document.addEventListener('input',e=>{ if(e.target.id==='winq'){ UI.winq=e.target.value; renderView(true); } });
 
+/* ===================== BoQ TEAMWORK (v133) – several QSs on one BoQ at the same time =====================
+   • Bills get a stable id; every save merges at bill level (only the bills YOU changed are written, colleagues' bills stay as they saved them).
+   • Each bill: owner (staff id), status To do | Measuring | Pricing | Done | Checked, notes thread ("boqnotes").
+   • Presence ("boqlive", one doc per person per BoQ): who is working on which bill; a bill someone else is editing is locked for 90 s (Edit anyway).
+   • Share out: unassigned bills are dealt round-robin to the QSs you tick. */
+const BQ_ST=['To do','Measuring','Pricing','Done','Checked'];
+const BQ_STC={'To do':'','Measuring':'amb','Pricing':'blue','Done':'good','Checked':'good'};
+const boqBase={};
+const bqId=(bl,i)=>bl.id||('bi'+i);
+function bqWithIds(bills){ return (bills||[]).map((bl,i)=>bl.id?bl:{...bl,id:'bi'+i}); }
+function bqClone(id){ const s=byId('boqs',id); if(!s) return s; const c=structuredClone(s); c.bills=bqWithIds(c.bills); boqBase[id]=Object.fromEntries(c.bills.map(bl=>[bl.id,JSON.stringify(bl)])); return c; }
+function bqMerge(id,mine){ const base=boqBase[id]; const srv=byId('boqs',id); if(!base||!srv) return bqWithIds(mine);
+  const M=bqWithIds(mine).map(b=>b.id in base||!/^bi\d+$/.test(b.id)?b:{...b,id:'b'+uid()}), Sv=bqWithIds(srv.bills), mm=new Map(M.map(b=>[b.id,b])), sm=new Map(Sv.map(b=>[b.id,b])), out=[];
+  for(const sb of Sv){ const mb=mm.get(sb.id);
+    if(mb){ out.push(JSON.stringify(mb)!==base[sb.id]?mb:sb); }                       // my change wins on bills I touched; otherwise keep the colleague's latest
+    else if(!(sb.id in base)) out.push(sb);                                              // a colleague added it after I opened the BoQ
+    else if(JSON.stringify(sb)!==base[sb.id]) out.push(sb); }                            // I removed it but someone changed it since → keep theirs
+  M.forEach((mb,i)=>{ if(sm.has(mb.id)) return; if(!(mb.id in base)){ out.splice(Math.min(i,out.length),0,mb); } else if(JSON.stringify(mb)!==base[mb.id]) out.push(mb); });
+  boqBase[id]=Object.fromEntries(out.map(bl=>[bl.id,JSON.stringify(bl)]));
+  return out; }
+/* presence */
+const bqLive=id=>(S.boqlive||[]).filter(x=>x.boq===id&&x.uid!==me.id&&x.bill&&Date.now()-Date.parse(x.at||0)<90e3);
+const bqLiveAll=id=>(S.boqlive||[]).filter(x=>x.boq===id&&x.uid!==me.id&&Date.now()-Date.parse(x.at||0)<120e3);
+let bqPres={bill:'',t:0};
+async function bqPresence(billId){ if(!routeArg||route!=='qs'||!me.id) return; if(bqPres.bill===billId&&Date.now()-bqPres.t<25e3) return; bqPres={bill:billId,t:Date.now()};
+  try{ await db.doc('boqlive/'+routeArg+'_'+me.id).set({boq:routeArg,uid:me.id,name:me.name||'',bill:billId,at:new Date().toISOString()}); }catch(_){} }
+document.addEventListener('focusin',e=>{ if(route!=='qs'||!routeArg) return; const el=e.target.closest&&e.target.closest('[data-it],[data-bill]'); if(!el) return; const bi=+(el.dataset.it?el.dataset.it.split('.')[0]:el.dataset.bill); const b=byId('boqs',routeArg); if(!b||!b.bills||!b.bills[bi]) return; bqPresence(bqId(b.bills[bi],bi)); });
+setInterval(()=>{ const a=document.activeElement; if(route==='qs'&&routeArg&&a&&a.closest&&a.closest('[data-it],[data-bill]')&&bqPres.bill){ bqPres.t=0; bqPresence(bqPres.bill); } },30e3);
+/* rendering helpers used by boqEditor */
+const bqQSs=()=>S.staff.filter(s=>s.status!=='Left').sort((a,b)=>(/qs|quantity|survey/i.test(b.position||'')-/qs|quantity|survey/i.test(a.position||''))||String(a.name).localeCompare(String(b.name)));
+function bqTeamPanel(b){ const bills=bqWithIds(b.bills), sid=myStaffId(), on=bqLiveAll(b.id), cnt=s=>bills.filter(x=>(x.status||'To do')===s).length, mine=bills.filter(x=>x.owner&&x.owner===sid).length, done=cnt('Done')+cnt('Checked');
+  const pct=bills.length?Math.round(done/bills.length*100):0;
+  return `<div class="card bq-team"><div class="bd"><div class="toolbar"><b>Team progress</b><span class="sub">${done} of ${bills.length} bills done · ${pct}%</span><div class="sp"></div>
+    ${on.length?`<span class="bq-on">${on.map(x=>`<span class="chip blue" title="${esc(x.name)}">● ${esc(String(x.name||'').split(' ')[0])}${x.bill?' · Bill '+(bills.findIndex(q=>q.id===x.bill)+1):''}</span>`).join('')}</span>`:'<span class="sub">Only you are here now</span>'}
+    <button class="btn sm" data-bqt="mine" aria-pressed="${!!UI.bqmine}">${UI.bqmine?'Show all bills':'My bills only'+(mine?` (${mine})`:'')}</button>${canWrite?'<button class="btn sm" data-bqt="share">Share out bills</button>':''}</div>
+    <div class="bar" style="margin-top:8px"><i style="width:${pct}%"></i></div>
+    <div class="toolbar small" style="margin-top:6px;gap:6px;flex-wrap:wrap">${BQ_ST.map(s=>`<span class="chip ${BQ_STC[s]}">${s} ${cnt(s)}</span>`).join('')}</div></div></div>`; }
+function bqBillTools(b,bl,bi){ const id=bqId(bl,bi), st=bl.status||'To do', notes=(S.boqnotes||[]).filter(n=>n.boq===b.id&&n.bill===id).length, lk=bqLive(b.id).find(x=>x.bill===id);
+  return `<select class="inp bq-own" data-bqown="${bi}" aria-label="Assigned to" title="Who prepares this bill"><option value="">— unassigned —</option>${bqQSs().map(s=>`<option value="${esc(s.id)}" ${s.id===bl.owner?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+    <select class="inp bq-st" data-bqst="${bi}" aria-label="Status">${BQ_ST.map(s=>`<option ${s===st?'selected':''}>${s}</option>`).join('')}</select>
+    <button class="btn sm" data-bqt="notes:${bi}" title="Questions and notes for this bill">💬${notes?' '+notes:''}</button>${lk?`<span class="chip amb" title="Saved changes merge safely, but agree who edits">✎ ${esc(String(lk.name||'').split(' ')[0])} is editing</span>`:''}`; }
+const bqLocked=(b,bl,bi)=>{ const id=bqId(bl,bi); return !!bqLive(b.id).find(x=>x.bill===id)&&!(UI.bqforce||{})[b.id+id]; };
+const bqHidden=(bl)=>UI.bqmine&&bl.owner!==myStaffId();
+/* actions */
+async function bqSetBill(bi,fn){ const b=curBoq(); if(!b||!b.bills[bi]) return; fn(b.bills[bi]); await patch('boqs',b.id,{bills:b.bills}); }
+document.addEventListener('change',async e=>{ const el=e.target; if(route!=='qs'||!routeArg) return;
+  if(el.dataset&&el.dataset.bqown!==undefined){ const bi=+el.dataset.bqown; await bqSetBill(bi,bl=>{ bl.owner=el.value; if(el.value&&(bl.status||'To do')==='To do') bl.status='To do'; }); const s=byId('staff',el.value); if(s) logAct(`Assigned BoQ bill to ${s.name}`); return; }
+  if(el.dataset&&el.dataset.bqst!==undefined){ const bi=+el.dataset.bqst; await bqSetBill(bi,bl=>{ bl.status=el.value; if(el.value==='Checked'){ bl.checked_by=me.name||''; bl.checked_at=today(); } }); return; }
+});
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bqt]'); if(!el||route!=='qs'||!routeArg) return; const [a,x]=el.dataset.bqt.split(':'); const b=byId('boqs',routeArg); if(!b) return;
+  if(a==='mine'){ UI.bqmine=!UI.bqmine; return renderView(true); }
+  if(a==='force'){ UI.bqforce=UI.bqforce||{}; UI.bqforce[b.id+x]=1; return renderView(true); }
+  if(a==='share'){ const Q=bqQSs(); const un=bqWithIds(b.bills).filter(x=>!x.owner); if(!un.length) return toast('Every bill already has someone assigned.');
+    return formDrawer('Share out bills',[{k:'who',label:`Share the ${un.length} unassigned bill${un.length>1?'s':''} between`,type:'checks',req:1,options:Q.map(s=>[s.id,s.name+(s.position?' – '+s.position:'')])}],{who:Q.filter(s=>/qs|quantity|survey/i.test(s.position||'')).map(s=>s.id)},async v=>{
+      const c=curBoq(); let k=0; c.bills.forEach(bl=>{ if(!bl.owner){ bl.owner=v.who[k%v.who.length]; k++; bl.status=bl.status||'To do'; } }); await patch('boqs',c.id,{bills:c.bills}); logAct(`Shared out ${k} BoQ bills in "${c.title}"`); toast(`${k} bills shared between ${v.who.length} people.`); return true; },{saveLabel:'Share out'}); }
+  if(a==='notes'){ const bi=+x, bl=bqWithIds(b.bills)[bi]; if(!bl) return; openDrawer('bqnotes',b.id,{bill:bl.id,bi}); return; }
+  if(a==='addnote'){ const t=$('#bqNote')?.value.trim(); if(!t) return; const d=drawer; await put('boqnotes',null,{boq:d.id,bill:d.bill,text:t,by:me.name||'',by_uid:me.id||'',at:new Date().toISOString()}); const i=$('#bqNote'); if(i) i.value=''; return; }
+});
+function bqNotesDrawer(){ const b=byId('boqs',drawer.id); if(!b) return ''; const bl=bqWithIds(b.bills).find(x=>x.id===drawer.bill)||{name:'Bill'}; const N=(S.boqnotes||[]).filter(n=>n.boq===b.id&&n.bill===drawer.bill).sort((x,y)=>String(x.at).localeCompare(String(y.at)));
+  return drawerShell(`Notes – ${bl.name||'Bill'}`,esc(b.title),`<div class="bq-notes">${N.map(n=>`<div class="bq-n ${n.by_uid===me.id?'me':''}"><b>${esc(n.by||'')}</b><span class="sub">${fmtDT(n.at)}</span><p>${esc(n.text)}</p></div>`).join('')||'<p class="sub">No notes yet. Ask a question about measurement, drawings or rates – the team sees it here.</p>'}</div>
+    <textarea class="inp" id="bqNote" placeholder="e.g. Which slab thickness for Block B – 150 or 200 mm?" style="margin-top:10px"></textarea>`,`<button class="btn pri" data-bqt="addnote">Send</button><button class="btn" data-act="close">Close</button>`); }
+/* alerts: bills assigned to me, new notes on my bills */
+function bqAlerts(A){ const sid=myStaffId(); if(!sid) return;
+  for(const b of S.boqs||[]){ const bills=bqWithIds(b.bills), mine=bills.filter(x=>x.owner===sid&&!['Done','Checked'].includes(x.status||'To do'));
+    if(mine.length) A.push({lvl:'blue',kind:'BoQ bills for you',text:`${b.title}: ${mine.length} bill${mine.length>1?'s':''} to prepare`,sub:mine.slice(0,3).map(x=>x.name).join(', '),go:['route','qs'],sort:24,at:b.updated_at});
+    const ids=new Set(bills.filter(x=>x.owner===sid).map(x=>x.id));
+    (S.boqnotes||[]).filter(n=>n.boq===b.id&&ids.has(n.bill)&&n.by_uid!==me.id&&Date.now()-Date.parse(n.at||0)<3*864e5).forEach(n=>A.push({lvl:'blue',kind:'BoQ note',text:`${n.by}: ${String(n.text).slice(0,90)}`,sub:b.title,go:['route','qs'],sort:23,at:n.at})); } }
+
 const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
@@ -4091,6 +4163,7 @@ function renderDrawer(){
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?`<div style="flex:1"></div><button class="btn danger" data-act="delForm">${esc(drawer.delLabel||'Delete')}</button>`:''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
   else if(t==='p5val'){ const x=byId('valuations',drawer.id); if(!x) return closeDrawer(); html=valDrawer(x); }
+  else if(t==='bqnotes'){ html=bqNotesDrawer(); if(!html) return closeDrawer(); }
   else if(t==='hse'){ html=hseDrawer(); if(!html) return closeDrawer(); }
   else if(t==='hseinsp'){ html=hseInspForm(); drawer.form=true; }
   else if(t==='p5po'){ const x=byId('po',drawer.id); if(!x) return closeDrawer(); html=poDrawer(x); }
@@ -4109,7 +4182,7 @@ let rq=false;
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); renderMe(); annMaybePop(); }); }
 function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
-function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=structuredClone(byId('boqs',routeArg)); return b; }
+function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=bqClone(routeArg); return b; }
 /* ===================== DEPARTMENTS (v80) ===================== */
 // Each department has its own staff, a Head and a Deputy (the department's administrators), a mandate,
 // objectives, a notice board, department tasks and quick links. Administrators manage everything;
@@ -6881,7 +6954,7 @@ document.addEventListener('input', e=>{
   if(el.id==='staffq'){ UI.staffq=el.value; renderView(true); return; }
   if(el.id==='rq'){ UI.rq=el.value; renderView(true); return; }
   if(route==='qs'&&routeArg&&(el.dataset.it||el.dataset.bill!==undefined||el.dataset.bq)){
-    const b=boqDraft&&boqDraft.id===routeArg?boqDraft:structuredClone(byId('boqs',routeArg));
+    const b=boqDraft&&boqDraft.id===routeArg?boqDraft:bqClone(routeArg);
     if(el.dataset.bq) b[el.dataset.bq]=el.type==='number'?(el.value===''?'':+el.value):el.value;
     if(el.dataset.bill!==undefined) b.bills[+el.dataset.bill].name=el.value;
     if(el.dataset.it){ const [bi,ii,k]=el.dataset.it.split('.'); b.bills[+bi].items[+ii][k]=(k==='qty'||k==='rate')?(el.value===''?'':+el.value):el.value; if(k==='rate'){ const it2=b.bills[+bi].items[+ii]; it2.p=el.value===''?null:{s:'man',by:me.name||'',at:today()}; const sc=$('#src_'+bi+'_'+ii); if(sc) sc.innerHTML=bqSrcChip(it2); } const it=b.bills[+bi].items[+ii]; const c=$(`#amt_${bi}_${ii}`); if(c) c.textContent=((+it.qty||0)*(+it.rate||0)).toLocaleString('en-US'); }
