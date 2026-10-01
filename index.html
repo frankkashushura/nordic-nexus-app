@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=113"></script>
+<script src="config.js?v=114"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=113"></script>
-<script src="nexus-chat.js?v=113"></script>
+<script src="nexus-sb.js?v=114"></script>
+<script src="nexus-chat.js?v=114"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -565,6 +565,31 @@ th{font-size:11.5px}
 @media (max-width:900px){.about-cols{grid-template-columns:1fr}}
 .about-foot{margin:6px 2px 0;font-size:12.5px;color:var(--muted)}
 @media (max-width:700px){body{font-size:15px}.kv{font-size:14px}.top .ttl .label{display:none!important}.top .ttl{min-width:0;flex:1}.top .ttl{overflow:hidden}.top .ttl h1{font-size:15px;letter-spacing:0;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip;word-break:normal;overflow-wrap:anywhere}.top .iconbtn{width:32px;height:32px;flex:none}.top{gap:5px!important}.top>.sp{display:none}}
+/* v114 About page */
+.blueprint.about-hero{display:flex;flex-direction:row;align-items:center;gap:20px}
+.about-hero>div{flex:1;min-width:0}
+.about-hero img{height:64px;flex:none}
+@media (max-width:640px){.blueprint.about-hero{flex-direction:column;align-items:flex-start;gap:12px}.about-hero img{height:52px}}
+.about-hero h2{font-size:28px;margin:0;letter-spacing:.02em}
+.about-hero .ab-cls{margin-top:6px;font-size:13.5px;opacity:.75}
+.about-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+.about-grid>.card{display:flex;flex-direction:column}
+@media (max-width:1000px){.about-grid{grid-template-columns:1fr 1fr}.about-grid>.card:last-child{grid-column:1/-1}}
+@media (max-width:640px){.about-grid{grid-template-columns:1fr}}
+.ab-list{display:flex;flex-direction:column;gap:2px;padding-top:6px!important;padding-bottom:6px!important}
+.ab-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ab-row:last-child{border-bottom:0}
+.ab-ico{width:38px;height:38px;flex:none;display:grid;place-items:center;font-size:20px;border-radius:10px;background:var(--panel2)}
+.ab-ico .av{width:38px;height:38px;margin:0}
+.ab-row .sub .btn{margin-top:4px}
+.ab-kv{display:flex;flex-direction:column;gap:10px}
+.ab-kv>div{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.ab-kv a{color:inherit}
+.ab-co{display:grid;grid-template-columns:1fr 1.3fr;gap:24px}
+.ab-co p{margin:4px 0 0}
+.ab-vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ab-vals .chip{font-size:13px;padding:4px 10px}
+@media (max-width:700px){.ab-co{grid-template-columns:1fr;gap:14px}}
 </style>
 
 <div class="app" id="app">
@@ -1238,7 +1263,7 @@ function pageAlerts(){
         <li><b>When:</b> NEXUS checks every 10 minutes, 06:00–23:00. The cloud scanner feeds it new tenders every 5–15 minutes.</li>
         <li><b>Stop someone:</b> set Email alerts = No, alert type None, or status Left.</li></ul>
         ${(()=>{ const em=S.sync&&S.sync.email||{}; const last=S.sync&&S.sync.last_sync; const line=em.configured===false?'<span class="chip bad">Gmail password missing</span>':(em.sent||[]).length?`<span class="chip good">Last emails: ${em.sent.length} sent</span>`:'<span class="chip good">Ready</span>'; return `<div class="toolbar" style="margin-top:10px">${line}<span class="sub">Last check ${last?esc(fmtDT(last)):'—'} · ${recipList().filter(x=>x.email&&x.n_email!=='No'&&x.alert_types!=='None').length} people on the list</span>${isAdmin?'<div class="sp"></div><button class="btn sm" data-act="testEmail">Send test email</button>':''}</div>${(em.failed||[]).length?`<p class="sub" style="color:var(--bad)">Not delivered: ${esc(em.failed.join('; '))}</p>`:''}`; })()}
-        <p class="muted" style="margin-top:8px">SMS and WhatsApp can be added later (Beem Africa / Meta WhatsApp Business). Passwords and keys stay in Supabase and GitHub secrets – never in NEXUS pages.</p></div></div>
+        </div></div>
     </div>
   </div>
   <div class="card"><div class="hd"><h2>Who gets what</h2><div class="sp"></div><button class="btn sm" data-go="staff">Edit on Staff page</button></div><div class="tbl-wrap"><table>
@@ -2049,7 +2074,7 @@ function poTab(){
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>Item</th><th class="hide-m">Project</th><th class="hide-m">Supplier</th><th class="r">Value</th><th class="hide-m">Due</th><th>Status</th></tr></thead><tbody>
   ${rows.map(o=>{ const pc=poPct(o); return `<tr class="click" data-p5="open:${esc(o.id)}" style="cursor:pointer"><td class="mono small">${esc(o.po_no||o.rfq_no||'')}<div class="sub">${esc(o.pr_no||'')}</div></td><td><div class="ttl2">${esc(o.item||'')}</div><div class="sub">${o.status==='RFQ'?`${(o.quotes||[]).length} quote${(o.quotes||[]).length===1?'':'s'} of ${(o.invited||[]).length} asked`:esc(poLines(o).length+' line'+(poLines(o).length>1?'s':''))}</div></td><td class="hide-m small">${esc(o.project_id?projName(o.project_id):'Office')}</td><td class="hide-m small">${esc(o.supplier||'—')}</td><td class="r num">${o.po_no?tzsShort(poTotal(o)):poQuoteMin(o)?'<span class="sub">from </span>'+tzsShort(poQuoteMin(o)):'—'}</td><td class="hide-m small">${fmtD(o.po_no?o.delivery_date:o.due)}</td><td>${poStChip(o)}${o.po_no&&o.status!=='Cancelled'?`<div class="bar" style="margin-top:4px;min-width:70px"><i style="width:${pc}%;background:${pc>=100?'var(--good)':'var(--blue,#2F6FB5)'}"></i></div>`:''}</td></tr>`; }).join('')||`<tr><td colspan="7"><div class="empty">${f==='open'?'No open RFQs or orders. Approved purchase requests get a “Get quotes” button.':'Nothing here.'}</div></td></tr>`}
   </tbody></table></div></div>
-  <p class="sub">Flow: purchase request approved → <b>Get quotes</b> (RFQ to suppliers by e-mail or printed) → record quotes and choose → <b>Issue PO</b> (Word on the official letterhead) → site records each <b>delivery (GRN)</b>. The purchase request moves to Ordered / Delivered automatically.</p>`;
+  `;
 }
 
 /* ---------- drawer ---------- */
@@ -2357,7 +2382,7 @@ function pageStaff(){
   <div class="staffgrid">${list.map(s=>`<div class="card staff" ${s.status==='Left'?'style="opacity:.6"':s._login?'style="border-style:dashed"':''}><div class="toolbar"><div class="ph">${(r=>r?photoTag(r):esc(initials(s.name)))(staffPhotoRef(s))}</div><div style="min-width:0;flex:1"><div class="ttl2">${esc(s.name)}</div><div class="small">${esc(s.position||'')}</div><div class="sub">${s.department?`<a data-open="dept:${esc(s.department)}" style="cursor:pointer">${esc(s.department)}</a>`:''}</div></div></div>
     <div class="small">${s.email?`<div>${esc(s.email)}</div>`:''}${s.phone?`<div class="mono">${esc(s.phone)}</div>`:''}<div class="sub">${esc(s.station||'')}${s.status&&s.status!=='Active'?' · '+esc(s.status):''}</div></div>
     ${s._login?`<div class="toolbar">${isMyStaff(s)?'<button class="btn sm pri" data-act="myDetails">Add my details</button><button class="btn sm" data-act="myPhoto">My photo</button>':''}${isAdmin?`<button class="btn sm" data-mkstaff="${esc(s.uid)}">Create staff card</button>`:''}</div>`:isAdmin?`<div class="toolbar"><button class="btn sm" data-editstaff="${esc(s.id)}">Edit</button><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-staffphoto="${esc(s.id)}" hidden></label><div class="sp"></div><button class="btn sm danger" data-delstaff="${esc(s.id)}">Remove</button></div>`:isMyStaff(s)?'<div class="toolbar"><button class="btn sm" data-act="myDetails">Edit my details</button><button class="btn sm" data-act="myPhoto">My photo</button></div>':''}</div>`).join('')}</div>
-  ${!isAdmin?'<p class="sub">Only administrators can add or remove staff. You can edit your own details and photo.</p>':''}`;
+  ${!isAdmin?'':''}`;
 }
 
 /* ===================== PHASE 5 · HR BASICS (v110): leave, who's away, contracts & probation =====================
@@ -2399,7 +2424,7 @@ function pageHR(){
     <div class="card kpi"><span class="label">Other leave ${y}</span><span class="v num">${other.reduce((a,x)=>a+x[1],0)}</span><span class="s">${other.map(x=>esc(x[0].replace(' leave',''))+' '+x[1]).join(' · ')||'none'}</span></div></div>
   <div class="card"><div class="hd"><h2>My requests</h2></div><div class="tbl-wrap"><table><thead><tr><th>Leave</th><th>Dates</th><th class="r">Days</th><th>Status</th><th></th></tr></thead><tbody>
   ${mine.map(l=>`<tr><td class="ttl2">${esc((LEAVE_TYPES.find(x=>x[0]===l.type)||[0,l.type])[1])}${l.cover?`<div class="sub">Cover: ${esc(staffName(l.cover))}</div>`:''}</td><td class="small">${fmtD(l.from)} – ${fmtD(l.to)}</td><td class="r num">${esc(l.days)}</td><td>${lvChip(l.status)}${l.decided_by?`<div class="sub">${esc(l.decided_by)}${l.decision_note?': '+esc(l.decision_note):''}</div>`:''}</td><td>${['Pending','Approved'].includes(l.status)&&l.to>=today()?`<button class="btn sm" data-hr="cancel:${esc(l.id)}">Cancel</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No leave requested yet.</div></td></tr>'}
-  </tbody></table></div></div><p class="sub">Your Head or Deputy of department approves your leave (the MD for Management). Only you, your department heads, administrators and Finance see the type and reason; colleagues see only that you are away.</p>`;
+  </tbody></table></div></div>`;
 }
 function hrApprove(){ const P=lvToDecide().sort((a,b)=>String(a.from).localeCompare(String(b.from))), D=lvList().filter(l=>l.status!=='Pending'&&(isAdmin||isDeptAdmin(lvDeptOf(l)))&&l.by_uid!==me.id).sort((a,b)=>String(b.decided_at||b.from).localeCompare(String(a.decided_at||a.from))).slice(0,30);
   const row=(l,act)=>{ const b=lvBalance(l.staff_id), clash=awayList().filter(a=>a.id!==l.id&&lcN(a.dept)===lcN(l.dept)&&a.from<=l.to&&a.to>=l.from);
@@ -2415,7 +2440,7 @@ function hrRecords(){ const soon=hrSoon(), L=[...S.staff].filter(s=>s.status!=='
   return `${soon.length?`<div class="banner warn"><div><b>Coming up:</b> ${soon.map(x=>`${esc(x.s.name)} – ${x.kind.toLowerCase()} ${fmtD(x.date)}${x.d<0?' (passed)':''}`).join(' · ')}</div></div>`:''}
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Staff</th><th>Contract</th><th class="hide-m">Started</th><th>Contract ends</th><th class="hide-m">Probation ends</th><th class="r">Leave ${new Date().getFullYear()}</th><th></th></tr></thead><tbody>
   ${L.map(s=>{ const r=hrRec(s.id), b=lvBalance(s.id), ce=r.contract_end?daysLeft(r.contract_end+'T23:59'):null; return `<tr><td class="ttl2">${esc(s.name)}<div class="sub">${esc(s.position||'')}${s.department?' · '+esc(s.department):''}</div></td><td class="small">${esc(r.contract_type||'—')}</td><td class="hide-m small">${fmtD(r.start)}</td><td class="small">${r.contract_end?`<span class="chip ${ce<0?'bad':ce<=30?'bad':ce<=60?'amb':''}">${fmtD(r.contract_end)}</span>`:'—'}</td><td class="hide-m small">${r.probation_end?fmtD(r.probation_end):'—'}</td><td class="r num">${b.used}/${b.ent}</td><td>${isAdmin?`<button class="btn sm" data-hr="rec:${esc(s.id)}">Edit</button>`:''}</td></tr>`; }).join('')}
-  </tbody></table></div></div><p class="sub">Visible to administrators and Finance only. NEXUS alerts administrators 60, 30 and 7 days before a contract ends and 14 days before probation ends.</p>`; }
+  </tbody></table></div></div>`; }
 
 document.addEventListener('click',async e=>{ const el=e.target.closest('[data-hr]'); if(!el) return; const [a,id]=el.dataset.hr.split(':');
   if(a==='tab'){ UI.hrt=id; return renderView(true); }
@@ -2510,7 +2535,7 @@ function pageRecords(){
   if(!fk){ return head+`<div class="grid g3">${REC_FOLDERS.map(f=>{ const n=all.filter(r=>r.folder===f.k).length+(f.k==='legal'?compLegacy().length:0);
       const ex=all.filter(r=>r.folder===f.k&&recExp(r)&&daysLeft(recExp(r)+'T23:59')<=60).length+(f.k==='legal'?compLegacy().filter(c=>{const d=daysLeft(c.expiry);return d!=null&&d<=45;}).length:0);
       return `<button class="tile" data-rfolder="${f.k}" style="grid-template-columns:auto 1fr"><span class="ti" style="font-size:20px">${f.i}</span><span class="tt">${esc(f.t)} <span class="num" style="font-size:14px;color:var(--muted)">${n}</span></span><span class="ts">${esc(f.d)}${ex?` · <b style="color:var(--bad)">${ex} expiring</b>`:''}${f.lvl!=='all'?' · '+(f.lvl==='admin'?'🔐':'🔒'):''}</span></button>`; }).join('')}</div>
-    <p class="sub">🔒 Each record has an access level; files open through secure links.</p>`; }
+    `; }
   const f=recFolder(fk), list=all.filter(r=>r.folder===fk).sort((a,b)=>(b.date||b.created_at||'').localeCompare(a.date||a.created_at||''));
   const comp=fk==='legal'&&compLegacy().length?`<div class="card"><div class="hd"><h2>Not yet moved</h2><span class="sub">old compliance list</span></div>${pageDocsTable()}</div>`:'';
   return head+`<div class="toolbar"><button class="btn" data-rfolder="">← All folders</button><h2 style="font-size:19px">${f.i} ${esc(f.t)}</h2><span class="sub">${list.length} record${list.length===1?'':'s'}</span></div>`+comp+recRows(list);
@@ -2564,7 +2589,7 @@ function recDrawer(r){
     <div class="card"><div class="hd"><h2>Files & versions</h2><div class="sp"></div><label class="btn sm pri" style="cursor:pointer">Upload ${files.length?'new version':'file'}<input type="file" id="recUp" hidden></label></div>
       <div class="list">${files.length?[...files].reverse().map((x,i)=>`<div class="li"><div class="grow"><div class="ttl2">${i===0?'<span class="chip good">Current</span> ':''}v${x.v||files.length-i} · ${esc(x.name||'file')}</div><div class="sub">${fmtDT(x.at)} · ${esc(x.by||'')} · ${x.size?(x.size>=1048576?(x.size/1048576).toFixed(1)+' MB':Math.max(1,Math.round(x.size/1024))+' KB'):''}</div></div><button class="btn sm" data-recopen="${esc(x.path)}" data-recv="${x.v||''}">Open</button><button class="btn sm" data-recdl="${esc(x.path)}" data-recv="${x.v||''}">Download</button></div>`).join(''):'<div class="empty">No file attached yet.</div>'}</div></div>
     ${r.folder==='contracts'?aiCard:''}
-    ${(isAdmin||isFin)?`<div class="card"><div class="hd"><h2>Who opened it</h2><div class="sp"></div><button class="btn sm" data-act="recLog">Show history</button></div><div id="recLogBox" class="bd small muted">Every add, edit, new version, open and download is recorded.</div></div>`:''}`;
+    ${(isAdmin||isFin)?`<div class="card"><div class="hd"><h2>Who opened it</h2><div class="sp"></div><button class="btn sm" data-act="recLog">Show history</button></div><div id="recLogBox" class="bd small muted"></div></div>`:''}`;
   return drawerShell(r.title||'Record', `${f.i} ${f.t}${r.ref?' · '+r.ref:''}`, body, `<button class="btn" data-act="recEdit">Edit</button>${isAdmin?'<div class="sp"></div>':''}`);
 }
 async function recOpenFile(path, v, dl){ const r=byId('records',drawer?.id); if(!window.NX_REC){ toast('Files open in the NEXUS app (online).'); return; }
@@ -2599,7 +2624,7 @@ async function recAiFill(){ const r=byId('records',drawer?.id), a=r&&r.ai; if(!a
   if(!Object.keys(up).length){ toast('Nothing new to copy – the record already has these details.'); return; }
   await patch('records',r.id,up); toast('Copied: '+Object.keys(up).join(', ')+'.'); }
 function projectDocsTab(p){ const list=(S.records||[]).filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  return `<div class="toolbar"><span class="muted">Contracts, letters, guarantees and other records linked to this project (only those you are allowed to see).</span><div class="sp"></div><button class="btn" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn pri" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>`+recRows(list); }
+  return `<div class="toolbar"><div class="sp"></div><button class="btn" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn pri" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>`+recRows(list); }
 function recAlerts(A){ const sid=myStaffId(), pmOf=pid=>{ const p=byId('projects',pid); return !!(p&&sid&&p.manager===sid); }, mine=r=>isAdmin||(sid&&r.owner===sid)||(recIsPG(r)&&(isFinR()||pmOf(r.project_id)));
   (S.records||[]).forEach(r=>{ if(!mine(r)) return; const e=recExp(r);
     if(e&&recIsPG(r)){ const d=daysLeft(e+'T23:59'); if(d!=null&&d<=40&&d>-30){ const st=d<=7?7:d<=14?14:d<=30?30:40; A.push({lvl:d<=14?'bad':'warn', kind:'Performance guarantee', text:`${r.title} ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${r.project_id?projName(r.project_id)+' · ':''}${r.ref?r.ref+' · ':''}${r.party?r.party+' · ':''}${fmtD(e)} – arrange extension with the bank`, go:['rec',r.id], sort:d<=14?2:9, at:new Date(Date.parse(e+'T07:00:00+03:00')-st*864e5).toISOString(), nk:'recpg|'+r.id+'|'+e+'|'+st}); } return; }
@@ -2621,7 +2646,7 @@ function pageSettings(){
   return `<div class="toolbar"><div class="seg" role="group" aria-label="Section">${[['company','Company'],['security','Security & backup'],['activity','Activity'],['appearance','Appearance']].map(([k,l])=>`<button data-stab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div></div>
   <div class="grid g2 stabs">
   <div class="card" ${hid('company')} style="grid-column:1/-1"><div class="hd"><img alt="" src="${LOGO}" style="height:28px"><h2>Company profile</h2><div class="sp"></div>${isAdmin?'<button class="btn dark sm" data-act="saveCompany">Save</button>':''}</div><div class="bd">
-    <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'<p class="sub" style="margin-top:8px">Only administrators can change company details.</p>':''}</div></div>
+    <div class="form">${CO_FIELDS.map(f=>field(f,c[f.k])).join('')}</div>${!isAdmin?'':''}</div></div>
   <div class="card" ${hid('security')}><div class="hd"><h2>Security</h2><span class="chip good">Protected</span></div><div class="bd small"><ul class="clean">
       <li><b>Sign-in required.</b> Every person has their own NEXUS login. Staff sign up from the sign-in page; an administrator approves each sign-up and chooses the role before they see anything.</li>
       <li><b>Roles.</b> Staff file site reports, tasks, tenders and purchase requests. Finance users also see the ledger. Procurement Officers also approve purchase requests (not their own) and manage suppliers. Administrators also manage logins, staff, company details and approvals. Viewers can only read.</li>
@@ -2637,24 +2662,26 @@ function pageSettings(){
 
 /* ===================== ABOUT ===================== */
 function pageAbout(){
-  const c=company();
-
-  return `<section class="blueprint"><div class="about-hero"><img alt="Nordic Construction logo" src="${LOGO}"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span></div></div>
-    <p class="muted">Built for ${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</p></section>
-  <div class="card"><div class="hd"><h2>Install NEXUS as an app</h2><span class="chip good">Free · no store needed</span></div><div class="bd grid g3 small">
-    <div><div class="label">Android</div><p><a href="downloads/NORDIC-NEXUS.apk" download><b>Download the NEXUS app (APK)</b></a>, open it and tap <b>Install</b> (allow “install unknown apps” for your browser if asked). Or in Chrome: <b>⋮</b> → <b>Add to Home screen</b>.</p></div>
-    <div><div class="label">iPhone · Safari</div><p>Open the link, tap <b>Share</b> → <b>Add to Home Screen</b> → <b>Add</b>.</p></div>
-    <div><div class="label">Windows</div><p><a href="downloads/NORDIC-NEXUS-Setup.exe" download><b>Download NEXUS Setup</b></a> and run it: NEXUS gets its own icon on the Desktop and Start menu. If Windows shows “Windows protected your PC”, click <b>More info</b> → <b>Run anyway</b>.</p></div>
-  </div><div class="bd small muted" style="padding-top:0">Each person has their own NEXUS login: tap <b>Sign up</b> on the sign-in screen and an administrator approves you. The apps always open the latest NEXUS, so there is nothing to update.</div></div>
-  <div class="about-cols">
-      <div class="card"><div class="hd"><h2>Developers</h2></div><div class="list">
-        <div class="li"><div class="av">EF</div><div class="grow"><div class="ttl2">Engineer Frank</div><div class="sub">System design & development</div></div></div>
-        <div class="li"><div class="av">EM</div><div class="grow"><div class="ttl2">Engineer Michael</div><div class="sub">System design & development</div></div></div></div></div>
-      <div class="card"><div class="hd"><h2>Company</h2></div><div class="bd small"><dl class="kv">
-        <dt>Head office</dt><dd>${esc(c.address)}<br>${esc(c.pobox)}</dd><dt>Phone</dt><dd>${esc(c.phone)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Web</dt><dd>${esc(c.web)}</dd><dt>Branch</dt><dd>${esc(c.branch)}</dd>
-        <dt>Vision</dt><dd>${esc(c.vision)}</dd><dt>Core values</dt><dd>${esc(c.values)}</dd></dl></div></div>
+  const c=company(), vals=String(c.values||'').split(/\s*·\s*|\s*,\s*/).filter(Boolean);
+  const row=(ico,t,body)=>`<div class="ab-row"><span class="ab-ico">${ico}</span><div class="grow"><div class="ttl2">${t}</div><div class="sub">${body}</div></div></div>`;
+  return `<section class="blueprint about-hero"><img alt="Nordic Construction logo" src="${LOGO}"><div><h2>NORDIC NEXUS</h2><span class="muted">One system for tenders, projects, sites, money and people</span><div class="ab-cls">${esc(c.name)} · ${esc(c.crb_building)} · ${esc(c.crb_civil)}</div></div></section>
+  <div class="about-grid">
+    <div class="card"><div class="hd"><h2>Get the app</h2></div><div class="bd ab-list">
+      ${row('🤖','Android',`<a class="btn sm pri" href="downloads/NORDIC-NEXUS.apk" download>Download APK</a>`)}
+      ${row('💻','Windows',`<a class="btn sm pri" href="downloads/NORDIC-NEXUS-Setup.exe" download>Download Setup</a>`)}
+      ${row('📱','iPhone','Safari → Share → Add to Home Screen')}</div></div>
+    <div class="card"><div class="hd"><h2>Developers</h2></div><div class="bd ab-list">
+      ${row('<span class="av">EF</span>','Engineer Frank','System design & development')}
+      ${row('<span class="av">EM</span>','Engineer Michael','System design & development')}
+      ${row('🛠️','NEXUS',`Version ${esc(String((document.querySelector('script[src*="nexus-sb.js"]')?.src.match(/v=(\d+)/)||[])[1]||''))} · web, Android & Windows`)}</div></div>
+    <div class="card"><div class="hd"><h2>Contact</h2></div><div class="bd ab-kv">
+      <div><span class="label">Phone</span><a href="tel:${esc(String(c.phone||'').replace(/\s+/g,''))}">${esc(c.phone)}</a></div>
+      <div><span class="label">Email</span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>
+      <div><span class="label">Web</span>${esc(c.web)}</div>
+      <div><span class="label">Head office</span>${esc(c.address)}, ${esc(c.pobox)}</div>
+      <div><span class="label">Branch</span>${esc(c.branch)}</div></div></div>
   </div>
-  <p class="about-foot">Page background photos: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> (free licence) – photographers listed in img/bg/sources.txt.</p>`;
+  <div class="card"><div class="hd"><h2>Our company</h2></div><div class="bd ab-co"><div><span class="label">Vision</span><p>${esc(c.vision)}</p></div><div><span class="label">Core values</span><div class="ab-vals">${vals.map(v=>`<span class="chip">${esc(v)}</span>`).join('')}</div></div></div></div>`;
 }
 
 /* ===================== ASK NEXUS ===================== */
@@ -2846,7 +2873,7 @@ function checklistHtml(t){
     <div class="bd"><div class="bar" style="margin-bottom:10px"><i id="ckBar" style="width:${s.pct}%"></i></div>
     <div style="display:flex;flex-direction:column;gap:6px">${BID_CHECK.map(([k,l,tag])=>{const cs=tag?complianceFor(tag,t.deadline):null;
       return `<label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="ck_${k}" ${c[k]?'checked':''} style="margin-top:3px"><span>${esc(l)}${cs?` <span class="chip ${cs.cls}">${esc(cs.text)}</span>`:''}</span></label>`}).join('')}</div>
-    <p class="sub" style="margin-top:10px">Ticks save automatically. Certificate dates come from the Compliance page.</p></div></div>`;
+    </div></div>`;
 }
 const OUTCOME_FIELDS=[
   {k:'our_price',label:'Our bid price (TZS)',type:'number'},{k:'opening_date',label:'Bid opening date',type:'date'},
@@ -2886,7 +2913,7 @@ function tenderCalendar(){
   return `<div class="card"><div class="hd"><h2>Next 45 days</h2><span class="sub">Submissions, site visits, clarification deadlines and openings</span></div><div class="list">
   ${Object.entries(days).map(([k,list])=>`<div class="li"><div style="min-width:88px"><div class="label">${esc(new Date(k).toLocaleDateString('en-GB',{weekday:'short'}))}</div><div class="num" style="font-size:18px;font-weight:600">${esc(new Date(k).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}))}</div></div>
     <div class="grow" style="display:flex;flex-direction:column;gap:6px">${list.map(e=>`<div style="cursor:pointer" data-open="tender:${esc(e.t.id)}"><span class="chip ${e.cls}">${e.kind}</span> <b>${esc(e.t.title)}</b> <span class="sub">${esc(e.t.client||'')}${e.kind==='Submission'?' · '+esc(e.d.toTimeString().slice(0,5)):''}${e.kind==='Submission'&&e.t.checklist?' · checklist '+checklistState(e.t).done+'/'+BID_CHECK.length:''}</span></div>`).join('')}</div></div>`).join('')||'<div class="empty">Nothing in the next 45 days.</div>'}
-  </div></div><p class="sub">Site visit and clarification dates appear here once they are entered as dates in a tender's Tracking section.</p>`;
+  </div></div>`;
 }
 
 /* ===================== PAYMENT CERTIFICATES ===================== */
@@ -2930,7 +2957,7 @@ function pageCerts(){
   ${byProj.length?`<div class="card"><div class="hd"><h2>By project</h2></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="r">Contract sum</th><th class="r">Work certified to date</th><th>% of contract</th><th class="r">Retention held</th><th class="r">Received</th></tr></thead><tbody>
     ${byProj.map(r=>`<tr><td class="ttl2">${esc(r.p.name)}<div class="sub">${r.n} certificate${r.n===1?'':'s'}</div></td><td class="r num">${r.p.contract_sum?tzsShort(r.p.contract_sum):'—'}</td><td class="r num">${r.gross?tzsShort(r.gross):'—'}</td><td style="min-width:120px">${r.pct!=null?`<div class="bar"><i style="width:${Math.min(100,r.pct)}%"></i></div><span class="sub num">${r.pct.toFixed(0)}%${r.p.progress?' · site progress '+r.p.progress+'%':''}</span>`:'<span class="sub">add contract sum</span>'}</td><td class="r num">${tzsShort(r.ret)}</td><td class="r num">${tzsShort(r.paid)}</td></tr>`).join('')}
   </tbody></table></div></div>`:''}
-  <div class="toolbar"><span class="muted">Payment period defaults to 28 days after certification; change it per certificate to match the contract.</span><div class="sp"></div><button class="btn pri" data-act="addCert">New certificate</button></div>
+  <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addCert">New certificate</button></div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Certificate</th><th>Project</th><th class="r">Net amount</th><th>Status</th><th class="hide-m">Submitted</th><th class="hide-m">Certified</th><th></th></tr></thead><tbody>
   ${cs.map(c=>{const st=certState(c);return `<tr class="click" data-editcert="${esc(c.id)}"><td class="ttl2 mono">${esc(c.no)}</td><td>${esc(projName(c.project_id))}</td><td class="r num">${tzs(c.amount).replace('TZS ','')}</td><td><span class="chip ${st.cls}">${esc(st.label)}</span></td><td class="hide-m small">${fmtD(c.submitted)}</td><td class="hide-m small">${fmtD(c.certified)}</td>
     <td>${c.status==='Submitted'?`<button class="btn sm" data-certstep="${esc(c.id)}:Certified">Certified</button>`:c.status==='Certified'&&money()?`<button class="btn sm pri" data-certstep="${esc(c.id)}:Paid">Paid</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No payment certificates recorded yet. Add each IPC when it is submitted, then mark it certified and paid – NEXUS warns when payment is late.</div></td></tr>'}
@@ -3083,7 +3110,7 @@ function costTab(){ if(!money()) return '<div class="card empty">Cost control us
       <div class="card kpi amb"><span class="label">Cash position</span><span class="v num">${n(sel.received-sel.cost)}</span><span class="s">received ${n(sel.received)} − spent</span></div>
       <div class="card kpi"><span class="label">Budget</span><span class="v num">${sel.budget?n(sel.budget):'—'}</span><span class="s">${sel.budget?Math.round((sel.cost+sel.commit)/sel.budget*100)+'% used or committed':'set a budget on the project'}</span></div></div>
       <div class="label" style="margin-top:10px">Cost by category</div>${cats.map(([k,val])=>`<div class="toolbar small"><span style="width:200px">${esc(k)}</span><div class="bar" style="flex:1"><i style="width:${val/mx*100}%"></i></div><span class="num" style="width:90px;text-align:right">${n(val)}</span></div>`).join('')||'<p class="sub">No costs recorded against this project yet.</p>'}
-      <p class="sub">Forecast final cost = the higher of cost + open purchase orders, and cost ÷ % of work done (once over 10% done). Margin = revised contract − forecast.</p></div></div>`; })():'<p class="sub">Click a project for its cost breakdown.</p>'}`; }
+      </div></div>`; })():''}`; }
 document.addEventListener('click',e=>{ const el=e.target.closest('[data-p5v^="cost:"]'); if(!el) return; UI.costp=el.dataset.p5v.slice(5); renderView(true); });
 
 /* ===================== WEEKLY MANAGEMENT REPORT ===================== */
@@ -3127,7 +3154,7 @@ function pageReport(){
   return `<div class="card"><div class="hd"><h2>Weekly management report</h2><span class="sub">${esc(w.period)}</span><div class="sp"></div>
     <button class="btn" data-act="aiWeekly" ${UI.busy.weekly?'disabled':''}>${spin('weekly')}Write summary with AI</button><button class="btn pri" data-act="downloadWeekly">Download for MD (Word)</button></div>
     <div class="bd prose-rep" style="display:flex;flex-direction:column;gap:10px">
-      ${UI.weeklySummary?`<div class="ai" style="padding:12px 14px"><span class="ai-tag">AI SUMMARY</span><p class="prose" style="margin-top:6px">${esc(UI.weeklySummary)}</p></div>`:'<p class="muted small">Everything below is built automatically from NEXUS every time you open this page. Add an AI summary, then download it as a Word file for the MD – this replaces the Friday Summary sheet.</p>'}
+      ${UI.weeklySummary?`<div class="ai" style="padding:12px 14px"><span class="ai-tag">AI SUMMARY</span><p class="prose" style="margin-top:6px">${esc(UI.weeklySummary)}</p></div>`:''}
       ${reportBody(w,false)}
     </div></div>`;
 }
@@ -3233,7 +3260,7 @@ ${money()?`      <div class="card kpi blu"><span class="label">Original contract
       <div class="card kpi amb"><span class="label">Pending (not yet approved)</span><span class="v num">${tzsShort(F.pending.reduce((a,v)=>a+(+v.value_claimed||0),0))}</span><span class="s">${F.pending.length} items – chase the consultant</span></div>
 `:''}
       <div class="card kpi blu"><span class="label">Extension of time</span><span class="v num">${F.eot} days</span><span class="s">${F.vos.reduce((a,v)=>a+(+v.days_claimed||0),0)} days claimed</span></div></div>
-      <div class="toolbar"><span class="muted">Record every instruction the day it is given – unrecorded instructions are the most common cause of lost money on site.</span><div class="sp"></div><button class="btn pri" data-act="addVo">Record instruction / claim</button></div>
+      <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addVo">Record instruction / claim</button></div>
       <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Description</th><th>Status</th><th class="r">Claimed</th><th class="r">Approved</th><th class="hide-m">EOT days</th><th class="hide-m">Instructed</th></tr></thead><tbody>
       ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${money()&&v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${money()&&v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
       </tbody></table></div></div>`;
@@ -3254,7 +3281,7 @@ ${money()?`      <div class="card kpi blu"><span class="label">Original contract
       <div class="card kpi amb"><span class="label">Fixed, awaiting check</span><span class="v num">${n('Fixed')}</span><span class="s">consultant to verify</span></div>
       <div class="card kpi grn"><span class="label">Verified</span><span class="v num">${n('Verified')}</span><span class="s">of ${sn.length}</span></div>
       <div class="card kpi blu"><span class="label">Retention release</span><span class="v num" style="font-size:22px">${F.rel?fmtD(F.rel):'—'}</span><span class="s">${p.pc_date?'end of defects liability period':'enter practical completion date in Edit project'}</span></div></div>
-      <div class="toolbar"><span class="muted">Walk the site with the consultant, log every snag here, and close them before handover and again before the end of the defects period.</span><div class="sp"></div><button class="btn pri" data-act="addSnag">Add snag</button></div>
+      <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addSnag">Add snag</button></div>
       <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Location</th><th>Defect</th><th class="hide-m">Trade</th><th class="hide-m">Assigned</th><th>Fix by</th><th>Status</th></tr></thead><tbody>
       ${sn.map(s=>`<tr class="click" data-editsnag="${esc(s.id)}"><td class="small">${esc(s.location)}</td><td class="ttl2">${esc(s.description)}</td><td class="hide-m small">${esc(s.trade||'')}</td><td class="hide-m small">${esc(s.assigned||'')}</td><td class="small">${fmtD(s.due)}</td><td><span class="chip ${s.status==='Verified'?'good':s.status==='Fixed'?'amb':'bad'}">${esc(s.status||'Open')}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No snags recorded.</div></td></tr>'}
       </tbody></table></div></div>`;
@@ -3492,7 +3519,7 @@ function pagePm(){
     <div class="card kpi grn"><span class="label">On time</span><span class="v num">${n('ok')}</span><span class="s">forecast before contract date</span></div>
     <div class="card kpi amb"><span class="label">At risk</span><span class="v num">${n('risk')}</span><span class="s">slower than plan or overdue activities</span></div>
     <div class="card kpi ${n('late')?'hot':'grn'}"><span class="label">Late</span><span class="v num">${n('late')}</span><span class="s">forecast after contract completion</span></div></div>
-  <div class="toolbar"><span class="muted">Updates itself from each project's programme and site reports.</span><div class="sp"></div>${withMs.length?'<button class="btn" data-act="pmExportAll">Weekly programme report (Excel)</button>':''}</div>
+  <div class="toolbar"><div class="sp"></div>${withMs.length?'<button class="btn" data-act="pmExportAll">Weekly programme report (Excel)</button>':''}</div>
   <div class="card"><div class="hd"><h2>All projects timeline</h2></div><div class="bd" style="padding:8px">${bars||'<div class="empty">No project has a programme yet. Open a project → Programme → Add activity.</div>'}</div></div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Project</th><th>Status</th><th>Done / planned</th><th class="r">SPI</th><th>Contract completion</th><th>Forecast</th><th class="r">Overdue</th></tr></thead><tbody>
     ${rows.map(({p,f})=>`<tr class="click" data-go-proj="${esc(p.id)}"><td><div class="ttl2">${esc(p.name)}</div><div class="sub">${esc(p.client||'')}</div></td><td>${pmChip(f)}</td><td>${f&&f.pr?`<div class="bar"><i style="width:${f.pr.actual}%;background:${f.status==='late'?'var(--bad)':'var(--accent)'}"></i></div><span class="small num">${f.pr.actual.toFixed(0)}% / ${f.pr.planned.toFixed(0)}%</span>`:'<span class="sub">—</span>'}</td>
@@ -3838,7 +3865,7 @@ function pageDeadlines(){
     ${g.map(x=>`<tr class="click" ${link(x.go)}><td style="width:118px"><span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${when(x.n)}</span><div class="sub mono">${fmtD(x.d)}</div></td>
       <td><div class="ttl2">${DL_KIND[x.kind][0]} ${esc(x.title)}</div><div class="sub">${DL_KIND[x.kind][1]}${x.sub?' · '+esc(x.sub):''}</div></td></tr>`).join('')}</tbody></table></div></div>`; }).join('')
     ||`<div class="card empty">${UI.dlf==='mine'?'Nothing due for you in the next 4 months. Switch to <b>All</b> to see the company list.':'No dates in the next 4 months.'}</div>`}
-  <p class="sub">Reminders go out automatically (phone + browser): tenders 14/7/3/1 days and on the day, programme activities 7/3/1, completion 30/14/7, defects period 60/30/14, payments 3 days and weekly when late, purchases 3/1. Overdue tasks go to the department Head after 1 day and to administrators after 3.</p>`;
+  `;
 }
 document.addEventListener('change',e=>{ if(e.target?.id==='dlk'){ UI.dlk=e.target.value; renderView(true); } });
 
