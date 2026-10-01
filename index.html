@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=128"></script>
+<script src="config.js?v=129"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=128"></script>
-<script src="nexus-chat.js?v=128"></script>
+<script src="nexus-sb.js?v=129"></script>
+<script src="nexus-chat.js?v=129"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -699,7 +699,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -999,7 +999,7 @@ function companyContext(){
 Key sectors: ${c.sectors}.
 Services: ${c.services}.
 Reference projects: ${c.references}.
-Facts: ${c.facts}.
+${(S.wins||[]).length?`Contracts won (NEXUS register): ${(S.wins||[]).slice(0,25).map(w=>`${w.title} for ${w.client||'?'}${w.awarded?' ('+String(w.awarded).slice(0,4)+')':''}${w.status?' – '+w.status:''}`).join('; ')}.\n`:''}Facts: ${c.facts}.
 Current projects: ${S.projects.map(p=>`${p.name} (${p.client||'client ?'}, ${p.location||''}, ${p.status||''})`).join('; ')||'none recorded'}.`;
 }
 async function ai(kind, fn){
@@ -1199,9 +1199,10 @@ function filteredTenders(){
 function pageTenders(){
   const rows=filteredTenders(), cats=['All',...new Set(S.tenders.map(t=>t.category).filter(Boolean))];
   const last=S.tenders.reduce((m,t)=>t.imported_at>m?t.imported_at:m,'');
-  const tabs=`<div class="toolbar"><div class="seg" role="group" aria-label="View">${[['list','Tenders'],['cal','Calendar'],['res','Results']].map(([k,l])=>`<button data-ttab="${k}" aria-pressed="${(UI.ttab||'list')===k}">${l}</button>`).join('')}</div></div>`;
+  const tabs=`<div class="toolbar"><div class="seg" role="group" aria-label="View">${[['list','Tenders'],['cal','Calendar'],['res','Results'],['won','Contracts won']].map(([k,l])=>`<button data-ttab="${k}" aria-pressed="${(UI.ttab||'list')===k}">${l}</button>`).join('')}</div></div>`;
   if(UI.ttab==='cal') return tabs+tenderCalendar();
   if(UI.ttab==='res') return tabs+tenderResults();
+  if(UI.ttab==='won') return tabs+tenderWon();
   return tabs+`
   <div class="grid g3">
     ${scannerCard(last)}
@@ -4001,6 +4002,57 @@ function hseDeadlines(add){ const sid=myStaffId(), H=isHSE();
   if(H){ hL('hse_train').filter(c=>c.expires&&daysLeft(c.expires+'T23:59')<=90).forEach(c=>add(c.expires,'doc',`Certificate: ${c.course}`,c.staff_id?staffName(c.staff_id):c.name||'','go:hse',false));
     hL('hse_permit').filter(p=>p.status==='Active'&&p.to).forEach(p=>add(p.to.slice(0,10),'task',`Permit ends: ${p.no} ${p.type}`,projName(p.project_id),'go:hse',true)); } }
 
+/* ===================== CONTRACTS WON (v129) – register of tenders / contracts the company has won =====================
+   "wins" {title, client, tender_no, sector, location, awarded, sum, start, end, status Not started|Ongoing|Completed, project_id, tender_id, contact, scope, photos[]}
+   Everyone (except viewers) can add and edit; only administrators delete. Contract sums shown to administrators and Finance only. */
+const WIN_SECT=['Building','Civil works','Roads','Water & sanitation','Renovation / fit-out','Electrical / mechanical','Other'];
+const WIN_ST=['Not started','Ongoing','Completed'];
+const winList=()=>(S.wins||[]).filter(w=>!w.deleted).sort((a,b)=>String(b.awarded||b.start||'').localeCompare(String(a.awarded||a.start||'')));
+const winYear=w=>String(w.awarded||w.start||'').slice(0,4);
+const winUnreg=()=>S.tenders.filter(t=>/won/i.test(t.status||'')&&!winList().some(w=>w.tender_id===t.id));
+function winFields(){ return [{k:'title',label:'Project / contract name',req:1,full:1,ph:'e.g. Construction of Kinondoni Market'},{k:'client',label:'Client / employer',req:1},{k:'tender_no',label:'Tender / contract number'},
+  {k:'sector',label:'Type of work',type:'select',options:WIN_SECT},{k:'location',label:'Location'},{k:'awarded',label:'Date awarded',type:'date'},...(money()?[{k:'sum',label:'Contract sum (TZS)',type:'number'}]:[]),
+  {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date',type:'date'},{k:'status',label:'Status',type:'select',options:WIN_ST},{k:'project_id',label:'Linked NEXUS project',type:'select',options:projOpts('— none —')},
+  {k:'contact',label:'Client contact (for reference letters)',full:1,ph:'Name, title, phone / email'},{k:'scope',label:'Scope of works',type:'textarea',full:1},{k:'photos',label:'Award letter / completion certificate (photos)',type:'photos'}]; }
+function winOpen(w,pre){ const isNew=!w; formDrawer(isNew?'Add a contract won':'Contract won',winFields(),w||pre||{status:'Ongoing',sector:'Building'},async v=>{
+    if(v.sum!=null) v.sum=+v.sum; const ok=isNew?await put('wins',null,{...v,...(pre&&pre.tender_id?{tender_id:pre.tender_id}:{}),added_by:me.name||''}):(await patch('wins',w.id,v),true);
+    if(ok&&isNew) logAct(`Added contract won: ${v.title}`); return !!ok; },{saveLabel:isNew?'Add':'Save',onDelete:w?async()=>remove('wins',w.id):null,delMsg:'Remove this contract from the register?'}); }
+function tenderWon(){ const L=winList(), M=money(), f=UI.winf||'all', sec=UI.winsec||'', q=(UI.winq||'').toLowerCase();
+  const R=L.filter(w=>(f==='all'||w.status===f)&&(!sec||w.sector===sec)&&(!q||[w.title,w.client,w.tender_no,w.location].join(' ').toLowerCase().includes(q)));
+  const val=L.reduce((a,w)=>a+(+w.sum||0),0), on=L.filter(w=>w.status==='Ongoing').length, done=L.filter(w=>w.status==='Completed').length, U=winUnreg();
+  const chip=s=>`<span class="chip ${s==='Completed'?'good':s==='Ongoing'?'amb':''}">${esc(s||'—')}</span>`;
+  return `<div class="grid g4">
+    <div class="card kpi grn"><span class="label">Contracts won</span><span class="v num">${L.length}</span><span class="s">${L.length?'since '+(L.map(winYear).filter(Boolean).sort()[0]||'—'):'add your first one'}</span></div>
+    <div class="card kpi amb"><span class="label">Ongoing</span><span class="v num">${on}</span><span class="s">being executed</span></div>
+    <div class="card kpi blu"><span class="label">Completed</span><span class="v num">${done}</span><span class="s">handed over</span></div>
+    <div class="card kpi grn"><span class="label">${M?'Total value':'Clients served'}</span><span class="v num">${M?tzsShort(val):new Set(L.map(w=>lcN(w.client))).size}</span><span class="s">${M?'TZS':'different clients'}</span></div></div>
+  ${U.length?`<div class="banner"><div><b>${U.length} tender${U.length>1?'s':''} marked Won</b> in Tender Radar ${U.length>1?'are':'is'} not in this register yet: ${U.slice(0,4).map(t=>`<button class="btn sm" data-win="fromt:${esc(t.id)}">+ ${esc(String(t.title).slice(0,50))}</button>`).join(' ')}</div></div>`:''}
+  <div class="toolbar"><div class="seg">${[['all','All'],['Ongoing','Ongoing'],['Completed','Completed'],['Not started','Not started']].map(([k,l])=>`<button data-win="f:${esc(k)}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
+    <select class="inp" data-winsec style="width:auto"><option value="">All types of work</option>${WIN_SECT.map(s=>`<option ${s===sec?'selected':''}>${esc(s)}</option>`).join('')}</select>
+    <input class="inp" id="winq" type="search" placeholder="Search" value="${esc(UI.winq||'')}" style="max-width:220px"><div class="sp"></div>
+    <button class="btn" data-win="word">Experience list (Word)</button><button class="btn" data-win="xlsx">Excel</button>${canWrite?'<button class="btn pri" data-win="new">Add contract won</button>':''}</div>
+  ${R.length?`<div class="card hse-list">${R.map(w=>`<div class="hse-row" data-win="open:${esc(w.id)}"><span class="hse-ic good">🏆</span><div class="d"><b>${esc(w.title)}</b><small>${[esc(w.client),esc(w.tender_no||''),esc(w.location||''),esc(w.sector||''),w.awarded?'awarded '+fmtD(w.awarded):''].filter(Boolean).join(' · ')}</small></div>${M&&w.sum?`<span class="num" style="white-space:nowrap">${tzsShort(w.sum)}</span>`:''}${(w.photos||[]).length?'<span class="sub">📎</span>':''}${chip(w.status)}</div>`).join('')}</div>`
+    :`<div class="card empty">${L.length?'Nothing matches.':'No contracts recorded yet. Add the contracts Nordic has won – they build your experience list for new tenders.'}</div>`}`; }
+async function winExport(kind){ const L=winList(), M=money(), c=company(); if(!L.length) return toast('Add some contracts first.');
+  const per=w=>[w.start?fmtD(w.start):'',w.end?fmtD(w.end):''].filter(Boolean).join(' – ');
+  try{ await loadScript(XLSX_URL); }catch(e){ return toast(e.message); }
+  if(kind==='word'){ const body=`${oxP('SCHEDULE OF WORKS OF SIMILAR NATURE',{style:'Title'})}${oxP((c.name||'')+' – contracts awarded and executed',{b:true})}
+    ${oxTbl([['No.','Name of project / contract','Client','Location','Type of work',...(M?['Contract sum (TZS)']:[]),'Period','Status'],...L.map((w,i)=>[String(i+1),w.title+(w.tender_no?'\n'+w.tender_no:''),w.client||'',w.location||'',w.sector||'',...(M?[w.sum?Math.round(w.sum).toLocaleString('en-US'):'']:[]),per(w)||fmtD(w.awarded),w.status||''])],{widths:M?[600,3600,2300,1600,1500,1800,1900,1200]:[600,4200,2700,1800,1700,2100,1400]})}
+    ${oxP('Reference contacts and copies of award letters / completion certificates are available on request.',{i:true,before:200})}${poSign()}`;
+    const b=oxDocx(body,{landscape:true}); if(b&&await oxSave('Schedule of similar works – '+(c.name||'Nordic'),b,'docx')) logAct('Downloaded experience list (Word)'); return; }
+  const rows=[['No.','Project / contract','Tender / contract no.','Client','Location','Type of work',...(M?['Contract sum (TZS)']:[]),'Awarded','Start','Completion','Status','Client contact','Scope'],...L.map((w,i)=>[i+1,w.title,w.tender_no||'',w.client||'',w.location||'',w.sector||'',...(M?[+w.sum||null]:[]),w.awarded||'',w.start||'',w.end||'',w.status||'',w.contact||'',w.scope||''])];
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=rows[0].map((h,i)=>({wch:i===1||i===12?40:16})); XLSX.utils.book_append_sheet(wb,ws,'Contracts won');
+  if(await oxSave('Contracts won – '+(c.name||'Nordic'),new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx')) logAct('Downloaded contracts won (Excel)'); }
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-win]'); if(!el) return; const [a,...r]=el.dataset.win.split(':'), x=r.join(':');
+  if(a==='f'){ UI.winf=x; return renderView(true); }
+  if(a==='new') return winOpen(null);
+  if(a==='open'){ const w=byId('wins',x); if(w) winOpen(w); return; }
+  if(a==='fromt'){ const t=byId('tenders',x); if(!t) return; const p=S.projects.find(p=>lcN(p.name)===lcN(t.title)); return winOpen(null,{title:t.title||'',client:t.client||'',tender_no:t.ref||'',location:t.location||'',sum:+t.our_price||+t.winning_price||null,status:'Not started',sector:'Building',tender_id:t.id,project_id:p?p.id:''}); }
+  if(a==='word'||a==='xlsx') return winExport(a);
+});
+document.addEventListener('change',e=>{ if(e.target.matches&&e.target.matches('[data-winsec]')){ UI.winsec=e.target.value; renderView(true); } });
+document.addEventListener('input',e=>{ if(e.target.id==='winq'){ UI.winq=e.target.value; renderView(true); } });
+
 const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
@@ -4014,7 +4066,7 @@ function renderNav(){
 function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSave(); }catch(_){}
   const v=$('#view'), a=document.activeElement;
   if(route==='chat'&&!force&&v.querySelector('#chatHost .nxchat')) return;   // chat keeps its own screen
-  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq'].includes(a.id)){ pendingView=true; return; }
+  if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq','winq'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
   const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
