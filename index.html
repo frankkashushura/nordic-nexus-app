@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=131"></script>
+<script src="config.js?v=132"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=131"></script>
-<script src="nexus-chat.js?v=131"></script>
+<script src="nexus-sb.js?v=132"></script>
+<script src="nexus-chat.js?v=132"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6490,7 +6490,7 @@ const BB_THEMES=[['led','Night LED'],['blueprint','Blueprint'],['site','Site haz
 const bbAgo=iso=>{ const t=Date.parse(iso); if(!t) return ''; const m=Math.round((Date.now()-t)/6e4); if(m<60) return m<=1?'just now':m+' min ago'; const h=Math.round(m/60); if(h<24) return h+' h ago'; const d=Math.round(h/24); if(d===1) return 'yesterday'; if(d<7) return d+' days ago'; return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'}); };
 const bbAge=iso=>{ const d=(Date.now()-Date.parse(iso))/864e5; return d<1.2?'today':d<7?'week':d<21?'recent':'older'; };
 function bbItems(){
-  const news=((S.news&&S.news.items)||[]).filter(n=>n&&n.title&&safeUrl(n.link)&&(BB.lang==='all'||(n.lang||'en')===BB.lang)).map(n=>({k:'news',topic:BB_TOPIC[n.topic]?n.topic:'industry',title:n.title,sum:n.sum||'',img:safeUrl(n.img||''),src:n.source||'',link:n.link,at:n.at}));
+  const news=((S.news&&S.news.items)||[]).filter(n=>n&&n.title&&safeUrl(n.link)&&(BB.lang==='all'||(n.lang||'en')===BB.lang)).map(n=>({k:'news',topic:BB_TOPIC[n.topic]?n.topic:'industry',title:n.title,sum:n.sum||'',img:safeUrl(n.img||''),src:n.source||'',link:n.link,at:n.at})).sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0));
   const co=((S.bbtips&&S.bbtips.tips)||[]).filter(x=>x&&x.t).map(x=>({k:'tip',topic:'tip',title:x.t,sum:x.b||'',src:company().name||'Nordic Construction',link:safeUrl(x.u||''),own:1}));
   const tips=BB_TIPS.map(x=>({k:'tip',topic:'tip',tcat:x[0],title:x[1],sum:x[2],src:(BB_SRC[x[3]]||[''])[0],link:(BB_SRC[x[3]]||['',''])[1]}));
   const tipOk=BB.lang==='all'||BB.lang==='en'; if(!tipOk){ co.length=0; tips.length=0; }
@@ -6535,12 +6535,13 @@ function bbHtml(){
 function bbSpeed(){ const t=document.querySelector('#bb .bb-track'); if(!t) return; const w=t.scrollWidth/2; if(!(w>0)) return; const D=Math.max(30,Math.round(w/65)); t.style.animationDuration=D+'s';
   let at=null; try{ at=JSON.parse(localStorage.getItem('nx_bb_pos')||'null'); }catch(_){}
   const items=[...t.querySelectorAll('.bb-i')], n=items.length/2; let x=0;
+  if(at&&at.t&&at.n&&at.n!==((S.news&&S.news.at)||'')) at=null;   // new stories arrived → start again from the newest
   if(at&&at.t){ const k=items.slice(0,n).findIndex(e=>e.getAttribute('title')===at.t); if(k>=0) x=items[k].offsetLeft+(at.dx||0); }
   if(x>0&&x<w) t.style.animationDelay=(-(x/w)*D).toFixed(2)+'s';
   BB.posOk=Date.now()+2500; bbPosWatch(); }
 function bbPosSave(){ const t=document.querySelector('#bb .bb-track'); if(!t||!BB.posOk||Date.now()<BB.posOk) return; const m=getComputedStyle(t).transform; if(!m||m==='none') return; const tx=-(new DOMMatrix(m).m41); if(!(tx>=0)) return;
   const items=[...t.querySelectorAll('.bb-i')]; let cur=null; for(const e of items){ if(e.offsetLeft<=tx+1) cur=e; else break; } if(!cur) return;
-  try{ localStorage.setItem('nx_bb_pos',JSON.stringify({t:cur.getAttribute('title'),dx:Math.max(0,Math.round(tx-cur.offsetLeft)),at:Date.now()})); }catch(_){} }
+  try{ localStorage.setItem('nx_bb_pos',JSON.stringify({t:cur.getAttribute('title'),dx:Math.max(0,Math.round(tx-cur.offsetLeft)),at:Date.now(),n:(S.news&&S.news.at)||''})); }catch(_){} }
 function bbPosWatch(){ if(BB.posT) return; BB.posT=setInterval(()=>{ if(!document.getElementById('bb')) return; if(!document.hidden) bbPosSave(); },1500);
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) bbPosSave(); }); window.addEventListener('pagehide',bbPosSave);
   document.addEventListener('click',e=>{ if(e.target.closest('[data-go],[data-open],#nav button,.tabbar button')) bbPosSave(); },true); }
