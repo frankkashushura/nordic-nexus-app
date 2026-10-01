@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=125"></script>
+<script src="config.js?v=126"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=125"></script>
-<script src="nexus-chat.js?v=125"></script>
+<script src="nexus-sb.js?v=126"></script>
+<script src="nexus-chat.js?v=126"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -640,6 +640,30 @@ h1,h2,h3{letter-spacing:.005em}
 @media (max-width:900px){.fin-kpis{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.fin-k{padding:12px;gap:10px}.fin-k .fi{width:32px;height:32px;font-size:15px}.fin-k b{font-size:20px}.fin-bar .btn.pri{width:100%}.fin-bar .inp{flex:1 1 100%;max-width:none;min-width:0}.fin-bar .seg{flex:1 1 100%}.fin-bar .seg button{flex:1}.fin-bar .sp{display:none}.fin-r2{flex:1 1 100%}.fin-r2 .btn{flex:1}.fin-r .d small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fin-r .d .chip{display:none}.fin-r .a b{font-size:14px}.fin-r{padding:10px 12px;gap:10px}.fin-mh{padding:12px 12px 6px}.fin-del{opacity:.6}}
 .tcard.prc{cursor:pointer;gap:3px}.tcard.prc:hover{border-color:var(--accent)}.prx-ar{color:var(--muted);font-size:12px}.tcard.prc.open{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}.tcard.prc .toolbar{margin:0;gap:6px}.tcard.prc{padding:9px 11px}.prc-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prc-t span{font-weight:400;color:var(--muted)}.tcard.prc .chip{padding:1px 7px;font-size:11px}.prmore{width:100%;justify-content:center;margin-top:4px}
+.hse{display:flex;flex-direction:column;gap:14px}.hse .toolbar>.seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap}
+.hse-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.hse-k{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--steel-line,var(--line));border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.hse-k .l{font-size:12.5px;color:var(--muted);font-weight:600}.hse-k b{font-size:28px;line-height:1.15;color:var(--ink)}.hse-k small{color:var(--muted);font-size:12px}
+.hse-k.good{border-left-color:var(--good)}.hse-k.good b{color:var(--good)}.hse-k.bad{border-left-color:var(--bad)}.hse-k.bad b{color:var(--bad)}
+.hse-bars{display:flex;gap:14px;align-items:flex-end;height:150px;padding-top:6px}.hse-bars .c{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.hse-bars .b{flex:1;width:60%;max-width:46px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:6px 6px 0 0;overflow:hidden;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.hse-bars i,.hse-dot{display:block}.hse-bars i.inc,.hse-dot.inc{background:var(--bad)}.hse-bars i.nm,.hse-dot.nm{background:var(--amber)}.hse-bars small{color:var(--muted);font-size:11.5px}.hse-bars .num{font-size:12px}
+.hse-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 4px 0 10px}
+.hse-list{padding:2px 0!important;overflow:hidden}.hse-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--line);cursor:pointer}.hse-row:first-child{border-top:0}.hse-row:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.hse-row .d{flex:1;min-width:0}.hse-row .d b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hse-row .d small{color:var(--muted);font-size:12.5px}
+.hse-ic{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+.hse-ic.bad{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}.hse-ic.inc,.hse-ic.haz,.hse-ic.nm{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}.hse-ic.good{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.hse-tick{display:grid;place-items:center;width:34px}.hse-tick input,.hse-act input{width:18px;height:18px;cursor:pointer}
+.hse-acts{margin-top:14px}.hse-act{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.hse-act .d{flex:1;min-width:0}.hse-act .d b{display:block;font-weight:600}.hse-act .d small{color:var(--muted)}.hse-act.done b{text-decoration:line-through;color:var(--muted)}
+.hse-addact{display:grid;grid-template-columns:1fr 180px 150px auto;gap:6px;margin-top:8px}
+.hse-q{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.hse-q .inp{grid-column:1/-1}
+.hse-ptypes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.hse-ptypes .label{margin-right:6px}
+.hse-stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}.hse-stock>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column}.hse-stock b{font-size:22px}.hse-stock small{color:var(--muted)}.hse-stock .low{border-color:var(--bad)}.hse-stock .low b,.hse-stock .low small{color:var(--bad)}
+.hse-sites{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}.hse-emerg{display:flex;flex-direction:column;gap:6px}.hse-emerg>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding-bottom:5px}.hse-emerg span{color:var(--muted);font-size:13px}.hse-emerg b{text-align:right}
+.hse-phf{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.hse-phs:empty{display:none}.hse-phs{width:100%}
+table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:table}table.kv th{text-align:left;font-weight:600;color:var(--muted);font-size:13px;padding:6px 10px 6px 0;width:34%;vertical-align:top;text-transform:none;letter-spacing:0;background:none}table.kv td{border-bottom:1px solid var(--line)}table.kv th{border-bottom:1px solid var(--line)}table.kv td{padding:5px 0;font-size:14px}
+@media (max-width:900px){.hse-kpis{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.hse-k{padding:11px 12px}.hse-k b{font-size:22px}.hse-row{padding:10px 12px;gap:10px}.hse-addact{grid-template-columns:1fr}.hse .toolbar>.btn{flex:1}}
 /* v117 icons without background */
 .tile .ti,.ab-ico{background:none!important;box-shadow:none!important;border:0!important}
 .tile .ti{font-size:24px}
@@ -675,7 +699,7 @@ h1,h2,h3{letter-spacing:.005em}
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog'];
+const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -737,6 +761,7 @@ function daysChip(v){
 const screenChip = s => s ? `<span class="chip ${s==='Pursue'?'good':s==='Check'?'amb':'bad'}">${esc(s)}</span>` : '';
 const verdictCls = v => /^bid/i.test(v||'') ? 'good' : /cond/i.test(v||'') ? 'warn' : /no/i.test(v||'') ? 'bad' : '';
 const ICON = {
+  hse:'<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
   hr:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 15l2.5 2.5L16 13"/>',
   fleet:'<path d="M3 16V9l2-4h10l3 4h3v7"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
   pm:'<path d="M3 4v16h18"/><path d="M7 7h6M9 11h8M11 15h6"/>',
@@ -781,6 +806,7 @@ const PAGES = [
   {k:'projects', t:'Projects'},
   {k:'pm', t:'Programme Overview'},
   {k:'reports', t:'Site Reports'},
+  {k:'hse', t:'Health & Safety'},
   {k:'tasks', t:'Tasks'},
   {k:'meetings', t:'Meetings'},
   {k:'plant', t:'Plant & Equipment'},
@@ -891,6 +917,7 @@ function computeAlerts(){
     if(t.screen!=='Drop' && d<=7) A.push({lvl:d<=3?'bad':'warn', kind:(f!=null&&f>-2)?'New tender':'Tender deadline', text:`${t.title}`, sub:`${t.client||''} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d, at:atMinus(t.deadline,7)}); if(f!=null && f>-2 && t.screen!=='Drop' && !(d<=7)) A.push({lvl:'blue', kind:'New tender', text:t.title, sub:`${t.client||''} · ${t.screen||''} · found ${fmtD(t.date_found)}`, go:['tender',t.id], sort:50, at:firstSeen(t)});
   });
   if(typeof recAlerts==='function') recAlerts(A);
+  if(typeof hseAlerts==='function') hseAlerts(A);
   if(typeof projDueAlerts==='function') projDueAlerts(A);
   if(isProcOff()) S.procurement.filter(p=>p.status==='Approved'&&!p.example).forEach(p=>A.push({lvl:'blue', kind:'To order', text:`${p.pr_no||''} ${p.item}`, sub:`Approved${p.approved_by?' by '+p.approved_by:''} – place the order`, go:['route','procure'], sort:18, at:p.approved_at||p.updated_at}));
   if(poCan()) poList().filter(poLate).forEach(o=>A.push({lvl:'bad', kind:'Late delivery', text:`${o.po_no} ${o.item} – ${o.supplier}`, sub:`Promised ${fmtD(o.delivery_date)} · ${poPct(o)}% received`, go:['route','procure'], sort:16, at:o.delivery_date}));
@@ -939,6 +966,7 @@ function recipStale(){ return loaded.has('staff') && S.staff.length>0 && S.recip
 function field(f, v){
   const id='f_'+f.k, val = v ?? f.def ?? '';
   let ctl;
+  if(f.type==='photos') return hsePhotoField(f,val);
   if(f.type==='linktools') return `<div class="fld full"><label>Create the online meeting</label><div class="toolbar" style="gap:6px;flex-wrap:wrap">${MEET_PLAT.filter(p=>p.make).map(p=>`<button type="button" class="btn sm" data-mkroom="${p.k}">${esc(p.btn)}</button>`).join('')}</div><span class="sub">Zoom / Google Meet / Teams open in a new tab: create the meeting there, copy its link and paste it in "Online link". <b>Free NEXUS room</b> makes a link instantly (Jitsi – no cost; the first person to open it signs in with Google or Microsoft to start the room, everyone else just joins).</span></div>`;
   if(f.type==='checks'){ const sel=Array.isArray(val)?val:[]; ctl=`<div class="checks" id="${id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px">${f.options.map(([ov,ol])=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" value="${esc(ov)}" ${sel.includes(ov)?'checked':''}> ${esc(ol)}</label>`).join('')||`<span class="sub">${esc(f.empty||'No staff with an email address yet – add them on the Staff page.')}</span>`}</div>`; return `<div class="fld full"><label>${esc(f.label)}${f.req?' *':''}</label>${ctl}${f.help?`<span class="sub">${esc(f.help)}</span>`:''}</div>`; }
   if(f.type==='select') ctl=`<select class="inp" id="${id}">${f.options.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o]; return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
@@ -948,7 +976,7 @@ function field(f, v){
 }
 function readForm(fields, root){
   root=root||($('#overlay').firstChild?$('#overlay'):document);
-  const o={}; for(const f of fields){ const el=root.querySelector('#f_'+f.k); if(!el) continue; if(f.type==='checks'){ o[f.k]=[...el.querySelectorAll('input:checked')].map(x=>x.value); if(f.req&&!o[f.k].length){ toast(`${f.label}: choose at least one.`); return null; } continue; } let v=el.value.trim(); if(f.type==='number') v = v===''? null : +v; o[f.k]=v; }
+  const o={}; for(const f of fields){ const el=root.querySelector('#f_'+f.k); if(!el) continue; if(f.type==='photos'){ try{ o[f.k]=JSON.parse(el.dataset.v||'[]'); }catch(_){ o[f.k]=[]; } continue; } if(f.type==='checks'){ o[f.k]=[...el.querySelectorAll('input:checked')].map(x=>x.value); if(f.req&&!o[f.k].length){ toast(`${f.label}: choose at least one.`); return null; } continue; } let v=el.value.trim(); if(f.type==='number') v = v===''? null : +v; o[f.k]=v; }
   for(const f of fields){ if(f.req && (o[f.k]===''||o[f.k]==null)){ toast(`${f.label} is required.`); root.querySelector('#f_'+f.k)?.focus(); return null; } }
   return o;
 }
@@ -3714,7 +3742,266 @@ function pmAlerts(A){
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
-const PAGE_FN={hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+/* ===================== PHASE 6 · HEALTH & SAFETY (v126) =====================
+   hse_inc incidents & near misses · hse_obs hazards / observations (may be anonymous) · hse_insp inspections · hse_tbt toolbox talks
+   hse_permit permits to work · hse_train training & certificates · hse_ppe PPE issue log · hse_stock PPE stock · hse_site emergency info · hse_hours man-hours
+   Corrective actions live inside incidents, hazards and inspections: actions:[{id,t,owner(staff id),due,done,done_at,done_by,done_note}].
+   HSE team = administrators + staff whose department or position mentions HSE / Safety / SHEQ (DB: is_hse()). */
+const HSE_INC_TYPES=['Injury','Near miss','Property damage','Dangerous occurrence','Fire','Environmental','Vehicle / plant'];
+const HSE_OUT=['First aid','Medical treatment','Lost time','Fatality'];
+const HSE_SEV=['Minor','Serious','Major'];
+const HSE_ROOT=['','Unsafe act','Unsafe condition','Lack of training / competence','No or wrong PPE','Poor supervision','Equipment / tool defect','No safe system of work / permit','Poor housekeeping','Weather / environment','Third party','Other'];
+const HSE_OBS_TYPES=['Unsafe condition','Unsafe act','Environmental','Good practice'];
+const HSE_COURSES=['HSE induction','First aid','Working at height','Scaffolding','Confined space entry','Fire fighting / fire marshal','Hot work / welding','Electrical safety','Rigging / slinging','Plant operator licence','Excavation safety','Driving licence','Other'];
+const HSE_PPE=['Safety helmet','Safety boots','Reflective vest','Gloves','Safety goggles','Ear protection','Dust mask','Full-body harness','Overalls','Raincoat'];
+const HSE_TBT_TOPICS=['Working at height','Excavation safety','Manual handling','PPE use','Electrical safety','Housekeeping','Fire prevention','Heat stress & drinking water','Plant & vehicle movement','Scaffolding','Hot work','Concrete & cement burns','Lifting operations','Emergency procedures'];
+const HSE_PERMITS={
+  'Hot work':{c:'Hot work / welding',p:['Area cleared of flammable materials (10 m)','Fire extinguisher at the work place','Fire watch for 30 min after work','Gas cylinders upright and secured','Welding screens / PPE in use']},
+  'Work at height':{c:'Working at height',p:['Scaffold / platform inspected and tagged','Guardrails and toe boards in place','Full-body harness worn and anchored','Area below barricaded','Ladders secured and in good condition']},
+  'Confined space':{c:'Confined space entry',p:['Atmosphere tested (O₂, gas) before entry','Ventilation provided','Standby person at the entrance','Rescue equipment ready','Entry / exit log kept']},
+  'Excavation':{c:'Excavation safety',p:['Underground services located','Sides shored, stepped or battered','Edge barriers in place','Safe ladder access','Spoil kept 1 m from the edge']},
+  'Electrical isolation':{c:'Electrical safety',p:['Circuit isolated and locked off','Tested dead before work','Warning tags fixed','Only competent electrician','Insulated tools in use']},
+  'Lifting operation':{c:'Rigging / slinging',p:['Lift plan prepared','Crane / hoist inspected','Slinger / signaller assigned','Load within safe working load','Exclusion zone set up']}};
+const HSE_CHECK=[
+  ['PPE',['Helmets worn by everyone','Safety boots worn','Reflective vests worn','Harness used when working at height']],
+  ['Housekeeping',['Access routes clear','Waste removed and materials stacked safely']],
+  ['Work at height & scaffolding',['Scaffolds inspected and tagged','Guardrails / edge protection in place','Ladders secured']],
+  ['Excavations',['Sides supported or battered','Barriers around excavations']],
+  ['Electrical',['Cables protected / off the ground','Distribution boards closed and labelled']],
+  ['Plant & equipment',['Operators competent / licensed','Daily plant checks done','Banksman for reversing plant']],
+  ['Fire & first aid',['Fire extinguishers available and serviced','First aid box stocked','Trained first aider on site']],
+  ['Welfare & public',['Toilets and drinking water available','Site hoarding and warning signs in place']]];
+const HSE_COLS=['hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours'];
+const hL=c=>(S[c]||[]).filter(x=>!x.deleted&&!x.example);
+const isHSE=()=>{ if(isAdmin) return true; const s=byId('staff',myStaffId()); return !!s&&/(hse|safety|sheq)/i.test((s.department||'')+' '+(s.position||'')); };
+const hseLTI=i=>i.type==='Injury'&&['Lost time','Fatality'].includes(i.outcome);
+const hseRec=i=>i.type==='Injury'&&!!i.outcome&&i.outcome!=='First aid';
+const hseSerious=i=>hseLTI(i)||i.outcome==='Medical treatment'||i.severity==='Major'||i.type==='Dangerous occurrence';
+const hseActProj=()=>S.projects.filter(p=>!/completed|close-out/i.test(p.status||''));
+const hseStaffOpts=(blank='— choose —')=>[['',blank],...S.staff.filter(s=>s.status!=='Left').sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(s=>[s.id,s.name+(s.position?' – '+s.position:'')])];
+const hseNo=(c,pre)=>{ const y=today().slice(0,4), n=hL(c).filter(x=>String(x.no||'').startsWith(pre+'-'+y)).length+1; return `${pre}-${y}-${String(n).padStart(3,'0')}`; };
+const HSE_STL={Investigating:'Under investigation',Actions:'Actions in progress'};
+const hseChip=s=>`<span class="chip ${/closed|done|fixed|good/i.test(s)?'good':/reported|open|expired/i.test(s)?'bad':/active|investigat|actions/i.test(s)?'amb':''}">${esc(HSE_STL[s]||s)}</span>`;
+const hseDue=a=>{ if(a.done) return '<span class="chip good">Done</span>'; if(!a.due) return '<span class="sub">no date</span>'; const d=daysLeft(a.due+'T23:59'); return `<span class="chip ${d<0?'bad':d<=3?'amb':''}">${d<0?'Overdue · ':''}${fmtD(a.due)}</span>`; };
+const hseCertOk=(sid,course)=>hL('hse_train').some(t=>t.staff_id===sid&&t.course===course&&(!t.expires||t.expires>=today()));
+const hseIsoMonth=k=>{ const d=new Date(k+'-01T12:00:00'); return isNaN(d)?k:d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}); };
+function hseActions(){ const out=[]; [['hse_inc','Incident'],['hse_obs','Hazard'],['hse_insp','Inspection']].forEach(([c,lbl])=>hL(c).forEach(r=>(r.actions||[]).forEach((a,k)=>out.push({...a,k,col:c,rid:r.id,src:`${lbl}${r.no?' '+r.no:''}`,proj:r.project_id,title:r.title||r.desc||''})))); return out; }
+const hseMyActs=()=>{ const sid=myStaffId(); return sid?hseActions().filter(a=>!a.done&&a.owner===sid):[]; };
+function hseStats(pid){ const since=ymd(new Date(Date.now()-365*864e5)), m30=ymd(new Date(Date.now()-30*864e5)), F=x=>!pid||x.project_id===pid;
+  const inc=hL('hse_inc').filter(F), inc12=inc.filter(i=>(i.date||'')>=since), lti=inc.filter(hseLTI).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const hours=hL('hse_hours').filter(h=>!pid&&String(h.month||h.id)>=since.slice(0,7)).reduce((a,h)=>a+(+h.hours||0),0);
+  const l12=inc12.filter(hseLTI).length, r12=inc12.filter(hseRec).length;
+  const insp=hL('hse_insp').filter(F).filter(x=>(x.date||'')>=m30), tbt=hL('hse_tbt').filter(F).filter(x=>(x.date||'')>=m30);
+  const acts=hseActions().filter(a=>!a.done&&(!pid||a.proj===pid));
+  return {lastLTI:lti[0]?.date||null,days:lti[0]?Math.floor(-daysLeft(lti[0].date+'T00:00')):null,l12,r12,hours,ltifr:hours?l12*1e6/hours:null,trir:hours?r12*2e5/hours:null,
+    inc12:inc12.filter(i=>i.type!=='Near miss').length,nm12:inc12.filter(i=>i.type==='Near miss').length,insp,score:insp.length?Math.round(insp.reduce((a,x)=>a+(+x.score||0),0)/insp.length):null,
+    tbt,att:tbt.reduce((a,t)=>a+(t.attendees||[]).length+(+t.casual||0),0),acts,late:acts.filter(a=>a.due&&a.due<today()).length}; }
+
+/* ---------- page ---------- */
+function pageHSE(){
+  const T=[['dash','Dashboard'],['inc','Incidents'],['haz','Hazards'],['insp','Inspections'],['acts','Actions'],['permits','Permits'],['tbt','Toolbox talks'],['train','Training'],['ppe','PPE'],['sites','Emergency']];
+  const t=T.some(x=>x[0]===UI.hset)?UI.hset:'dash', H=isHSE();
+  const btn={dash:(H?'<button class="btn" data-hse="hours">Man-hours</button><button class="btn" data-hse="monthly">Monthly report</button>':'')+'<button class="btn" data-hse="newobs">Report hazard</button><button class="btn pri" data-hse="newinc">Report incident</button>',inc:'<button class="btn pri" data-hse="newinc">Report incident</button>',haz:'<button class="btn pri" data-hse="newobs">Report hazard</button>',insp:'<button class="btn pri" data-hse="newinsp">New inspection</button>',permits:'',tbt:'<button class="btn pri" data-hse="newtbt">Record toolbox talk</button>',train:H?'<button class="btn pri" data-hse="newcert">Add certificate</button>':'',ppe:H?'<button class="btn" data-hse="stock">Update stock</button><button class="btn pri" data-hse="issue">Issue PPE</button>':'',sites:'',acts:''}[t]||'';
+  const seg=`<div class="toolbar"><div class="seg">${T.map(([k,l])=>`<button data-hse="tab:${k}" aria-pressed="${t===k}">${l}${k==='acts'&&hseMyActs().length?` (${hseMyActs().length})`:''}</button>`).join('')}</div><div class="sp"></div>${canWrite?btn:''}</div>`;
+  const body={dash:hseDash,inc:hseIncTab,haz:hseObsTab,insp:hseInspTab,acts:hseActsTab,permits:hsePermitTab,tbt:hseTbtTab,train:hseTrainTab,ppe:hsePpeTab,sites:hseSiteTab}[t]();
+  return `<div class="hse">${seg}${body}</div>`;
+}
+function hseDash(){ const s=hseStats(), m=today().slice(0,7), inc=hL('hse_inc'), obsOpen=hL('hse_obs').filter(o=>o.status!=='Closed').length;
+  const mon=[...Array(6)].map((_,i)=>{ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-5+i); const k=ymd(d).slice(0,7); const I=inc.filter(x=>String(x.date||'').startsWith(k)); return {k,inc:I.filter(x=>x.type!=='Near miss').length,nm:I.filter(x=>x.type==='Near miss').length}; });
+  const mx=Math.max(1,...mon.map(x=>x.inc+x.nm)), certSoon=hL('hse_train').filter(c=>c.expires&&daysLeft(c.expires+'T23:59')<=30).length, permAct=hL('hse_permit').filter(p=>p.status==='Active').length;
+  const k=(cls,lbl,v,sub)=>`<div class="hse-k ${cls}"><span class="l">${lbl}</span><b class="num">${v}</b><small>${sub}</small></div>`;
+  const ai=UI.hseAI;
+  return `<div class="hse-kpis">
+    ${k(s.days==null?'good':s.days>=100?'good':s.days>=30?'':'bad','Days without lost-time injury',s.days==null?'—':s.days,s.lastLTI?'last on '+fmtD(s.lastLTI):'no lost-time injury recorded')}
+    ${k('','LTIFR (12 months)',s.ltifr==null?'—':s.ltifr.toFixed(2),s.hours?`${s.l12} LTI · ${Math.round(s.hours).toLocaleString('en-US')} man-hours`:'enter man-hours to calculate')}
+    ${k('','TRIR (12 months)',s.trir==null?'—':s.trir.toFixed(2),`${s.r12} recordable injur${s.r12===1?'y':'ies'}`)}
+    ${k(s.nm12?'':'','Near misses (12 months)',s.nm12,`${s.inc12} incident${s.inc12===1?'':'s'} · ${obsOpen} open hazard${obsOpen===1?'':'s'}`)}
+    ${k(s.late?'bad':'','Open safety actions',s.acts.length,s.late?`${s.late} overdue`:'none overdue')}
+    ${k('','Inspections (30 days)',s.insp.length,s.score==null?'no inspections yet':`average score ${s.score}%`)}
+    ${k('','Toolbox talks (30 days)',s.tbt.length,`${s.att} attendances`)}
+    ${k(certSoon?'bad':'','Active permits',permAct,certSoon?`${certSoon} certificate${certSoon>1?'s':''} expiring in 30 days`:'no certificates expiring soon')}
+  </div>
+  <div class="grid g2">
+    <div class="card"><div class="hd"><h2>Last 6 months</h2><div class="sp"></div><span class="sub"><i class="hse-dot inc"></i>Incidents <i class="hse-dot nm"></i>Near misses</span></div><div class="bd"><div class="hse-bars">${mon.map(x=>`<div class="c"><div class="b"><i class="nm" style="height:${x.nm/mx*100}%"></i><i class="inc" style="height:${x.inc/mx*100}%"></i></div><span class="num">${x.inc+x.nm||''}</span><small>${hseIsoMonth(x.k).slice(0,3)}</small></div>`).join('')}</div></div></div>
+    <div class="card"><div class="hd"><h2>By project</h2></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="r">Days w/o LTI</th><th class="r">Incidents</th><th class="r">Near misses</th><th class="r">Open actions</th></tr></thead><tbody>
+      ${hseActProj().map(p=>{ const x=hseStats(p.id); return `<tr><td class="ttl2">${esc(p.name)}</td><td class="r num">${x.days==null?'—':x.days}</td><td class="r num">${x.inc12}</td><td class="r num">${x.nm12}</td><td class="r num">${x.acts.length}${x.late?` <span class="chip bad">${x.late} late</span>`:''}</td></tr>`; }).join('')||'<tr><td colspan="5"><div class="empty">No active projects.</div></td></tr>'}</tbody></table></div></div></div>
+  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Safety trends</h2><div class="sp"></div><button class="btn sm pri" data-hse="ai" ${UI.busy.hse?'disabled':''}>${spin('hse')}${ai?'Check again':'Find patterns'}</button></div>
+    ${ai?`<div class="bd"><p>${esc(ai.summary||'')}</p><div class="list">${(ai.patterns||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div></div>`).join('')}</div>${(ai.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended</div><ul class="clean small">${ai.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}<p class="sub">${esc(ai.at||'')}</p></div>`:''}</div>`; }
+
+/* lists */
+const hseEmpty=t=>`<div class="card empty">${t}</div>`;
+function hseIncTab(){ const L=hL('hse_inc').sort((a,b)=>String(b.date).localeCompare(String(a.date))), f=UI.hseIf||'open'; const R=L.filter(i=>f==='all'||(f==='open'?i.status!=='Closed':f==='nm'?i.type==='Near miss':i.type!=='Near miss'));
+  return `<div class="toolbar"><div class="seg">${[['open','Open'],['inc','Incidents'],['nm','Near misses'],['all','All']].map(([k,l])=>`<button data-hse="if:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div></div>
+  ${R.length?`<div class="card hse-list">${R.map(i=>`<div class="hse-row" data-hse="open:inc:${esc(i.id)}"><span class="hse-ic ${i.type==='Near miss'?'nm':hseSerious(i)?'bad':'inc'}">${i.type==='Near miss'?'!':'✚'}</span><div class="d"><b>${esc(i.title||i.type)}</b><small>${[esc(i.no||''),esc(i.type)+(i.outcome&&i.type==='Injury'?' – '+esc(i.outcome):''),esc(projName(i.project_id)),fmtD(i.date)].filter(Boolean).join(' · ')}</small></div>${hseChip(i.status||'Reported')}</div>`).join('')}</div>`:hseEmpty(f==='open'?'No open incidents. 👍':'Nothing recorded yet.')}`; }
+function hseObsTab(){ const L=hL('hse_obs').sort((a,b)=>String(b.date||b.updated_at).localeCompare(String(a.date||a.updated_at))), f=UI.hseOf||'Open', R=L.filter(o=>f==='all'||(o.status||'Open')===f);
+  return `<div class="toolbar"><div class="seg">${[['Open','Open'],['Closed','Closed'],['all','All']].map(([k,l])=>`<button data-hse="of:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div></div>
+  ${R.length?`<div class="card hse-list">${R.map(o=>`<div class="hse-row" data-hse="open:obs:${esc(o.id)}"><span class="hse-ic ${o.type==='Good practice'?'good':'haz'}">${o.type==='Good practice'?'✓':'⚠'}</span><div class="d"><b>${esc(o.desc||o.type)}</b><small>${[esc(o.type),esc(projName(o.project_id)),esc(o.location||''),fmtD(o.date),o.anon?'Anonymous':esc(o.by||'')].filter(Boolean).join(' · ')}</small></div>${(o.photos||[]).length?'<span class="sub">📷</span>':''}${hseChip(o.status||'Open')}</div>`).join('')}</div>`:hseEmpty('No hazards here.')}`; }
+function hseInspTab(){ const L=hL('hse_insp').sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  return L.length?`<div class="card hse-list">${L.map(x=>{ const no=(x.items||[]).filter(i=>i.a==='No').length; return `<div class="hse-row" data-hse="open:insp:${esc(x.id)}"><span class="hse-ic ${x.score>=90?'good':x.score>=70?'haz':'bad'}">${x.score==null?'–':x.score}</span><div class="d"><b>${esc(projName(x.project_id))}</b><small>${[fmtD(x.date),esc(x.by||''),no?no+' item'+(no>1?'s':'')+' not OK':'all OK'].filter(Boolean).join(' · ')}</small></div>${(x.actions||[]).some(a=>!a.done)?'<span class="chip amb">Actions open</span>':'<span class="chip good">Closed</span>'}</div>`; }).join('')}</div>`:hseEmpty('No inspections yet. Click “New inspection” to do the first one on your phone.'); }
+function hseActsTab(){ const sid=myStaffId(), f=UI.hseAf||(hseMyActs().length?'mine':'open'), H=isHSE(); let A=hseActions(); A=A.filter(a=>f==='done'?a.done:!a.done).filter(a=>f!=='mine'||a.owner===sid).sort((a,b)=>String(a.due||'9').localeCompare(String(b.due||'9')));
+  return `<div class="toolbar"><div class="seg">${[['mine','Mine'],['open','All open'],['done','Done']].map(([k,l])=>`<button data-hse="af:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div></div>
+  ${A.length?`<div class="card hse-list">${A.map(a=>`<div class="hse-row" data-hse="open:${a.col.slice(4)}:${esc(a.rid)}"><label class="hse-tick" title="${H||a.owner===sid?'Mark done':'Only the owner or the HSE team can close this'}"><input type="checkbox" data-hse="done:${a.col}:${esc(a.rid)}:${a.k}" ${a.done?'checked':''} ${H||a.owner===sid?'':'disabled'}></label><div class="d"><b>${esc(a.t)}</b><small>${[esc(a.src),esc(projName(a.proj)),esc(staffName(a.owner))].filter(Boolean).join(' · ')}</small></div>${hseDue(a)}</div>`).join('')}</div>`:hseEmpty(f==='mine'?'No safety actions assigned to you.':'No actions here.')}`; }
+function hsePermitTab(){ const H=isHSE(), now=new Date().toISOString().slice(0,16), L=hL('hse_permit').sort((a,b)=>String(b.from).localeCompare(String(a.from))), f=UI.hsePf||'Active', R=L.filter(p=>f==='all'||p.status===f);
+  return `${H&&canWrite?`<div class="card"><div class="bd hse-ptypes"><span class="label">Issue a permit</span>${Object.keys(HSE_PERMITS).map(k=>`<button class="btn sm" data-hse="permit:${esc(k)}">${esc(k)}</button>`).join('')}</div></div>`:''}
+  <div class="toolbar"><div class="seg">${[['Active','Active'],['Closed','Closed'],['all','All']].map(([k,l])=>`<button data-hse="pf:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div></div>
+  ${R.length?`<div class="card hse-list">${R.map(p=>{ const exp=p.status==='Active'&&p.to&&p.to<now; return `<div class="hse-row"><span class="hse-ic ${exp?'bad':p.status==='Active'?'haz':'good'}">P</span><div class="d"><b>${esc(p.no||'')} · ${esc(p.type)}</b><small>${[esc(p.desc||''),esc(projName(p.project_id)),esc(p.location||''),'to '+esc(staffName(p.issued_to)),fmtDT(p.from)+' – '+fmtDT(p.to)].filter(Boolean).join(' · ')}</small></div>${exp?'<span class="chip bad">Expired – close it</span>':hseChip(p.status)}${H&&p.status==='Active'?`<button class="btn sm" data-hse="pclose:${esc(p.id)}">Close</button>`:''}${H?`<button class="btn sm" data-hse="pdoc:${esc(p.id)}" title="Word copy to print and sign">Word</button>`:''}</div>`; }).join('')}</div>`:hseEmpty('No permits here.')}`; }
+function hseTbtTab(){ const L=hL('hse_tbt').sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  return L.length?`<div class="card hse-list">${L.map(x=>`<div class="hse-row" data-hse="tbt:${esc(x.id)}"><span class="hse-ic good">${(x.attendees||[]).length+(+x.casual||0)}</span><div class="d"><b>${esc(x.topic||'Toolbox talk')}</b><small>${[fmtD(x.date),esc(projName(x.project_id)),x.presenter?'by '+esc(x.presenter):''].filter(Boolean).join(' · ')}</small></div><span class="sub">attendees</span></div>`).join('')}</div>`:hseEmpty('No toolbox talks recorded yet.'); }
+function hseTrainTab(){ const H=isHSE(), f=UI.hseTf||'all', L=hL('hse_train').map(c=>({...c,d:c.expires?daysLeft(c.expires+'T23:59'):null})).filter(c=>f==='all'||(c.d!=null&&c.d<=60)).sort((a,b)=>String(a.name||staffName(a.staff_id)).localeCompare(String(b.name||staffName(b.staff_id)))||String(a.course).localeCompare(String(b.course)));
+  return `<div class="toolbar"><div class="seg">${[['all','All'],['due','Expiring / expired']].map(([k,l])=>`<button data-hse="tf:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Course / certificate</th><th class="hide-m">Certificate no.</th><th>Expires</th></tr></thead><tbody>
+  ${L.map(c=>`<tr ${H?`class="click" data-hse="cert:${esc(c.id)}"`:''}><td class="ttl2">${esc(c.staff_id?staffName(c.staff_id):c.name||'')}</td><td>${esc(c.course)}${c.provider?`<div class="sub">${esc(c.provider)}</div>`:''}</td><td class="hide-m mono small">${esc(c.cert_no||'')}</td><td>${c.expires?`<span class="chip ${c.d<0?'bad':c.d<=30?'amb':'good'}">${c.d<0?'Expired ':''}${fmtD(c.expires)}</span>`:'<span class="sub">no expiry</span>'}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty">No certificates recorded.</div></td></tr>'}</tbody></table></div></div>`; }
+function hsePpeTab(){ const st=hL('hse_stock'), L=hL('hse_ppe').sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,100);
+  return `<div class="card"><div class="hd"><h2>Stock</h2></div><div class="bd hse-stock">${HSE_PPE.map(it=>{ const s=st.find(x=>x.item===it); if(!s) return ''; const low=s.min!=null&&+s.stock<=+s.min; return `<div class="${low?'low':''}"><b class="num">${+s.stock||0}</b><span>${esc(it)}</span>${low?'<small>Low – reorder</small>':`<small>min ${s.min??'—'}</small>`}</div>`; }).join('')||'<span class="sub">No stock recorded yet – use “Update stock”.</span>'}</div></div>
+  <div class="card"><div class="hd"><h2>Issued</h2></div><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Person</th><th>Item</th><th class="r">Qty</th><th class="hide-m">Project</th></tr></thead><tbody>
+  ${L.map(p=>`<tr><td class="small">${fmtD(p.date)}</td><td class="ttl2">${esc(p.staff_id?staffName(p.staff_id):p.name||'')}</td><td>${esc(p.item)}${p.size?` <span class="sub">(${esc(p.size)})</span>`:''}</td><td class="r num">${esc(p.qty)}</td><td class="hide-m small">${esc(projName(p.project_id))}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty">No PPE issued yet.</div></td></tr>'}</tbody></table></div></div>`; }
+function hseSiteTab(){ const H=isHSE(), P=hseActProj();
+  return P.length?`<div class="hse-sites">${P.map(p=>{ const e=byId('hse_site',p.id)||{}, r=(l,v)=>v?`<div><span>${l}</span><b>${esc(v)}</b></div>`:''; return `<div class="card"><div class="hd"><h2>${esc(p.name)}</h2><div class="sp"></div>${H?`<button class="btn sm" data-hse="site:${esc(p.id)}">Edit</button><button class="btn sm" data-hse="sdoc:${esc(p.id)}">Poster</button>`:''}</div><div class="bd hse-emerg">
+      ${r('Site contact',[e.contact,e.contact_phone].filter(Boolean).join(' · '))}${r('Nearest hospital',[e.hospital,e.hospital_phone].filter(Boolean).join(' · '))}${r('Ambulance',e.ambulance)}${r('Police',e.police)}${r('Fire brigade',e.fire)}${r('Assembly point',e.muster)}${r('First aiders',(e.first_aiders||[]).map(staffName).join(', '))}${r('Notes',e.notes)}
+      ${Object.keys(e).filter(k=>!/^(id|updated|project)/.test(k)).length?'':'<span class="sub">Not filled in yet.</span>'}</div></div>`; }).join('')}</div>`:hseEmpty('No active projects.'); }
+
+/* ---------- detail drawer ---------- */
+function hseDrawer(){ const k=drawer.k, c='hse_'+k, r=byId(c,drawer.id); if(!r) return ''; const H=isHSE(), sid=myStaffId(), mine=r.by_uid&&r.by_uid===me.id;
+  const row=(l,v)=>v?`<tr><th>${l}</th><td>${v}</td></tr>`:'';
+  const photos=(r.photos||[]).length?`<div class="photos" style="margin:10px 0">${r.photos.map(p=>photoTag(p)).join('')}</div>`:'';
+  const acts=`<div class="hse-acts"><div class="label">Corrective actions</div>${(r.actions||[]).map((a,i)=>`<div class="hse-act ${a.done?'done':''}"><input type="checkbox" data-hse="done:${c}:${esc(r.id)}:${i}" ${a.done?'checked':''} ${H||a.owner===sid?'':'disabled'}><div class="d"><b>${esc(a.t)}</b><small>${esc(staffName(a.owner))}${a.done?` · done ${fmtD(a.done_at)}${a.done_by?' by '+esc(a.done_by):''}`:''}</small></div>${hseDue(a)}${H?`<button class="btn sm" data-hse="adel:${c}:${esc(r.id)}:${i}" title="Remove">✕</button>`:''}</div>`).join('')||'<p class="sub">No actions yet.</p>'}
+    ${H?`<div class="hse-addact"><input class="inp" id="hseAT" placeholder="New action – what must be done?"><select class="inp" id="hseAO">${hseStaffOpts('Who does it').map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select><input class="inp" id="hseAD" type="date"><button class="btn pri" data-hse="aadd:${c}:${esc(r.id)}">Add</button></div>`:''}</div>`;
+  if(k==='inc'){ const st=r.status||'Reported', inj=r.type==='Injury';
+    const flow=H?`<div class="toolbar">${st==='Reported'?`<button class="btn pri" data-hse="ist:${esc(r.id)}:Investigating">Start investigation</button>`:''}${['Reported','Investigating'].includes(st)?`<button class="btn" data-hse="ist:${esc(r.id)}:Actions">Investigation done → actions</button>`:''}${st!=='Closed'?`<button class="btn" data-hse="ist:${esc(r.id)}:Closed">Close incident</button>`:`<button class="btn" data-hse="ist:${esc(r.id)}:Actions">Re-open</button>`}</div>`:'';
+    const inv=`<div class="label" style="margin-top:14px">Investigation</div>${H?`<div class="form"><div class="fld"><label>Root cause</label><select class="inp" id="hseRC">${HSE_ROOT.map(x=>`<option ${x===(r.root_cause||'')?'selected':''}>${esc(x)}</option>`).join('')}</select></div><div class="fld full"><label>What happened and why (findings)</label><textarea class="inp" id="hseRF">${esc(r.findings||'')}</textarea></div></div><button class="btn sm" data-hse="isave:${esc(r.id)}">Save investigation</button>`:`<p>${esc(r.root_cause||'Not investigated yet.')}${r.findings?' – '+esc(r.findings):''}</p>`}`;
+    const legal=inj||r.type==='Dangerous occurrence'?`<div class="banner ${r.osha_at?'':'warn'}"><div><b>OSHA${inj&&hseRec(r)?' & WCF':''}.</b> ${r.osha_at?'OSHA notified '+fmtD(r.osha_at)+'.':'Report this accident to OSHA.'} ${inj&&hseRec(r)?(r.wcf_at?'WCF notified '+fmtD(r.wcf_at)+'.':'A Workers Compensation Fund (WCF) claim may be needed.'):''}</div><button class="btn sm" data-hse="osha:${esc(r.id)}">Accident report (Word)</button>${H&&!r.osha_at?`<button class="btn sm" data-hse="iflag:${esc(r.id)}:osha_at">Mark OSHA notified</button>`:''}${H&&inj&&hseRec(r)&&!r.wcf_at?`<button class="btn sm" data-hse="iflag:${esc(r.id)}:wcf_at">Mark WCF notified</button>`:''}</div>`:'';
+    return drawerShell(r.title||r.type,`${esc(r.no||'')} · ${esc(r.type)}`,`<div class="toolbar">${hseChip(st)}${inj&&r.outcome?`<span class="chip ${hseLTI(r)?'bad':'amb'}">${esc(r.outcome)}</span>`:''}${r.severity?`<span class="chip">${esc(r.severity)}</span>`:''}</div>
+      <table class="kv">${row('When',fmtD(r.date)+(r.time?' '+esc(r.time):''))}${row('Project',esc(projName(r.project_id)))}${row('Where',esc(r.location||''))}${row('Person involved',esc(r.person_id?staffName(r.person_id):r.person||''))}${row('Injury',esc(r.injury||''))}${row('Days lost',r.lost_days?esc(r.lost_days):'')}${row('Witnesses',esc(r.witnesses||''))}${row('Reported by',esc(r.by||'')+(r.reported_at?' · '+fmtDT(r.reported_at):''))}</table>
+      <p style="white-space:pre-wrap">${esc(r.desc||'')}</p>${r.immediate?`<p><b>Immediate action:</b> ${esc(r.immediate)}</p>`:''}${photos}${legal}${inv}${acts}`,
+      `${flow}<div class="sp"></div>${H||(mine&&st==='Reported')?`<button class="btn" data-hse="iedit:${esc(r.id)}">Edit</button>`:''}${H?`<button class="btn danger" data-hse="del:${c}:${esc(r.id)}">Delete</button>`:''}`); }
+  if(k==='obs'){ const st=r.status||'Open';
+    return drawerShell(r.type||'Hazard',`Hazard · ${esc(projName(r.project_id))}`,`<div class="toolbar">${hseChip(st)}<span class="sub">${fmtD(r.date)} · ${r.anon?'Anonymous':esc(r.by||'')}</span></div><table class="kv">${row('Where',esc(r.location||''))}</table><p style="white-space:pre-wrap">${esc(r.desc||'')}</p>${photos}${acts}`,
+      `${H?(st!=='Closed'?`<button class="btn pri" data-hse="ost:${esc(r.id)}:Closed">Close – hazard removed</button>`:`<button class="btn" data-hse="ost:${esc(r.id)}:Open">Re-open</button>`):''}<div class="sp"></div>${H?`<button class="btn danger" data-hse="del:${c}:${esc(r.id)}">Delete</button>`:''}`); }
+  if(k==='insp'){ return drawerShell('Site inspection',`${esc(projName(r.project_id))} · ${fmtD(r.date)}`,`<div class="toolbar"><span class="chip ${r.score>=90?'good':r.score>=70?'amb':'bad'}">Score ${r.score}%</span><span class="sub">by ${esc(r.by||'')}</span></div>
+      <table class="kv">${(r.items||[]).map(i=>`<tr><th>${esc(i.q)}</th><td><span class="chip ${i.a==='Yes'?'good':i.a==='No'?'bad':''}">${esc(i.a||'—')}</span>${i.note?` <span class="sub">${esc(i.note)}</span>`:''}</td></tr>`).join('')}</table>${r.notes?`<p>${esc(r.notes)}</p>`:''}${photos}${acts}`,
+      `<div class="sp"></div>${H?`<button class="btn danger" data-hse="del:${c}:${esc(r.id)}">Delete</button>`:''}`); }
+  return ''; }
+
+/* ---------- inspection form (drawer type hseinsp) ---------- */
+function hseInspForm(){ const v=drawer.v||{};
+  return drawerShell('New site inspection','Tap Yes / No / N/A for each item',`<div class="form"><div class="fld"><label>Project *</label><select class="inp" id="hiP">${projOpts('— choose —').map(([a,b])=>`<option value="${esc(a)}">${esc(b)}</option>`).join('')}</select></div><div class="fld"><label>Date</label><input class="inp" id="hiD" type="date" value="${today()}"></div></div>
+    ${HSE_CHECK.map(([g,Q],gi)=>`<div class="label" style="margin-top:12px">${esc(g)}</div>${Q.map((q,qi)=>{ const id=`hi_${gi}_${qi}`; return `<div class="hse-q" data-q="${esc(q)}" id="${id}"><span>${esc(q)}</span><div class="seg">${['Yes','No','N/A'].map(a=>`<button type="button" data-hse="qa:${id}:${a}" aria-pressed="false">${a}</button>`).join('')}</div><input class="inp hse-qn" placeholder="What is wrong? (becomes an action)" hidden><select class="inp hse-qo" hidden>${hseStaffOpts('Who fixes it').map(([a,b])=>`<option value="${esc(a)}">${esc(b)}</option>`).join('')}</select></div>`; }).join('')}`).join('')}
+    <div class="fld full" style="margin-top:12px"><label>Other notes</label><textarea class="inp" id="hiN"></textarea></div>`,
+    `<button class="btn pri" data-hse="isub">Save inspection</button><button class="btn" data-act="close">Cancel</button>`); }
+
+/* ---------- reports (Word) ---------- */
+async function hseWord(name,body){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } const b=oxDocx(body); if(b) await oxSave(name,b,'docx'); }
+function hseOshaBody(r){ const c=company();
+  return `${oxP('ACCIDENT / DANGEROUS OCCURRENCE REPORT',{style:'Title'})}${oxHint('For notification to the Occupational Safety and Health Authority (OSHA)'+(hseRec(r)?' and the Workers Compensation Fund (WCF)':''))}
+  ${oxH('1. Employer',2)}${poInfo([['Employer',c.name||''],['Address',[c.address,c.pobox].filter(Boolean).join(', ')],['Phone / email',[c.phone,c.email].filter(Boolean).join(' · ')],['Workplace / project',projName(r.project_id)],['Exact location',r.location||'']])}
+  ${oxH('2. Occurrence',2)}${poInfo([['Reference',r.no||''],['Type',r.type+(r.outcome?' – '+r.outcome:'')],['Date and time',fmtD(r.date)+(r.time?' '+r.time:'')],['Severity',r.severity||'']])}
+  ${oxH('3. Person involved',2)}${poInfo([['Name',r.person_id?staffName(r.person_id):r.person||''],['Position',(byId('staff',r.person_id)||{}).position||''],['Nature of injury / body part',r.injury||''],['Days lost',String(r.lost_days||'')]])}
+  ${oxH('4. Description',2)}${oxP(r.desc||'')}${r.immediate?oxP([oxR('Immediate action taken: ',{b:true}),oxR(r.immediate)]):''}${r.witnesses?oxP([oxR('Witnesses: ',{b:true}),oxR(r.witnesses)]):''}
+  ${oxH('5. Investigation',2)}${oxP([oxR('Root cause: ',{b:true}),oxR(r.root_cause||'Under investigation')])}${r.findings?oxP(r.findings):''}
+  ${oxH('6. Corrective actions',2)}${(r.actions||[]).length?oxTbl([['No.','Action','Responsible','Due','Status'],...r.actions.map((a,i)=>[String(i+1),a.t,staffName(a.owner),fmtD(a.due),a.done?'Done':'Open'])],{widths:[600,4400,2000,1400,1340]}):oxP('To be agreed.')}
+  ${poSign()}`; }
+function hseMonthBody(m){ const c=company(), F=x=>String(x.date||'').startsWith(m), inc=hL('hse_inc').filter(F), obs=hL('hse_obs').filter(F), ins=hL('hse_insp').filter(F), tbt=hL('hse_tbt').filter(F), per=hL('hse_permit').filter(p=>String(p.from||'').startsWith(m)), ppe=hL('hse_ppe').filter(F), s=hseStats(), A=hseActions().filter(a=>!a.done);
+  const certs=hL('hse_train').filter(t=>t.expires&&t.expires<=ymd(new Date(Date.now()+60*864e5)));
+  return `${oxP('HEALTH & SAFETY MONTHLY REPORT',{style:'Title'})}${oxP(hseIsoMonth(m)+' · '+(c.name||''),{b:true})}
+  ${oxH('1. Key figures',2)}${poInfo([['Days without lost-time injury',s.days==null?'No LTI recorded':String(s.days)],['LTIFR / TRIR (12 months)',(s.ltifr==null?'—':s.ltifr.toFixed(2))+' / '+(s.trir==null?'—':s.trir.toFixed(2))],['Man-hours this month',String((byId('hse_hours',m)||{}).hours||'—')],['Incidents / near misses',`${inc.filter(i=>i.type!=='Near miss').length} / ${inc.filter(i=>i.type==='Near miss').length}`],['Hazards reported',String(obs.length)],['Inspections (average score)',`${ins.length}${ins.length?' ('+Math.round(ins.reduce((a,x)=>a+(+x.score||0),0)/ins.length)+'%)':''}`],['Toolbox talks (attendances)',`${tbt.length} (${tbt.reduce((a,t)=>a+(t.attendees||[]).length+(+t.casual||0),0)})`],['Permits issued',String(per.length)],['PPE items issued',String(ppe.reduce((a,p)=>a+(+p.qty||0),0))],['Open corrective actions',`${A.length} (${A.filter(a=>a.due&&a.due<today()).length} overdue)`]])}
+  ${oxH('2. Incidents and near misses',2)}${inc.length?oxTbl([['Ref','Date','Type','Project','Description','Status'],...inc.map(i=>[i.no||'',fmtD(i.date),i.type+(i.outcome?' – '+i.outcome:''),projName(i.project_id),String(i.desc||'').slice(0,160),HSE_STL[i.status]||i.status||''])],{widths:[1100,1000,1500,1600,3240,1300]}):oxP('None reported this month.')}
+  ${oxH('3. Inspections',2)}${ins.length?oxTbl([['Date','Project','Score','Items not OK','By'],...ins.map(x=>[fmtD(x.date),projName(x.project_id),(x.score??'')+'%',(x.items||[]).filter(i=>i.a==='No').map(i=>i.q).join('; '),x.by||''])],{widths:[1100,2000,900,4140,1600]}):oxP('No inspections recorded.')}
+  ${oxH('4. Toolbox talks',2)}${tbt.length?oxTbl([['Date','Project','Topic','Attendees'],...tbt.map(t=>[fmtD(t.date),projName(t.project_id),t.topic||'',String((t.attendees||[]).length+(+t.casual||0))])],{widths:[1200,2600,4640,1300]}):oxP('No toolbox talks recorded.')}
+  ${oxH('5. Open corrective actions',2)}${A.length?oxTbl([['Action','Source','Responsible','Due'],...A.map(a=>[a.t,a.src,staffName(a.owner),fmtD(a.due)])],{widths:[4140,1900,2200,1500]}):oxP('All actions closed.')}
+  ${oxH('6. Certificates expiring (next 60 days)',2)}${certs.length?oxTbl([['Person','Certificate','Expires'],...certs.map(t=>[t.staff_id?staffName(t.staff_id):t.name||'',t.course,fmtD(t.expires)])],{widths:[3400,4140,2200]}):oxP('None.')}
+  ${poSign()}`; }
+function hsePermitBody(p){ const T=HSE_PERMITS[p.type]||{p:[]};
+  return `${oxP('PERMIT TO WORK – '+String(p.type).toUpperCase(),{style:'Title'})}${poInfo([['Permit No.',p.no||''],['Project',projName(p.project_id)],['Location',p.location||''],['Work to be done',p.desc||''],['Issued to',staffName(p.issued_to)],['Valid from',fmtDT(p.from)],['Valid until',fmtDT(p.to)],['Issued by',p.issued_by||'']])}
+  ${oxH('Precautions confirmed',2)}${oxTbl([['Precaution','Confirmed'],...T.p.map(x=>[x,(p.checks||[]).includes(x)?'Yes':'No'])],{widths:[7740,2000]})}
+  ${oxH('Sign-off',2)}${oxTbl([['','Name','Signature','Date / time'],['Issued by',p.issued_by||'','',''],['Accepted by (person doing the work)',staffName(p.issued_to),'',''],['Work completed – area safe','','',''],['Permit closed by',p.closed_by||'','','']],{widths:[2800,2500,2240,2200]})}`; }
+function hseSiteBody(p){ const e=byId('hse_site',p.id)||{};
+  return `${oxP('EMERGENCY INFORMATION',{style:'Title'})}${oxP(p.name,{b:true,sz:32})}${poInfo([['Site contact',[e.contact,e.contact_phone].filter(Boolean).join(' – ')],['Nearest hospital',[e.hospital,e.hospital_phone].filter(Boolean).join(' – ')],['Ambulance',e.ambulance||''],['Police',e.police||''],['Fire brigade',e.fire||''],['Assembly point',e.muster||''],['First aiders',(e.first_aiders||[]).map(staffName).join(', ')]])}${e.notes?oxP(e.notes):''}
+  ${oxH('In an emergency',2)}${oxP('1. Stop work and make the area safe. 2. Call the site contact and the emergency number. 3. Give first aid only if trained. 4. Go to the assembly point and wait for the head count. 5. Report the incident in NEXUS.')}`; }
+
+/* ---------- forms ---------- */
+function hseIncFields(){ return [{k:'title',label:'Short title',req:1,full:1,ph:'e.g. Worker slipped on wet formwork'},{k:'type',label:'Type',type:'select',options:HSE_INC_TYPES},{k:'outcome',label:'Injury outcome (injuries only)',type:'select',options:['',...HSE_OUT]},{k:'severity',label:'Severity',type:'select',options:HSE_SEV},
+  {k:'date',label:'Date',type:'date',req:1},{k:'time',label:'Time',type:'time'},{k:'project_id',label:'Project',type:'select',options:projOpts('— office / other —')},{k:'location',label:'Exact location',ph:'e.g. Block B, 2nd floor slab'},
+  {k:'person_id',label:'Person involved (staff)',type:'select',options:hseStaffOpts('— not staff / nobody —')},{k:'person',label:'…or name (casual worker / visitor)'},{k:'injury',label:'Injury and body part',ph:'e.g. cut on left hand'},{k:'lost_days',label:'Days lost',type:'number'},
+  {k:'desc',label:'What happened?',type:'textarea',req:1,full:1},{k:'immediate',label:'Immediate action taken',type:'textarea',full:1},{k:'witnesses',label:'Witnesses',full:1},{k:'photos',label:'Photos',type:'photos'}]; }
+async function hseSaveInc(v,id){ if(v.type!=='Injury') v.outcome=''; const r=id?(await patch('hse_inc',id,v),id):await put('hse_inc',null,{...v,no:hseNo('hse_inc','INC'),status:'Reported',by:me.name||'',by_uid:me.id||'',reported_at:new Date().toISOString(),actions:[]});
+  if(r&&!id) logAct(`Reported ${v.type.toLowerCase()}: ${v.title}`); return !!r; }
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-hse]'); if(!el) return; if(el.tagName==='INPUT'&&el.type==='checkbox') return;
+  const [a,...R]=el.dataset.hse.split(':'), x=R[0], y=R[1], z=R[2]; const H=isHSE();
+  if(a==='tab'){ UI.hset=x; return renderView(true); }
+  if(['if','of','af','pf','tf'].includes(a)){ UI['hse'+a[0].toUpperCase()+'f']=x; return renderView(true); }
+  if(a==='open'){ if(e.target.closest('label,input')) return; return openDrawer('hse',y,{k:x}); }
+  if(a==='newinc') return formDrawer('Report an incident or near miss',hseIncFields(),{type:'Near miss',severity:'Minor',date:today(),time:new Date().toTimeString().slice(0,5)},v=>hseSaveInc(v),{saveLabel:'Send report',sub:'The HSE team is alerted immediately'});
+  if(a==='iedit'){ const r=byId('hse_inc',x); if(r) formDrawer('Edit incident',hseIncFields(),r,v=>hseSaveInc(v,x)); return; }
+  if(a==='newobs') return formDrawer('Report a hazard',[{k:'type',label:'What is it?',type:'select',options:HSE_OBS_TYPES},{k:'project_id',label:'Project',type:'select',options:projOpts('— office / other —')},{k:'location',label:'Where exactly?'},{k:'desc',label:'Describe it',type:'textarea',req:1,full:1,ph:'e.g. No guardrail at the 1st floor slab edge'},{k:'photos',label:'Photo',type:'photos'},{k:'anon',label:'Report anonymously?',type:'select',options:[['','No – show my name'],['1','Yes – hide my name']]}],{type:'Unsafe condition'},async v=>{ const an=v.anon==='1'; const d={...v,anon:an,date:today(),status:'Open',actions:[]}; if(!an){ d.by=me.name||''; d.by_uid=me.id||''; } const r=await put('hse_obs',null,d); if(r&&!an) logAct('Reported a hazard'); return !!r; },{saveLabel:'Send',sub:'Takes 30 seconds – thank you for keeping the site safe'});
+  if(a==='newinsp'){ openDrawer('hseinsp',null,{form:true}); return; }
+  if(a==='qa'){ const q=document.getElementById(x); if(!q) return; q.dataset.a=y; q.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.textContent===y)); q.querySelector('.hse-qn').hidden=y!=='No'; q.querySelector('.hse-qo').hidden=y!=='No'; return; }
+  if(a==='isub'){ const pid=$('#hiP')?.value; if(!pid) return toast('Choose the project.'); const items=[...document.querySelectorAll('.hse-q')].map(q=>({q:q.dataset.q,a:q.dataset.a||'',note:q.querySelector('.hse-qn').value.trim(),owner:q.querySelector('.hse-qo').value}));
+    if(!items.some(i=>i.a)) return toast('Answer at least one item.'); const yes=items.filter(i=>i.a==='Yes').length, no=items.filter(i=>i.a==='No').length;
+    const due=ymd(new Date(Date.now()+3*864e5)), actions=items.filter(i=>i.a==='No').map(i=>({id:uid(),t:i.note||('Fix: '+i.q),owner:i.owner||'',due,done:false}));
+    el.disabled=true; const r=await put('hse_insp',null,{project_id:pid,date:$('#hiD').value||today(),items:items.map(({owner,...i})=>i),score:yes+no?Math.round(yes/(yes+no)*100):100,notes:$('#hiN').value.trim(),actions,by:me.name||'',by_uid:me.id||''}); el.disabled=false;
+    if(r){ closeDrawer(); logAct(`Site inspection – ${projName(pid)}`); toast(no?`Saved – ${no} action${no>1?'s':''} created.`:'Saved – all OK.'); } return; }
+  if(a==='newtbt'||a==='tbt'){ const r=a==='tbt'?byId('hse_tbt',x):null; if(r&&!(H||r.by_uid===me.id)) return toast('Only the person who recorded it or the HSE team can change it.');
+    return formDrawer(r?'Toolbox talk':'Record a toolbox talk',[{k:'date',label:'Date',type:'date',req:1},{k:'project_id',label:'Project',type:'select',options:projOpts('— office / other —')},{k:'topic',label:'Topic',req:1,ph:HSE_TBT_TOPICS.slice(0,4).join(', ')+'…'},{k:'presenter',label:'Given by'},{k:'attendees',label:'Staff who attended',type:'checks',options:S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name]),empty:'No staff on the Staff page yet.'},{k:'casual',label:'Other workers (number)',type:'number'},{k:'notes',label:'Notes / questions raised',type:'textarea',full:1},{k:'photos',label:'Photo of the attendance sheet',type:'photos'}],
+      r||{date:today(),presenter:me.name||''},async v=>{ const ok=r?(await patch('hse_tbt',r.id,v),true):await put('hse_tbt',null,{...v,by:me.name||'',by_uid:me.id||''}); if(ok&&!r) logAct(`Toolbox talk: ${v.topic}`); return !!ok; },{delOk:H,onDelete:r?async()=>remove('hse_tbt',r.id):null}); }
+  if(a==='permit'){ const T=HSE_PERMITS[x]; if(!T) return; const now=new Date(), end=new Date(now.getTime()+8*36e5), loc=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16);
+    return formDrawer('Permit to work – '+x,[{k:'project_id',label:'Project',type:'select',options:projOpts('— choose —'),req:1},{k:'location',label:'Location',req:1},{k:'desc',label:'Work to be done',type:'textarea',req:1,full:1},{k:'issued_to',label:'Issued to (person in charge of the work)',type:'select',options:hseStaffOpts(),req:1},{k:'from',label:'Valid from',type:'datetime-local',req:1},{k:'to',label:'Valid until',type:'datetime-local',req:1},{k:'checks',label:'Precautions in place (all required)',type:'checks',options:T.p.map(p=>[p,p]),req:1}],{from:loc(now),to:loc(end)},async v=>{
+      if((v.checks||[]).length<T.p.length&&!await confirmBox('Not all precautions are ticked. Issue the permit anyway?','Issue anyway',true)) return false;
+      if(v.to<=v.from){ toast('“Valid until” must be after “Valid from”.'); return false; }
+      if(!hseCertOk(v.issued_to,T.c)&&!await confirmBox(`${staffName(v.issued_to)} has no valid “${T.c}” certificate in NEXUS. Issue the permit anyway?`,'Issue anyway',true)) return false;
+      const r=await put('hse_permit',null,{...v,type:x,no:hseNo('hse_permit','PTW'),status:'Active',issued_by:me.name||'',issued_at:new Date().toISOString()}); if(r) logAct(`Issued ${x} permit`); return !!r; },{saveLabel:'Issue permit'}); }
+  if(a==='pclose'){ const p=byId('hse_permit',x); if(!p||!await confirmBox(`Close permit ${p.no}? Confirm the work is finished and the area is safe.`,'Close permit')) return; await patch('hse_permit',x,{status:'Closed',closed_by:me.name||'',closed_at:new Date().toISOString()}); logAct(`Closed permit ${p.no}`); return; }
+  if(a==='pdoc'){ const p=byId('hse_permit',x); if(p) await hseWord(`${p.no} – Permit to work – ${p.type}`,hsePermitBody(p)); return; }
+  if(a==='newcert'||a==='cert'){ const r=a==='cert'?byId('hse_train',x):null;
+    return formDrawer(r?'Certificate':'Add a certificate',[{k:'staff_id',label:'Staff member',type:'select',options:hseStaffOpts('— not on the Staff page —')},{k:'name',label:'…or name (casual worker / subcontractor)'},{k:'course',label:'Course / certificate',type:'select',options:HSE_COURSES},{k:'cert_no',label:'Certificate number'},{k:'provider',label:'Training provider'},{k:'issued',label:'Issued',type:'date'},{k:'expires',label:'Expires',type:'date',help:'Leave empty if it does not expire.'}],r||{course:'HSE induction'},async v=>{ if(!v.staff_id&&!v.name){ toast('Choose a staff member or type a name.'); return false; } const ok=r?(await patch('hse_train',r.id,v),true):await put('hse_train',null,v); return !!ok; },{delOk:H,onDelete:r?async()=>remove('hse_train',r.id):null}); }
+  if(a==='stock') return formDrawer('Update PPE stock',[{k:'item',label:'Item',type:'select',options:HSE_PPE},{k:'add',label:'Quantity received (adds to stock)',type:'number'},{k:'set',label:'…or set the stock count to',type:'number'},{k:'min',label:'Reorder when stock falls to',type:'number'}],{item:HSE_PPE[0]},async v=>{ const id=v.item.toLowerCase().replace(/[^a-z0-9]+/g,'-'), s=byId('hse_stock',id)||{}; const stock=v.set!=null?+v.set:(+s.stock||0)+(+v.add||0); return !!await put('hse_stock',id,{item:v.item,stock,min:v.min!=null?+v.min:(s.min??null)}); },{saveLabel:'Save stock'});
+  if(a==='issue') return formDrawer('Issue PPE',[{k:'date',label:'Date',type:'date',req:1},{k:'staff_id',label:'Issued to (staff)',type:'select',options:hseStaffOpts('— not on the Staff page —')},{k:'name',label:'…or name'},{k:'item',label:'Item',type:'select',options:HSE_PPE},{k:'qty',label:'Quantity',type:'number',req:1},{k:'size',label:'Size'},{k:'project_id',label:'Project',type:'select',options:projOpts('— office / store —')}],{date:today(),qty:1,item:HSE_PPE[0]},async v=>{
+      if(!v.staff_id&&!v.name){ toast('Choose a staff member or type a name.'); return false; } const r=await put('hse_ppe',null,{...v,issued_by:me.name||''}); if(!r) return false;
+      const id=v.item.toLowerCase().replace(/[^a-z0-9]+/g,'-'), s=byId('hse_stock',id); if(s) await patch('hse_stock',id,{stock:Math.max(0,(+s.stock||0)-(+v.qty||0))}); return true; },{saveLabel:'Issue'});
+  if(a==='site'){ const p=byId('projects',x); if(!p) return; const e=byId('hse_site',x)||{};
+    return formDrawer('Emergency information – '+p.name,[{k:'contact',label:'Site contact person'},{k:'contact_phone',label:'Site contact phone'},{k:'hospital',label:'Nearest hospital / clinic'},{k:'hospital_phone',label:'Hospital phone'},{k:'ambulance',label:'Ambulance number'},{k:'police',label:'Police number'},{k:'fire',label:'Fire brigade number'},{k:'muster',label:'Assembly point',full:1},{k:'first_aiders',label:'Trained first aiders',type:'checks',options:S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name])},{k:'notes',label:'Other notes',type:'textarea',full:1}],e,async v=>!!await put('hse_site',x,{...v,project_id:x})); }
+  if(a==='sdoc'){ const p=byId('projects',x); if(p) await hseWord(`Emergency information – ${p.name}`,hseSiteBody(p)); return; }
+  if(a==='hours') return formDrawer('Man-hours worked',[{k:'month',label:'Month',type:'month',req:1},{k:'hours',label:'Total man-hours (all workers, all sites)',type:'number',req:1,help:'Workers × days × hours per day. Used for LTIFR and TRIR.'}],{month:today().slice(0,7),hours:(byId('hse_hours',today().slice(0,7))||{}).hours},async v=>!!await put('hse_hours',v.month,{month:v.month,hours:+v.hours}),{saveLabel:'Save'});
+  if(a==='monthly') return formDrawer('Monthly HSE report',[{k:'month',label:'Month',type:'month',req:1}],{month:today().slice(0,7)},async v=>{ await hseWord(`HSE monthly report – ${hseIsoMonth(v.month)}`,hseMonthBody(v.month)); return true; },{saveLabel:'Download Word report'});
+  if(a==='osha'){ const r=byId('hse_inc',x); if(r) await hseWord(`${r.no||'Incident'} – Accident report`,hseOshaBody(r)); return; }
+  if(a==='iflag'){ await patch('hse_inc',x,{[y]:today()}); return; }
+  if(a==='ist'){ const r=byId('hse_inc',x); if(!r) return; if(y==='Closed'&&(r.actions||[]).some(q=>!q.done)&&!await confirmBox('Some actions are still open. Close the incident anyway?','Close',true)) return;
+    await patch('hse_inc',x,{status:y,...(y==='Closed'?{closed_at:new Date().toISOString(),closed_by:me.name||''}:{}),...(y==='Investigating'&&!r.investigated_by?{investigated_by:me.name||''}:{})}); logAct(`Incident ${r.no}: ${y}`); return; }
+  if(a==='isave'){ await patch('hse_inc',x,{root_cause:$('#hseRC').value,findings:$('#hseRF').value.trim(),investigated_by:me.name||''}); toast('Investigation saved.'); return; }
+  if(a==='ost'){ await patch('hse_obs',x,{status:y,...(y==='Closed'?{closed_at:new Date().toISOString(),closed_by:me.name||''}:{})}); return; }
+  if(a==='aadd'){ const t=$('#hseAT').value.trim(); if(!t) return toast('Write the action first.'); const r=byId(x,y); if(!r) return; await patch(x,y,{actions:[...(r.actions||[]),{id:uid(),t,owner:$('#hseAO').value,due:$('#hseAD').value,done:false}],...(x==='hse_inc'&&r.status==='Investigating'?{status:'Actions'}:{})}); return; }
+  if(a==='adel'){ const r=byId(x,y); if(!r||!await confirmBox('Remove this action?','Remove',true)) return; await patch(x,y,{actions:(r.actions||[]).filter((_,i)=>i!==+z)}); return; }
+  if(a==='del'){ if(!await confirmBox('Delete this record for everyone?','Delete',true)) return; if(await remove(x,y)){ closeDrawer(); toast('Deleted.'); } return; }
+  if(a==='ai'){ const since=ymd(new Date(Date.now()-120*864e5)), F=x=>(x.date||'')>=since;
+    const data={incidents:hL('hse_inc').filter(F).map(i=>({date:i.date,type:i.type,outcome:i.outcome,project:projName(i.project_id),where:i.location,what:i.desc,cause:i.root_cause})),hazards:hL('hse_obs').filter(F).map(o=>({date:o.date,type:o.type,project:projName(o.project_id),what:o.desc,status:o.status})),
+      failed_inspection_items:hL('hse_insp').filter(F).flatMap(x=>(x.items||[]).filter(i=>i.a==='No').map(i=>({date:x.date,project:projName(x.project_id),item:i.q,note:i.note}))),site_report_hse_notes:(S.reports||[]).filter(r=>(r.date||'')>=since&&r.hse&&!/^none\b/i.test(r.hse)).map(r=>({date:r.date,project:projName(r.project_id),hse:r.hse})),open_actions:hseActions().filter(q=>!q.done).length};
+    const r=await ai('hse',()=>sample.json(`You are the HSE manager of a Tanzanian building and civil engineering contractor. Review the last 4 months of safety data below and find repeating hazards, risky projects or activities, gaps in inspections or training, and leading indicators of a serious accident. Be specific (name projects, dates, activities). If data is thin, say so and recommend what to start recording.\nDATA:${JSON.stringify(data)}\nReply with only JSON: {"summary":"2-3 sentences","patterns":[{"severity":"High"|"Medium"|"Low","title":"...","detail":"..."}],"actions":["practical action"]}`,{modelTier:'complex'}));
+    if(r){ UI.hseAI={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI safety trend check'); } return; }
+});
+document.addEventListener('change',async e=>{ const el=e.target;
+  if(el.matches&&el.matches('input[type=checkbox][data-hse^="done:"]')){ const [,c,id,k]=el.dataset.hse.split(':'), r=byId(c,id); if(!r) return; const A=[...(r.actions||[])]; if(!A[+k]) return;
+    A[+k]={...A[+k],done:el.checked,done_at:el.checked?new Date().toISOString():null,done_by:el.checked?(me.name||''):null}; await patch(c,id,{actions:A}); if(el.checked) logAct(`Closed safety action: ${A[+k].t}`); return; }
+  if(el.matches&&el.matches('input[data-hsephoto]')){ const k=el.dataset.hsephoto, box=document.getElementById('f_'+k); if(!box||!el.files.length) return; const refs=JSON.parse(box.dataset.v||'[]'); toast('Uploading photo…');
+    for(const f of el.files){ try{ refs.push(await storePhoto(f)); }catch(err){ toast('Photo upload failed: '+(err.message||err)); } }
+    box.dataset.v=JSON.stringify(refs); if(drawer){ drawer.values=drawer.values||{}; drawer.values[k]=refs; } box.querySelector('.hse-phs').innerHTML=refs.map(r=>photoTag(r)).join(''); el.value=''; return; }
+});
+function hsePhotoField(f,val){ const v=Array.isArray(val)?val:[]; return `<div class="fld full"><label>${esc(f.label)}</label><div id="f_${f.k}" class="hse-phf" data-v="${esc(JSON.stringify(v))}"><div class="hse-phs photos">${v.map(r=>photoTag(r)).join('')}</div><label class="btn sm">📷 Add photo<input type="file" accept="image/*" multiple hidden data-hsephoto="${f.k}"></label></div></div>`; }
+
+/* alerts & deadlines */
+function hseAlerts(A){ const sid=myStaffId(), now=new Date().toISOString().slice(0,16);
+  if(isHSE()){ hL('hse_inc').filter(i=>(i.status||'Reported')==='Reported').forEach(i=>A.push({lvl:hseSerious(i)?'bad':'warn',kind:i.type==='Near miss'?'Near miss reported':'Incident reported',text:`${i.no||''} ${i.title||i.type}`,sub:`${projName(i.project_id)} · ${fmtD(i.date)} · by ${i.by||''}`,go:['route','hse'],sort:hseSerious(i)?1:8,at:i.reported_at||i.updated_at}));
+    hL('hse_obs').filter(o=>(o.status||'Open')==='Open'&&!(o.actions||[]).length&&o.type!=='Good practice').forEach(o=>A.push({lvl:'warn',kind:'Hazard reported',text:String(o.desc||o.type).slice(0,80),sub:`${projName(o.project_id)}${o.location?' · '+o.location:''}`,go:['route','hse'],sort:9,at:o.updated_at}));
+    hL('hse_permit').filter(p=>p.status==='Active'&&p.to&&p.to<now).forEach(p=>A.push({lvl:'bad',kind:'Permit expired',text:`${p.no} ${p.type} – ${projName(p.project_id)}`,sub:'still open – close it or issue a new one',go:['route','hse'],sort:5,at:p.to}));
+    hL('hse_train').forEach(c=>{ if(!c.expires) return; const d=daysLeft(c.expires+'T23:59'); if(d<=30&&d>=-30) A.push({lvl:d<0?'bad':'warn',kind:'Certificate',text:`${c.staff_id?staffName(c.staff_id):c.name} – ${c.course}`,sub:d<0?'expired '+fmtD(c.expires):'expires '+fmtD(c.expires),go:['route','hse'],sort:22,at:atMinus(c.expires,30)}); });
+    hL('hse_stock').filter(s=>s.min!=null&&+s.stock<=+s.min).forEach(s=>A.push({lvl:'warn',kind:'PPE stock low',text:`${s.item}: ${+s.stock||0} left`,sub:'reorder',go:['route','hse'],sort:23,at:s.updated_at})); }
+  if(sid) hseMyActs().forEach(q=>{ const d=q.due?daysLeft(q.due+'T23:59'):99; if(d<=3) A.push({lvl:d<0?'bad':'warn',kind:'Safety action',text:q.t,sub:`${q.src} · ${d<0?'overdue since':'due'} ${fmtD(q.due)}`,go:['route','hse'],sort:d<0?3:11,at:atMinus(q.due,3)}); }); }
+function hseDeadlines(add){ const sid=myStaffId(), H=isHSE();
+  hseActions().filter(q=>!q.done&&q.due).forEach(q=>add(q.due,'task',`Safety action: ${q.t}`,`${q.src} · ${staffName(q.owner)}`,'go:hse',!!sid&&q.owner===sid));
+  if(H){ hL('hse_train').filter(c=>c.expires&&daysLeft(c.expires+'T23:59')<=90).forEach(c=>add(c.expires,'doc',`Certificate: ${c.course}`,c.staff_id?staffName(c.staff_id):c.name||'','go:hse',false));
+    hL('hse_permit').filter(p=>p.status==='Active'&&p.to).forEach(p=>add(p.to.slice(0,10),'task',`Permit ends: ${p.no} ${p.type}`,projName(p.project_id),'go:hse',true)); } }
+
+const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -3751,6 +4038,8 @@ function renderDrawer(){
   else if(t==='form'){ html=drawerShell(drawer.title,drawer.sub||'',`<div class="form">${drawer.fields.map(f=>field(f,drawer.values?.[f.k])).join('')}</div>`,`<button class="btn pri" data-act="saveForm">${esc(drawer.saveLabel||'Save')}</button><button class="btn" data-act="close">Cancel</button>${drawer.onDelete?`<div style="flex:1"></div><button class="btn danger" data-act="delForm">${esc(drawer.delLabel||'Delete')}</button>`:''}`); drawer.form=true; }
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
   else if(t==='p5val'){ const x=byId('valuations',drawer.id); if(!x) return closeDrawer(); html=valDrawer(x); }
+  else if(t==='hse'){ html=hseDrawer(); if(!html) return closeDrawer(); }
+  else if(t==='hseinsp'){ html=hseInspForm(); drawer.form=true; }
   else if(t==='p5po'){ const x=byId('po',drawer.id); if(!x) return closeDrawer(); html=poDrawer(x); }
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
@@ -3917,6 +4206,7 @@ function deadlineItems(){
   for(const l of lvToDecide()) add(l.from,'task',`Leave to approve: ${l.name}`,`${l.days} days from ${fmtD(l.from)}`,'go:hr',true);
   for(const o of poList()){ if(o.po_no&&['Ordered','Part-delivered'].includes(o.status)&&o.delivery_date) add(o.delivery_date,'purchase',`${o.po_no} ${o.item||''}`,`${o.supplier||''} · delivery due · ${poPct(o)}% received`,'go:procure',isProcOff());
     else if(o.status==='RFQ'&&o.due) add(o.due,'purchase',`${o.rfq_no} ${o.item||''}`,'Quotations due','go:procure',isProcOff()); }
+  if(typeof hseDeadlines==='function') hseDeadlines(add);
   for(const t of S.tasks||[]) if(!t.example&&t.due&&!/^(done|complete|closed)/i.test(t.status||'')) add(t.due,'task',t.title,staffName(t.assignee)||'Unassigned','go:tasks',sid&&t.assignee===sid);
   return out.sort((a,b)=>a.d.localeCompare(b.d));
 }
