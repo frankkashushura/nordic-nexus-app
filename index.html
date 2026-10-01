@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=121"></script>
+<script src="config.js?v=122"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=121"></script>
-<script src="nexus-chat.js?v=121"></script>
+<script src="nexus-sb.js?v=122"></script>
+<script src="nexus-chat.js?v=122"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6243,14 +6243,15 @@ const OXH_CSS=`
 .oxh-list .act button{background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:3px;color:#323130}.oxh-list .act button:hover{background:#E1DFDD}
 
 .oxh-apps{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 4px}.oxh-apps button{display:flex;flex-direction:column;align-items:center;gap:6px;width:86px;padding:10px 4px;border:1px solid transparent;background:none;border-radius:6px;cursor:pointer;font:12.5px 'Segoe UI',system-ui,Arial,sans-serif;color:#252423}.oxh-apps button:hover{background:#F3F2F1;border-color:#E1DFDD}
-.oxh-fill{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.oxh-fill button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;padding:10px 12px;cursor:pointer;font:13px 'Segoe UI',Arial;color:#252423}.oxh-fill button:hover{border-color:#03787C}.oxh-fill b{display:block}.oxh-fill small{color:#605E5C}
+.oxh-fill{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.oxh-fill button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;padding:10px 12px;cursor:pointer;font:13px 'Segoe UI',Arial;color:#252423}.oxh-fill button:hover{border-color:#03787C}.oxh-fill b{display:block}.oxh-fc{display:flex;flex-direction:column;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;overflow:hidden}.oxh-fc>button{border:0!important;border-radius:0!important;background:transparent!important}.oxh-fa{display:flex;justify-content:flex-end;gap:6px;padding:0 10px 8px}.oxh-fa button{border:1px solid #C8C6C4!important;background:#fff!important;border-radius:4px!important;padding:3px 10px!important;font:12px 'Segoe UI',Arial!important;color:#323130!important;cursor:pointer}.oxh-fa button.del{color:#A4262C!important;border-color:#E8B4B6!important}.oxh-fa button:hover{border-color:#605E5C!important}.oxh-fill small{color:#605E5C}
 @media (max-width:700px){.oxh-apps button{width:calc(33% - 8px)}.oxh-rail{display:none}.oxh-main{padding:14px}.oxh-list .hm{display:none}.oxh-new button{width:calc(50% - 7px)}}
 `;
 function pageOffice(){
   if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
   const f=UI.oxf||'all', q=(UI.oxq||'').toLowerCase();
   const list=oxDocs().filter(d=>OXA[d.type]&&(f==='all'||d.type===f||(f==='mine'&&d.owner_uid===me.id))&&(d.type!=='eml'||d.owner_uid===me.id||isAdmin||f==='eml')&&(!q||(d.title||'').toLowerCase().includes(q)||projName(d.project_id).toLowerCase().includes(q)||(d.to||'').toLowerCase().includes(q))).sort((a,b)=>String(b.sent_at||b.updated_at||'').localeCompare(String(a.sent_at||a.updated_at||'')));
-  const toFill=oxDocs().filter(d=>d.type==='form'&&d.open!==false&&(d.qs||[]).length&&d.owner_uid!==me.id);
+  const oxHid=(()=>{try{return JSON.parse(localStorage.getItem('nx_oxhide_'+me.id)||'[]')}catch(_){return []}})();
+  const toFill=oxDocs().filter(d=>d.type==='form'&&d.open!==false&&(d.qs||[]).length&&d.owner_uid!==me.id&&!oxHid.includes(d.id));
   const answered=new Set((S.formresp||[]).filter(r=>r.by_uid===me.id).map(r=>r.form_id));
   const hr=(new Date().getUTCHours()+3)%24, greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
   const tile=(act,type,pg,t,s,extra='')=>`<button data-oxh="${act}" ${extra}><div class="th"><div class="pg" style="${type?`border-top:4px solid ${OXA[type].color}`:''}">${pg}</div></div><div class="tn">${t}${s?`<small>${s}</small>`:''}</div></button>`;
@@ -6259,7 +6260,7 @@ function pageOffice(){
   return `<div class="oxh"><div class="oxh-rail"><button data-oxh="home"><span class="ic">⌂</span>Home</button>${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t)}${OXA[t].name}</button>`).join('')}<button data-oxh="openpc"><span class="ic">📂</span>Open</button><button data-go="records"><span class="ic">🗄</span>Records</button></div>
   <div class="oxh-main"><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">Word, Excel, PowerPoint, Project, Outlook and Forms – inside NEXUS. Everything is saved in NEXUS; <b>Download</b> gives a real Office file for use outside.</div>
    <div class="oxh-apps">${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t,36)}<span>${OXA[t].name}</span></button>`).join('')}</div>
-   ${toFill.length?`<div class="oxh-sec"><h2>Forms to fill in</h2></div><div class="oxh-fill">${toFill.slice(0,8).map(d=>`<button data-oxopen="${esc(d.id)}">${oxIco('form',30)}<span><b>${esc(d.title)}</b><small>${esc(d.owner||'')}${d.project_id?' · '+esc(projName(d.project_id)):''}${answered.has(d.id)?' · <span style="color:#107C41">✔ answered</span>':''}</small></span></button>`).join('')}</div>`:''}
+   ${toFill.length?`<div class="oxh-sec"><h2>Forms to fill in</h2></div><div class="oxh-fill">${toFill.slice(0,8).map(d=>`<div class="oxh-fc"><button data-oxopen="${esc(d.id)}">${oxIco('form',30)}<span><b>${esc(d.title)}</b><small>${esc(d.owner||'')}${d.project_id?' · '+esc(projName(d.project_id)):''}${answered.has(d.id)?' · <span style="color:#107C41">✔ answered</span>':''}</small></span></button><div class="oxh-fa"><button data-oxhide="${esc(d.id)}" title="Hide from my list">Hide</button>${isAdmin?`<button data-oxdel="${esc(d.id)}" title="Delete this form for everyone" class="del">Delete</button>`:''}</div></div>`).join('')}</div>`:''}
    <div class="oxh-sec"><h2>Start new</h2></div>
    <div class="oxh-new">
     ${[[1,'newdoc','docx',oxIco('docx',30),'Blank document','Word'],[1,'newlh','docx','🏢','Nordic letter','Word · official letterhead'],[1,'newlhl','docx','🏢','Nordic letter – landscape','Word · official letterhead'],...OX_TEMPLATES.filter(t=>t.k!=='blank').map(t=>[0,'tpl','docx',t.ico,esc(t.t),'Word template',`data-k="${t.k}"`]),
@@ -6273,10 +6274,11 @@ function pageOffice(){
    </div>
    <div class="oxh-sec"><h2>Recent</h2><div class="fl">${[['all','All'],['docx','Word'],['xlsx','Excel'],['pptx','PowerPoint'],['eml','Outlook'],['form','Forms'],['mine','Mine']].map(([k,l])=>`<button data-oxf="${k}" class="${f===k?'on':''}">${l}</button>`).join('')}</div><input id="oxq" type="search" placeholder="Search documents" value="${esc(UI.oxq||'')}"></div>
    <table class="oxh-list"><thead><tr><th>Name</th><th class="hm">Project</th><th class="hm">Modified</th><th class="hm">Owner</th><th></th></tr></thead><tbody>
-   ${list.length?list.slice(0,80).map(d=>`<tr class="r" data-oxopen="${esc(d.id)}"><td><div class="nm">${oxIco(d.type,24)}<span>${esc(d.title||'Untitled')}${sub(d)?`<br><small style="color:#605E5C">${sub(d)}</small>`:''}</span></div></td><td class="hm">${d.project_id?esc(projName(d.project_id)):''}${d.boq_id?' · 🔗 BoQ':''}</td><td class="hm">${fmtDT(d.sent_at||d.updated_at)}</td><td class="hm">${esc(d.owner||d.updated_by||'')}</td><td class="act">${d.type!=='form'||d.owner_uid===me.id||isAdmin?`<button data-oxdl="${esc(d.id)}" title="Download">${OXSVG.dl}</button>`:''}${isAdmin||d.owner_uid===me.id?`<button data-oxdel="${esc(d.id)}" title="Delete">🗑</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5" style="color:#605E5C;padding:22px 8px">No documents yet – create one above or open a file from your PC.</td></tr>`}
+   ${list.length?list.slice(0,80).map(d=>`<tr class="r" data-oxopen="${esc(d.id)}"><td><div class="nm">${oxIco(d.type,24)}<span>${esc(d.title||'Untitled')}${sub(d)?`<br><small style="color:#605E5C">${sub(d)}</small>`:''}</span></div></td><td class="hm">${d.project_id?esc(projName(d.project_id)):''}${d.boq_id?' · 🔗 BoQ':''}</td><td class="hm">${fmtDT(d.sent_at||d.updated_at)}</td><td class="hm">${esc(d.owner||d.updated_by||'')}</td><td class="act">${d.type!=='form'||d.owner_uid===me.id||isAdmin?`<button data-oxdl="${esc(d.id)}" title="Download">${OXSVG.dl}</button>`:''}${isAdmin||d.owner_uid===me.id?`<button data-oxdel="${esc(d.id)}" title="Delete for everyone">🗑 Delete</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5" style="color:#605E5C;padding:22px 8px">No documents yet – create one above or open a file from your PC.</td></tr>`}
    </tbody></table></div></div>`;
 }
-document.addEventListener('click',async e=>{ const t=e.target.closest('[data-oxh],[data-oxf],[data-oxopen],[data-oxdl],[data-oxdel]'); if(!t||route!=='office') return; e.stopPropagation();
+document.addEventListener('click',async e=>{ const t=e.target.closest('[data-oxh],[data-oxf],[data-oxopen],[data-oxdl],[data-oxdel],[data-oxhide]'); if(!t||route!=='office') return; e.stopPropagation();
+  if(t.dataset.oxhide){ const k='nx_oxhide_'+me.id; let h=[]; try{h=JSON.parse(localStorage.getItem(k)||'[]')}catch(_){} if(!h.includes(t.dataset.oxhide)) h.push(t.dataset.oxhide); try{localStorage.setItem(k,JSON.stringify(h))}catch(_){} toast('Hidden from your list.'); return renderView(true); }
   if(t.dataset.oxdl){ const d=byId('officedocs',t.dataset.oxdl); if(!d) return; toast('Preparing file…'); try{ const r=await oxDocBytes(d); if(r&&await oxSave(d.title+(d.type==='form'?' – responses':''),r.bytes,r.ext)) logAct(`Downloaded "${d.title}"`); }catch(err){ toast('Could not build the file: '+(err.message||err)); } return; }
   if(t.dataset.oxdel){ const d=byId('officedocs',t.dataset.oxdel); if(d&&await confirmBox(`Delete "${d.title}"${d.type==='eml'?' from NEXUS':' for everyone'}?`,'Delete',true)){ if(await remove('officedocs',d.id)){ logAct(`Deleted document "${d.title}"`); toast('Deleted.'); } } return; }
   if(t.dataset.oxopen) return oxOpenDoc(t.dataset.oxopen);
