@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=133"></script>
+<script src="config.js?v=134"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=133"></script>
-<script src="nexus-chat.js?v=133"></script>
+<script src="nexus-sb.js?v=134"></script>
+<script src="nexus-chat.js?v=134"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1585,7 +1585,7 @@ function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
   const t=boqTotals(b);
   return `<div class="toolbar"><button class="btn" data-go="qs">← All BoQs</button><div class="seg">${[['edit','Edit items'],['price','Price (QS)']].map(([k,l])=>`<button data-bx="mode" data-v="${k}" aria-pressed="${(UI.bqmode||'edit')===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xedit">📗 Open in Excel</button><button class="btn" data-ox="xopen" title="Download a real .xlsx for use outside NEXUS">⬇ .xlsx</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
+    <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xedit">📗 ${bqXlOnly(b)?'Open my bills in Excel':'Open in Excel'}</button><button class="btn" data-ox="xopen" title="Download a real .xlsx for use outside NEXUS">⬇ .xlsx</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin?'<button class="btn danger" data-act="delBoq">Delete</button>':''}</div>
   <div class="card"><div class="bd"><div class="form">
     <div class="fld full"><label for="bq_title">BoQ title</label><input class="inp" id="bq_title" data-bq="title" value="${esc(b.title)}"></div>
     <div class="fld"><label for="bq_proj">Project</label><select class="inp" id="bq_proj" data-bq="project_id">${projOpts().map(([v,l])=>`<option value="${esc(v)}" ${v===(b.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -4125,6 +4125,33 @@ function bqAlerts(A){ const sid=myStaffId(); if(!sid) return;
     if(mine.length) A.push({lvl:'blue',kind:'BoQ bills for you',text:`${b.title}: ${mine.length} bill${mine.length>1?'s':''} to prepare`,sub:mine.slice(0,3).map(x=>x.name).join(', '),go:['route','qs'],sort:24,at:b.updated_at});
     const ids=new Set(bills.filter(x=>x.owner===sid).map(x=>x.id));
     (S.boqnotes||[]).filter(n=>n.boq===b.id&&ids.has(n.bill)&&n.by_uid!==me.id&&Date.now()-Date.parse(n.at||0)<3*864e5).forEach(n=>A.push({lvl:'blue',kind:'BoQ note',text:`${n.by}: ${String(n.text).slice(0,90)}`,sub:b.title,go:['route','qs'],sort:23,at:n.at})); } }
+/* ---------- Excel teamwork (v134): Excel / NEXUS Excel saves merge bill by bill too ----------
+   On export we record each bill's id + fingerprint (hidden NEXUS sheet, or OXS.boq_base in NEXUS Excel).
+   On "Update from Excel" / "Save to BoQ": bills unchanged in Excel keep the colleague's latest version;
+   bills changed in Excel are written; bills added by colleagues since export are kept. */
+const bqXNum=v=>{ if(v==null||v==='') return ''; const n=+String(v).replace(/[, ]/g,''); return isFinite(n)?n:''; };
+function bqHash(bl){ const items=(bl.items||[]).map(it=>[String(it.ref??'').trim(),String(it.desc??'').trim(),String(it.unit??'').trim(),bqXNum(it.qty),bqXNum(it.rate)]).filter(x=>x[0]||x[1]);
+  const s=JSON.stringify([String(bl.name||'').trim().toLowerCase(),items]); let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+'.'+items.length; }
+const bqXlOnly=b=>{ if(!UI.bqmine) return null; const sid=myStaffId(); const ids=bqWithIds(b.bills).filter(bl=>bl.owner&&bl.owner===sid).map(bl=>bl.id); return ids.length?new Set(ids):null; };
+function bqXlBase(b,only){ const sheets={}; bqWithIds(b.bills).forEach((bl,i)=>{ if(!only||only.has(bl.id)) sheets[i+1]={id:bl.id,h:bqHash(bl)}; }); return {sheets,at:new Date().toISOString()}; }
+function bqXlBaseFromMeta(wb){ const ws=wb.Sheets.NEXUS; if(!ws) return null; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null}); const sheets={};
+  rows.forEach(r=>{ if(r&&r[0]==='bill'&&r[1]!=null&&r[2]) sheets[+r[1]]={id:String(r[2]),h:String(r[3]||'')}; }); return Object.keys(sheets).length?{sheets}:null; }
+const bqWho=bl=>{ const s=bl.owner?byId('staff',bl.owner):null; return [s?'Bill owner: '+s.name:'',bl.status?'Status: '+bl.status:''].filter(Boolean).join(' · '); };
+/* returns {bills, lines[], conflicts[]} – bills ready to save */
+function bqXlPlan(b,xl,base){ const srv=byId('boqs',b.id)||b, out=bqWithIds(srv.bills).map(bl=>({...bl})), seen=new Set(), mine=[], added=[], conflicts=[], removed=[];
+  for(const xb of xl){ const m=base.sheets[xb._n]; const clean={name:xb.name,items:xb.items};
+    if(!m){ out.push({...clean,id:'b'+uid()}); added.push(xb.name); continue; }
+    seen.add(xb._n); if(bqHash(xb)===m.h) continue;                       // not touched in Excel → keep the latest server copy
+    const i=out.findIndex(bl=>bl.id===m.id);
+    if(i<0){ out.push({...clean,id:m.id}); conflicts.push(xb.name+' (it had been deleted in NEXUS – put back)'); continue; }
+    if(bqHash(out[i])!==m.h) conflicts.push(out[i].name||xb.name);
+    const nm=String(out[i].name||'').trim().toLowerCase()===String(xb.name||'').trim().toLowerCase()?out[i].name:xb.name;
+    out[i]={...out[i],name:nm,items:xb.items}; mine.push(nm); }
+  Object.entries(base.sheets).forEach(([n,m])=>{ if(seen.has(+n)) return; const i=out.findIndex(bl=>bl.id===m.id); if(i<0) return;
+    if(bqHash(out[i])===m.h){ removed.push(out[i].name); out.splice(i,1); } else conflicts.push(out[i].name+' (deleted in Excel but changed by a colleague – kept)'); });
+  const kept=out.length-mine.length-added.length;
+  const lines=[mine.length?`Bills you changed: ${mine.join(', ')}`:'No bills changed in Excel',...(added.length?[`New bills: ${added.join(', ')}`]:[]),...(removed.length?[`Removed bills: ${removed.join(', ')}`]:[]),`${Math.max(0,kept)} other bill(s) keep colleagues' latest work`];
+  return {bills:out,lines,conflicts,mine:mine.length+added.length+removed.length}; }
 
 const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
@@ -4492,10 +4519,10 @@ function oxXlsx(sheets){
 
 /* ---------- BoQ → Excel (live formulas) ---------- */
 const oxIsHead=it=>!String(it.unit||'').trim()&&(it.qty===''||it.qty==null)&&(it.rate===''||it.rate==null);
-function boqToXlsx(b){
+function boqToXlsx(b,only){
   const c=company(), t=boqTotals(b), sheets=[], billTot=[];
-  (b.bills||[]).forEach((bl,i)=>{
-    const rows=[[{v:`BILL No. ${i+1} – ${String(bl.name||'').toUpperCase()}`,s:1}],[{v:`${b.title||''}${b.project_id?' · '+projName(b.project_id):''}`,s:8}],[{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'Qty',s:2},{v:'Rate (TZS)',s:2},{v:'Amount (TZS)',s:2}]];
+  bqWithIds(b.bills).forEach((bl,i)=>{ if(only&&!only.has(bl.id)) return;
+    const rows=[[{v:`BILL No. ${i+1} – ${String(bl.name||'').toUpperCase()}`,s:1}],[{v:`${b.title||''}${b.project_id?' · '+projName(b.project_id):''}${bqWho(bl)?'   ·   '+bqWho(bl):''}`,s:8}],[{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'Qty',s:2},{v:'Rate (TZS)',s:2},{v:'Amount (TZS)',s:2}]];
     (bl.items||[]).forEach(it=>{ const r=rows.length+1;
       if(oxIsHead(it)) rows.push([{v:it.ref||'',s:11},{v:it.desc||'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11},{v:'',s:11}]);
       else { const q=it.qty===''||it.qty==null?null:+it.qty, rt=it.rate===''||it.rate==null?null:+it.rate;
@@ -4513,11 +4540,11 @@ function boqToXlsx(b){
   sum.push([],[{v:'Change quantities, rates, descriptions or the % cells in Excel – totals update automatically. Then in NEXUS: QS Studio → this BoQ → "Update from Excel".',s:8}]);
   const pb=[[{v:'PRICING BASIS (internal – do not submit)',s:1}],[],[{v:'Bill',s:2},{v:'Item',s:2},{v:'Description',s:2},{v:'Unit',s:2},{v:'Qty',s:2},{v:'Rate',s:2},{v:'Source',s:2},{v:'Basis / library source',s:2}]];
   (b.bills||[]).forEach((bl,i)=>(bl.items||[]).forEach(it=>{ if(oxIsHead(it)) return; const p=it.p||{}; pb.push([{v:i+1,s:10},{v:it.ref||'',s:10},{v:it.desc||'',s:3},{v:it.unit||'',s:10},{v:it.qty===''?null:+it.qty,s:4},{v:it.rate===''?null:+it.rate,s:4},{v:p.s||'',s:3},{v:p.note||p.src||p.by||'',s:3}]); }));
-  const meta=[['nexus-boq'],[b.id],[new Date().toISOString()],[me.name||'']];
+  const meta=[['nexus-boq'],[b.id],[new Date().toISOString()],[me.name||''],...Object.entries(bqXlBase(b,only).sheets).map(([n,m])=>['bill',+n,m.id,m.h])];
   return oxXlsx([{name:'Summary',rows:sum,cols:[8,58,14,20],merges:['A1:D1','A2:D2','A3:D3']},...sheets,{name:'Pricing basis',rows:pb,cols:[6,7,60,7,10,12,10,50],freeze:3,landscape:true},{name:'NEXUS',rows:meta,hidden:true}]);
 }
-async function boqOpenExcel(b){ if(!b) return; try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  if(await oxSave(`${b.title||'BoQ'} – NEXUS`, boqToXlsx(b), 'xlsx')) logAct(`Opened BoQ "${b.title}" in Excel`); }
+async function boqOpenExcel(b){ if(!b) return; try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; } const only=bqXlOnly(b);
+  if(await oxSave(`${b.title||'BoQ'}${only?' – my bills':''} – NEXUS`, boqToXlsx(b,only), 'xlsx')) logAct(`Opened BoQ "${b.title}" in Excel`); }
 
 /* ---------- Excel → BoQ (reads the file back) ---------- */
 function boqFromWorkbook(wb, b){
@@ -4538,7 +4565,7 @@ function boqFromWorkbook(wb, b){
       if(o){ if(o.p&&String(o.rate)===String(it.rate)) it.p=o.p; else if(it.rate!=='') it.p={s:'excel',by:me.name||'',at:today()}; if(String(o.qty)!==String(it.qty)||String(o.rate)!==String(it.rate)||(o.unit||'')!==it.unit) changed++; }
       else { added++; if(it.rate!=='') it.p={s:'excel',by:me.name||'',at:today()}; }
       items.push(it); }
-    return {...(prevBill||{}),name:nm?nm.charAt(0)+nm.slice(1).toLowerCase():(prevBill?.name||`Bill ${bi+1}`),items};
+    return {...(prevBill||{}),_n:+n.match(/\d+/)[0],name:nm?nm.charAt(0)+nm.slice(1).toLowerCase():(prevBill?.name||`Bill ${bi+1}`),items};
   });
   let contingency=b.contingency, vat=b.vat;
   if(wb.Sheets.Summary){ for(const r of XLSX.utils.sheet_to_json(wb.Sheets.Summary,{header:1,raw:true,defval:null})){ const l=String(r?.[1]||''); if(/^contingency/i.test(l)&&num(r[2])!=='') contingency=num(r[2]); if(/^vat/i.test(l)&&num(r[2])!=='') vat=num(r[2]); } }
@@ -4548,9 +4575,10 @@ function boqFromWorkbook(wb, b){
 async function boqUpdateFromExcel(b, file){
   if(!b||!file) return; try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   let wb; try{ wb=XLSX.read(await file.arrayBuffer(),{cellDates:true}); }catch(e){ toast('This is not an Excel file NEXUS can read.'); return; }
-  const r=boqFromWorkbook(wb,b); if(r.error){ toast(r.error); return; }
+  const r=boqFromWorkbook(wb,b); if(r.error){ toast(r.error); return; } b=byId('boqs',b.id)||b;
+  const base=r.sameBoq?bqXlBaseFromMeta(wb):null, pl=base?bqXlPlan(b,r.bills,base):null; r.bills=pl?pl.bills:r.bills.map(({_n,...x})=>x);
   const t0=boqTotals(b), t1=boqTotals({...b,bills:r.bills,contingency:r.contingency,vat:r.vat});
-  const msg=`${r.sameBoq?'':'⚠ This Excel file was made from a DIFFERENT BoQ.\n\n'}Update "${b.title}" from Excel?\n\n${r.bills.length} bills · ${r.items} items\n${r.changed} changed · ${r.added} new · ${r.removed} removed\nGrand total: ${tzs(t0.grand)} → ${tzs(t1.grand)}\n\nThe previous version is kept (Undo Excel update).`;
+  const msg=`${r.sameBoq?'':'⚠ This Excel file was made from a DIFFERENT BoQ.\n\n'}Update "${b.title}" from Excel?\n\n${pl?pl.lines.join('\n'):`${r.bills.length} bills · ${r.items} items\n${r.changed} changed · ${r.added} new · ${r.removed} removed`}${pl&&pl.conflicts.length?`\n\n⚠ Also changed by a colleague since you opened Excel – your Excel version will replace theirs: ${pl.conflicts.join(', ')}`:''}\nGrand total: ${tzs(t0.grand)} → ${tzs(t1.grand)}\n\nThe previous version is kept (Undo Excel update).`;
   if(!(await confirmBox(msg,'Update BoQ'))) return;
   await patch('boqs',b.id,{bills:r.bills,contingency:r.contingency,vat:r.vat,before_excel:{bills:b.bills||[],contingency:b.contingency??'',vat:b.vat??18,at:new Date().toISOString()},excel_at:new Date().toISOString(),excel_by:me.name||''});
   logAct(`Updated BoQ "${b.title}" from Excel (${r.changed} changed, ${r.added} new, ${r.removed} removed)`); toast('BoQ updated from Excel.');
@@ -5190,7 +5218,7 @@ let oxsTimer=null;
 function oxsChanged(){ if(!OXS) return; OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
 function oxsClean(){ return OXS.sheets.map(s=>({name:s.name,rows:s.rows,colsN:s.colsN,cols:s.cols||{},rh:s.rh||{},cells:Object.fromEntries(Object.entries(s.cells).map(([k,c])=>[k,Object.fromEntries(Object.entries({v:c.v,f:c.f,s:c.s&&Object.keys(c.s).length?c.s:undefined}).filter(([,x])=>x!==undefined))]))})); }
 async function oxsSave(auto=false){ if(!OXS) return; if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } OXS.title=$('#oxName')?.value||OXS.title; oxSetStatus('Saving…');
-  const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),project_id:OXS.project_id||'',boq_id:OXS.boq_id||''});
+  const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),project_id:OXS.project_id||'',boq_id:OXS.boq_id||'',...(OXS.boq_base?{boq_base:OXS.boq_base}:{})});
   if(id){ const first=!OXS.id; OXS.id=id; OXS.dirty=false; oxSetStatus('Saved to NEXUS '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})); if(first) logAct(`Created Excel workbook "${OXS.title}"`); } else oxSetStatus('Not saved – check connection'); }
 /* ----- ribbon ----- */
 function oxsRibbon(tab){
@@ -5311,7 +5339,7 @@ function oxsFromSheetJS(wb){ const nf=z=>!z||z==='General'?undefined:/%/.test(z)
     const cols={}; (ws['!cols']||[]).forEach((c,i)=>{ if(c&&(c.wpx||c.wch)) cols[i]=Math.round(c.wpx||c.wch*7.5); });
     return {name:n.slice(0,31),cells,cols,rows:Math.max(60,rg.e.r+30),colsN:Math.max(20,rg.e.c+5)}; }); }
 /* ----- BoQ ↔ workbook ----- */
-function oxsOpenBoq(b){ if(!b) return; const wb=XLSX.read(boqToXlsx(b),{type:'array',cellFormula:true,cellNF:true}); const sheets=oxsFromSheetJS(wb);
+function oxsOpenBoq(b){ if(!b) return; const only=bqXlOnly(b); const wb=XLSX.read(boqToXlsx(b,only),{type:'array',cellFormula:true,cellNF:true}); const sheets=oxsFromSheetJS(wb);
   const hdr={b:true,bg:'#182340',fc:'#FFFFFF',al:'center',bd:true}, tot={b:true,bg:'#DCEBF8',bd:true};
   sheets.forEach(sh=>{ const isBill=/^bill/i.test(sh.name); sh.cols=isBill?{0:56,1:420,2:56,3:80,4:105,5:125}:sh.name==='Summary'?{0:56,1:400,2:100,3:140}:{0:40,1:44,2:380,3:50,4:70,5:90,6:80,7:300};
     for(const [ref,c] of Object.entries(sh.cells)){ const p=oxsParseRef(ref); const txt=String(c.v??''); c.s=c.s||{};
@@ -5319,12 +5347,14 @@ function oxsOpenBoq(b){ if(!b) return; const wb=XLSX.read(boqToXlsx(b),{type:'ar
       else if(p.r>2&&(isBill||sh.name==='Summary')) c.s.bd=true;
       if(/^TOTAL CARRIED|^SUB-TOTAL|^GRAND TOTAL/.test(txt)){ for(let j=0;j<(isBill?6:4);j++){ const rr=oxsRef(p.r,j); sh.cells[rr]=sh.cells[rr]||{v:''}; sh.cells[rr].s={...(sh.cells[rr].s||{}),...tot}; } }
       if(isBill&&p.r>2&&(p.c===3||p.c===4)) c.s.nf='num2'; if(p.r>2&&((isBill&&p.c===5)||(sh.name==='Summary'&&p.c===3))) c.s.nf='int'; if(isBill&&p.r>2&&(p.c===0||p.c===2)) c.s.al='center'; } });
-  oxsOpen({title:b.title+' (BoQ)',sheets,boq_id:b.id,project_id:b.project_id||''}); }
+  oxsOpen({title:b.title+(only?' (my bills)':' (BoQ)'),sheets,boq_id:b.id,project_id:b.project_id||'',boq_base:bqXlBase(b,only)}); }
 async function oxsSaveToBoq(){ const b=byId('boqs',OXS.boq_id); if(!b) return toast('The linked BoQ no longer exists.'); try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const wb=XLSX.read(oxsToXlsx(),{type:'array'}); const r=boqFromWorkbook(wb,b); if(r.error) return toast(r.error);
+  const base=OXS.boq_base&&OXS.boq_base.sheets?OXS.boq_base:null, pl=base?bqXlPlan(b,r.bills,base):null; r.bills=pl?pl.bills:r.bills.map(({_n,...x})=>x);
   const t0=boqTotals(b), t1=boqTotals({...b,bills:r.bills,contingency:r.contingency,vat:r.vat});
-  const ok=await oxDialog(`Save to BoQ "${b.title}"?`,[{label:`${r.bills.length} bills · ${r.items} items · ${r.changed} changed · ${r.added} new · ${r.removed} removed`,value:`Grand total ${tzs(t0.grand)} → ${tzs(t1.grand)}`}],'Save to BoQ'); if(!ok) return;
+  const ok=await oxDialog(`Save to BoQ "${b.title}"?`,[{label:pl?pl.lines.join(' · '):`${r.bills.length} bills · ${r.items} items · ${r.changed} changed · ${r.added} new · ${r.removed} removed`,value:`Grand total ${tzs(t0.grand)} → ${tzs(t1.grand)}`},...(pl&&pl.conflicts.length?[{label:'⚠ Also changed by a colleague since you opened this – your version will replace theirs',value:pl.conflicts.join(', ')}]:[])],'Save to BoQ'); if(!ok) return;
   await patch('boqs',b.id,{bills:r.bills,contingency:r.contingency,vat:r.vat,before_excel:{bills:b.bills||[],contingency:b.contingency??'',vat:b.vat??18,at:new Date().toISOString()},excel_at:new Date().toISOString(),excel_by:me.name||''});
+  if(base){ const nb=byId('boqs',b.id); const nx={}; Object.entries(base.sheets).forEach(([n,m])=>{ const bl=(r.bills||[]).find(x=>x.id===m.id); if(bl) nx[n]={id:m.id,h:bqHash(bl)}; }); OXS.boq_base={sheets:nx,at:new Date().toISOString()}; }
   await oxsSave(true); logAct(`Updated BoQ "${b.title}" from NEXUS Excel`); toast('BoQ updated – the previous version is kept (Undo in QS Studio).'); }
 
 /* ===================== v2.15 NEXUS OFFICE – PowerPoint, Project, Outlook, Forms (inside NEXUS, Microsoft Office look) ===================== */
