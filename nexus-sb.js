@@ -676,7 +676,7 @@
         <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last sign-in</th><th></th></tr></thead><tbody>
         ${users.filter(u => !u.pending).map(u => `<tr style="${u.active ? '' : 'opacity:.55'}"><td>${h(u.name || '')}</td><td>${h(u.email || '')}</td><td>${roleSel(u.user_id, u.role)}</td>
           <td class="small">${u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</td>
-          <td style="white-space:nowrap"><button class="btn sm" data-reset="${h(u.user_id)}">New password</button> <button class="btn sm ${u.active ? 'danger' : ''}" data-act2="${h(u.user_id)}" data-on="${u.active ? 0 : 1}">${u.active ? 'Switch off' : 'Switch on'}</button></td></tr>`).join('')}
+          <td style="white-space:nowrap"><button class="btn sm" data-reset="${h(u.user_id)}">New password</button> <button class="btn sm ${u.active ? 'danger' : ''}" data-act2="${h(u.user_id)}" data-on="${u.active ? 0 : 1}">${u.active ? 'Switch off' : 'Switch on'}</button>${u.active ? '' : ` <button class="btn sm danger" data-del="${h(u.user_id)}" data-name="${h(u.name || u.email || '')}" title="Delete this login for good">Delete</button>`}</td></tr>`).join('')}
         </tbody></table></div>
         <h3 style="margin:6px 0 0">Add a login</h3>
         <form class="row" data-new autocomplete="off">
@@ -707,6 +707,11 @@
         ok.onclick = async () => {
           try { await adminCall({ action: 'set_password', id, password: inp.value }); say('Temporary password set. The person must change it at next sign-in.'); render(); } catch (e) { say(e.message); }
         };
+      });
+      box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Click again to delete'; say(`Deleting removes ${b.dataset.name}'s login and private chats for good. Their staff card and the records they made stay in NEXUS.`); return; }
+        b.disabled = true;
+        try { await adminCall({ action: 'delete', id: b.dataset.del }); await render(); say(`${b.dataset.name}'s login was deleted.`); } catch (e) { b.disabled = false; say(e.message); }
       });
       box.querySelectorAll('[data-act2]').forEach(b => b.onclick = async () => {
         try { await adminCall({ action: 'set_active', id: b.dataset.act2, active: b.dataset.on === '1' }); render(); } catch (e) { say(e.message); }
