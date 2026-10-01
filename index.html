@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=117"></script>
+<script src="config.js?v=118"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=117"></script>
-<script src="nexus-chat.js?v=117"></script>
+<script src="nexus-sb.js?v=118"></script>
+<script src="nexus-chat.js?v=118"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5945,7 +5945,23 @@ const DH_CSS=`
 .dh-t:hover .dh-st,.dh-st.on{opacity:1}.dh-st.on{color:#F5B301}
 .dh-x{position:absolute;top:4px;left:6px;border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px}
 .dh-note{font-size:12px;color:var(--muted);margin:18px 0 6px}
-@media (max-width:600px){.dh-eng select{padding:9px 26px 9px 11px;font-size:13px;max-width:112px}.dh-eng::after{right:11px}.dh-mag{display:none}.dh-box input{padding-left:10px}.dh-go{width:40px;height:40px}.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dh-t{padding:10px 3px 9px;border-radius:12px}.dh-ic{width:40px;height:40px;border-radius:11px;font-size:13px}.dh-ic.sm{font-size:10px}.dh-n{font-size:11px}.dh-st{opacity:1;font-size:13px;top:1px;right:3px}.dh-hero h2{font-size:19px}.dh-box input{font-size:15px}.dh-hero{padding:18px 14px}.dh-box .dh-go2{display:none}}`;
+@media (max-width:600px){.dh-eng select{padding:9px 26px 9px 11px;font-size:13px;max-width:112px}.dh-eng::after{right:11px}.dh-mag{display:none}.dh-box input{padding-left:10px}.dh-go{width:40px;height:40px}.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dh-t{padding:10px 3px 9px;border-radius:12px}.dh-ic{width:40px;height:40px;border-radius:11px;font-size:13px}.dh-ic.sm{font-size:10px}.dh-n{font-size:11px}.dh-st{opacity:1;font-size:13px;top:1px;right:3px}.dh-hero h2{font-size:19px}.dh-box input{font-size:15px}.dh-hero{padding:18px 14px}.dh-box .dh-go2{display:none}}
+.dh-sec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px 8px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.dh-sec .hdx{margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.dh-sec h3{font:600 13px/1.2 var(--f-body,Inter,system-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dh-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:2px 6px}
+.dh-t{min-width:0;padding:12px 4px 10px;gap:9px}
+.dh-ic{width:44px;height:44px;border-radius:12px;box-shadow:none}
+.dh-ic.ok img{border-radius:10px}
+.dh-n{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500}
+.dh-note{display:none}
+.dh-foot{justify-content:center}
+.dh-cols{column-count:2;column-gap:14px;margin-top:10px}
+.dh-cols>.dh-sec{break-inside:avoid;display:inline-block;width:100%;box-sizing:border-box;margin:0 0 14px}
+.dh-cols .dh-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+@media (max-width:1000px){.dh-cols{column-count:1}}
+@media (max-width:600px){.dh-sec{padding:10px 8px 4px;border-radius:12px;margin:10px 0}.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:0 2px}.dh-ic{width:40px;height:40px}.dh-n{font-size:11px}}
+`;
 const dhKey=k=>'nx_hub_'+k+'_'+(me&&me.id||'x');
 const dhGet=k=>{ try{ return JSON.parse(localStorage.getItem(dhKey(k))||'[]'); }catch(_){ return []; } };
 const dhSet=(k,v)=>{ try{ localStorage.setItem(dhKey(k),JSON.stringify(v)); }catch(_){} };
@@ -5990,10 +6006,11 @@ function pageHub(){
       <input id="dhq" type="search" placeholder="Search ${esc(engO[1])} or type a web address" aria-label="Search or web address" enterkeyhint="go">
       <button type="submit" class="dh-go" title="Search / open" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
     ${rec.length?`<div class="dh-rec"><span>Recent:</span>${rec.slice(0,6).map(x=>`<a href="${esc(x.url)}" data-dhopen="${esc(x.url)}" data-dhname="${esc(x.n)}" title="${esc(x.n)}">${esc(x.n)}</a>`).join('')}<button type="button" data-dhclear="1">clear</button></div>`:''}</div>
+  <div class="dh-cols">
   ${favs.length?sec('fav','★ My favourites',`<div class="dh-grid">${favs.map(x=>dhTile(x)).join('')}</div>`):''}
   ${coTiles.length?sec('co',`${esc(company().name||'Company')} online`,`<div class="dh-grid">${coTiles.map(x=>dhTile(x)).join('')}</div>`):''}
   ${mine.length?sec('mine','My links',`<div class="dh-grid">${mine.map(x=>dhTile({n:x.n,url:x.url,...dhMark(x.n,x.url,'#546E7A')},{del:1})).join('')}</div>`):''}
-  ${DH_CATS.map(c=>sec(c.k,c.t,`<div class="dh-grid">${c.items.map(i=>dhTile({n:i[0],url:i[1],c:i[2],m:i[3]})).join('')}</div>`)).join('')}
+  ${DH_CATS.map(c=>sec(c.k,c.t,`<div class="dh-grid">${c.items.map(i=>dhTile({n:i[0],url:i[1],c:i[2],m:i[3]})).join('')}</div>`)).join('')}</div>
   <div class="dh-foot"><button class="btn sm" data-dhadd="1">+ Add my link</button>${isAdmin?'<button class="btn sm" data-dhco="1">Edit company pages</button>':''}</div>
   <div class="dh-note">Tap ☆ on a tile to pin it to My favourites. Websites open inside NEXUS: in the phone app on their own screen (✕ returns to NEXUS), on the computer in a NEXUS web window. Sign in to each site with your own account – NEXUS never stores your social-network passwords.</div></div>`;
 }
