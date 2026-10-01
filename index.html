@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=144"></script>
+<script src="config.js?v=145"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=144"></script>
-<script src="nexus-chat.js?v=144"></script>
+<script src="nexus-sb.js?v=145"></script>
+<script src="nexus-chat.js?v=145"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5158,7 +5158,7 @@ tr.hx-late td{background:color-mix(in srgb,#E5484D 7%,transparent)}.chip.blue{ba
 const SUP_CATS=['Cement','Concrete, aggregates & blocks','Steel & reinforcement','Formwork & scaffolding','Roofing','Timber & boards','Doors, windows & ironmongery','Glass & aluminium','Drywall & ceilings','Insulation','Waterproofing & chemicals','Paints & coatings','Tiles, ceramics & sanitary','Flooring','Pipes & plumbing','Pumps, tanks & water','Electrical','Lighting','Solar & power','HVAC','Fire & safety systems','Lifts & escalators','Security & CCTV','Kitchens, joinery & furniture','External works & fencing','Bitumen & road materials','Geotextiles & drainage','Tools & fixings','PPE & site safety','Plant & equipment hire','General hardware','Services / other'];
 const SUP_SIZES=['Big','Medium','Small/local'];
 const SUP_ORIG=['Tanzania','Africa (regional)','International'];
-const SUP_FLAG={Tanzania:'🇹🇿',China:'🇨🇳',Egypt:'🇪🇬',Japan:'🇯🇵',Spain:'🇪🇸',Vietnam:'🇻🇳',Italy:'🇮🇹',Malawi:'🇲🇼',Mozambique:'🇲🇿',Kenya:'🇰🇪',Uganda:'🇺🇬',Rwanda:'🇷🇼','South Africa':'🇿🇦',China:'🇨🇳',India:'🇮🇳',UAE:'🇦🇪',Turkey:'🇹🇷',Germany:'🇩🇪',Zambia:'🇿🇲'};
+const SUP_FLAG={Tanzania:'🇹🇿',China:'🇨🇳',Egypt:'🇪🇬',Japan:'🇯🇵',Spain:'🇪🇸',Vietnam:'🇻🇳',Italy:'🇮🇹',Malawi:'🇲🇼',Mozambique:'🇲🇿',Kenya:'🇰🇪',Uganda:'🇺🇬',Rwanda:'🇷🇼','South Africa':'🇿🇦',China:'🇨🇳',India:'🇮🇳',UAE:'🇦🇪',Turkey:'🇹🇷',Germany:'🇩🇪',Zambia:'🇿🇲',Poland:'🇵🇱',Portugal:'🇵🇹',Greece:'🇬🇷','Czech Republic':'🇨🇿',Belgium:'🇧🇪',Ethiopia:'🇪🇹'};
 const supCanEdit=()=>isAdmin||isProcOff();
 const supOrig=s=>s.origin||(!s.country||/tanzania/i.test(s.country)?'Tanzania':'International');
 const supCats=s=>[s.category,...(s.also||[])].filter(Boolean);
