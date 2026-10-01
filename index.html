@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=130"></script>
+<script src="config.js?v=131"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=130"></script>
-<script src="nexus-chat.js?v=130"></script>
+<script src="nexus-sb.js?v=131"></script>
+<script src="nexus-chat.js?v=131"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -6480,8 +6480,12 @@ const BB_TIPS=[
 /* v103: SITE BILLBOARD = live construction NEWS (Edge Function `news` → system/news, hourly) + tips. Themes per device. */
 const BB={i:0,paused:false,timer:null,cat:'all',when:'all',dur:10000,el:0,last:0,theme:(()=>{ try{ return localStorage.getItem('nx_bb_theme')||'led'; }catch(_){ return 'led'; } })(),lang:(()=>{ try{ return localStorage.getItem('nx_bb_lang')||'all'; }catch(_){ return 'all'; } })()};
 const BB_LANGS=[['all','🌐 All languages'],['en','English'],['sw','Kiswahili'],['fr','Français']];
-const BB_TOPIC={gov:['🇹🇿','Official Tanzania','#1EB53A'],africa:['🌍','Tanzania & Africa','#0E9F6E'],accident:['🚨','Accidents','#E02424'],safety:['🦺','Safety','#FF8A00'],tech:['🤖','Technology','#3F83F8'],design:['📐','Structures & design','#9061F9'],pm:['📊','Projects & PM','#0694A2'],industry:['🏗️','Industry','#C27803'],tip:['💡','Tips','#FACA15']};
+const BB_TOPIC={gov:['🇹🇿','Official Tanzania','#1EB53A'],media:['📺','TV & media','#E3A008'],sport:['⚽','Sports','#16BDCA'],africa:['🌍','Tanzania & Africa','#0E9F6E'],accident:['🚨','Accidents','#E02424'],safety:['🦺','Safety','#FF8A00'],tech:['🤖','Technology','#3F83F8'],design:['📐','Structures & design','#9061F9'],pm:['📊','Projects & PM','#0694A2'],industry:['🏗️','Industry','#C27803'],tip:['💡','Tips','#FACA15']};
 const BB_OFFICIAL=[['Ikulu · Instagram','https://www.instagram.com/ikulu_mawasiliano/'],['Ikulu · Facebook','https://www.facebook.com/ikulu.mawasiliano/'],['Ikulu · X','https://x.com/ikulumawasliano'],['Msemaji Mkuu · Instagram','https://www.instagram.com/msemajimkuuwaserikali/'],['Msemaji Mkuu · X','https://x.com/TZMsemajiMkuu'],['Wizara ya Ujenzi · Facebook','https://www.facebook.com/WizaraUU/'],['Ikulu · YouTube','https://www.youtube.com/channel/UCBjbx3Y59dnH7UMnSCdSd-g']];
+const BB_IG=n=>'https://www.instagram.com/'+n+'/';
+const BB_PAGES={gov:BB_OFFICIAL,
+  media:[['Millard Ayo',BB_IG('millardayo')],['Wasafi TV',BB_IG('wasafitv')],['Wasafi FM',BB_IG('wasafifm')],['ITV Tanzania',BB_IG('itvtz')],['Mwananchi',BB_IG('mwananchi_official')],['Nipashe','https://www.facebook.com/nipashetz/'],['Jambo TV','https://x.com/jambotv_'],['The Chanzo',BB_IG('thechanzo')],['Channel Ten','https://www.youtube.com/channel/UCtbr6EOCGBqOV9Z3CO3IDTw'],['BBC Swahili',BB_IG('bbcswahili')],['BBC News',BB_IG('bbcnews')],['Al Jazeera',BB_IG('aljazeeraenglish')]],
+  sport:[['Simba SC',BB_IG('simbasctanzania')],['Young Africans SC','https://www.facebook.com/yangasc1935/'],['Yanga on X','https://x.com/YoungAfricansSC']]};
 const BB_THEMES=[['led','Night LED'],['blueprint','Blueprint'],['site','Site hazard'],['paper','Newspaper']];
 const bbAgo=iso=>{ const t=Date.parse(iso); if(!t) return ''; const m=Math.round((Date.now()-t)/6e4); if(m<60) return m<=1?'just now':m+' min ago'; const h=Math.round(m/60); if(h<24) return h+' h ago'; const d=Math.round(h/24); if(d===1) return 'yesterday'; if(d<7) return d+' days ago'; return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:new Date(t).getFullYear()===new Date().getFullYear()?undefined:'numeric'}); };
 const bbAge=iso=>{ const d=(Date.now()-Date.parse(iso))/864e5; return d<1.2?'today':d<7?'week':d<21?'recent':'older'; };
@@ -6511,7 +6515,7 @@ function bbTicker(){ const N=((S.news&&S.news.items)||[]).filter(n=>n&&n.title).
 function bbHtml(){
   if(!document.getElementById('bbCss')){ const s=document.createElement('style'); s.id='bbCss'; s.textContent=BB_CSS; document.head.appendChild(s); }
   const L=bbItems().slice(0,40), upd=S.news&&S.news.at;
-  const cats=[['all','All news'],['gov','🇹🇿 Official Tanzania'],['africa','🌍 Tanzania & Africa'],['safety','🦺 Safety'],['accident','🚨 Accidents'],['tech','🤖 Technology'],['design','📐 Structures'],['pm','📊 Projects & PM'],['industry','🏗️ Industry'],['tip','💡 Tips']];
+  const cats=[['all','All news'],['gov','🇹🇿 Official Tanzania'],['media','📺 TV & media'],['sport','⚽ Sports'],['africa','🌍 Tanzania & Africa'],['safety','🦺 Safety'],['accident','🚨 Accidents'],['tech','🤖 Technology'],['design','📐 Structures'],['pm','📊 Projects & PM'],['industry','🏗️ Industry'],['tip','💡 Tips']];
   const it=x=>{ const tp=BB_TOPIC[x.topic]||BB_TOPIC.industry, age=x.at?bbAge(x.at):''; return `<a class="bb-i" style="--tc:${tp[2]}" ${x.link?`href="${esc(x.link)}" data-dhopen="${esc(x.link)}" data-dhname="${esc((x.src||'Story').slice(0,40))}"`:''} title="${esc(x.title)}">
       ${x.img?`<span class="bb-th"><img src="${esc(x.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-bbimg="1"></span>`:`<span class="bb-th bb-noimg">${tp[0]}</span>`}
       <span class="bb-tx"><b>${age==='today'?'<i class="bb-dot"></i>':''}${esc(x.k==='tip'?(x.own?'From Nordic':'Tip'):tp[1])}<em> · ${esc(x.src)}${x.at?' · '+esc(bbAgo(x.at)):''}</em></b><span class="bb-hl">${esc(x.title)}${x.sum?`<span class="bb-sm"> — ${esc(x.sum)}</span>`:''}</span></span></a>`; };
@@ -6524,7 +6528,7 @@ function bbHtml(){
       <select class="bb-sel bb-when" id="bbWhen" aria-label="When">${[['all','All dates'],['today','Today'],['week','This week'],['older','Older']].map(([k,l])=>`<option value="${k}" ${BB.when===k?'selected':''}>${l}</option>`).join('')}</select>
       <span class="bb-upd">${upd?'updated '+esc(bbAgo(upd)):''}</span><span class="sp"></span>
       <select class="bb-sel bb-thm" id="bbTheme" aria-label="Style">${BB_THEMES.map(([k,l])=>`<option value="${k}" ${BB.theme===k?'selected':''}>🎨 ${l}</option>`).join('')}</select>${isAdmin?'<button class="bb-ed" data-bbedit="1" title="Company tips">✎</button>':''}</div>
-    ${BB.cat==='gov'?`<div class="bb-offi"><b>Official pages:</b>${BB_OFFICIAL.map(([n,u])=>`<a href="${esc(u)}" data-dhopen="${esc(u)}" data-dhname="${esc(n)}">${esc(n)}</a>`).join('')}</div>`:''}
+    ${BB_PAGES[BB.cat]?`<div class="bb-offi"><b>${BB.cat==='gov'?'Official pages':'Their pages'}:</b>${BB_PAGES[BB.cat].map(([n,u])=>`<a href="${esc(u)}" data-dhopen="${esc(u)}" data-dhname="${esc(n)}">${esc(n)}</a>`).join('')}</div>`:''}
     <div class="bb-run">${L.length?`<div class="bb-track" style="animation-duration:${secs}s">${row}${row}</div>`:'<div class="bb-none">No stories in this view yet.</div>'}</div></section>`; }
 /* moving speed: same reading pace (~65 px per second) however long the stories are */
 /* v112: the strip continues where you left it – after visiting other pages, a news refresh or reopening NEXUS (story at the left edge is remembered) */
