@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=143"></script>
+<script src="config.js?v=144"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=143"></script>
-<script src="nexus-chat.js?v=143"></script>
+<script src="nexus-sb.js?v=144"></script>
+<script src="nexus-chat.js?v=144"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5152,19 +5152,20 @@ tr.hx-late td{background:color-mix(in srgb,#E5484D 7%,transparent)}.chip.blue{ba
 @media (max-width:640px){ .hx-hb{grid-template-columns:110px 1fr 28px} .hx-cd{min-height:64px} .hx-cd .ev{font-size:9px} .hx-wph{flex-wrap:wrap} .hx-filters .inp{min-width:0;flex:1 1 140px} .hx-t b{font-size:20px} }
 `; document.head.appendChild(s); })();
 
-/* ===================== v143 · SUPPLIER DIRECTORY =====================
+/* ===================== v143/v144 · SUPPLIER DIRECTORY =====================
    suppliers docs: name, category, also[], products, origin (Tanzania | Africa (regional) | International), country, city, address,
    phone, email, website, contact, type (Manufacturer | Importer/Distributor), trust, source, verified, rating, tin, notes */
-const SUP_CATS=['Cement','Steel & reinforcement','Roofing','Concrete, aggregates & blocks','Bitumen & road materials','Paints & coatings','Tiles, ceramics & sanitary','Pipes & plumbing','Electrical','Glass & aluminium','Timber & boards','Drywall & ceilings','Waterproofing & chemicals','Tools & fixings','General hardware','Plant & equipment hire','Services / other'];
+const SUP_CATS=['Cement','Concrete, aggregates & blocks','Steel & reinforcement','Formwork & scaffolding','Roofing','Timber & boards','Doors, windows & ironmongery','Glass & aluminium','Drywall & ceilings','Insulation','Waterproofing & chemicals','Paints & coatings','Tiles, ceramics & sanitary','Flooring','Pipes & plumbing','Pumps, tanks & water','Electrical','Lighting','Solar & power','HVAC','Fire & safety systems','Lifts & escalators','Security & CCTV','Kitchens, joinery & furniture','External works & fencing','Bitumen & road materials','Geotextiles & drainage','Tools & fixings','PPE & site safety','Plant & equipment hire','General hardware','Services / other'];
+const SUP_SIZES=['Big','Medium','Small/local'];
 const SUP_ORIG=['Tanzania','Africa (regional)','International'];
-const SUP_FLAG={Tanzania:'🇹🇿',Kenya:'🇰🇪',Uganda:'🇺🇬',Rwanda:'🇷🇼','South Africa':'🇿🇦',China:'🇨🇳',India:'🇮🇳',UAE:'🇦🇪',Turkey:'🇹🇷',Germany:'🇩🇪',Zambia:'🇿🇲'};
+const SUP_FLAG={Tanzania:'🇹🇿',China:'🇨🇳',Egypt:'🇪🇬',Japan:'🇯🇵',Spain:'🇪🇸',Vietnam:'🇻🇳',Italy:'🇮🇹',Malawi:'🇲🇼',Mozambique:'🇲🇿',Kenya:'🇰🇪',Uganda:'🇺🇬',Rwanda:'🇷🇼','South Africa':'🇿🇦',China:'🇨🇳',India:'🇮🇳',UAE:'🇦🇪',Turkey:'🇹🇷',Germany:'🇩🇪',Zambia:'🇿🇲'};
 const supCanEdit=()=>isAdmin||isProcOff();
 const supOrig=s=>s.origin||(!s.country||/tanzania/i.test(s.country)?'Tanzania':'International');
 const supCats=s=>[s.category,...(s.also||[])].filter(Boolean);
 const supTel=p=>String(p||'').split(/[\/;,]| or /)[0].replace(/[^\d+]/g,'');
 function supFields(){ return [{k:'name',label:'Supplier name',req:1},{k:'category',label:'Main category',type:'select',options:SUP_CATS},{k:'products',label:'Products / brands',full:1},
   {k:'origin',label:'Based in',type:'select',options:SUP_ORIG},{k:'type',label:'Type',type:'select',options:['Manufacturer','Importer/Distributor','Local dealer','Service provider']},
-  {k:'country',label:'Country'},{k:'city',label:'City / town'},{k:'address',label:'Physical address',full:1},
+  {k:'size',label:'Size',type:'select',options:['',...SUP_SIZES]},{k:'country',label:'Country'},{k:'city',label:'City / town'},{k:'region',label:'Region / province'},{k:'address',label:'Physical address',full:1},
   {k:'phone',label:'Phone(s)'},{k:'email',label:'Email'},{k:'website',label:'Website'},{k:'contact',label:'Contact person'},
   {k:'tin',label:'TIN'},{k:'rating',label:'Our rating',type:'select',options:['','1','2','3','4','5']},
   {k:'trust',label:'Why trusted (certifications, size, history)',type:'textarea',full:1},{k:'notes',label:'Our notes (prices, terms, experience)',type:'textarea',full:1}]; }
@@ -5172,28 +5173,29 @@ function supOpen(s){ formDrawer(s?'Edit supplier':'Add supplier',supFields(),s||
     if(v.website&&!/^https?:\/\//i.test(v.website)) v.website='https://'+v.website.trim();
     if(s) await patch('suppliers',s.id,{...v,updated_note:'edited'}); else await put('suppliers',null,{...v,added_by:me.name||''}); logAct(`${s?'Updated':'Added'} supplier: ${v.name}`); },
   {delOk:supCanEdit(),onDelete:s?async()=>{ await remove('suppliers',s.id); logAct(`Removed supplier: ${s.name}`); }:null,delMsg:'Remove this supplier from the directory?'}); }
-function supList(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',q:''}), q=(F.q||'').toLowerCase().trim();
-  return (S.suppliers||[]).filter(s=>(!F.o||supOrig(s)===F.o)&&(!F.c||supCats(s).includes(F.c))&&(!F.t||s.type===F.t)&&(!q||[s.name,s.products,s.city,s.country,s.category,s.trust,s.contact].join(' ').toLowerCase().includes(q)))
+function supList(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), q=(F.q||'').toLowerCase().trim();
+  return (S.suppliers||[]).filter(s=>(!F.o||supOrig(s)===F.o)&&(!F.c||supCats(s).includes(F.c))&&(!F.t||s.type===F.t)&&(!F.z||s.size===F.z)&&(!q||[s.name,s.products,s.city,s.region,s.country,s.category,(s.also||[]).join(' '),s.trust,s.contact].join(' ').toLowerCase().includes(q)))
     .sort((a,b)=>SUP_ORIG.indexOf(supOrig(a))-SUP_ORIG.indexOf(supOrig(b))||SUP_CATS.indexOf(a.category)-SUP_CATS.indexOf(b.category)||String(a.name).localeCompare(String(b.name))); }
-function supDirTab(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',q:''}), all=S.suppliers||[], L=supList(), cnt=o=>all.filter(s=>supOrig(s)===o).length;
+function supDirTab(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), all=S.suppliers||[], L=supList(), cnt=o=>all.filter(s=>supOrig(s)===o).length;
   const catsUsed=SUP_CATS.filter(c=>all.some(s=>supCats(s).includes(c)));
   const groups=[]; L.forEach(s=>{ const k=supOrig(s)+'|'+(s.category||'Other'); let g=groups.find(x=>x.k===k); if(!g){ g={k,o:supOrig(s),c:s.category||'Other',L:[]}; groups.push(g); } g.L.push(s); });
   return `<div class="sup-top"><div class="seg">${[['','All',all.length],...SUP_ORIG.map(o=>[o,o==='Tanzania'?'🇹🇿 Tanzania':o==='International'?'🌍 International':'🌍 Africa (regional)',cnt(o)])].map(([k,l,n])=>`<button data-supo="${esc(k)}" aria-pressed="${F.o===k}">${l} <span class="sub">${n}</span></button>`).join('')}</div>
     <select class="inp" data-supc aria-label="Category"><option value="">All categories</option>${catsUsed.map(c=>`<option ${F.c===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
     <select class="inp" data-supt aria-label="Type"><option value="">Any type</option>${['Manufacturer','Importer/Distributor','Local dealer','Service provider'].map(c=>`<option ${F.t===c?'selected':''}>${c}</option>`).join('')}</select>
-    <input class="inp" id="supq" type="search" placeholder="Search name, product, city…" value="${esc(F.q||'')}"><span class="sub">${L.length} supplier${L.length===1?'':'s'}</span></div>
+    <select class="inp" data-supz aria-label="Size"><option value="">Any size</option>${SUP_SIZES.map(c=>`<option ${F.z===c?'selected':''}>${c}</option>`).join('')}</select>
+    <input class="inp" id="supq" type="search" placeholder="Search name, product, city, region…" value="${esc(F.q||'')}"><span class="sub">${L.length} supplier${L.length===1?'':'s'}</span></div>
   ${groups.length?groups.map(g=>`<div class="card sup-grp"><div class="sup-gh"><b>${esc(g.c)}</b><span class="chip">${esc(g.o)}</span><span class="sub">${g.L.length}</span></div><div class="tbl-wrap"><table class="sup-t"><thead><tr><th>Supplier</th><th>Location</th><th>Contact</th><th class="r">Orders</th><th></th></tr></thead><tbody>${g.L.map(s=>{ const st=poSupStats(s.name), tel=supTel(s.phone);
-    return `<tr class="click" data-supv="${esc(s.id)}"><td><div class="ttl2">${esc(s.name)}</div><div class="sub">${esc(s.products||'')}</div><div class="toolbar sup-tags">${s.type?`<span class="chip ${s.type==='Manufacturer'?'good':''}">${esc(s.type)}</span>`:''}${+s.rating?`<span class="chip amb">${'★'.repeat(+s.rating)}</span>`:''}${(s.also||[]).map(a=>`<span class="chip">${esc(a)}</span>`).join('')}</div></td>
-      <td>${SUP_FLAG[s.country]||''} ${esc([s.city,s.country].filter(Boolean).join(', '))}</td>
+    return `<tr class="click" data-supv="${esc(s.id)}"><td><div class="ttl2">${esc(s.name)}</div><div class="sub">${esc(s.products||'')}</div><div class="toolbar sup-tags">${s.type?`<span class="chip ${s.type==='Manufacturer'?'good':''}">${esc(s.type)}</span>`:''}${s.size?`<span class="chip">${esc(s.size)}</span>`:''}${+s.rating?`<span class="chip amb">${'★'.repeat(+s.rating)}</span>`:''}${(s.also||[]).map(a=>`<span class="chip">${esc(a)}</span>`).join('')}</div></td>
+      <td>${SUP_FLAG[s.country]||''} ${esc([s.city,s.region&&s.region!==s.city?s.region:'',s.country].filter(Boolean).join(', '))}</td>
       <td class="sup-c">${tel?`<a href="tel:${esc(tel)}" data-stop="1">${esc(String(s.phone).split(/[;]/)[0])}</a>`:''}${s.email?`<a href="mailto:${esc(s.email)}" data-stop="1">${esc(s.email)}</a>`:''}${s.website?`<a href="${esc(s.website)}" data-dhopen="${esc(s.website)}" data-dhname="${esc(s.name)}" data-stop="1">🌐 ${esc(dhHost(s.website))}</a>`:''}</td>
       <td class="r num">${st.n?st.n+(st.ontime!=null?`<div class="sub">${st.ontime}% on time</div>`:''):'—'}</td><td class="r">›</td></tr>`; }).join('')}</tbody></table></div></div>`).join(''):`<div class="card"><div class="empty">${all.length?'No suppliers match these filters.':'No suppliers yet.'}</div></div>`}
   <p class="sub">Contact details were collected from company websites and public directories – confirm prices, stock and current contacts before ordering.</p>`; }
 function supDrawer(){ const s=byId('suppliers',drawer.id); if(!s) return ''; const st=poSupStats(s.name), tel=supTel(s.phone);
-  const rows=[['Category',supCats(s).join(' · ')],['Products / brands',s.products],['Type',s.type],['Based in',`${SUP_FLAG[s.country]||''} ${[s.city,s.country].filter(Boolean).join(', ')} (${supOrig(s)})`],['Address',s.address],['Phone',s.phone],['Email',s.email],['Website',s.website],['Contact person',s.contact],['TIN',s.tin],['Why trusted',s.trust],['Our notes',s.notes],['Our rating',+s.rating?'★'.repeat(+s.rating):''],['Orders with us',st.n?`${st.n} · ${tzsShort(st.val)}${st.ontime!=null?' · '+st.ontime+'% on time':''}`:'None yet'],['Source of details',s.source]].filter(r=>r[1]);
+  const rows=[['Category',supCats(s).join(' · ')],['Products / brands',s.products],['Type',[s.type,s.size].filter(Boolean).join(' · ')],['Based in',`${SUP_FLAG[s.country]||''} ${[s.city,s.region,s.country].filter(Boolean).join(', ')} (${supOrig(s)})`],['Address',s.address],['Phone',s.phone],['Email',s.email],['Website',s.website],['Contact person',s.contact],['TIN',s.tin],['Why trusted',s.trust],['Our notes',s.notes],['Our rating',+s.rating?'★'.repeat(+s.rating):''],['Orders with us',st.n?`${st.n} · ${tzsShort(st.val)}${st.ontime!=null?' · '+st.ontime+'% on time':''}`:'None yet'],['Source of details',s.source]].filter(r=>r[1]);
   return drawerShell(s.name,esc(s.category||'Supplier'),`<table class="kv">${rows.map(([l,v])=>`<tr><th>${l}</th><td>${l==='Website'||l==='Source of details'?`<a href="${esc(v)}" data-dhopen="${esc(v)}" data-dhname="${esc(s.name)}">${esc(v)}</a>`:l==='Email'?`<a href="mailto:${esc(v)}">${esc(v)}</a>`:esc(v)}</td></tr>`).join('')}</table>`,
     `${tel?`<a class="btn pri" href="tel:${esc(tel)}">Call</a>`:''}${s.email?`<a class="btn" href="mailto:${esc(s.email)}">Email</a>`:''}${s.website?`<button class="btn" data-dhopen="${esc(s.website)}" data-dhname="${esc(s.name)}">Website</button>`:''}<div class="sp"></div>${supCanEdit()||!s.source?`<button class="btn" data-supe="${esc(s.id)}">Edit</button>`:''}`); }
 async function supExport(){ try{ await loadScript(XLSX_URL); }catch(e){ return toast(e.message); }
-  const K=[['name','Supplier'],['category','Category'],['products','Products'],['origin','Based in'],['type','Type'],['country','Country'],['city','City'],['address','Address'],['phone','Phone'],['email','Email'],['website','Website'],['contact','Contact'],['trust','Why trusted'],['rating','Rating'],['source','Source']];
+  const K=[['name','Supplier'],['category','Category'],['products','Products'],['origin','Based in'],['type','Type'],['size','Size'],['country','Country'],['region','Region'],['city','City'],['address','Address'],['phone','Phone'],['email','Email'],['website','Website'],['contact','Contact'],['trust','Why trusted'],['rating','Rating'],['source','Source']];
   const ws=XLSX.utils.aoa_to_sheet([K.map(k=>k[1]),...supList().map(s=>K.map(([k])=>k==='origin'?supOrig(s):String(s[k]||'')))]); ws['!cols']=K.map(()=>({wch:24}));
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Suppliers'); if(await oxSave(`Supplier directory – ${today()}`,new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx')) logAct('Exported supplier directory'); }
 document.addEventListener('click',e=>{ const el=e.target.closest('[data-supo],[data-supv],[data-supe],[data-act="supExport"]'); if(!el) return;
@@ -5201,7 +5203,7 @@ document.addEventListener('click',e=>{ const el=e.target.closest('[data-supo],[d
   if(el.dataset.supo!=null){ UI.supF.o=el.dataset.supo; return renderView(true); }
   if(el.dataset.supe){ const s=byId('suppliers',el.dataset.supe); return s&&supOpen(s); }
   if(el.dataset.supv){ if(e.target.closest('[data-stop],a')) return; openDrawer('supv',el.dataset.supv); } });
-document.addEventListener('change',e=>{ const t=e.target; if(t.matches&&t.matches('[data-supc]')){ UI.supF.c=t.value; renderView(true); } else if(t.matches&&t.matches('[data-supt]')){ UI.supF.t=t.value; renderView(true); } });
+document.addEventListener('change',e=>{ const t=e.target; if(t.matches&&t.matches('[data-supc]')){ UI.supF.c=t.value; renderView(true); } else if(t.matches&&t.matches('[data-supt]')){ UI.supF.t=t.value; renderView(true); } else if(t.matches&&t.matches('[data-supz]')){ UI.supF.z=t.value; renderView(true); } });
 document.addEventListener('input',e=>{ if(e.target.id==='supq'){ UI.supF.q=e.target.value; clearTimeout(supDirTab.t); supDirTab.t=setTimeout(()=>renderView(true),180); } });
 (()=>{ const s=document.createElement('style'); s.textContent=`.sup-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px}.sup-top .inp{width:auto;min-width:150px}.sup-top #supq{flex:1;min-width:180px}
 .sup-grp{padding:0;margin-bottom:12px;overflow:hidden}.sup-gh{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}.sup-t td{vertical-align:top}.sup-t .sub{max-width:520px}
