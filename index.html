@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=146"></script>
+<script src="config.js?v=147"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=146"></script>
-<script src="nexus-chat.js?v=146"></script>
+<script src="nexus-sb.js?v=147"></script>
+<script src="nexus-chat.js?v=147"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5173,8 +5173,12 @@ function supOpen(s,pre){ formDrawer(s?'Edit supplier':pre?'Add supplier found by
     if(v.website&&!/^https?:\/\//i.test(v.website)) v.website='https://'+v.website.trim();
     if(s) await patch('suppliers',s.id,{...v,updated_note:'edited'}); else await put('suppliers',null,{...v,added_by:me.name||'',...(pre?{ai_found:true,source:pre.source||'',verified:''}:{})}); logAct(`${s?'Updated':'Added'} supplier: ${v.name}`); },
   {delOk:supCanEdit(),onDelete:s?async()=>{ await remove('suppliers',s.id); logAct(`Removed supplier: ${s.name}`); }:null,delMsg:'Remove this supplier from the directory?'}); }
-function supList(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), q=(F.q||'').toLowerCase().trim();
-  return (S.suppliers||[]).filter(s=>(!F.o||supOrig(s)===F.o)&&(!F.c||supCats(s).includes(F.c))&&(!F.t||s.type===F.t)&&(!F.z||s.size===F.z)&&(!q||[s.name,s.products,s.city,s.region,s.country,s.category,(s.also||[]).join(' '),s.trust,s.contact].join(' ').toLowerCase().includes(q)))
+// v147: word-by-word search (every word must match), simple plurals and common Swahili material names
+const SUP_SYN={saruji:'cement',simenti:'cement',nondo:'steel',chuma:'steel',mabati:'roofing',bati:'roofing',rangi:'paint',tofali:'block',matofali:'block',mbao:'timber',kokoto:'aggregate',mchanga:'sand',mabomba:'pipe',bomba:'pipe',vigae:'tiles',marumaru:'tiles',kioo:'glass',vioo:'glass',umeme:'electrical',waya:'cable',misumari:'nail',msumari:'nail',gypsum:'gypsum',jasi:'gypsum',dirisha:'window',madirisha:'window',mlango:'door',milango:'door',tanki:'tank',pampu:'pump'};
+const supWords=q=>String(q||'').toLowerCase().split(/[^a-z0-9&]+/).filter(w=>w.length>1&&!/^(and|the|of|in|for|na|ya|za|wa|la|suppliers?|wauzaji|dealers?)$/.test(w)).map(w=>SUP_SYN[w]||w.replace(/(ies)$/,'y').replace(/([^s])s$/,'$1'));
+function supList(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), W=supWords(F.q);
+  return (S.suppliers||[]).filter(s=>{ if(!((!F.o||supOrig(s)===F.o)&&(!F.c||supCats(s).includes(F.c))&&(!F.t||s.type===F.t)&&(!F.z||s.size===F.z))) return false; if(!W.length) return true;
+      const h=[s.name,s.products,s.city,s.region,s.country,s.category,(s.also||[]).join(' '),s.trust,s.contact,s.notes].join(' ').toLowerCase(); return W.every(w=>h.includes(w)); })
     .sort((a,b)=>SUP_ORIG.indexOf(supOrig(a))-SUP_ORIG.indexOf(supOrig(b))||SUP_CATS.indexOf(a.category)-SUP_CATS.indexOf(b.category)||String(a.name).localeCompare(String(b.name))); }
 function supDirTab(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), all=S.suppliers||[], L=supList(), cnt=o=>all.filter(s=>supOrig(s)===o).length;
   const catsUsed=SUP_CATS.filter(c=>all.some(s=>supCats(s).includes(c)));
@@ -5193,44 +5197,52 @@ function supDirTab(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}), all
   <p class="sub">Contact details were collected from company websites and public directories – confirm prices, stock and current contacts before ordering.</p>`; }
 /* ---- v146 · AI supplier finder: web search for suppliers not in our list ---- */
 const supNorm=n=>String(n||'').toLowerCase().replace(/\b(ltd|limited|co|company|plc|inc|llc|tanzania|t)\b/g,'').replace(/[^a-z0-9]/g,'');
+const SUP_AI_JOBS={tz:'🇹🇿 Tanzania',ea:'🌍 East Africa',intl:'🌐 Import',all:'🔎 Web'};
 function supAIPanel(n){ const A=UI.supAI, F=UI.supF||{}, q=(F.q||'').trim();
-  if(!A){ return q&&!n?`<div class="card sup-ai sup-ai-ask"><div><b>“${esc(q)}” is not in our supplier list.</b><div class="sub">Let AI search the web for suppliers${F.c?' of '+esc(F.c):''}${F.o?' ('+esc(F.o)+')':''} you can contact.</div></div><button class="btn pri" data-act="supAI">✨ Find suppliers with AI</button></div>`:''; }
-  const head=`<div class="sup-ai-h"><b>✨ AI supplier search</b><span class="sub">“${esc(A.q)}”${A.ctx?' · '+esc(A.ctx):''}</span><div class="sp"></div>${A.busy?'':`<button class="btn sm" data-act="supAI">Search again</button>`}<button class="btn sm ghost" data-act="supAIx" aria-label="Close AI results">✕</button></div>`;
-  if(A.busy) return `<div class="card sup-ai">${head}<div class="sup-ai-wait"><span class="spin" aria-hidden="true"></span> Searching the web for suppliers… this takes about 20–40 seconds.</div></div>`;
-  if(A.err) return `<div class="card sup-ai">${head}<div class="empty">${esc(A.err)}</div></div>`;
+  if(!A){ if(!q||q.length<3) return '';
+    return n?`<div class="sup-ai-strip"><span>Need more choices for <b>“${esc(q)}”</b>?</span><button class="btn sm" data-act="supAI">✨ Search the internet for more suppliers</button></div>`
+      :`<div class="card sup-ai sup-ai-ask"><div><b>“${esc(q)}” is not in our supplier list.</b><div class="sub">Let AI search the internet for suppliers${F.c?' of '+esc(F.c):''}${F.o?' ('+esc(F.o)+')':''} you can contact.</div></div><button class="btn pri" data-act="supAI">✨ Find suppliers with AI</button></div>`; }
+  const jobs=A.jobs||[], busy=jobs.some(j=>j.st==='run');
+  const chips=jobs.map(j=>`<span class="chip ${j.st==='ok'?'good':j.st==='err'?'amb':''}" title="${esc(j.msg||'')}">${SUP_AI_JOBS[j.focus]||j.focus} ${j.st==='run'?'<span class="spin sm" aria-hidden="true"></span>':j.st==='ok'?'✓ '+j.n:'–'}</span>`).join('');
+  const head=`<div class="sup-ai-h"><b>✨ AI supplier search</b><span class="sub">“${esc(A.q)}”${A.ctx?' · '+esc(A.ctx):''}</span><div class="sp"></div>${busy?`<span class="sub" id="supAITime">${Math.round((Date.now()-A.t0)/1000)} s</span>`:`<button class="btn sm" data-act="supAIfresh" title="Search the internet again (ignore saved results)">↻ Search again</button>`}<button class="btn sm ghost" data-act="supAIx" aria-label="Close AI results">✕</button></div>
+    <div class="toolbar sup-ai-jobs">${chips}${A.cachedAt&&!busy?`<span class="sub">Saved search from ${esc(new Date(A.cachedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}))}</span>`:''}</div>`;
   const known=new Set((S.suppliers||[]).map(x=>supNorm(x.name)));
   const items=(A.items||[]).map((it,i)=>{ const inList=known.has(supNorm(it.name)), tel=supTel(it.phone), loc=[it.city,it.region&&it.region!==it.city?it.region:'',it.country].filter(Boolean).join(', ');
     return `<div class="sup-ai-it"><div class="sup-ai-main"><div class="ttl2">${esc(it.name)} ${inList?'<span class="chip good">In our list</span>':''}</div>
       <div class="sub">${esc(it.products||'')}</div>
       <div class="toolbar sup-tags">${it.category?`<span class="chip">${esc(it.category)}</span>`:''}${it.type?`<span class="chip">${esc(it.type)}</span>`:''}${loc?`<span class="chip">${SUP_FLAG[it.country]||'📍'} ${esc(loc)}</span>`:''}</div>
       ${it.why?`<div class="sub sup-ai-why">${esc(it.why)}</div>`:''}</div>
-      <div class="sup-c">${tel?`<a href="tel:${esc(tel)}">${esc(it.phone)}</a>`:''}${it.email?`<a href="mailto:${esc(it.email)}">${esc(it.email)}</a>`:''}${it.website?`<a href="${esc(it.website)}" data-dhopen="${esc(it.website)}" data-dhname="${esc(it.name)}">🌐 ${esc(dhHost(it.website))}</a>`:''}${it.source&&it.source!==it.website?`<a href="${esc(it.source)}" data-dhopen="${esc(it.source)}" data-dhname="${esc(it.name)}" class="sub">Source ↗</a>`:''}
+      <div class="sup-c">${tel?`<a href="tel:${esc(tel)}">${esc(it.phone)}</a>`:''}${it.email?`<a href="mailto:${esc(it.email)}">${esc(it.email)}</a>`:''}${it.website?`<a href="${esc(it.website)}" data-dhopen="${esc(it.website)}" data-dhname="${esc(it.name)}">🌐 ${esc(dhHost(it.website))}</a>`:''}${it.source&&it.source!==it.website&&/^https?:/.test(it.source)?`<a href="${esc(it.source)}" data-dhopen="${esc(it.source)}" data-dhname="${esc(it.name)}" class="sub">Source ↗</a>`:''}
       ${inList?'':`<button class="btn sm" data-supaiadd="${i}">+ Add to our list</button>`}</div></div>`; }).join('');
-  const src=(A.sources||[]).slice(0,6);
-  return `<div class="card sup-ai">${head}${items||(A.text?`<div class="ask-md">${askFmt(A.text)}</div>`:'<div class="empty">AI found no suppliers for this search. Try other words (e.g. the product and a town).</div>')}
-    ${src.length?`<div class="sup-ai-src sub">Sources: ${src.map(x=>`<a href="${esc(x.url||x)}" data-dhopen="${esc(x.url||x)}" data-dhname="Source">${esc(x.title||dhHost(x.url||x))}</a>`).join(' · ')}</div>`:''}
+  const src=A.sources||[], msgs=jobs.filter(j=>j.st==='err'&&j.msg).map(j=>j.msg);
+  const empty=busy?`<div class="sup-ai-wait"><span class="spin" aria-hidden="true"></span> Searching the internet… results appear here as each search finishes.</div>`
+    :`<div class="empty">${esc([...new Set(msgs)][0]||'AI found no suppliers for this search. Try other words (e.g. the product and a town).')}</div>`;
+  return `<div class="card sup-ai">${head}${items||empty}${items&&busy?`<div class="sup-ai-wait sm"><span class="spin" aria-hidden="true"></span> Still searching…</div>`:''}
+    ${src.length?`<details class="sup-ai-src sub"><summary>${src.length} web source${src.length===1?'':'s'} checked</summary>${src.slice(0,40).map(x=>`<a href="${esc(x.url)}" data-dhopen="${esc(x.url)}" data-dhname="Source">${esc(x.title||dhHost(x.url))}</a>`).join(' · ')}</details>`:''}
     <p class="sub sup-ai-note">Found by AI on the internet – not verified by Nordic. Call the supplier to confirm details, prices and stock before ordering.</p></div>`; }
-async function supAIRun(){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}); let q=(F.q||'').trim();
+async function supAICall(body){ if(window.NX_SB?.functions){ const { data, error }=await window.NX_SB.functions.invoke('supplier-search',{ body }); if(error){ let b=null; try{ b=await error.context?.json(); }catch(_){} throw new Error(b?.message||b?.error||error.message); } return data||{}; }
+  if(window.NX_SUPAI) return window.NX_SUPAI(body); throw new Error('AI search is not available in this view.'); }
+async function supAIRun(fresh){ const F=UI.supF||(UI.supF={o:'',c:'',t:'',z:'',q:''}); const q=(F.q||'').trim();
   if(!q&&!F.c){ const el=document.getElementById('supq'); toast('Type the material or supplier you need in the search box first.'); el&&el.focus(); return; }
-  if(!sample){ toast('AI is not available in this view.'); return; }
-  const ctx=[F.c,F.o,F.z,F.t].filter(Boolean).join(' · '), qq=q||F.c;
-  const near=(S.suppliers||[]).filter(s=>(!F.c||supCats(s).includes(F.c))&&(!F.o||supOrig(s)===F.o)&&(!q||[s.name,s.products,s.category,s.city,s.region].join(' ').toLowerCase().includes(q.toLowerCase().split(/\s+/)[0]))).slice(0,60).map(s=>s.name);
-  const where=F.o==='International'?'outside Africa (e.g. China, UAE/Dubai, Turkey, India, Europe) that export to Tanzania/East Africa':F.o==='Africa (regional)'?'in Africa outside Tanzania (Kenya, Uganda, Rwanda, Zambia, South Africa…) that supply Tanzania':F.o==='Tanzania'?'located in Tanzania':'in Tanzania first, then East Africa and international exporters';
-  UI.supAI={q:qq,ctx,busy:true}; renderView(true);
-  const prompt=`You help the procurement team of Nordic Construction Company Ltd, a Class I building and civil contractor in Dar es Salaam, Tanzania.
-Search the web and find up to 8 REAL, currently operating suppliers for: "${qq}"${F.c?` (material category: ${F.c})`:''}${F.z?` (size: ${F.z})`:''}${F.t?` (type: ${F.t})`:''}.
-Look for suppliers ${where}. Prefer manufacturers and established distributors with a public phone, email or website.
-${near.length?`Do NOT include these suppliers – they are already in our list: ${near.join('; ')}.`:''}
-Rules: never invent a company, phone, email or website – use "" when not found. Phone with country code. "source" = the web page where you saw the details.
-Reply with ONLY a JSON array (no other text), each item:
-{"name":"","products":"","category":"one of: ${SUP_CATS.join(' | ')}","type":"Manufacturer | Importer/Distributor | Local dealer | Service provider","size":"Big | Medium | Small/local","country":"","city":"","region":"","address":"","phone":"","email":"","website":"","source":"","why":"short reason it is reliable (years, brands, certifications, branches)"}`;
-  try{ window.NX_AI_KIND='ask'; const r=await sample(prompt,{modelTier:'default',cache:false,web:true});
-    let items=null; const m=String(r.text||'').match(/\[[\s\S]*\]/);
-    if(m){ try{ items=JSON.parse(m[0]); }catch(_){ try{ items=JSON.parse(m[0].replace(/,\s*([\]}])/g,'$1')); }catch(__){} } }
-    items=Array.isArray(items)?items.filter(x=>x&&x.name).map(x=>({...x,website:x.website&&!/^https?:\/\//i.test(x.website)?'https://'+String(x.website).trim():x.website||'',category:SUP_CATS.includes(x.category)?x.category:(F.c||'Services / other')})).slice(0,10):null;
-    UI.supAI={q:qq,ctx,items:items||[],text:items?'':r.text,sources:r.sources||[]}; logAct(`AI supplier search: ${qq}`);
-  }catch(e){ UI.supAI={q:qq,ctx,err:e?.code==='rate_limited'?'AI is busy. Wait a minute and try again.':'AI search failed: '+(e?.message||'unknown error')}; }
-  renderView(true); }
+  const qq=q||F.c, ctx=[F.c,F.o,F.z,F.t].filter(Boolean).join(' · ');
+  const W=supWords(qq), exclude=(S.suppliers||[]).filter(s=>(!F.c||supCats(s).includes(F.c))&&(!W.length||W.some(w=>[s.name,s.products,s.category].join(' ').toLowerCase().includes(w)))).slice(0,60).map(s=>s.name);
+  const base={q:qq,category:F.c||'',origin:F.o||'',cats:SUP_CATS,exclude,...(fresh?{fresh:true}:{})};
+  const A=UI.supAI={q:qq,ctx,t0:Date.now(),items:[],sources:[],jobs:(F.o?[F.o==='Tanzania'?'tz':F.o==='International'?'intl':'ea']:['tz','ea','intl']).map(f=>({focus:f,st:'run',n:0}))};
+  renderView(true); logAct(`AI supplier search: ${qq}`);
+  const tick=setInterval(()=>{ const el=document.getElementById('supAITime'); if(UI.supAI!==A||!A.jobs.some(j=>j.st==='run')) return clearInterval(tick); if(el) el.textContent=Math.round((Date.now()-A.t0)/1000)+' s'; },1000);
+  const merge=(r,job)=>{ if(UI.supAI!==A) return; const have=new Set(A.items.map(x=>supNorm(x.name)));
+    (r.items||[]).forEach(x=>{ if(!x||!x.name) return; const k=supNorm(x.name); if(!k||have.has(k)) return; have.add(k);
+      A.items.push({...x,website:x.website&&!/^https?:\/\//i.test(x.website)?'https://'+String(x.website).trim():x.website||'',category:SUP_CATS.includes(x.category)?x.category:(F.c||'Services / other'),_f:job.focus}); });
+    const seen=new Set(A.sources.map(x=>x.url)); (r.sources||[]).forEach(x=>{ if(x&&x.url&&!seen.has(x.url)){ seen.add(x.url); A.sources.push(x); } });
+    if(r.cached&&r.cached_at) A.cachedAt=r.cached_at; job.n=(r.items||[]).length; };
+  const runJob=async(job,engine)=>{ try{ const r=await supAICall({...base,engine,focus:job.focus}); if(UI.supAI!==A) return r;
+      if(r.error){ job.st='err'; job.msg=r.message||(r.error==='no_gemini_key'?'':r.error); job.code=r.error; } else { merge(r,job); job.st='ok'; } }
+    catch(e){ job.st='err'; job.msg=/rate|busy/i.test(e.message)?'AI is busy – wait a minute and try again.':'AI search failed: '+e.message; }
+    if(UI.supAI===A) renderView(true); };
+  await Promise.all(A.jobs.map(j=>runJob(j,'gem')));
+  // no Google (Gemini) key → the slower Groq web browsing, one search
+  if(UI.supAI===A&&A.jobs.every(j=>j.code==='no_gemini_key')){ A.jobs=[{focus:F.o?A.jobs[0].focus:'tz',st:'run',n:0}]; renderView(true); await runJob(A.jobs[0],'oss'); }
+  clearInterval(tick); }
 function supAIAdd(i){ const it=(UI.supAI?.items||[])[i]; if(!it) return; const intl=it.country&&!/tanzania/i.test(it.country);
   const afr=/kenya|uganda|rwanda|burundi|zambia|malawi|mozambique|south africa|ethiopia|congo|drc|egypt|nigeria|ghana|namibia|botswana|zimbabwe|sudan|somalia/i.test(it.country||'');
   supOpen(null,{name:it.name,category:it.category,products:it.products,origin:!intl?'Tanzania':afr?'Africa (regional)':'International',type:it.type||'Importer/Distributor',size:SUP_SIZES.includes(it.size)?it.size:'',country:it.country||'Tanzania',city:it.city||'',region:it.region||'',address:it.address||'',phone:it.phone||'',email:it.email||'',website:it.website||'',trust:it.why||'',notes:'Found by AI web search – verify before ordering.',source:it.source||it.website||''}); }
@@ -5242,16 +5254,16 @@ async function supExport(){ try{ await loadScript(XLSX_URL); }catch(e){ return t
   const K=[['name','Supplier'],['category','Category'],['products','Products'],['origin','Based in'],['type','Type'],['size','Size'],['country','Country'],['region','Region'],['city','City'],['address','Address'],['phone','Phone'],['email','Email'],['website','Website'],['contact','Contact'],['trust','Why trusted'],['rating','Rating'],['source','Source']];
   const ws=XLSX.utils.aoa_to_sheet([K.map(k=>k[1]),...supList().map(s=>K.map(([k])=>k==='origin'?supOrig(s):String(s[k]||'')))]); ws['!cols']=K.map(()=>({wch:24}));
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Suppliers'); if(await oxSave(`Supplier directory – ${today()}`,new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx')) logAct('Exported supplier directory'); }
-document.addEventListener('click',e=>{ const el=e.target.closest('[data-supo],[data-supv],[data-supe],[data-supaiadd],[data-act="supExport"],[data-act="supAI"],[data-act="supAIx"]'); if(!el) return;
+document.addEventListener('click',e=>{ const el=e.target.closest('[data-supo],[data-supv],[data-supe],[data-supaiadd],[data-act="supExport"],[data-act="supAI"],[data-act="supAIfresh"],[data-act="supAIx"]'); if(!el) return;
   if(el.dataset.act==='supExport') return supExport();
-  if(el.dataset.act==='supAI'){ if(UI.supAI?.busy) return; return supAIRun(); }
+  if(el.dataset.act==='supAI'||el.dataset.act==='supAIfresh'){ if(UI.supAI?.jobs?.some(j=>j.st==='run')) return; return supAIRun(el.dataset.act==='supAIfresh'); }
   if(el.dataset.act==='supAIx'){ UI.supAI=null; return renderView(true); }
   if(el.dataset.supaiadd!=null) return supAIAdd(+el.dataset.supaiadd);
   if(el.dataset.supo!=null){ UI.supF.o=el.dataset.supo; return renderView(true); }
   if(el.dataset.supe){ const s=byId('suppliers',el.dataset.supe); return s&&supOpen(s); }
   if(el.dataset.supv){ if(e.target.closest('[data-stop],a')) return; openDrawer('supv',el.dataset.supv); } });
 document.addEventListener('change',e=>{ const t=e.target; if(t.matches&&t.matches('[data-supc]')){ UI.supF.c=t.value; renderView(true); } else if(t.matches&&t.matches('[data-supt]')){ UI.supF.t=t.value; renderView(true); } else if(t.matches&&t.matches('[data-supz]')){ UI.supF.z=t.value; renderView(true); } });
-document.addEventListener('keydown',e=>{ if(e.target.id==='supq'&&e.key==='Enter'&&!supList().length&&!UI.supAI?.busy){ e.preventDefault(); supAIRun(); } });
+document.addEventListener('keydown',e=>{ if(e.target.id==='supq'&&e.key==='Enter'&&String(UI.supF?.q||'').trim().length>=3&&!UI.supAI?.jobs?.some(j=>j.st==='run')){ e.preventDefault(); supAIRun(); } });
 document.addEventListener('input',e=>{ if(e.target.id==='supq'){ UI.supF.q=e.target.value; clearTimeout(supDirTab.t); supDirTab.t=setTimeout(()=>renderView(true),180); } });
 (()=>{ const s=document.createElement('style'); s.textContent=`.sup-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px}.sup-top .inp{width:auto;min-width:150px}.sup-top #supq{flex:1;min-width:180px}
 .sup-grp{padding:0;margin-bottom:12px;overflow:hidden}.sup-gh{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}.sup-t td{vertical-align:top}.sup-t .sub{max-width:520px}
@@ -5261,7 +5273,8 @@ document.addEventListener('input',e=>{ if(e.target.id==='supq'){ UI.supF.q=e.tar
 .sup-ai-ask{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .sup-ai-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.sup-ai-h .sp{flex:1}.sup-ai-wait{display:flex;gap:10px;align-items:center;padding:14px 0}
 .sup-ai-it{display:flex;gap:14px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.sup-ai-main{flex:1;min-width:0}.sup-ai-it .sup-c{min-width:200px;max-width:280px;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
-.sup-ai-it .sup-c a{white-space:normal;overflow-wrap:anywhere}.sup-ai-why{margin-top:4px}.sup-ai-src{margin-top:8px;overflow-wrap:anywhere}.sup-ai-note{margin:8px 0 0}
+.sup-ai-it .sup-c a{white-space:normal;overflow-wrap:anywhere}.sup-ai-why{margin-top:4px}.sup-ai-src{margin-top:8px;overflow-wrap:anywhere}.sup-ai-note{margin:8px 0 0}.sup-ai-jobs{gap:6px;margin:-2px 0 6px;flex-wrap:wrap}.sup-ai-jobs .spin.sm{width:10px;height:10px;border-width:2px;vertical-align:-1px}.sup-ai-wait.sm{padding:8px 0;font-size:13px}
+.sup-ai-strip{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 12px;margin:-4px 0 12px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.sup-ai-src summary{cursor:pointer;margin-bottom:4px}
 @media(max-width:700px){.sup-ai-it{flex-direction:column}.sup-ai-it .sup-c{max-width:none}.sup-aibtn{flex:1}.sup-top .seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.sup-top .seg button{white-space:nowrap}.sup-t{min-width:0!important;width:100%}.sup-t tbody{display:block}.sup-t .ttl2,.sup-t .sub{white-space:normal;overflow-wrap:anywhere}.sup-c a{white-space:normal;overflow-wrap:anywhere}.sup-t thead{display:none}.sup-t tr{display:block;padding:10px 12px;border-bottom:1px solid var(--line)}.sup-t td{display:block;border:0;padding:2px 0;text-align:left}.sup-t td.r:last-child{display:none}.sup-top .inp{flex:1}}`; document.head.appendChild(s); })();
 
 const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
