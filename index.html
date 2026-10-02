@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=150"></script>
+<script src="config.js?v=151"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=150"></script>
-<script src="nexus-chat.js?v=150"></script>
+<script src="nexus-sb.js?v=151"></script>
+<script src="nexus-chat.js?v=151"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -463,6 +463,17 @@ ul.clean li{margin:3px 0}
 .nxfp-i{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer}.nxfp-i:hover{background:var(--panel2)}.nxfp-i.on{border-color:var(--accent);background:var(--accent-soft)}
 .nxfp-i img,.nxfp-ic{width:40px;height:40px;object-fit:cover;border-radius:8px;flex:none;display:grid;place-items:center;font-size:20px;background:var(--panel2)}.nxfp-i .grow{display:flex;flex-direction:column;min-width:0}.nxfp-i .ttl2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nxfp-f{display:flex;align-items:center;gap:8px}
+.pf-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}.pf-head .sp{flex:1}.pf-stats{display:flex;gap:22px}.pf-stats div{display:flex;flex-direction:column}.pf-stats b{font-size:20px;font-family:var(--fh,inherit)}.pf-stats span{font-size:12px;color:var(--muted)}
+.pf-drop{border:2px dashed var(--line);border-radius:14px;padding:14px;text-align:center;color:var(--muted);margin-bottom:12px;transition:border-color .15s,background .15s}.pf-drop.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}.pf-drop span{font-size:18px}
+.pf-cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:thin}.pf-cat{all:unset;cursor:pointer;white-space:nowrap;font-size:13px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}.pf-cat span{color:var(--muted);margin-left:3px;font-size:12px}.pf-cat.zero{opacity:.55}.pf-cat.on{background:var(--accent);border-color:var(--accent);color:#1b1b1b;font-weight:700;opacity:1}.pf-cat.on span{color:inherit}
+.pf-tools{display:flex;gap:10px;align-items:center;margin-bottom:8px}.pf-tools .inp{flex:1;max-width:460px}.pf-all{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.pf-selbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;margin-bottom:8px}.pf-selbar .sp{flex:1}.pf-selbar .inp.sm{width:auto}
+.pf-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.pf-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.pf-row.on{border-color:var(--accent)}
+.pf-main{all:unset;cursor:pointer;display:flex;gap:10px;align-items:center;flex:1;min-width:0}.pf-main img,.pf-ic{width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none;display:grid;place-items:center;font-size:21px;background:var(--panel2)}
+.pf-txt{display:flex;flex-direction:column;min-width:0}.pf-txt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pf-txt .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pf-note{font-style:italic}
+.pf-act{display:flex;gap:4px;flex:none}.pf-up .pf-ui{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.pf-up .pf-ui .grow{display:flex;flex-direction:column;min-width:0;flex:1}.pf-up .pf-ui .inp.sm{width:auto;max-width:210px}.pf-up .ft{display:flex;gap:8px;padding:12px 16px}
+.pf-linked .bd{display:flex;flex-direction:column;gap:6px}
+@media (max-width:700px){ .pf-act .t{display:none} .pf-row{flex-wrap:wrap} .pf-act{width:100%;justify-content:flex-end} .pf-stats{gap:14px} .pf-up .pf-ui{flex-wrap:wrap} .pf-up .pf-ui .grow{flex-basis:calc(100% - 56px)} .pf-up .pf-ui .inp.sm{max-width:none;flex:1} .pf-tools{flex-wrap:wrap} }
 .bgi-drop{border:2px dashed var(--line);border-radius:16px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;background:var(--panel2);transition:border-color .15s,background .15s}.bgi-drop.on{border-color:var(--accent);background:var(--accent-soft)}.bgi-drop .ic{font-size:30px}.bgi-drop b{font-size:15px}.bgi-drop .toolbar{margin-top:6px;flex-wrap:wrap}
 .bgi-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}.bgi-f{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}.bgi-f .ic{font-size:22px}.bgi-f .grow{flex:1;display:flex;flex-direction:column;min-width:0}.bgi-f b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bgi-opts{display:flex;flex-direction:column;gap:8px}.bgi-opts label{display:flex;gap:8px;align-items:flex-start}
@@ -743,7 +754,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
+const COLS = ['projfiles','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -2833,8 +2844,135 @@ async function recAiFill(){ const r=byId('records',drawer?.id), a=r&&r.ai; if(!a
   if((a.parties||[]).length&&!r.party) up.party=a.parties.filter(p=>!/nordic/i.test(p)).join(', ');
   if(!Object.keys(up).length){ toast('Nothing new to copy – the record already has these details.'); return; }
   await patch('records',r.id,up); toast('Copied: '+Object.keys(up).join(', ')+'.'); }
-function projectDocsTab(p){ const list=(S.records||[]).filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  return `<div class="toolbar"><div class="sp"></div><button class="btn" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn pri" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>`+recRows(list); }
+/* ---------- v151 · PROJECT DOCUMENT LIBRARY – every file of a project in one place (bucket "projfiles", collection "projfiles") ---------- */
+const PF_CATS=[['contract','Contract & agreements','📜'],['drawings','Drawings','📐'],['specs','Specifications','📘'],['boq','BoQ & valuations','🧮'],['letters','Correspondence','✉️'],['instructions','Instructions & variations','📝'],['minutes','Minutes & reports','🗒️'],['programme','Programme','📅'],['photos','Photos & videos','📷'],['hse','Health & safety','🦺'],['approvals','Approvals & permits','✅'],['handover','Handover & as-built','🏁'],['other','Other','📁']];
+const pfCat=k=>PF_CATS.find(c=>c[0]===k)||PF_CATS[PF_CATS.length-1];
+const PF_MAX=50*1048576;
+function pfGuess(name,type){ const n=String(name||'').toLowerCase(), t=String(type||'');
+  if(/^(image|video)\//.test(t)||/\.(jpe?g|png|gif|webp|heic|heif|mp4|mov|3gp|webm)$/.test(n)) return 'photos';
+  if(/\.(dwg|dxf|rvt|skp)$/.test(n)||/drawing|layout|elevation|section|floor ?plan|site ?plan|architect|structural|detail/.test(n)) return 'drawings';
+  if(/as.?built|handover|hand.?over|o ?& ?m|warranty|practical completion|completion cert|defects/.test(n)) return 'handover';
+  if(/boq|bill ?of ?quant|valuation|ipc|interim|payment cert|measurement|final account/.test(n)) return 'boq';
+  if(/contract|agreement|award|acceptance|bond|guarantee|insurance|addend/.test(n)) return 'contract';
+  if(/spec/.test(n)) return 'specs';
+  if(/instruction|variation|\bvo\b|\bsi\b|change order|\beot\b|extension of time|claim/.test(n)) return 'instructions';
+  if(/minute|report|progress|meeting/.test(n)) return 'minutes';
+  if(/letter|\bref\b|correspond|memo|notice/.test(n)) return 'letters';
+  if(/programme|program|schedule|gantt|\.mpp$|baseline/.test(n)) return 'programme';
+  if(/hse|safety|risk ?assess|method ?statement|\bjsa\b|\brams\b|incident|toolbox/.test(n)) return 'hse';
+  if(/approval|permit|nemc|osha|licen|certificate of occupancy/.test(n)) return 'approvals';
+  return 'other'; }
+const pfFiles=pid=>(S.projfiles||[]).filter(f=>f.project_id===pid&&!f.deleted);
+const pfIsPM=p=>!!(p&&p.manager&&p.manager===myStaffId());
+const pfCanDel=(f,p)=>canWrite&&(isAdmin||(f.by_uid&&f.by_uid===me.id)||pfIsPM(p));
+const pfWhen=v=>{ const t=Date.parse(v||''); return t?new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''; };
+function pfIcon(f){ return f.thumb?`<img src="${esc(f.thumb)}" alt="" loading="lazy">`:`<span class="pf-ic">${NXF_ICON[nxfKind({name:f.name,type:f.type})]||'📄'}</span>`; }
+function projectDocsTab(p){ const F=pfFiles(p.id), q=(UI.pfq||'').toLowerCase().trim(), cat=UI.pfc||'', sel=UI.pfsel||(UI.pfsel=new Set());
+  [...sel].forEach(id=>{ if(!F.some(f=>f.id===id)) sel.delete(id); });
+  const L=F.filter(f=>(!cat||f.cat===cat)&&(!q||[f.name,f.note,f.by,pfCat(f.cat)[1]].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
+  const size=F.reduce((a,f)=>a+(+f.size||0),0), last=F.reduce((a,f)=>String(f.at||'')>a?String(f.at):a,''), cnt=k=>F.filter(f=>f.cat===k).length;
+  const up=UI.pfup&&UI.pfup.pid===p.id?UI.pfup:null, selF=L.filter(f=>sel.has(f.id)), canDelSel=selF.length&&selF.every(f=>pfCanDel(f,p));
+  const recs=(S.records||[]).filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const T=p.tender_id?byId('tenders',p.tender_id):null, tdocs=(T?.files||[]).filter(f=>f&&f.url), boqs=(S.boqs||[]).filter(b=>b.project_id===p.id);
+  return `<div class="pf">
+  <div class="pf-head"><div class="pf-stats"><div><b>${F.length}</b><span>file${F.length===1?'':'s'}</span></div><div><b>${nxfSize(size)||'0 KB'}</b><span>stored</span></div><div><b>${last?pfWhen(last):'—'}</b><span>last upload</span></div></div>
+    <div class="sp"></div><div class="toolbar">${canWrite?`<button class="btn pri" data-pf="pick" data-pid="${esc(p.id)}">⬆ Upload files</button><button class="btn" data-pf="nx" data-pid="${esc(p.id)}">🗂️ From NEXUS files</button>`:''}${F.length?`<button class="btn" data-pf="zip" data-pid="${esc(p.id)}" title="Download ${cat||q?'the files shown':'all files'} in one .zip, sorted into folders">⬇ Download ${cat||q?'shown':'all'} (.zip)</button>`:''}</div>
+    <input type="file" id="pfFile" data-pid="${esc(p.id)}" multiple hidden><input type="file" id="pfVer" hidden></div>
+  ${canWrite&&!up?`<div class="pf-drop" id="pfDrop" data-pid="${esc(p.id)}"><span>📥</span> Drop files here to add them to <b>${esc(p.name)}</b> – drawings, contracts, letters, photos, anything (up to 50 MB each)</div>`:''}
+  ${up?pfUpHtml(p,up):''}
+  <div class="pf-cats"><button class="pf-cat${!cat?' on':''}" data-pf="cat:">All <span>${F.length}</span></button>${PF_CATS.map(([k,l,ic])=>`<button class="pf-cat${cat===k?' on':''}${cnt(k)?'':' zero'}" data-pf="cat:${k}">${ic} ${esc(l)} <span>${cnt(k)}</span></button>`).join('')}</div>
+  <div class="pf-tools"><input class="inp" id="pfQ" type="search" placeholder="Search files, notes, who uploaded…" value="${esc(UI.pfq||'')}">${L.length?`<label class="small pf-all"><input type="checkbox" data-pf="all" ${L.length&&L.every(f=>sel.has(f.id))?'checked':''}> Select all</label>`:''}</div>
+  ${selF.length?`<div class="pf-selbar"><b>${selF.length} selected</b><button class="btn sm" data-pf="zipsel" data-pid="${esc(p.id)}">⬇ Download (.zip)</button>${canWrite?`<select class="inp sm" data-pfmove aria-label="Move to folder"><option value="">Move to folder…</option>${PF_CATS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select>`:''}${canDelSel?`<button class="btn sm danger" data-pf="delsel" data-pid="${esc(p.id)}">Delete</button>`:''}<div class="sp"></div><button class="btn sm ghost" data-pf="clear">Clear</button></div>`:''}
+  <div class="pf-list">${L.length?L.map(f=>{ const c=pfCat(f.cat), nv=(f.versions||[]).length;
+    return `<div class="pf-row${sel.has(f.id)?' on':''}"><input type="checkbox" data-pfsel="${esc(f.id)}" ${sel.has(f.id)?'checked':''} aria-label="Select ${esc(f.name)}">
+      <button class="pf-main" data-pf="open:${esc(f.id)}" title="Open ${esc(f.name)}">${pfIcon(f)}<span class="pf-txt"><b>${esc(f.name)}</b><span class="sub">${c[2]} ${esc(c[1])} · ${nxfSize(f.size)}${nv?` · <a href="#" data-pf="vers:${esc(f.id)}">version ${nv+1}</a>`:''} · ${esc(f.by||'')} · ${pfWhen(f.at)}</span>${f.note?`<span class="sub pf-note">${esc(f.note)}</span>`:''}</span></button>
+      <div class="pf-act"><button class="btn sm" data-pf="dl:${esc(f.id)}" title="Download">⬇<span class="t"> Download</span></button>${canWrite?`<button class="btn sm ghost" data-pf="ver:${esc(f.id)}" title="Upload a newer version (the old one is kept)">⤴<span class="t"> New version</span></button><button class="btn sm ghost" data-pf="edit:${esc(f.id)}" title="Rename, move or add a note">✎</button>`:''}${pfCanDel(f,p)?`<button class="btn sm ghost" data-pf="del:${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.name)}">🗑</button>`:''}</div></div>`; }).join('')
+    :`<div class="empty">${F.length?'No files match.':canWrite?'No files yet – upload the contract, drawings, letters and photos of this project.':'No files yet.'}</div>`}</div>
+  ${tdocs.length||boqs.length?`<div class="card pf-linked"><div class="hd"><h2>Also linked to this project</h2></div><div class="bd">${tdocs.length?`<div class="small"><b>Tender documents</b> (${esc(T.title||'')}): ${tdocs.map(f=>`<a href="${esc(f.url)}" data-dhopen="${esc(f.url)}" data-dhname="${esc(f.name||'Document')}">${esc(f.name||'Document')}</a>`).join(' · ')}</div>`:''}${boqs.length?`<div class="small"><b>BoQs:</b> ${boqs.map(b=>`<a href="#" data-boq="${esc(b.id)}">${esc(b.title||'BoQ')}</a>`).join(' · ')}</div>`:''}</div></div>`:''}
+  <div class="card"><div class="hd"><h2>Office Records for this project</h2><span class="sub">contracts, letters and guarantees with access levels</span><div class="sp"></div><button class="btn sm" data-act="recLetterProj" data-proj="${esc(p.id)}">Register letter</button><button class="btn sm" data-act="recAddProj" data-proj="${esc(p.id)}">Add record</button></div>${recRows(recs)}</div></div>`; }
+function pfUpHtml(p,up){ const busy=up.items.some(x=>x.st==='up'), done=up.items.every(x=>x.st==='ok'||x.st==='err');
+  return `<div class="card pf-up"><div class="hd"><h2>Upload ${up.items.length} file${up.items.length===1?'':'s'} to ${esc(p.name)}</h2><div class="sp"></div>${!busy&&!done?`<select class="inp sm" data-pfall aria-label="Put all in folder"><option value="">Put all in…</option>${PF_CATS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select>`:''}</div>
+    <div class="bd">${up.items.map((x,i)=>`<div class="pf-ui ${x.st}"><span class="pf-ic">${NXF_ICON[nxfKind(x.file)]||'📄'}</span><span class="grow"><b>${esc(x.file.name)}</b><span class="sub">${nxfSize(x.file.size)}${x.dup?' · <b>a file with this name exists – will be saved as a new version</b>':''}${x.msg?' · '+esc(x.msg):''}</span></span>
+      ${x.st==='wait'?`<select class="inp sm" data-pfcat="${i}" aria-label="Folder for ${esc(x.file.name)}">${PF_CATS.map(([k,l])=>`<option value="${k}" ${x.cat===k?'selected':''}>${esc(l)}</option>`).join('')}</select><button class="btn sm ghost" data-pf="uprm:${i}" aria-label="Remove">✕</button>`:x.st==='up'?'<span class="spin sm"></span> Uploading…':x.st==='ok'?'<span class="chip good">✓ Saved</span>':`<span class="chip bad">Failed</span>`}</div>`).join('')}
+      ${!done?`<div class="fld full" style="margin-top:10px"><label for="pfNote">Note for these files (optional)</label><input class="inp" id="pfNote" value="${esc(up.note||'')}" placeholder="e.g. Revision B drawings received from the architect"></div>`:''}</div>
+    <div class="ft">${done?`<button class="btn pri" data-pf="updone">Done</button>`:`<button class="btn pri" data-pf="upgo" ${busy?'disabled':''}>${busy?'Uploading…':`⬆ Upload ${up.items.length} file${up.items.length===1?'':'s'}`}</button><button class="btn" data-pf="upx" ${busy?'disabled':''}>Cancel</button>`}</div></div>`; }
+function pfAdd(pid,files,from){ if(!canWrite) return toast('Your login can only view project files.'); const L=[...(files||[])].filter(f=>f&&f.name); if(!L.length) return;
+  const have=pfFiles(pid); if(!UI.pfup||UI.pfup.pid!==pid||UI.pfup.items.every(x=>x.st!=='wait')) UI.pfup={pid,items:[],note:''};
+  L.forEach(f=>{ const too=f.size>PF_MAX, d=have.find(h=>h.name.toLowerCase()===f.name.toLowerCase()); UI.pfup.items.push({file:f,cat:d?.cat||pfGuess(f.name,f.type),st:too?'err':'wait',msg:too?`too large (${nxfSize(f.size)}; limit 50 MB)`:'',from:from||'',dup:!!d}); });
+  renderView(true); setTimeout(()=>document.querySelector('.pf-up')?.scrollIntoView({behavior:'smooth',block:'center'}),60); }
+async function pfUpload(){ const up=UI.pfup; if(!up) return; if(!window.NX_PF) return toast('Uploading needs the NEXUS app (signed in).'); const p=byId('projects',up.pid); if(!p) return;
+  up.note=($('#pfNote')?.value||'').trim(); let ok=0;
+  for(const x of up.items){ if(x.st!=='wait') continue; x.st='up'; renderView(true);
+    try{ let blob=x.file, thumb='';
+      if(nxfKind(x.file)==='image'){ const th=await shrink(x.file,240,.7).catch(()=>null); thumb=th?.dataUrl||''; }
+      const r=await window.NX_PF.upload(p.id,blob,x.file.name,x.file.type); const now=new Date().toISOString();
+      const ex=pfFiles(p.id).find(h=>h.name.toLowerCase()===x.file.name.toLowerCase());
+      if(ex){ const vers=[...(ex.versions||[]),{path:ex.path,name:ex.name,size:ex.size,type:ex.type,at:ex.at,by:ex.by}];
+        await patch('projfiles',ex.id,{path:r.path,name:x.file.name,size:x.file.size,type:x.file.type||'',at:now,by:me.name||'',versions:vers,...(thumb?{thumb}:{}),...(up.note?{note:up.note}:{}),cat:x.cat}); }
+      else await put('projfiles',null,{project_id:p.id,cat:x.cat,name:x.file.name,path:r.path,size:x.file.size,type:x.file.type||'',note:up.note,by:me.name||'',at:now,versions:[],...(thumb?{thumb}:{}),...(x.from?{from:x.from}:{})});
+      x.st='ok'; ok++; }
+    catch(e){ x.st='err'; x.msg=String(e?.message||e).slice(0,120); }
+    renderView(true); }
+  if(ok) logAct(`Uploaded ${ok} file${ok===1?'':'s'} to project ${p.name}`); toast(ok?`${ok} file${ok===1?'':'s'} saved to ${p.name}.`:'No file was uploaded.'); }
+async function pfOpen(f,dl){ if(!window.NX_PF) return toast('Files open in the NEXUS app (signed in).');
+  try{ if(dl){ toast('Preparing download…'); const b=await window.NX_PF.blob(f.path); if(downloads) await downloads.save({filename:f.name,data:b,type:f.type||b.type}); else { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=f.name; a.click(); } return; }
+    const u=await window.NX_PF.url(f.path,false); if(typeof dhLaunch==='function') dhLaunch(u); else window.open(u,'_blank','noopener'); }
+  catch(e){ if(e?.code!=='declined') toast('Could not open the file: '+(e?.message||e)); } }
+async function pfZip(p,list){ if(!list.length) return; if(!window.NX_PF||!window.NX_ZIP) return toast('Downloading needs the NEXUS app (signed in).');
+  const total=list.reduce((a,f)=>a+(+f.size||0),0); if(total>400*1048576&&!(await confirmBox(`These ${list.length} files are ${nxfSize(total)}. Building the .zip can take a while and needs free memory. Continue?`,'Continue'))) return;
+  const used=new Set(), entries=[]; let n=0;
+  for(const f of list){ n++; toast(`Collecting files… ${n} of ${list.length}`); try{ const b=await window.NX_PF.blob(f.path); let nm=pfCat(f.cat)[1].replace(/[\\/:*?"<>|&]+/g,'-')+'/'+f.name.replace(/[\\/:*?"<>|]+/g,'-'); let k=2; while(used.has(nm.toLowerCase())){ nm=nm.replace(/(\.[^./]+)?$/,m=>` (${k})`+m); k++; } used.add(nm.toLowerCase()); entries.push({name:nm,data:new Uint8Array(await b.arrayBuffer())}); }catch(e){ toast(`${f.name}: could not be downloaded.`); } }
+  if(!entries.length) return; const zip=window.NX_ZIP(entries), name=`${p.name} – documents – ${today()}.zip`.replace(/[\\/:*?"<>|]+/g,'-');
+  try{ if(downloads) await downloads.save({filename:name,data:zip,type:'application/zip'}); logAct(`Downloaded ${entries.length} project files of ${p.name} (.zip)`); toast(`Downloaded ${entries.length} file${entries.length===1?'':'s'} in one .zip.`); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
+async function pfDelete(p,list){ const mine=list.filter(f=>pfCanDel(f,p)); if(!mine.length) return;
+  if(!(await confirmBox(mine.length===1?`Delete "${mine[0].name}"${(mine[0].versions||[]).length?' and its older versions':''} from this project? It cannot be brought back.`:`Delete ${mine.length} files from this project? They cannot be brought back.`,'Delete',true))) return;
+  let n=0; for(const f of mine){ if(await remove('projfiles',f.id)){ n++; try{ await window.NX_PF?.remove([f.path,...(f.versions||[]).map(v=>v.path)].filter(Boolean)); }catch(_){} UI.pfsel?.delete(f.id); } }
+  if(n){ logAct(`Deleted ${n} file${n===1?'':'s'} from project ${p.name}`); toast(`${n} file${n===1?'':'s'} deleted.`); } renderView(true); }
+function pfEdit(f){ const p=byId('projects',f.project_id); const vers=(f.versions||[]).slice().reverse();
+  formDrawer('File details',[{k:'name',label:'File name',req:1,full:1},{k:'cat',label:'Folder',type:'select',options:PF_CATS.map(([k,l])=>[k,l])},{k:'note',label:'Note',type:'textarea'}],{name:f.name,cat:f.cat||'other',note:f.note||''},async v=>{ await patch('projfiles',f.id,{name:String(v.name).trim()||f.name,cat:v.cat,note:v.note||''}); logAct(`Updated file details: ${v.name}`); },
+    {sub:`${p?p.name+' · ':''}uploaded by ${f.by||'?'} on ${pfWhen(f.at)}${vers.length?` · ${vers.length} older version${vers.length===1?'':'s'}: `+vers.map((x,i)=>`${x.name} (${pfWhen(x.at)}, ${x.by||''})`).join('; '):''}`}); }
+function pfVersions(f){ document.getElementById('nxfPick')?.remove(); const V=[{...f,cur:true},...(f.versions||[]).slice().reverse()]; const el=document.createElement('div'); el.id='nxfPick'; el.className='nxfp-bg';
+  el.innerHTML=`<div class="nxfp" role="dialog" aria-modal="true" aria-label="Versions"><div class="nxfp-h"><b>🕘 Versions of ${esc(f.name)}</b><div class="sp"></div><button class="btn sm ghost" data-pfv="x" aria-label="Close">✕</button></div>
+    <div class="nxfp-l">${V.map((v,i)=>`<div class="nxfp-i"><span class="nxfp-ic">${i?V.length-i:'★'}</span><span class="grow"><span class="ttl2">${esc(v.name||f.name)}${v.cur?' <span class="chip good">current</span>':''}</span><span class="sub">${esc(v.by||'')} · ${pfWhen(v.at)} · ${nxfSize(v.size)}</span></span><button class="btn sm" data-pfv="${i}">⬇ Download</button></div>`).join('')}</div></div>`;
+  el.addEventListener('click',e=>{ if(e.target===el) return el.remove(); const b=e.target.closest('[data-pfv]'); if(!b) return; if(b.dataset.pfv==='x') return el.remove(); const v=V[+b.dataset.pfv]; if(v) pfOpen({...v,name:v.name||f.name},true); });
+  document.body.appendChild(el); }
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pf]'); if(!el) return; const a=el.dataset.pf, p=route==='project'?byId('projects',routeArg):byId('projects',el.dataset.pid); if(!p) return;
+  if(a!=='all') e.preventDefault();
+  const fid=a.includes(':')?a.slice(a.indexOf(':')+1):'', f=fid?byId('projfiles',fid):null;
+  if(a==='pick') return document.getElementById('pfFile')?.click();
+  if(a==='nx'){ const L=(await nxfPick('any')).filter(x=>x instanceof File); return pfAdd(p.id,L,'NEXUS files'); }
+  if(a.startsWith('cat:')){ UI.pfc=fid; return renderView(true); }
+  if(a==='clear'){ UI.pfsel=new Set(); return renderView(true); }
+  if(a==='all'){ const q=(UI.pfq||'').toLowerCase().trim(), cat=UI.pfc||''; const L=pfFiles(p.id).filter(x=>(!cat||x.cat===cat)&&(!q||[x.name,x.note,x.by].join(' ').toLowerCase().includes(q))); UI.pfsel=el.checked?new Set(L.map(x=>x.id)):new Set(); return renderView(true); }
+  if(a==='zip'){ const q=(UI.pfq||'').toLowerCase().trim(), cat=UI.pfc||''; return pfZip(p,pfFiles(p.id).filter(x=>(!cat||x.cat===cat)&&(!q||[x.name,x.note,x.by].join(' ').toLowerCase().includes(q)))); }
+  if(a==='zipsel') return pfZip(p,pfFiles(p.id).filter(x=>UI.pfsel?.has(x.id)));
+  if(a==='delsel') return pfDelete(p,pfFiles(p.id).filter(x=>UI.pfsel?.has(x.id)));
+  if(a==='upgo') return pfUpload();
+  if(a==='upx'||a==='updone'){ UI.pfup=null; return renderView(true); }
+  if(a.startsWith('uprm:')){ UI.pfup?.items.splice(+fid,1); if(!UI.pfup?.items.length) UI.pfup=null; return renderView(true); }
+  if(!f) return;
+  if(a.startsWith('open:')) return pfOpen(f,false);
+  if(a.startsWith('dl:')) return pfOpen(f,true);
+  if(a.startsWith('edit:')) return pfEdit(f);
+  if(a.startsWith('vers:')) return pfVersions(f);
+  if(a.startsWith('del:')) return pfDelete(p,[f]);
+  if(a.startsWith('ver:')){ const inp=document.getElementById('pfVer'); if(inp){ inp.dataset.fid=f.id; inp.click(); } } });
+document.addEventListener('change',async e=>{ const t=e.target;
+  if(t.id==='pfFile'&&t.files?.length){ pfAdd(t.dataset.pid,t.files); t.value=''; return; }
+  if(t.id==='pfVer'&&t.files?.length){ const f=byId('projfiles',t.dataset.fid), file=t.files[0]; t.value=''; if(!f||!file) return; if(file.size>PF_MAX) return toast('That file is larger than 50 MB.');
+    if(!window.NX_PF) return toast('Uploading needs the NEXUS app (signed in).'); toast('Uploading the new version…');
+    try{ const r=await window.NX_PF.upload(f.project_id,file,file.name,file.type); const th=nxfKind(file)==='image'?await shrink(file,240,.7).catch(()=>null):null;
+      await patch('projfiles',f.id,{path:r.path,name:file.name,size:file.size,type:file.type||'',at:new Date().toISOString(),by:me.name||'',versions:[...(f.versions||[]),{path:f.path,name:f.name,size:f.size,type:f.type,at:f.at,by:f.by}],...(th?{thumb:th.dataUrl}:{})});
+      logAct(`New version of ${file.name} uploaded`); toast(`New version saved – ${(f.versions||[]).length+1} older version${(f.versions||[]).length?'s':''} kept.`); }catch(err){ toast('Upload failed: '+(err?.message||err)); } return; }
+  if(t.matches?.('[data-pfsel]')){ const s=UI.pfsel||(UI.pfsel=new Set()); t.checked?s.add(t.dataset.pfsel):s.delete(t.dataset.pfsel); return renderView(true); }
+  if(t.matches?.('[data-pfcat]')){ const x=UI.pfup?.items[+t.dataset.pfcat]; if(x) x.cat=t.value; return; }
+  if(t.matches?.('[data-pfall]')&&t.value){ UI.pfup?.items.forEach(x=>{ if(x.st==='wait') x.cat=t.value; }); return renderView(true); }
+  if(t.matches?.('[data-pfmove]')&&t.value){ const L=pfFiles(routeArg).filter(x=>UI.pfsel?.has(x.id)); for(const x of L) await patch('projfiles',x.id,{cat:t.value}); toast(`${L.length} file${L.length===1?'':'s'} moved to ${pfCat(t.value)[1]}.`); UI.pfsel=new Set(); renderView(true); } });
+document.addEventListener('input',e=>{ if(e.target.id==='pfQ'){ UI.pfq=e.target.value; const pos=e.target.selectionStart; renderView(true); const n=$('#pfQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } } if(e.target.id==='pfNote'&&UI.pfup) UI.pfup.note=e.target.value; });
+document.addEventListener('dragover',e=>{ const d=e.target.closest?.('#pfDrop,.pf'); if(!d||!canWrite||!e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); document.getElementById('pfDrop')?.classList.add('on'); });
+document.addEventListener('dragleave',e=>{ const d=document.getElementById('pfDrop'); if(d&&!e.target.closest?.('.pf')?.contains(e.relatedTarget)) d.classList.remove('on'); });
+document.addEventListener('drop',e=>{ const d=e.target.closest?.('.pf'); if(!d||!canWrite) return; e.preventDefault(); document.getElementById('pfDrop')?.classList.remove('on'); pfAdd(routeArg,e.dataTransfer?.files); });
+
 function recAlerts(A){ const sid=myStaffId(), pmOf=pid=>{ const p=byId('projects',pid); return !!(p&&sid&&p.manager===sid); }, mine=r=>isAdmin||(sid&&r.owner===sid)||(recIsPG(r)&&(isFinR()||pmOf(r.project_id)));
   (S.records||[]).forEach(r=>{ if(!mine(r)) return; const e=recExp(r);
     if(e&&recIsPG(r)){ const d=daysLeft(e+'T23:59'); if(d!=null&&d<=40&&d>-30){ const st=d<=7?7:d<=14?14:d<=30?30:40; A.push({lvl:d<=14?'bad':'warn', kind:'Performance guarantee', text:`${r.title} ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${r.project_id?projName(r.project_id)+' · ':''}${r.ref?r.ref+' · ':''}${r.party?r.party+' · ':''}${fmtD(e)} – arrange extension with the bank`, go:['rec',r.id], sort:d<=14?2:9, at:new Date(Date.parse(e+'T07:00:00+03:00')-st*864e5).toISOString(), nk:'recpg|'+r.id+'|'+e+'|'+st}); } return; }
@@ -3049,6 +3187,7 @@ function nxfSources(mode){ const L=[];
   (S.records||[]).forEach(r=>{ const f=recFile(r); if(!f||!f.path) return; L.push({src:'Office Records',name:f.name||r.title,sub:[r.title,r.folder,r.date].filter(Boolean).join(' · '),size:f.size,at:r.date||'',get:async()=>{ const u=await window.NX_REC.url(f.path,false); return await (await fetch(u)).blob(); }}); });
   (S.tenders||[]).forEach(t=>(t.files||[]).forEach(f=>{ if(!f?.url) return; L.push({src:'Tender documents',name:f.name||'Document',sub:t.title||'',at:t.deadline||'',get:async()=>await (await fetch(f.url)).blob()}); }));
   (typeof oxDocs==='function'?oxDocs():[]).filter(d=>['docx','xlsx','pptx','form'].includes(d.type)).forEach(d=>{ const ext=d.type==='form'?'xlsx':d.type; L.push({src:'NEXUS Office',name:(d.title||'Document')+'.'+ext,sub:(OXA[d.type]?.name||'Forms')+(d.owner?' · '+d.owner:''),at:d.updated_at||d.created_at||'',get:async()=>{ const r=await oxDocBytes(d); if(!r) throw new Error('could not open'); return new Blob([r.bytes],{type:OX_MIME?.[r.ext]||''}); }}); });
+  (S.projfiles||[]).filter(f=>!f.deleted&&f.path).sort((a,b)=>String(b.at||'').localeCompare(String(a.at||''))).forEach(f=>L.push({src:'Project files',name:f.name,sub:projName(f.project_id)+' · '+pfCat(f.cat)[1],size:f.size,at:f.at||'',thumb:f.thumb||'',get:async()=>await window.NX_PF.blob(f.path)}));
   if(mode==='boq') (S.boqs||[]).forEach(b=>{ const s=bqStats(b); L.push({src:'NEXUS BoQs',name:b.title||'BoQ',sub:`${(b.bills||[]).length} bills · ${s.n} items · ${s.pct}% priced`,at:b.updated_at||'',boq:b.id}); });
   if(mode!=='boq') (S.reports||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,80).forEach(r=>(r.photos||[]).forEach((ph,k)=>{ if(typeof ph!=='string'||!ph.startsWith('asset:')) return; L.push({src:'Site photos',name:`Site photo – ${projName(r.project_id)} ${r.date||''} (${k+1}).jpg`,sub:projName(r.project_id)+' · '+(r.date||''),at:r.date||'',thumb:ph.slice(6),get:async()=>await (await fetch(ph.slice(6))).blob()}); }));
   return L; }
@@ -3607,7 +3746,7 @@ function pageProject(){
   const F=projectFacts(p), tab=UI.ptabw||'overview';
   const head=`<div class="toolbar"><button class="btn" data-go="projects">← All projects</button><span class="chip">${esc(p.status||'')}</span><span class="sub">${esc(p.client||'')}${p.location?' · '+esc(p.location):''}</span><div class="sp"></div>
     <button class="btn" data-act="newReport" data-proj="${esc(p.id)}">New site report</button><button class="btn dark" data-act="editProjectWs">Edit project</button>${isAdmin?'<button class="btn danger" data-act="delProjectWs">Remove project</button>':''}</div>
-    <div class="seg" role="group" aria-label="Project section" style="flex-wrap:wrap">${PWS_TABS.map(([k,l])=>`<button data-pwtab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
+    <div class="seg" role="group" aria-label="Project section" style="flex-wrap:wrap">${PWS_TABS.map(([k,l])=>`<button data-pwtab="${k}" aria-pressed="${tab===k}">${l}${k==='docs'&&pfFiles(p.id).length?` <span class="sub">${pfFiles(p.id).length}</span>`:''}</button>`).join('')}</div>`;
   let body='';
   if(tab==='overview'){
     const pr=F.prog, gap=pr?pr.actual-pr.planned:null;

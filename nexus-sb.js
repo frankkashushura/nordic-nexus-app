@@ -202,6 +202,20 @@
     }
   };
 
+  /* ---------------- v151 · project document library: private bucket "projfiles", folder = project id ---------------- */
+  window.NX_PF = {
+    async upload(pid, blob, name, type) {
+      const clean = String(name || 'file').replace(/[^A-Za-z0-9._-]+/g, '_').slice(-90);
+      const path = `${String(pid).replace(/[^A-Za-z0-9_-]+/g, '_')}/${new Date().toISOString().slice(0, 10)}-${uid()}-${clean}`;
+      const up = await sb.storage.from('projfiles').upload(path, blob, { contentType: type || blob.type || 'application/octet-stream', upsert: false });
+      if (up.error) throw mapErr(up.error);
+      return { path };
+    },
+    async url(path, download) { const s = await sb.storage.from('projfiles').createSignedUrl(path, 3600, download ? { download: typeof download === 'string' ? download : true } : undefined); if (s.error) throw mapErr(s.error); return s.data.signedUrl; },
+    async blob(path) { const { data, error } = await sb.storage.from('projfiles').download(path); if (error) throw mapErr(error); return data; },
+    async remove(paths) { if (paths && paths.length) { const r = await sb.storage.from('projfiles').remove(paths); if (r.error) throw mapErr(r.error); } }
+  };
+
   /* ---------------- v150 · Ask NEXUS attachments: private bucket "askfiles", folder = own login id ---------------- */
   window.NX_ASKF = {
     async upload(blob, name, type) {
@@ -575,6 +589,7 @@
     end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
     return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
   }
+  window.NX_ZIP = makeZip;   // v151: also used to download a project's files as one .zip
   async function listAllFiles(prefix = '') {
     const out = [];
     for (let offset = 0; ; offset += 1000) {
