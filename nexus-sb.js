@@ -178,12 +178,13 @@
     .replace(/^#{1,6}\s*/gm, '').replace(/^\s*[*•]\s+/gm, '- ').replace(/`([^`]+)`/g, '$1').replace(/\n{3,}/g, '\n\n').trim();
   // v148: every AI request goes to the AI panel (2 AIs answer, a 3rd checks); the agreement comes back as d.panel
   const sample = async (x, o = {}) => {
-    const d = await callAI({ ...toPayload(x), ...(o && o.web ? { web: true } : {}), ...(o && o.panel === false ? { panel: false } : {}) });
+    const att = o && ((o.files && o.files.length) || (o.links && o.links.length)) ? { ...(o.files && o.files.length ? { files: o.files } : {}), ...(o.links && o.links.length ? { links: o.links } : {}) } : null;
+    const d = await callAI({ ...toPayload(x), ...(o && o.web && !att ? { web: true } : {}), ...(o && o.panel === false ? { panel: false } : {}), ...(att || {}) });
     if (d.panel) window.NX_AI_PANEL = d.panel;
     return { text: plain(d.text), sources: Array.isArray(d.sources) ? d.sources : [], web: !!d.web, ...(d.panel ? { panel: d.panel } : {}) };
   };
   sample.json = async (x, o = {}) => {
-    const d = await callAI({ ...toPayload(x), json: true, ...(o && o.max_tokens ? { max_tokens: o.max_tokens } : {}), ...(o && o.panel === false ? { panel: false } : {}) });
+    const d = await callAI({ ...toPayload(x), json: true, ...(o && o.max_tokens ? { max_tokens: o.max_tokens } : {}), ...(o && o.panel === false ? { panel: false } : {}), ...(o && o.files && o.files.length ? { files: o.files } : {}) });
     if (d.panel) window.NX_AI_PANEL = d.panel;
     const t = String(d.text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
     let v; try { v = JSON.parse(t); } catch (_) { const e = new Error('invalid json'); e.code = 'invalid_json'; throw e; }
@@ -199,6 +200,20 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename || 'download';
       document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
     }
+  };
+
+  /* ---------------- v150 · Ask NEXUS attachments: private bucket "askfiles", folder = own login id ---------------- */
+  window.NX_ASKF = {
+    async upload(blob, name, type) {
+      const { data: { user } } = await sb.auth.getUser(); if (!user) throw new Error('Please sign in again.');
+      const clean = String(name || 'file').replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80);
+      const path = `${user.id}/${new Date().toISOString().slice(0, 10)}/${uid()}-${clean}`;
+      const up = await sb.storage.from('askfiles').upload(path, blob, { contentType: type || blob.type || 'application/octet-stream', upsert: false });
+      if (up.error) throw mapErr(up.error);
+      return { path };
+    },
+    async url(path) { const s = await sb.storage.from('askfiles').createSignedUrl(path, 3600); if (s.error) throw mapErr(s.error); return s.data.signedUrl; },
+    async remove(paths) { if (paths && paths.length) await sb.storage.from('askfiles').remove(paths); }
   };
 
   /* ---------------- Office Records: private files (bucket "records", path <record id>/...), audit log ---------------- */

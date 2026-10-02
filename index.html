@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=149"></script>
+<script src="config.js?v=150"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=149"></script>
-<script src="nexus-chat.js?v=149"></script>
+<script src="nexus-sb.js?v=150"></script>
+<script src="nexus-chat.js?v=150"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -444,6 +444,29 @@ ul.clean li{margin:3px 0}
 .ask-box textarea{all:unset;display:block;width:100%;box-sizing:border-box;min-height:24px;max-height:200px;overflow-y:auto;font-size:15px;line-height:1.5;color:var(--ink);padding:4px 0 6px;white-space:pre-wrap;word-wrap:break-word}
 .ask-box textarea::placeholder{color:var(--muted)}
 .ask-bar{display:flex;align-items:center;gap:8px}.ask-bar .sp{flex:1}
+.ask-att{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}.ask-att:empty{display:none}
+.ask-ac{display:flex;align-items:center;gap:8px;max-width:260px;padding:6px 8px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:12px}
+.ask-ac img{width:38px;height:38px;object-fit:cover;border-radius:8px;flex:none}.ask-ac .ic{width:38px;height:38px;display:grid;place-items:center;font-size:20px;background:var(--bg);border-radius:8px;flex:none}
+.ask-ac .nm{display:flex;flex-direction:column;min-width:0}.ask-ac .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink)}.ask-ac .nm span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask-ac.err{border-color:var(--bad)}.ask-ac.err .nm span{color:var(--bad)}.ask-ac .x{all:unset;cursor:pointer;margin-left:2px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;color:var(--muted)}.ask-ac .x:hover{background:var(--line);color:var(--ink)}
+.ask-attw{position:relative}.ask-plus{display:inline-flex;align-items:center;gap:5px}.ask-plus svg{width:15px;height:15px}
+.ask-attm{display:none;position:absolute;bottom:calc(100% + 8px);left:0;z-index:30;min-width:300px;background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.22);padding:6px}
+.ask-attm.on{display:block}.ask-attm button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:10px;align-items:flex-start;width:100%;padding:9px 10px;border-radius:10px;font-size:18px}
+.ask-attm button:hover,.ask-attm button:focus-visible{background:var(--panel2)}.ask-attm span{display:flex;flex-direction:column}.ask-attm b{font-size:13.5px;font-weight:600;color:var(--ink)}.ask-attm small{font-size:12px;color:var(--muted)}
+.drawer.ask.drop .ask-box{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}.drawer.ask.drop .ask-main::after{content:'Drop files to attach';position:absolute;inset:60px 20px 120px;border:2px dashed var(--accent);border-radius:18px;display:grid;place-items:center;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--bg) 80%,transparent);pointer-events:none;z-index:5}
+.ask-main{position:relative}.ask-me{display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:78%}.ask-me .ask-bub{max-width:100%}
+.ask-matt{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.ask-mimg{all:unset;cursor:pointer}.ask-mimg img{width:120px;height:90px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block}
+.ask-mf{all:unset;cursor:pointer;display:flex;gap:8px;align-items:center;padding:6px 10px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);max-width:240px;font-size:12px}.ask-mf .ic{font-size:20px;width:32px;height:32px;display:grid;place-items:center;background:var(--bg);border-radius:8px}.ask-mf .nm{display:flex;flex-direction:column;min-width:0}.ask-mf b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}.ask-mf span span{color:var(--muted)}
+.nxfp-bg{position:fixed;inset:0;z-index:1200;background:rgba(10,16,30,.55);display:grid;place-items:center;padding:16px}
+.nxfp{width:min(680px,100%);max-height:86vh;display:flex;flex-direction:column;gap:10px;background:var(--bg);color:var(--ink);border-radius:18px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.nxfp-h{display:flex;align-items:center;gap:8px;font-size:16px}.nxfp-h .sp,.nxfp-f .sp{flex:1}.nxfp-tabs{overflow-x:auto;flex-wrap:nowrap}.nxfp-l{overflow:auto;flex:1;min-height:160px;display:flex;flex-direction:column;gap:4px}
+.nxfp-i{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer}.nxfp-i:hover{background:var(--panel2)}.nxfp-i.on{border-color:var(--accent);background:var(--accent-soft)}
+.nxfp-i img,.nxfp-ic{width:40px;height:40px;object-fit:cover;border-radius:8px;flex:none;display:grid;place-items:center;font-size:20px;background:var(--panel2)}.nxfp-i .grow{display:flex;flex-direction:column;min-width:0}.nxfp-i .ttl2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nxfp-f{display:flex;align-items:center;gap:8px}
+.bgi-drop{border:2px dashed var(--line);border-radius:16px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;background:var(--panel2);transition:border-color .15s,background .15s}.bgi-drop.on{border-color:var(--accent);background:var(--accent-soft)}.bgi-drop .ic{font-size:30px}.bgi-drop b{font-size:15px}.bgi-drop .toolbar{margin-top:6px;flex-wrap:wrap}
+.bgi-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}.bgi-f{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}.bgi-f .ic{font-size:22px}.bgi-f .grow{flex:1;display:flex;flex-direction:column;min-width:0}.bgi-f b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bgi-opts{display:flex;flex-direction:column;gap:8px}.bgi-opts label{display:flex;gap:8px;align-items:flex-start}
+@media (max-width:640px){ .ask-attm{min-width:260px} .ask-me{max-width:88%} .ask-ac{max-width:100%} }
 .ask-chip{all:unset;cursor:pointer;font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted)} .ask-chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--blue);font-weight:600}
 .ask-send{all:unset;cursor:pointer;width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;transition:opacity .15s} .ask-send svg{width:18px;height:18px} .ask-send[disabled]{opacity:.35;cursor:default}
 .ask-note{max-width:760px;margin:6px auto 0;text-align:center;font-size:11.5px;color:var(--muted)}
@@ -1323,7 +1346,9 @@ function alertText(t){ return `NORDIC NEXUS – Tender alert\n${t.title}\nClient
 
 /* ---------- import the scanner's Pipeline workbook ---------- */
 const XMAP={'Tender no.':'no','Date found':'date_found','Source':'source','Source URL':'url','Client':'client','Client type':'client_type','Tender title':'title','Scope summary':'scope','Location':'location','Category':'category','CRB class required':'crb','Est. value TZS':'value','Funding confirmed':'funding','Site visit date':'site_visit','Clarification deadline':'clar','Submission date':'deadline','Bid security':'bid_security','Documents purchased':'docs','Status':'status','Owner':'owner','Outcome':'outcome','Lessons':'lessons','Date advertised':'advertised','Notice type':'notice','Initial screen':'screen','Screen reason':'reason','Next action':'next','Found by':'found_by','Source ID':'source_id','MD decision':'md_decision'};
-function loadScript(src){ return new Promise((res,rej)=>{ if(document.querySelector(`script[src="${src}"]`)) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Could not load '+src)); document.head.append(s); }); }
+const LOADING={}; // one promise per script, so two callers at the same moment both wait for it to finish loading
+function loadScript(src){ if(LOADING[src]) return LOADING[src]; if(document.querySelector(`script[src="${src}"]`)&&!document.querySelector(`script[src="${src}"][data-ld]`)) return Promise.resolve();
+  return LOADING[src]=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.dataset.ld='1'; s.onload=()=>{ s.removeAttribute('data-ld'); res(); }; s.onerror=()=>{ s.remove(); delete LOADING[src]; rej(new Error('Could not load '+src)); }; document.head.append(s); }); }
 const NO_PLACEHOLDER=/^\s*(\(.*\)|n\/?a|tbc|tba|none|not shown|-+|see .*)\s*$/i;
 function tenderId(o){ const no=String(o.no||'').trim(); if(no&&!NO_PLACEHOLDER.test(no)) return safeId(no); if(o.source_id) return safeId(o.source_id); return safeId(((o.client||'')+' '+(o.title||'')).trim()||no); }   // same ids as the automatic sync
 const XLSX_URL='vendor/xlsx.full.min.js';
@@ -1602,7 +1627,7 @@ function boqTotals(b){ const bills=(b.bills||[]).map(bl=>({name:bl.name,total:(b
 function pageQs(){
   if(routeArg) return boqEditor(byId('boqs',routeArg));
   return `<div class="toolbar"><div class="seg">${[['boqs','Bills of Quantities'],['rates','Rate library']].map(([k,l])=>`<button data-qtab="${k}" aria-pressed="${UI.qtab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${UI.qtab==='boqs'?`${canWrite?'<button class="btn" data-bx="gen">AI BoQ from tender documents</button>':''}<button class="btn pri" data-act="newBoq">New BoQ</button>`:''}</div>
+    ${UI.qtab==='boqs'?`${canWrite?'<button class="btn" data-bx="imp" title="Import a BoQ from this computer or from files saved in NEXUS">📥 Import BoQ</button><button class="btn" data-bx="gen">AI BoQ from tender documents</button>':''}<button class="btn pri" data-act="newBoq">New BoQ</button>`:''}</div>
   ${UI.qtab==='boqs'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>BoQ</th><th>For</th><th class="r">Items</th><th class="r">Priced</th><th class="r">Grand total</th><th class="hide-m">Updated</th></tr></thead><tbody>
     ${S.boqs.map(b=>{const t=boqTotals(b);return `<tr class="click" data-boq="${esc(b.id)}"><td class="ttl2">${esc(b.title)}</td><td class="small">${esc(b.tender_id?('Tender: '+(byId('tenders',b.tender_id)?.title||'')):b.project_id?projName(b.project_id):'—')}</td><td class="r num">${(b.bills||[]).reduce((a,x)=>a+(x.items||[]).length,0)}</td><td class="r num">${(()=>{ const q=bqStats(b); return q.n?`${q.pct}%`:'—'; })()}${b.gen?' <span class="chip blue" title="Built by NEXUS AI from tender documents">AI</span>':''}</td><td class="r num">${tzs(t.grand)}</td><td class="hide-m sub">${fmtD(b.updated_at)} ${esc(b.updated_by||'')}</td></tr>`}).join('')||'<tr><td colspan="6"><div class="empty">No BoQs yet. Press <b>AI BoQ from tender documents</b>, start one from a tender, or press New BoQ.</div></td></tr>'}</tbody></table></div></div>`
   :rtPage()}`;
@@ -1904,6 +1929,7 @@ function bqSrcChip(it){
   if(p.s==='lib') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Library: '+(p.src||'')+(p.date?' · '+p.date:' · no price date')+(p.reg?' · '+p.reg:''))}">Library${p.old?' · old':''}</span>`;
   if(p.s==='ai') return `<span class="chip amb" title="${esc('AI estimate – check. Basis: '+(p.basis||''))}">AI estimate</span>`;
   if(p.s==='man') return `<span class="chip blue" title="${esc('Rate entered by '+(p.by||'QS')+(p.at?' on '+p.at:''))}">QS rate</span>`;
+  if(p.s==='file') return `<span class="chip blue" title="${esc('Rate from the imported file '+(p.src||'')+(p.at?' · '+p.at:''))}">From file</span>`;
   if(p.s==='excel') return `<span class="chip blue" title="${esc('Rate from Excel – '+(p.by||'')+(p.at?' on '+p.at:''))}">Excel</span>`;
   return '<span class="chip">Entered</span>';
 }
@@ -1944,14 +1970,30 @@ async function bqSaveLib(){ const b=curBoq(); const reg=rtBoqRegion(b), date=tod
 function o_date_needs(ex,date){ return (ex.price_date||'')!==date; }
 
 /* ---------- generator: read tender documents → bills and items → price ---------- */
-function bgOpen(tid){ const T=tid?byId('tenders',tid):null; $('#overlay').innerHTML='';
-  openDrawer('bqgen',null,{form:false,g:{tender:T?T.id:'',title:T?'BoQ – '+T.title:'',region:T?rtRegionOf(T.location||''):'General',docs:T?(T.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})):[],uploads:[],aiRates:true,step:'setup',log:[],res:null}}); }
+function bgOpen(tid,mode){ const T=tid?byId('tenders',tid):null; $('#overlay').innerHTML=''; const imp=mode==='import';
+  openDrawer('bqgen',null,{form:false,g:{mode:imp?'import':'gen',tender:T?T.id:'',project:'',title:T?'BoQ – '+T.title:'',region:T?rtRegionOf(T.location||''):'General',docs:!imp&&T?(T.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})):[],uploads:[],aiRates:!imp,keepRates:imp,libRates:true,copy:null,step:'setup',log:[],res:null}}); }
 function bgTenderDocs(T){ return (T?.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})); }
 function bgDrawer(){
   const g=drawer.g, T=g.tender?byId('tenders',g.tender):null, busy=g.step==='working';
   const tOpts=[['','— no tender (upload files only) —'],...[...S.tenders].sort((a,b)=>(b.deadline||'').localeCompare(a.deadline||'')).slice(0,300).map(t=>[t.id,(t.title||'').slice(0,90)+((t.files||[]).length?` (${t.files.length} docs)`:'')])];
   let body='';
-  if(g.step==='setup'){
+  if(g.step==='setup'&&g.mode==='import'){
+    const pOpts=[['','— not linked to a project —'],...(S.projects||[]).filter(p=>!p.deleted).map(p=>[p.id,p.name])];
+    body=`<div class="bgi-src"><div class="bgi-drop" id="bgDrop"><div class="ic">📥</div><b>Drop BoQ files here</b><span class="sub">Excel (.xlsx, .xls, .csv), Word (.docx), PDF – also scanned PDFs and photos of BoQ pages</span>
+        <div class="toolbar" style="justify-content:center"><button class="btn pri" data-bx="bgpc">💻 Choose from this computer</button><button class="btn" data-bx="bgnx">🗂️ Choose from NEXUS files</button></div>
+        <input type="file" id="bgFile" hidden multiple accept=".xlsx,.xls,.xlsm,.ods,.csv,.pdf,.docx,.txt,image/*"></div>
+      ${g.copy?`<div class="bgi-list"><div class="bgi-f"><span class="ic">📐</span><span class="grow"><b>Copy of NEXUS BoQ: ${esc(g.copy.name)}</b><span class="sub">All bills, items, quantities and rates are copied</span></span><button class="btn sm ghost" data-bx="bgrmcopy" aria-label="Remove">✕</button></div></div>`:''}
+      ${g.uploads.length?`<div class="bgi-list">${g.uploads.map((u,i)=>`<div class="bgi-f"><span class="ic">${NXF_ICON[nxfKind(u.file)]||'📄'}</span><span class="grow"><b>${esc(u.name)}</b><span class="sub">${esc(u.from||'This computer')} · ${nxfSize(u.file.size)}</span></span><button class="btn sm ghost" data-bx="bgrm" data-i="${i}" aria-label="Remove ${esc(u.name)}">✕</button></div>`).join('')}</div>`:''}</div>
+      <div class="form" style="margin-top:12px">
+      <div class="fld full"><label>BoQ title</label><input class="inp" data-bgf="title" value="${esc(g.title||'')}" placeholder="BoQ – project name"></div>
+      <div class="fld"><label>Project</label><select class="inp" data-bgf="project">${pOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.project?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+      <div class="fld"><label>Tender</label><select class="inp" data-bgf="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(v?l:'— not linked to a tender —')}</option>`).join('')}</select></div>
+      <div class="fld"><label>Region for rates</label><select class="inp" data-bgf="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="fld full bgi-opts"><label class="small"><input type="checkbox" data-bgf="keepRates" ${g.keepRates?'checked':''}> <span><b>Keep the rates in the file</b> – a priced BoQ stays priced (marked <b>From file</b>)</span></label>
+        <label class="small"><input type="checkbox" data-bgf="libRates" ${g.libRates?'checked':''}> <span><b>Fill empty rates from the Rate library</b> (${esc(g.region||'General')} first, newest prices)</span></label>
+        <label class="small"><input type="checkbox" data-bgf="aiRates" ${g.aiRates?'checked':''}> <span><b>Let NEXUS AI propose the rest</b> from similar library rates (marked <b>AI estimate</b>)</span></label></div></div>
+      <p class="sub">Excel and Word tables are read directly. PDFs are read by NEXUS AI page by page; scanned PDFs and photos are read by Gemini – spot-check quantities against the document.</p>`;
+  } else if(g.step==='setup'){
     body=`<div class="form">
       <div class="fld full"><label>Tender</label><select class="inp" data-bgf="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
       <div class="fld full"><label>Tender documents to read</label>${g.docs.length?g.docs.map(d=>`<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-bgdoc="${d.i}" ${d.on?'checked':''}> ${esc(d.name)}</label>`).join(''):`<span class="sub">${T?'This tender has no attached documents – attach them in Tender Radar or upload them below.':'Choose a tender, or upload the documents below.'}</span>`}</div>
@@ -1969,17 +2011,24 @@ function bgDrawer(){
         <div class="card kpi amb"><span class="label">AI estimates</span><span class="v num">${s.ai}</span><span class="s">check before use</span></div>
         <div class="card kpi ${s.n-s.priced?'hot':'grn'}"><span class="label">Unpriced</span><span class="v num">${s.n-s.priced}</span><span class="s">for the QS to price</span></div></div>
         <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Bill</th><th class="r">Items</th><th class="r">Priced</th><th class="r">Value so far (TZS)</th></tr></thead><tbody>${r.bills.map((bl,i)=>{ const ss=bqStats({bills:[bl]}); return `<tr><td>${i+1}. ${esc(bl.name||'')}</td><td class="r num">${ss.n}</td><td class="r num">${ss.priced}</td><td class="r num">${rtFmt(t.bills[i].total)}</td></tr>`; }).join('')}</tbody></table></div></div>
-        <p class="sub">${esc(r.mode)}. The value excludes unpriced items, contingency and VAT.</p>`; }
+        <p class="sub">${esc(r.mode)}.${s.other?` <b>${s.other}</b> rates came from the file.`:''} The value excludes unpriced items, contingency and VAT.</p>`; }
     body=`<div class="card"><div class="bd">${log||'<span class="spin"></span> Starting…'}${busy?'<div style="margin-top:8px"><span class="spin"></span> Working – keep this window open.</div>':''}</div></div>${sum}`;
   }
-  const foot=g.step==='setup'?`<button class="btn pri" data-bx="bgstart">Read documents and build BoQ</button><button class="btn" data-act="close">Cancel</button>`
-    :g.step==='review'?`<button class="btn pri" data-bx="bgcreate" ${g.res?.bills?.length?'':'disabled'}>Create BoQ and start pricing</button><button class="btn" data-bx="bgreset">Start again</button>`
+  const foot=g.step==='setup'?`<button class="btn pri" data-bx="bgstart" ${g.mode==='import'&&!g.uploads.length&&!g.copy?'disabled':''}>${g.mode==='import'?'Import BoQ':'Read documents and build BoQ'}</button><button class="btn" data-act="close">Cancel</button>`
+    :g.step==='review'?`<button class="btn pri" data-bx="bgcreate" ${g.res?.bills?.length?'':'disabled'}>${g.mode==='import'?'Save BoQ in NEXUS':'Create BoQ and start pricing'}</button><button class="btn" data-bx="bgreset">Start again</button>`
     :`<button class="btn" disabled>Working…</button>`;
-  return drawerShell(g.step==='setup'?'AI BoQ from tender documents':'Building the BoQ','QS Studio',body,foot);
+  return drawerShell(g.step==='setup'?(g.mode==='import'?'Import a BoQ':'AI BoQ from tender documents'):(g.mode==='import'?'Importing the BoQ':'Building the BoQ'),'QS Studio',body,foot);
 }
 function bgRedraw(){ if(!drawer||drawer.type!=='bqgen') return; const o=$('#overlay'); const y=o.querySelector('.db')?.scrollTop||0; o.innerHTML=bgDrawer(); document.body.style.overflow='hidden'; const d=o.querySelector('.db'); if(d) d.scrollTop=y; }
 function bgLog(t,flag){ const g=drawer?.g; if(!g) return; g.log.push({t,...(flag==='ok'?{ok:1}:flag==='bad'?{bad:1}:{})}); bgRedraw(); }
 async function bgAI(prompt,maxTok=4500){ for(let k=0;k<4;k++){ try{ window.NX_AI_KIND='ask'; return await sample.json(prompt,{max_tokens:maxTok}); }catch(e){ if(/too large|tokens per minute|reduce your message/i.test(e?.message||'')){ const x=new Error('this part of the document is too large for the free AI plan'); x.code='too_large'; throw x; } if(e?.code==='rate_limited'&&k<3){ bgLog('AI is busy – waiting 20 seconds and trying again…'); await new Promise(r=>setTimeout(r,20000)); continue; } throw e; } } }
+async function bgAIfiles(prompt,files){ for(let k=0;k<4;k++){ try{ window.NX_AI_KIND='ask'; return await sample.json(prompt,{max_tokens:8000,panel:false,files}); }catch(e){ if(e?.code==='rate_limited'&&k<3){ bgLog('AI is busy – waiting 20 seconds and trying again…'); await new Promise(r=>setTimeout(r,20000)); continue; } throw e; } } }
+async function bgPdfImages(buf,max=40){ if(!PDFJS){ PDFJS=await import('./vendor/pdfjs/pdf.min.mjs'); PDFJS.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.mjs'; }
+  const doc=await PDFJS.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise; const out=[];
+  for(let i=1;i<=Math.min(doc.numPages,max);i++){ const pg=await doc.getPage(i); const v0=pg.getViewport({scale:1}); const v=pg.getViewport({scale:Math.min(2.4,2000/Math.max(v0.width,v0.height))});
+    const c=document.createElement('canvas'); c.width=Math.round(v.width); c.height=Math.round(v.height); const cx=c.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height); await pg.render({canvasContext:cx,viewport:v}).promise;
+    out.push({blob:await new Promise(r=>c.toBlob(r,'image/jpeg',.82)),label:'page '+i}); }
+  return out; }
 async function bgPdfPages(buf){
   if(!PDFJS){ PDFJS=await import('./vendor/pdfjs/pdf.min.mjs'); PDFJS.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.mjs'; }
   const doc=await PDFJS.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise; const pages=[];
@@ -1989,8 +2038,8 @@ async function bgPdfPages(buf){
   return {pages,n:doc.numPages}; }
 function bgLooksBoq(text){ const t=text.toLowerCase(); const units=(text.match(/(^|\s)(m2|m3|kg|nr|no|item|sum|lm|m)(\s|$)/gim)||[]).length; return /\bbill\s*(no\.?|number)?\s*[0-9ivx]+/i.test(text)&&/(qty|quantity|quantities)/i.test(t)&&units>=8; }
 function bgSheetBills(rows, sheetName){
-  let hi=-1,cD=-1,cU=-1,cQ=-1,cR=-1;
-  for(let i=0;i<Math.min(rows.length,60);i++){ const s=(rows[i]||[]).map(x=>String(x??'').toLowerCase().trim()); const d=s.findIndex(x=>/^desc|description|particulars|item description/.test(x)); const u=s.findIndex(x=>/^unit|^uom/.test(x)&&!/price|rate/.test(x)); if(d>=0&&u>=0){ hi=i;cD=d;cU=u; cQ=s.findIndex(x=>/^qty|quantit/.test(x)); cR=s.findIndex(x=>/^item|^ref|^no\.?$|^s\/?n/.test(x)); break; } }
+  let hi=-1,cD=-1,cU=-1,cQ=-1,cR=-1,cP=-1;
+  for(let i=0;i<Math.min(rows.length,60);i++){ const s=(rows[i]||[]).map(x=>String(x??'').toLowerCase().trim()); const d=s.findIndex(x=>/^desc|description|particulars|item description/.test(x)); const u=s.findIndex(x=>/^unit|^uom/.test(x)&&!/price|rate/.test(x)); if(d>=0&&u>=0){ hi=i;cD=d;cU=u; cQ=s.findIndex(x=>/^qty|quantit/.test(x)); cR=s.findIndex(x=>/^item|^ref|^no\.?$|^s\/?n/.test(x)); cP=s.findIndex(x=>/^(unit )?rate|^unit price|^price|^bei/.test(x)&&!/amount|total/.test(x)); break; } }
   if(hi<0) return [];
   const bills=[]; let cur=null, head=''; const newBill=n=>{ cur={name:String(n).replace(/\s+/g,' ').trim().slice(0,120),items:[]}; bills.push(cur); };
   const title=(rows.slice(0,hi).flat().find(x=>typeof x==='string'&&/bill/i.test(x)))||sheetName; newBill(title);
@@ -2001,9 +2050,9 @@ function bgSheetBills(rows, sheetName){
     if(!u){ head=d.length<160?d:head; continue; }
     const prev=cur.items.length?cur.items[cur.items.length-1].desc:'';
     const desc=/^(ditto|a\.?b\.?|as (above|before|item))/i.test(d)&&prev?prev+' – '+d:(d.length<40||/^extra over/i.test(d))&&head?head+' – '+d:d;
-    cur.items.push({ref,desc,unit:u,qty:q??'',rate:''}); }
+    const rt=cP>=0?bqNum(r[cP]):null; cur.items.push({ref,desc,unit:u,qty:q??'',rate:rt!=null&&rt>0?rt:''}); }
   return bills.filter(b=>b.items.length); }
-function bgMerge(into, bills){ for(const bl of bills||[]){ const name=String(bl.name||'Bill').trim(); const items=(bl.items||[]).filter(i=>i&&String(i.desc||'').trim()).map(i=>({ref:String(i.ref||''),desc:String(i.desc).trim(),unit:String(i.unit||'').trim(),qty:bqNum(i.qty)??'',rate:''}));
+function bgMerge(into, bills, src){ for(const bl of bills||[]){ const name=String(bl.name||'Bill').trim(); const items=(bl.items||[]).filter(i=>i&&String(i.desc||'').trim()).map(i=>{ const rt=src?bqNum(i.rate):null; return {ref:String(i.ref||''),desc:String(i.desc).trim(),unit:String(i.unit||'').trim(),qty:bqNum(i.qty)??'',rate:rt!=null&&rt>0?rt:'',...(rt!=null&&rt>0?{p:{s:'file',src,at:today()}}:{})}; });
     const last=into[into.length-1]; if(last&&last.name.toLowerCase()===name.toLowerCase()) last.items.push(...items); else if(items.length) into.push({name,items}); } }
 async function bgRun(){
   const g=drawer.g; g.step='working'; g.log=[]; bgRedraw();
@@ -2011,26 +2060,51 @@ async function bgRun(){
   if(!files.length){ bgLog('No documents chosen. Pick tender documents or upload files.','bad'); g.step='setup'; setTimeout(bgRedraw,1500); return; }
   const bills=[], scope=[]; let usedAI=false;
   try{
-    for(const f of files){ const ext=(f.name.split('.').pop()||'').toLowerCase(); bgLog(`Reading ${f.name}…`);
-      let buf; try{ buf=await f.get(); }catch(e){ bgLog(`${f.name}: could not be downloaded (${e.message||e}).`,'bad'); continue; }
-      if(/xlsx|xls|csv/.test(ext)){ await loadScript(XLSX_URL); const wb=XLSX.read(buf,{cellDates:false}); let n=0;
-        for(const sn of wb.SheetNames){ const bb=bgSheetBills(XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null}),sn); n+=bb.reduce((a,x)=>a+x.items.length,0); bgMerge(bills,bb); }
-        bgLog(n?`${f.name}: ${n} items read from the Excel BoQ.`:`${f.name}: no BoQ table found (needs Description and Unit columns).`,n?'ok':'bad'); continue; }
-      if(ext!=='pdf'){ bgLog(`${f.name}: only PDF and Excel files can be read.`,'bad'); continue; }
-      const pdf=await bgPdfPages(buf); const all=pdf.pages.join('\n'); const chars=all.replace(/\s/g,'').length;
-      if(chars<pdf.n*80){ bgLog(`${f.name}: ${pdf.n} pages but almost no text – it looks scanned. Use the Excel or a text PDF of the BoQ.`,'bad'); continue; }
-      if(!bgLooksBoq(all)){ scope.push({name:f.name,pages:pdf.pages,text:all}); bgLog(`${f.name}: ${pdf.n} pages – no priced-table layout found; used as scope/specification.`,'ok'); continue; }
-      bgLog(`${f.name}: ${pdf.n}-page Bill of Quantities – AI is reading it part by part…`);
-      const chunks=[]; let cur=''; pdf.pages.forEach((p,i)=>{ const t=`\n--- page ${i+1} ---\n`+p; if(cur.length+t.length>7000&&cur){ chunks.push(cur); cur=''; } if(t.length>7000){ for(let q=0;q<t.length;q+=7000) chunks.push(t.slice(q,q+7000)); } else cur+=t; }); if(cur) chunks.push(cur);
-      let n0=bills.reduce((a,x)=>a+x.items.length,0);
+    const imp=g.mode==='import', src=n=>imp&&g.keepRates?n:null;
+    // read text (PDF pages, Word text) with AI, part by part
+    const readText=async(fname,pages,withRate)=>{ const chunks=[]; let cur=''; pages.forEach((p,i)=>{ const t=`\n--- page ${i+1} ---\n`+p; if(cur.length+t.length>7000&&cur){ chunks.push(cur); cur=''; } if(t.length>7000){ for(let q=0;q<t.length;q+=7000) chunks.push(t.slice(q,q+7000)); } else cur+=t; }); if(cur) chunks.push(cur);
+      const n0=bills.reduce((a,x)=>a+x.items.length,0);
       for(let c=0;c<chunks.length;c++){ bgLog(`AI reading part ${c+1} of ${chunks.length}…`); usedAI=true;
         const lastBill=bills.length?bills[bills.length-1].name:'';
-        const res=await bgAI(`You extract measured items from a Tanzanian tender Bill of Quantities. Below is part ${c+1} of ${chunks.length} of the text taken from the PDF (table columns are separated by spaces and may be out of order).${lastBill?` The bill in progress at the start of this part is "${lastBill}".`:''}
-Rules: extract EVERY measured item exactly as written – item reference, full description (if an item only says "Ditto", "a.b." or is a short sub-item, prefix it with its heading so it can be priced on its own), unit and quantity. Keep the bill headings (e.g. "BILL No. 2 – SUBSTRUCTURE"). Ignore rate/amount columns, page totals, collections, summaries and preambles without a unit. Never invent items or quantities; use null when a quantity is not given.
-Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5}]}]}
+        const res=await bgAI(`You extract measured items from a Tanzanian Bill of Quantities. Below is part ${c+1} of ${chunks.length} of the text taken from the document (table columns are separated by spaces and may be out of order).${lastBill?` The bill in progress at the start of this part is "${lastBill}".`:''}
+Rules: extract EVERY measured item exactly as written – item reference, full description (if an item only says "Ditto", "a.b." or is a short sub-item, prefix it with its heading so it can be priced on its own), unit and quantity${withRate?', and the unit RATE when the BoQ is priced (not the amount)':''}. Keep the bill headings (e.g. "BILL No. 2 – SUBSTRUCTURE"). Ignore ${withRate?'amount columns':'rate/amount columns'}, page totals, collections, summaries and preambles without a unit. Never invent items, quantities or rates; use null when a value is not given.
+Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5${withRate?',"rate":null':''}}]}]}
 TEXT:\n${chunks[c]}`,5000);
-        bgMerge(bills,res?.bills); }
-      bgLog(`${f.name}: ${bills.reduce((a,x)=>a+x.items.length,0)-n0} items extracted.`,'ok'); }
+        bgMerge(bills,res?.bills,withRate?src(fname):null); }
+      const n=bills.reduce((a,x)=>a+x.items.length,0)-n0; bgLog(`${fname}: ${n} items extracted.`,n?'ok':'bad'); return n; };
+    // pictures (photos of BoQ pages, scanned PDFs): Gemini reads them 3 pages at a time
+    const readPictures=async(fname,imgs)=>{ if(!window.NX_ASKF) throw new Error('reading pictures needs the NEXUS app (signed in)'); const paths=[]; const n0=bills.reduce((a,x)=>a+x.items.length,0);
+      try{ for(let i=0;i<imgs.length;i+=3){ const grp=imgs.slice(i,i+3); bgLog(`Gemini reading ${fname} – ${grp.map(x=>x.label).join(', ')} (${Math.floor(i/3)+1} of ${Math.ceil(imgs.length/3)})…`); usedAI=true;
+          const fl=[]; for(const x of grp){ const up=await window.NX_ASKF.upload(x.blob,'boq-'+x.label.replace(/\W+/g,'-')+'.jpg','image/jpeg'); paths.push(up.path); fl.push({path:up.path,mime:'image/jpeg',name:x.label}); }
+          const lastBill=bills.length?bills[bills.length-1].name:'';
+          const res=await bgAIfiles(`The attached pictures are pages of a Tanzanian Bill of Quantities (${grp.map(x=>x.label).join(', ')} of "${fname}").${lastBill?` The bill in progress before these pages is "${lastBill}".`:''}
+Read the tables carefully and extract EVERY measured item exactly as written: item reference, full description (prefix short sub-items or "Ditto" with their heading), unit, quantity${imp&&g.keepRates?' and the unit RATE if the BoQ is priced (not the amount)':''}. Keep bill headings. Ignore page totals, collections and summaries. Never guess a number you cannot read clearly – use null.
+Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5,"rate":null}]}]}`,fl);
+          bgMerge(bills,res?.bills,src(fname)); } }
+      finally{ window.NX_ASKF.remove(paths).catch(()=>{}); }
+      const n=bills.reduce((a,x)=>a+x.items.length,0)-n0; bgLog(`${fname}: ${n} items read from the pictures.`,n?'ok':'bad'); return n; };
+    if(g.copy){ const B=byId('boqs',g.copy.id); if(B){ const bb=structuredClone(B.bills||[]).map(bl=>({name:bl.name||'Bill',items:(bl.items||[]).filter(it=>String(it.desc||'').trim()).map(({id,...it})=>g.keepRates?it:{...it,rate:'',p:undefined})})).filter(bl=>bl.items.length);
+        bills.push(...bb); bgLog(`Copied ${bb.reduce((a,x)=>a+x.items.length,0)} items in ${bb.length} bills from "${B.title}".`,'ok'); } else bgLog('The BoQ to copy was not found.','bad'); }
+    for(const f of files){ const ext=(f.name.split('.').pop()||'').toLowerCase(), kind=nxfKind({name:f.name}); bgLog(`Reading ${f.name}…`);
+      let buf; try{ buf=await f.get(); }catch(e){ bgLog(`${f.name}: could not be opened (${e.message||e}).`,'bad'); continue; }
+      try{
+      if(/^(xlsx|xls|xlsm|ods|csv)$/.test(ext)){ await loadScript(XLSX_URL); const wb=XLSX.read(buf,{cellDates:false}); let n=0;
+        for(const sn of wb.SheetNames){ const bb=bgSheetBills(XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null}),sn); n+=bb.reduce((a,x)=>a+x.items.length,0); bgMerge(bills,bb,src(f.name)); }
+        bgLog(n?`${f.name}: ${n} items read from the Excel BoQ.`:`${f.name}: no BoQ table found (needs Description and Unit columns).`,n?'ok':'bad'); continue; }
+      if(ext==='docx'){ await loadScript(XLSX_URL); const html=oxDocxToHtml(new Uint8Array(buf)).html; let n=0; nxfHtmlTables(html).forEach((rows,ti)=>{ const bb=bgSheetBills(rows,rows.title||`${f.name} – table ${ti+1}`); n+=bb.reduce((a,x)=>a+x.items.length,0); bgMerge(bills,bb,src(f.name)); });
+        if(n){ bgLog(`${f.name}: ${n} items read from the Word tables.`,'ok'); continue; }
+        const text=nxfHtmlText(html); if(text.length<150){ bgLog(`${f.name}: no BoQ found in this Word file.`,'bad'); continue; }
+        if(imp) await readText(f.name,[text],!!g.keepRates); else scope.push({name:f.name,pages:[text],text}); continue; }
+      if(kind==='image'){ if(!imp){ bgLog(`${f.name}: photos can be read in “Import BoQ”.`,'bad'); continue; } const sh=await shrink(new File([buf],f.name,{type:'image/jpeg'}),2000,.85).catch(()=>null); await readPictures(f.name,[{blob:sh?.blob||new Blob([buf],{type:'image/jpeg'}),label:f.name}]); continue; }
+      if(ext==='txt'){ const t=new TextDecoder().decode(buf); if(imp) await readText(f.name,[t],!!g.keepRates); else scope.push({name:f.name,pages:[t],text:t}); continue; }
+      if(ext!=='pdf'){ bgLog(`${f.name}: this type of file cannot be read (use Excel, Word, PDF or photos).`,'bad'); continue; }
+      const pdf=await bgPdfPages(buf.slice(0)); const all=pdf.pages.join('\n'); const chars=all.replace(/\s/g,'').length;
+      if(chars<pdf.n*80){ if(!imp){ bgLog(`${f.name}: ${pdf.n} pages but almost no text – it looks scanned. Use “Import BoQ” (it reads scanned pages), the Excel, or a text PDF.`,'bad'); continue; }
+        const max=Math.min(pdf.n,60); bgLog(`${f.name}: scanned PDF (${pdf.n} pages) – turning ${max} pages into pictures for Gemini…`); const imgs=await bgPdfImages(buf.slice(0),max); await readPictures(f.name,imgs); if(pdf.n>max) bgLog(`Only the first ${max} pages were read – split the PDF to import the rest.`,'bad'); continue; }
+      if(!imp&&!bgLooksBoq(all)){ scope.push({name:f.name,pages:pdf.pages,text:all}); bgLog(`${f.name}: ${pdf.n} pages – no priced-table layout found; used as scope/specification.`,'ok'); continue; }
+      bgLog(`${f.name}: ${pdf.n}-page Bill of Quantities – AI is reading it part by part…`);
+      await readText(f.name,pdf.pages,imp&&!!g.keepRates);
+      }catch(e){ if(e?.code==='rate_limited'||e?.code==='too_large') throw e; bgLog(`${f.name}: ${e.message||e}`,'bad'); } }
     let mode='';
     if(!bills.length&&scope.length){ bgLog('No Bill of Quantities in the documents – AI is drafting bills and items from the scope/specification…'); usedAI=true;
       const T=g.tender?byId('tenders',g.tender):null;
@@ -2049,14 +2123,16 @@ DOCUMENTS:\n${parts[c]}`,4500);
         (res?.bills||[]).forEach(bl=>{ bl.items=(bl.items||[]).filter(i=>{ const k=rtWords(i.desc)+'|'+rtWords(i.unit); if(seen.has(k)) return false; seen.add(k); return true; }); });
         bgMerge(bills,res?.bills); }
       mode='Items drafted by AI from the scope/specification – quantities need your take-off'; }
-    else mode=bills.length?(usedAI?'Items extracted from the tender BoQ (PDF read by AI – spot-check against the document)':'Items read from the Excel BoQ'):'';
+    else mode=bills.length?(g.mode==='import'?(usedAI?'Imported BoQ (read by AI – spot-check quantities and rates against the document)':'Imported BoQ (read directly from the file)'):usedAI?'Items extracted from the tender BoQ (PDF read by AI – spot-check against the document)':'Items read from the Excel BoQ'):'';
     if(!bills.length){ bgLog('Nothing could be read from these documents.','bad'); g.step='setup'; setTimeout(bgRedraw,2500); return; }
     // number the refs if missing
     bills.forEach(bl=>{ let k=0; bl.items.forEach(it=>{ if(!it.ref){ it.ref=String.fromCharCode(65+(k%26))+(k>=26?Math.floor(k/26):''); } k++; }); });
     // price from the library
     const reg=g.region||'General'; let lib=0,old=0; const miss=[];
-    bills.forEach(bl=>bl.items.forEach(it=>{ const m=it.unit?matchRate(it.desc,it.unit,reg):null; if(m){ it.rate=+m.rate; it.p=bqLibP(m); lib++; if(rtCheck(m)) old++; } else if(it.unit&&!/^(sum|ls|l\.s\.?|item|ps|p\.s\.?|prov)/i.test(it.unit)) miss.push({it,bill:bl.name}); }));
-    bgLog(`Priced ${lib} items from the Rate library (${reg} first, newest prices)${old?` – ${old} of them old or undated`:''}.`,'ok');
+    const useLib=g.mode!=='import'||g.libRates!==false, fromFile=bills.reduce((a,bl)=>a+bl.items.filter(it=>it.rate!==''&&it.rate!=null).length,0);
+    if(fromFile) bgLog(`${fromFile} items already have rates from the file – kept.`,'ok');
+    bills.forEach(bl=>bl.items.forEach(it=>{ if(it.rate!==''&&it.rate!=null) return; const m=useLib&&it.unit?matchRate(it.desc,it.unit,reg):null; if(m){ it.rate=+m.rate; it.p=bqLibP(m); lib++; if(rtCheck(m)) old++; } else if(it.unit&&!/^(sum|ls|l\.s\.?|item|ps|p\.s\.?|prov)/i.test(it.unit)) miss.push({it,bill:bl.name}); }));
+    if(useLib) bgLog(`Priced ${lib} items from the Rate library (${reg} first, newest prices)${old?` – ${old} of them old or undated`:''}.`,'ok');
     if(g.aiRates&&miss.length){ const lib2=S.rates.map(rtN), items=lib2.filter(r=>r.kind==='item'), res2=lib2.filter(r=>r.kind!=='item');
       const w=s=>new Set(rtWords(s).split(' ').filter(x=>x.length>=3)); const near=(it)=>{ const a=w(it.desc); return items.map(r=>{ const b=w(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); return [n/Math.max(1,Math.min(a.size,b.size))+(rtWords(r.unit)===rtWords(it.unit)?.2:0),r]; }).filter(x=>x[0]>.2).sort((x,y)=>y[0]-x[0]).slice(0,4).map(x=>x[1]); };
       const resTxt=res2.slice(0,50).map(r=>`${r.desc} | ${r.unit} | ${Math.round(r.rate)} | ${r.region} ${r.price_date||'no date'}`).join('\n');
@@ -2074,8 +2150,8 @@ Reply with only JSON: {"rates":[{"i":0,"rate":12345,"basis":"from 230 mm blockwo
 }
 async function bgCreate(){ const g=drawer.g; if(!g.res?.bills?.length) return; const T=g.tender?byId('tenders',g.tender):null;
   const s=bqStats({bills:g.res.bills});
-  const id=await put('boqs',null,{title:(g.title||'').trim()||('BoQ – '+(T?.title||'from documents')),tender_id:g.tender||'',project_id:'',region:g.region||'General',bills:g.res.bills,vat:18,contingency:0,scope:T?.scope||'',gen:{at:new Date().toISOString(),by:me.name||'',mode:g.res.mode,files:[...g.docs.filter(d=>d.on).map(d=>d.name),...g.uploads.map(u=>u.name)],items:s.n,lib:s.lib,ai:s.ai}});
-  if(id){ logAct(`AI built BoQ${T?` for tender "${T.title}"`:''}: ${s.n} items, ${s.lib} priced from library, ${s.ai} AI estimates`); closeDrawer(); UI.bqmode='price'; UI.bqf='all'; go('qs',id); toast('BoQ created – check and complete the rates.'); } }
+  const id=await put('boqs',null,{title:(g.title||'').trim()||('BoQ – '+(T?.title||(g.mode==='import'?'imported':'from documents'))),tender_id:g.tender||'',project_id:g.project||'',region:g.region||'General',bills:g.res.bills,vat:18,contingency:0,scope:T?.scope||'',gen:{at:new Date().toISOString(),by:me.name||'',kind:g.mode||'gen',mode:g.res.mode,files:[...g.docs.filter(d=>d.on).map(d=>d.name),...g.uploads.map(u=>u.name),...(g.copy?['NEXUS BoQ: '+g.copy.name]:[])],items:s.n,lib:s.lib,ai:s.ai,file:s.other}});
+  if(id){ logAct(g.mode==='import'?`Imported BoQ "${(g.title||'').trim()||'BoQ'}": ${s.n} items, ${s.other} rates from the file, ${s.lib} from library, ${s.ai} AI estimates`:`AI built BoQ${T?` for tender "${T.title}"`:''}: ${s.n} items, ${s.lib} priced from library, ${s.ai} AI estimates`); closeDrawer(); UI.bqmode='price'; UI.bqf='all'; go('qs',id); toast(g.mode==='import'?'BoQ imported – check the items and rates.':'BoQ created – check and complete the rates.'); } }
 
 /* ---------- events ---------- */
 document.addEventListener('click', async e=>{ const el=e.target.closest('[data-bx]'); if(!el) return; const a=el.dataset.bx;
@@ -2086,14 +2162,22 @@ document.addEventListener('click', async e=>{ const el=e.target.closest('[data-b
   if(a==='filllib'){ await bqFillLib(); return; }
   if(a==='savelib'){ await bqSaveLib(); return; }
   if(a==='bgstart'){ await bgRun(); return; }
+  if(a==='imp'){ bgOpen('','import'); return; }
+  if(a==='bgpc'){ document.getElementById('bgFile')?.click(); return; }
+  if(a==='bgnx'){ const L=await nxfPick('boq'); if(!drawer||drawer.type!=='bqgen') return; const g=drawer.g; for(const x of L){ if(x instanceof File) g.uploads.push({name:x.name,file:x,from:'NEXUS files'}); else if(x?.boq) g.copy={id:x.boq,name:x.name}; } if(!g.title&&(g.uploads[0]||g.copy)) g.title=g.copy?g.copy.name+' (copy)':'BoQ – '+g.uploads[0].name.replace(/\.[a-z0-9]+$/i,''); bgRedraw(); return; }
+  if(a==='bgrm'){ drawer.g.uploads.splice(+el.dataset.i,1); bgRedraw(); return; }
+  if(a==='bgrmcopy'){ drawer.g.copy=null; bgRedraw(); return; }
   if(a==='bgreset'){ drawer.g.step='setup'; drawer.g.res=null; drawer.g.log=[]; bgRedraw(); return; }
   if(a==='bgcreate'){ await bgCreate(); return; }
 });
 document.addEventListener('change', e=>{ const el=e.target; if(!drawer||drawer.type!=='bqgen') return; const g=drawer.g;
-  if(el.id==='bgFile'&&el.files?.length){ for(const f of el.files) g.uploads.push({name:f.name,file:f}); if(!g.title) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z]+$/i,''); bgRedraw(); return; }
+  if(el.id==='bgFile'&&el.files?.length){ for(const f of el.files) g.uploads.push({name:f.name,file:f}); el.value=''; if(!g.title) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z]+$/i,''); bgRedraw(); return; }
   if(el.dataset.bgdoc!==undefined){ const d=g.docs.find(x=>x.i===+el.dataset.bgdoc); if(d) d.on=el.checked; return; }
-  if(el.dataset.bgf){ const k=el.dataset.bgf; g[k]=el.type==='checkbox'?el.checked:el.value; if(k==='tender'){ const T=byId('tenders',el.value); g.docs=bgTenderDocs(T); g.title=T?'BoQ – '+T.title:g.title; g.region=T?rtRegionOf(T.location||''):g.region; bgRedraw(); } } });
+  if(el.dataset.bgf){ const k=el.dataset.bgf; g[k]=el.type==='checkbox'?el.checked:el.value; if(k==='region'&&g.mode==='import'){ bgRedraw(); } if(k==='tender'){ const T=byId('tenders',el.value); if(g.mode!=='import') g.docs=bgTenderDocs(T); g.title=T?'BoQ – '+T.title:g.title; g.region=T?rtRegionOf(T.location||''):g.region; bgRedraw(); } } });
 document.addEventListener('input', e=>{ const el=e.target; if(drawer?.type==='bqgen'&&el.dataset.bgf==='title') drawer.g.title=el.value; });
+document.addEventListener('dragover',e=>{ const d=e.target.closest?.('#bgDrop'); if(!d) return; e.preventDefault(); d.classList.add('on'); });
+document.addEventListener('dragleave',e=>{ const d=e.target.closest?.('#bgDrop'); if(d&&!d.contains(e.relatedTarget)) d.classList.remove('on'); });
+document.addEventListener('drop',e=>{ const d=e.target.closest?.('#bgDrop'); if(!d||drawer?.type!=='bqgen') return; e.preventDefault(); const g=drawer.g; for(const f of (e.dataTransfer?.files||[])) g.uploads.push({name:f.name,file:f}); if(!g.title&&g.uploads[0]) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z0-9]+$/i,''); bgRedraw(); });
 
 async function exportBoq(b){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
@@ -2845,7 +2929,7 @@ function askSave(){ const at=new Date().toISOString();
   try{ localStorage.setItem(askKey(),JSON.stringify({id:UI.askId||'',at})); }catch(_){}
   if(!UI.chat.length||!me.id||!db) return;
   if(!UI.askId){ UI.askId=uid(); try{ localStorage.setItem(askKey(),JSON.stringify({id:UI.askId,at})); }catch(_){} }
-  const id=me.id+'_'+UI.askId, prev=(S.askchat||[]).find(c=>c.id===id), data={title:askTitle(UI.chat),msgs:UI.chat.slice(-60).map(m=>({role:m.role,content:String(m.content||'').slice(0,20000),...(m.sources?{sources:(m.sources||[]).slice(0,6)}:{}),...(m.web?{web:true}:{}),...(m.checked?{checked:true}:{}),...(m.panel?{panel:m.panel}:{})})),at,created:prev?.created||at};
+  const id=me.id+'_'+UI.askId, prev=(S.askchat||[]).find(c=>c.id===id), data={title:askTitle(UI.chat),msgs:UI.chat.slice(-60).map(m=>({role:m.role,content:String(m.content||'').slice(0,20000),...(m.sources?{sources:(m.sources||[]).slice(0,6)}:{}),...(m.web?{web:true}:{}),...(m.checked?{checked:true}:{}),...(m.panel?{panel:m.panel}:{}),...(m.att?{att:m.att.map(a=>({name:a.name,kind:a.kind,size:a.size||0,...(a.path?{path:a.path,mime:a.mime||''}:{}),...(a.url?{url:a.url}:{}),...(a.thumb?{thumb:a.thumb}:{}),...(a.scanned?{scanned:true}:{}),...(a.text?{text:String(a.text).slice(0,20000)}:{})}))}:{}),...(m.auto?{auto:true}:{})})),at,created:prev?.created||at};
   S.askchat=[...(S.askchat||[]).filter(c=>c.id!==id),{id,...data}];          // show in History at once
   clearTimeout(askSaveT); askSaveT=setTimeout(async()=>{ try{ await db.doc('askchat/'+id).set(data); }catch(e){ console.warn('ask history',e); }
     const old=askMine().slice(ASK_KEEP); for(const c of old){ try{ await db.doc('askchat/'+c.id).delete(); }catch(_){} } },600); }
@@ -2876,11 +2960,12 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-as
   if(a==='toggle'){ UI.askHist=!UI.askHist; renderDrawer(); if(UI.askHist) setTimeout(()=>$('#askHq')?.focus(),40); return; }
   if(a==='open'){ const c=askMine().find(x=>x.id===id); if(c) askOpenChat(c); return; }
   if(a==='del'){ if(el.dataset.sure!=='1'){ el.dataset.sure='1'; el.classList.add('sure'); el.title='Click again to delete'; setTimeout(()=>{ el.dataset.sure=''; el.classList.remove('sure'); },3000); return; }
+    const gone=(S.askchat||[]).find(c=>c.id===id); try{ const P=(gone?.msgs||[]).flatMap(m=>(m.att||[]).map(a=>a.path).filter(Boolean)); if(P.length&&window.NX_ASKF) window.NX_ASKF.remove(P).catch(()=>{}); }catch(_){}
     S.askchat=(S.askchat||[]).filter(c=>c.id!==id); if(me.id&&id===me.id+'_'+UI.askId){ UI.chat=[]; UI.askId=null; }
     try{ await db.doc('askchat/'+id).delete(); }catch(_){ } renderDrawer(); toast('Chat deleted.'); } });
 document.addEventListener('input',e=>{ if(e.target.id==='askHq'){ UI.askHq=e.target.value; const p=e.target.selectionStart; renderDrawer(); const n=$('#askHq'); if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(_){} } } });
 function askMsgHtml(m,i){
-  if(m.role==='user') return `<div class="ask-row me"><div class="ask-bub">${esc(m.content).replace(/\n/g,'<br>')}</div></div>`;
+  if(m.role==='user') return `<div class="ask-row me"><div class="ask-me">${askAttMsgHtml(m,i)}${m.content&&!m.auto?`<div class="ask-bub">${esc(m.content).replace(/\n/g,'<br>')}</div>`:''}</div></div>`;
   const anim=UI.askAnim&&UI.askAnim.i===i, txt=anim?m.content.slice(0,UI.askAnim.n):m.content, last=i===UI.chat.length-1;
   return `<div class="ask-row bot"><div class="ask-ava" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-md" ${anim?'id="askAnim"':''}>${askFmt(txt)}${anim?'<span class="ask-caret"></span>':''}</div>
     ${!anim&&(m.sources||[]).length?`<div class="ask-src">${m.sources.slice(0,6).map((s,k)=>`<a href="${esc(s.url||s)}" target="_blank" rel="noopener" title="${esc(s.title||s.url||s)}"><span>${k+1}</span>${esc(((s.title||s.url||String(s)).replace(/^https?:\/\/(www\.)?/,'')).slice(0,38))}</a>`).join('')}</div>`:''}
@@ -2895,8 +2980,11 @@ function askDrawer(){ askLoad();
     <div class="ask-top"><button class="ask-new ask-hbtn${UI.askHist?' on':''}" data-askh="toggle" title="Chat history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 103-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg><span>History</span></button><button class="ask-new ask-hbtn" data-act="askNew" title="New chat" ${empty&&!UI.askHist?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg><span>New chat</span></button>
       <div class="ask-title">Ask NEXUS <span>AI</span></div><button class="ask-x" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="db ask-body">${msgs}</div>
-    <div class="ask-foot"><div class="ask-box"><textarea id="askInp" rows="1" placeholder="Ask NEXUS anything – tenders, projects, BoQ, FIDIC, PPRA, prices…" aria-label="Message"></textarea>
-      <div class="ask-bar"><button type="button" class="ask-chip ${UI.askWeb===false?'':'on'}" data-act="askWebT" title="Search the web for every question. Technical, legal, tax and price questions always search the web and are double-checked.">🌐 Web search${UI.askWeb===false?' · auto':''}</button><div class="sp"></div>
+    <div class="ask-foot"><div class="ask-box"><div id="askAtt" class="ask-att">${askAttHtml()}</div><textarea id="askInp" rows="1" placeholder="${(UI.askAtt||[]).length?'Ask about the attached file(s)… (or just press send)':'Ask NEXUS anything – tenders, projects, BoQ, FIDIC, PPRA, prices…'}" aria-label="Message"></textarea>
+      <input type="file" id="askFile" multiple hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.xlsm,.ods,.csv,.tsv,.pptx,.txt,.md,.json,.xml,.html,.eml"><input type="file" id="askCam" hidden accept="image/*,video/*" capture="environment">
+      <div class="ask-bar"><div class="ask-attw"><button type="button" class="ask-chip ask-plus" data-act="askAttMenu" title="Add files, photos, videos or a link" aria-haspopup="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg> Attach</button>
+        <div class="ask-attm" id="askAttM" role="menu"><button data-askatt="pc" role="menuitem">💻 <span><b>From this computer / phone</b><small>Documents, Excel, PDF, photos, videos, voice notes</small></span></button><button data-askatt="cam" role="menuitem">📷 <span><b>Take a photo or video</b><small>Uses the camera on phones and tablets</small></span></button><button data-askatt="nx" role="menuitem">🗂️ <span><b>From NEXUS files</b><small>Office Records, tender documents, NEXUS Office, site photos</small></span></button><button data-askatt="link" role="menuitem">🔗 <span><b>Web page or YouTube link</b><small>NEXUS AI reads the page or watches the video</small></span></button></div></div>
+      <button type="button" class="ask-chip ${UI.askWeb===false?'':'on'}" data-act="askWebT" title="Search the web for every question. Technical, legal, tax and price questions always search the web and are double-checked.">🌐 Web search${UI.askWeb===false?' · auto':''}</button><div class="sp"></div>
       <button class="ask-send" data-act="askSend" aria-label="Send" ${UI.busy.ask?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div>
       <div class="ask-note">NEXUS AI can make mistakes. Check important figures, contracts and legal points.</div></div></div></div></div>`; }
 function askAnimate(i){ const m=UI.chat[i]; if(!m) return; UI.askAnim={i,n:0}; const L=m.content.length, step=Math.max(4,Math.ceil(L/90));
@@ -2923,9 +3011,118 @@ YOUR JOB:
 3b. Where a value depends on conditions, give the range and the conditions. Where something must be confirmed (engineer, contract, TRA, PPRA, lawyer), say so briefly.
 4. Finish with one line starting "Basis:" naming the standards, laws or sources actually relied on (only real ones).
 Write ONLY the final answer for the user, in the same language as the question (English or Swahili). Do not mention the draft or that you checked it.`; }
-async function askSend(text){
-  if(UI.busy.ask) return; const inp=$('#askInp'); const q=(text||inp?.value||'').trim(); if(!q) return; if(inp) inp.value='';
-  UI.askAnim=null; UI.askHist=false; UI.chat.push({role:'user',content:q}); askSave();
+/* ---------- v150 · ATTACHMENTS – files, photos, videos and links for Ask NEXUS + a picker for files saved in NEXUS ---------- */
+const NXF_MAX=50*1048576;
+const NXF_ICON={image:'🖼️',video:'🎬',audio:'🎙️',pdf:'📕',docx:'📘',xlsx:'📗',csv:'📗',pptx:'📙',text:'📄',link:'🔗',boq:'📐'};
+function nxfKind(f){ const n=String(f?.name||'').toLowerCase(), t=String(f?.type||'');
+  if(/^image\//.test(t)||/\.(jpe?g|png|gif|webp|bmp|heic|heif)$/.test(n)) return 'image';
+  if(/^video\//.test(t)||/\.(mp4|mov|webm|3gp|mkv|avi|m4v)$/.test(n)) return 'video';
+  if(/^audio\//.test(t)||/\.(mp3|m4a|wav|ogg|oga|aac|opus|amr|weba)$/.test(n)) return 'audio';
+  if(/\.pdf$/.test(n)||t==='application/pdf') return 'pdf';
+  if(/\.docx$/.test(n)) return 'docx'; if(/\.(xlsx|xlsm|xls|ods)$/.test(n)) return 'xlsx'; if(/\.(csv|tsv)$/.test(n)) return 'csv'; if(/\.pptx$/.test(n)) return 'pptx';
+  if(/\.(txt|md|json|xml|html?|log|eml)$/.test(n)||/^text\//.test(t)) return 'text'; return ''; }
+const nxfSize=b=>!b?'':b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
+const nxfMime=(f,k)=>f.type||({image:'image/jpeg',video:'video/mp4',audio:'audio/mpeg',pdf:'application/pdf'}[k]||'application/octet-stream');
+function nxfHtmlText(html){ const d=new DOMParser().parseFromString(String(html||''),'text/html'); d.querySelectorAll('img,style,script').forEach(x=>x.remove());
+  d.querySelectorAll('tr').forEach(tr=>{ tr.textContent=[...tr.children].map(c=>c.textContent.replace(/\s+/g,' ').trim()).join(' | ')+'\n'; });
+  d.querySelectorAll('p,li,h1,h2,h3,h4,div,br').forEach(x=>x.append('\n')); return d.body.textContent.replace(/[ \t]+/g,' ').replace(/\n\s*\n+/g,'\n').trim(); }
+function nxfHtmlTables(html){ const d=new DOMParser().parseFromString(String(html||''),'text/html'); return [...d.querySelectorAll('table')].map(t=>{ const rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.children].map(c=>c.textContent.replace(/\s+/g,' ').trim())); let e=t.previousElementSibling, k=0, title=''; while(e&&k<4&&!title){ const x=e.textContent.replace(/\s+/g,' ').trim(); if(x&&(/bill/i.test(x)||/^H\d$/.test(e.tagName))) title=x.slice(0,120); e=e.previousElementSibling; k++; } rows.title=title; return rows; }); }
+function nxfPptxText(buf){ const cfb=XLSX.CFB.read(new Uint8Array(buf),{type:'array'}); const out=[];
+  cfb.FullPaths.forEach((p,i)=>{ const m=p.match(/ppt\/slides\/slide(\d+)\.xml$/i); if(!m) return; const c=cfb.FileIndex[i].content; if(!c) return; const x=new TextDecoder().decode(c instanceof Uint8Array?c:new Uint8Array(c));
+    out.push([+m[1],[...x.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(z=>z[1]).join(' ')]); });
+  return out.sort((a,b)=>a[0]-b[0]).map(([n,t])=>`--- slide ${n} ---\n${t}`).join('\n'); }
+/* read any supported file → {kind, text} for documents, or {kind, media:true, blob, mime} for pictures, videos, voice notes and scanned PDFs */
+async function nxfRead(file){ const kind=nxfKind(file); if(!kind) throw new Error('this type of file cannot be read yet');
+  if(file.size>NXF_MAX) throw new Error(`too large (${nxfSize(file.size)}; the limit is 50 MB)`);
+  if(kind==='image'){ let s; try{ s=await shrink(file,1600,.85); }catch(_){ s=null; } const th=await shrink(file,220,.7).catch(()=>null); return {kind,media:true,blob:s?.blob||file,mime:s?.blob?'image/jpeg':nxfMime(file,kind),thumb:th?.dataUrl||''}; }
+  if(kind==='video'||kind==='audio') return {kind,media:true,blob:file,mime:nxfMime(file,kind)};
+  const buf=await file.arrayBuffer();
+  if(kind==='pdf'){ const {pages,n}=await bgPdfPages(buf); const text=pages.map((p,i)=>`--- page ${i+1} ---\n${p}`).join('\n');
+    if(text.replace(/---.*?---|\s/g,'').length<n*80) return {kind,media:true,scanned:true,blob:file,mime:'application/pdf',pages:n}; return {kind,text,pages:n}; }
+  if(kind==='docx'){ await loadScript(XLSX_URL); return {kind,text:nxfHtmlText(oxDocxToHtml(new Uint8Array(buf)).html)}; }
+  if(kind==='xlsx'||kind==='csv'){ await loadScript(XLSX_URL); const wb=XLSX.read(buf,{cellDates:true}); return {kind,text:wb.SheetNames.map(sn=>`--- sheet ${sn} ---\n`+XLSX.utils.sheet_to_csv(wb.Sheets[sn],{blankrows:false})).join('\n')}; }
+  if(kind==='pptx'){ await loadScript(XLSX_URL); return {kind,text:nxfPptxText(buf)}; }
+  return {kind,text:new TextDecoder().decode(buf)}; }
+
+/* ---- picker for files already saved in NEXUS (Office Records, tender documents, NEXUS Office, site photos, BoQs) ---- */
+function nxfSources(mode){ const L=[];
+  (S.records||[]).forEach(r=>{ const f=recFile(r); if(!f||!f.path) return; L.push({src:'Office Records',name:f.name||r.title,sub:[r.title,r.folder,r.date].filter(Boolean).join(' · '),size:f.size,at:r.date||'',get:async()=>{ const u=await window.NX_REC.url(f.path,false); return await (await fetch(u)).blob(); }}); });
+  (S.tenders||[]).forEach(t=>(t.files||[]).forEach(f=>{ if(!f?.url) return; L.push({src:'Tender documents',name:f.name||'Document',sub:t.title||'',at:t.deadline||'',get:async()=>await (await fetch(f.url)).blob()}); }));
+  (typeof oxDocs==='function'?oxDocs():[]).filter(d=>['docx','xlsx','pptx','form'].includes(d.type)).forEach(d=>{ const ext=d.type==='form'?'xlsx':d.type; L.push({src:'NEXUS Office',name:(d.title||'Document')+'.'+ext,sub:(OXA[d.type]?.name||'Forms')+(d.owner?' · '+d.owner:''),at:d.updated_at||d.created_at||'',get:async()=>{ const r=await oxDocBytes(d); if(!r) throw new Error('could not open'); return new Blob([r.bytes],{type:OX_MIME?.[r.ext]||''}); }}); });
+  if(mode==='boq') (S.boqs||[]).forEach(b=>{ const s=bqStats(b); L.push({src:'NEXUS BoQs',name:b.title||'BoQ',sub:`${(b.bills||[]).length} bills · ${s.n} items · ${s.pct}% priced`,at:b.updated_at||'',boq:b.id}); });
+  if(mode!=='boq') (S.reports||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,80).forEach(r=>(r.photos||[]).forEach((ph,k)=>{ if(typeof ph!=='string'||!ph.startsWith('asset:')) return; L.push({src:'Site photos',name:`Site photo – ${projName(r.project_id)} ${r.date||''} (${k+1}).jpg`,sub:projName(r.project_id)+' · '+(r.date||''),at:r.date||'',thumb:ph.slice(6),get:async()=>await (await fetch(ph.slice(6))).blob()}); }));
+  return L; }
+function nxfPick(mode='any'){ return new Promise(res=>{ document.getElementById('nxfPick')?.remove(); const all=nxfSources(mode), srcs=[...new Set(all.map(x=>x.src))];
+  const st={src:srcs[0]||'',q:'',sel:new Set()}; const el=document.createElement('div'); el.id='nxfPick'; el.className='nxfp-bg';
+  const done=v=>{ el.remove(); res(v); };
+  const draw=()=>{ const q=st.q.toLowerCase(), L=all.map((x,i)=>({...x,i})).filter(x=>x.src===st.src&&(!q||(x.name+' '+x.sub).toLowerCase().includes(q))).slice(0,300);
+    el.innerHTML=`<div class="nxfp" role="dialog" aria-modal="true" aria-label="Files saved in NEXUS"><div class="nxfp-h"><b>🗂️ Files saved in NEXUS</b><div class="sp"></div><button class="btn sm ghost" data-nxfp="x" aria-label="Close">✕</button></div>
+      ${srcs.length?`<div class="seg nxfp-tabs">${srcs.map(s=>`<button data-nxfp="src:${esc(s)}" aria-pressed="${s===st.src}">${esc(s)} <span class="sub">${all.filter(x=>x.src===s).length}</span></button>`).join('')}</div>
+      <input class="inp" id="nxfpQ" type="search" placeholder="Search by name…" value="${esc(st.q)}">
+      <div class="nxfp-l">${L.length?L.map(x=>`<label class="nxfp-i${st.sel.has(x.i)?' on':''}"><input type="${mode==='boq'&&x.boq?'radio':'checkbox'}" name="nxfp" data-nxfpi="${x.i}" ${st.sel.has(x.i)?'checked':''}>${x.thumb?`<img src="${esc(x.thumb)}" alt="" loading="lazy">`:`<span class="nxfp-ic">${x.boq?NXF_ICON.boq:NXF_ICON[nxfKind({name:x.name})]||'📄'}</span>`}<span class="grow"><span class="ttl2">${esc(x.name)}</span><span class="sub">${esc(x.sub||'')}${x.size?' · '+nxfSize(x.size):''}</span></span></label>`).join(''):'<div class="empty">Nothing here matches.</div>'}</div>`
+      :'<div class="empty">No files are saved in NEXUS yet.</div>'}
+      <div class="nxfp-f"><span class="sub">${st.sel.size} selected</span><div class="sp"></div><button class="btn" data-nxfp="x">Cancel</button><button class="btn pri" data-nxfp="ok" ${st.sel.size?'':'disabled'}>Use selected</button></div></div>`;
+    const qi=el.querySelector('#nxfpQ'); if(qi&&st.qf){ qi.focus(); qi.setSelectionRange(qi.value.length,qi.value.length); } };
+  el.addEventListener('click',async e=>{ if(e.target===el) return done([]); const b=e.target.closest('[data-nxfp]'); if(!b) return; const a=b.dataset.nxfp;
+    if(a==='x') return done([]);
+    if(a.startsWith('src:')){ st.src=a.slice(4); st.qf=false; return draw(); }
+    if(a==='ok'){ const pick=[...st.sel].map(i=>all[i]); b.disabled=true; b.textContent='Opening…'; const out=[];
+      for(const x of pick){ if(x.boq){ out.push({boq:x.boq,name:x.name}); continue; } try{ const blob=await x.get(); out.push(new File([blob],x.name,{type:blob.type||''})); }catch(err){ toast(`${x.name}: could not be opened (${err.message||err}).`); } }
+      return done(out); } });
+  el.addEventListener('change',e=>{ const i=e.target.dataset?.nxfpi; if(i==null) return; const n=+i; if(e.target.type==='radio'){ st.sel.clear(); st.sel.add(n); } else if(e.target.checked) st.sel.add(n); else st.sel.delete(n); st.qf=false; draw(); });
+  el.addEventListener('input',e=>{ if(e.target.id==='nxfpQ'){ st.q=e.target.value; st.qf=true; draw(); } });
+  el.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); done([]); } });
+  document.body.appendChild(el); draw(); }); }
+
+/* ---- Ask NEXUS: attachment tray ---- */
+UI.askAtt=UI.askAtt||[];
+function askAttHtml(){ const A=UI.askAtt||[]; if(!A.length) return '';
+  return A.map(a=>`<div class="ask-ac ${a.st}" title="${esc(a.msg||a.name)}">${a.thumb?`<img src="${esc(a.thumb)}" alt="">`:`<span class="ic">${NXF_ICON[a.kind]||'📄'}</span>`}<span class="nm"><b>${esc(a.name)}</b><span>${a.st==='read'?'Reading…':a.st==='up'?'Uploading…':a.st==='err'?esc(a.msg||'Failed'):esc([a.kind==='link'?'Link':a.scanned?'Scanned PDF':a.kind==='pdf'?`PDF · ${a.pages||''} pages`:a.kind.toUpperCase(),nxfSize(a.size)].filter(Boolean).join(' · '))}</span></span>${a.st==='read'||a.st==='up'?'<span class="spin sm" aria-hidden="true"></span>':''}<button type="button" class="x" data-askatt="rm:${esc(a.id)}" aria-label="Remove ${esc(a.name)}">✕</button></div>`).join(''); }
+function askAttRefresh(){ const el=document.getElementById('askAtt'); if(el) el.innerHTML=askAttHtml(); const inp=$('#askInp'); if(inp) inp.placeholder=(UI.askAtt||[]).length?'Ask about the attached file(s)… (or just press send)':'Ask NEXUS anything – tenders, projects, BoQ, FIDIC, PPRA, prices…'; }
+async function askAddFiles(list){ const files=[...(list||[])]; if(!files.length) return;
+  if((UI.askAtt||[]).length+files.length>8) toast('Up to 8 attachments per question.');
+  for(const f of files.slice(0,Math.max(0,8-(UI.askAtt||[]).length))){ const a={id:uid(),name:f.name||'file',size:f.size,kind:nxfKind(f)||'text',st:'read'}; UI.askAtt.push(a); askAttRefresh();
+    (async()=>{ try{ const r=await nxfRead(f); Object.assign(a,{kind:r.kind,scanned:!!r.scanned,pages:r.pages,thumb:r.thumb||''});
+        if(r.media){ if(!window.NX_ASKF) throw new Error('attachments need the NEXUS app (signed in)'); a.st='up'; askAttRefresh(); const up=await window.NX_ASKF.upload(r.blob,a.name,r.mime); a.path=up.path; a.mime=r.mime; }
+        else { const t=String(r.text||'').trim(); if(!t) throw new Error('no text found in this file'); a.text=t.length>60000?t.slice(0,60000)+'\n…(the rest of the file was cut – it is too long)':t; }
+        a.st='ok'; }
+      catch(e){ a.st='err'; a.msg=String(e?.message||e); }
+      askAttRefresh(); })(); } }
+function askAddLink(){ const u=prompt('Paste a web page or YouTube link:'); if(!u) return; const url=u.trim(); if(!/^https?:\/\/[^\s]+\.[^\s]+/i.test(url)) return toast('That does not look like a web address (it must start with https://).');
+  UI.askAtt.push({id:uid(),name:url.replace(/^https?:\/\/(www\.)?/,'').slice(0,70),url,kind:'link',st:'ok'}); askAttRefresh(); }
+function askAttMenu(){ document.getElementById('askAttM')?.classList.toggle('on'); }
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-askatt]'); if(!el){ if(!e.target.closest('#askAttM,[data-act="askAttMenu"]')) document.getElementById('askAttM')?.classList.remove('on'); return; }
+  e.preventDefault(); const [a,id]=el.dataset.askatt.split(':'); document.getElementById('askAttM')?.classList.remove('on');
+  if(a==='rm'){ UI.askAtt=UI.askAtt.filter(x=>x.id!==id); askAttRefresh(); return; }
+  if(a==='pc') return document.getElementById('askFile')?.click();
+  if(a==='cam') return document.getElementById('askCam')?.click();
+  if(a==='link') return askAddLink();
+  if(a==='nx'){ const files=(await nxfPick('any')).filter(f=>f instanceof File); if(files.length) askAddFiles(files); }
+  if(a==='open'){ const [ci,ai2]=id.split('.'); const m=UI.chat[+ci], at=m?.att?.[+ai2]; if(!at) return; try{ if(at.url) return dhLaunch(at.url); if(at.path&&window.NX_ASKF) window.open(await window.NX_ASKF.url(at.path),'_blank','noopener'); }catch(err){ toast('Could not open: '+(err.message||err)); } } });
+document.addEventListener('change',e=>{ if(e.target.id==='askFile'||e.target.id==='askCam'){ askAddFiles(e.target.files); e.target.value=''; } });
+document.addEventListener('paste',e=>{ if(e.target?.id!=='askInp') return; const fs=[...(e.clipboardData?.files||[])]; if(fs.length){ e.preventDefault(); askAddFiles(fs); } });
+document.addEventListener('dragover',e=>{ const d=e.target.closest?.('.drawer.ask'); if(!d||!e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); d.classList.add('drop'); });
+document.addEventListener('dragleave',e=>{ const d=e.target.closest?.('.drawer.ask'); if(d&&!d.contains(e.relatedTarget)) d.classList.remove('drop'); });
+document.addEventListener('drop',e=>{ const d=e.target.closest?.('.drawer.ask'); if(!d) return; e.preventDefault(); d.classList.remove('drop'); askAddFiles(e.dataTransfer?.files); });
+function askAttMsgHtml(m,i){ const A=m.att||[]; if(!A.length) return '';
+  return `<div class="ask-matt">${A.map((a,k)=>a.thumb?`<button class="ask-mimg" data-askatt="open:${i}.${k}" title="${esc(a.name)}"><img src="${esc(a.thumb)}" alt="${esc(a.name)}"></button>`
+    :`<button class="ask-mf" data-askatt="open:${i}.${k}" title="${esc(a.url||a.name)}"><span class="ic">${NXF_ICON[a.kind]||'📄'}</span><span class="nm"><b>${esc(a.name)}</b><span>${esc(a.kind==='link'?'Link':a.scanned?'Scanned PDF':String(a.kind||'').toUpperCase())}${a.size?' · '+nxfSize(a.size):''}</span></span></button>`).join('')}</div>`; }
+/* turns for the AI: document text goes into the message, media and links go separately (files / links) */
+function askAttPayload(){ let budget=90000; const files=[], links=[];
+  const msgs=UI.chat.slice(-10).reverse().map(m=>{ if(m.role!=='user'||!(m.att||[]).length) return {role:m.role,content:m.content}; let c=m.content;
+    for(const a of m.att){ if(a.text){ const t=a.text.slice(0,Math.max(0,budget)); budget-=t.length; c+=`\n\n[ATTACHED FILE: ${a.name}]\n${t||'(not repeated – see earlier in the chat)'}`; }
+      else if(a.kind==='link') c+=`\n\n[ATTACHED LINK: ${a.url}]`; else c+=`\n\n[ATTACHED ${String(a.kind).toUpperCase()}: ${a.name}]`; }
+    return {role:'user',content:c}; }).reverse();
+  for(const m of UI.chat.slice(-10).reverse()) for(const a of (m.att||[])){ if(a.path&&files.length<4&&!files.some(f=>f.path===a.path)) files.push({path:a.path,mime:a.mime||'',name:a.name}); if(a.url&&links.length<3&&!links.includes(a.url)) links.push(a.url); }
+  return {msgs,files,links}; }
+
+async function askSend(text,reAtt){
+  if(UI.busy.ask) return; const inp=$('#askInp'); const A0=reAtt?reAtt.map(a=>({...a,st:'ok'})):text?[]:(UI.askAtt||[]);
+  if(A0.some(a=>a.st==='read'||a.st==='up')) return toast('Wait a moment – NEXUS is still reading the attachments.');
+  const att=A0.filter(a=>a.st==='ok').map(({id,st,msg,...a})=>a);
+  let q=(text||inp?.value||'').trim(), auto=false; if(!q&&att.length){ q='Please look at the attached '+(att.length>1?'files':'file')+' and tell me what '+(att.length>1?'they contain':'it contains')+' – a short summary, the key facts and figures, and anything Nordic should check or act on.'; auto=true; }
+  if(!q) return; if(inp) inp.value=''; if(!text) UI.askAtt=[];
+  UI.askAnim=null; UI.askHist=false; UI.chat.push({role:'user',content:q,...(att.length?{att}:{}),...(auto?{auto:true}:{})}); askSave();
   const snap={today:new Date().toString(), tenders:openTenders().map(t=>({title:t.title,client:t.client,no:t.no,location:t.location,category:t.category,deadline:t.deadline,screen:t.screen,status:t.status,ai:t.ai?.verdict})),
     projects:S.projects.map(p=>({name:p.name,client:p.client,location:p.location,status:p.status,progress:p.progress})), recent_reports:S.reports.slice(-15).map(r=>({project:projName(r.project_id),date:r.date,work:r.work_done,issues:r.issues,hse:r.hse})),
     procurement:S.procurement.map(p=>({item:p.item,status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').map(t=>({title:t.title,who:staffName(t.assignee),due:t.due})),
@@ -2940,13 +3137,15 @@ RULES
 5. For technical values that depend on conditions (striking times, curing, mix ratios, cover, laps, loads, productivity): give the usual range, the conditions it depends on (temperature, cement type, element, props left in place) and the standard or code it comes from (e.g. BS EN, BS 8110, Eurocode, TBS). Never give a single bare number when it depends.
 6. Accuracy first: never invent figures, standards, clause numbers, section numbers, court cases or prices. Cite a standard or clause ONLY when you are sure it covers the point; otherwise describe it without a number. If you are not sure, say so plainly and say who should confirm it. Do not pad answers with unrelated references.
 7. When web results are available, prefer current official sources (PPRA, TRA, CRB, OSHA, NEMA, Parliament/legal sites, manufacturers) and mention them.
+8. ATTACHMENTS: when the user attaches files, photos, videos, voice notes or links, study them carefully and answer from them first. Say which file each point comes from. For photos of a site, check safety (PPE, scaffolds, edges, excavations), workmanship and progress. For drawings, BoQs, invoices and contracts, read the figures exactly – never guess numbers you cannot read; say what is unclear. If a file could not be read, say so.
 VERIFIED REFERENCE FACTS (use these when relevant – they override anything contradicting them):
 ${ASK_FACTS}
 ${companyContext()}
-NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything about Nordic or about construction.'},...UI.chat.slice(-10).map(m=>({role:m.role,content:m.content}))];
-  const tech=ASK_TECH.test(q), web=UI.askWeb!==false||tech;
-  UI.askStage=web?'Thinking and searching the web…':'Thinking…';
-  const r=await ai('ask',async()=>{ const d=await sample(turns,{modelTier:'default',cache:false,web});
+NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask me anything about Nordic or about construction.'},...askAttPayload().msgs];
+  const AP=askAttPayload(), hasAtt=AP.files.length+AP.links.length>0||UI.chat.slice(-10).some(m=>(m.att||[]).length);
+  const tech=!hasAtt&&ASK_TECH.test(q), web=!hasAtt&&(UI.askWeb!==false||tech);
+  UI.askStage=AP.files.some(f=>/video|audio/.test(f.mime))?'Watching / listening to the attachment…':hasAtt?'Reading the attachments…':web?'Thinking and searching the web…':'Thinking…';
+  const r=await ai('ask',async()=>{ const d=await sample(turns,{modelTier:'default',cache:false,web,files:AP.files,links:AP.links});
     if(!tech||(d.panel&&['high','medium','low'].includes(d.panel.agreement))) return d;
     UI.askStage='Checking the answer for accuracy…'; renderDrawer(); window.NX_AI_KIND='review';
     try{ const c=await sample([{role:'user',content:askReviewPrompt(q,d)}],{modelTier:'default',cache:false,web:false});
@@ -2954,7 +3153,7 @@ NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask 
     return d; });
   UI.askStage='';
   if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web,checked:!!r.checked,...(r.panel?{panel:r.panel}:{})}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
-  else { UI.chat.pop(); askSave(); renderDrawer(); const i2=$('#askInp'); if(i2&&!i2.value) i2.value=q; }
+  else { const back=UI.chat.pop(); askSave(); if(back?.att?.length) UI.askAtt=back.att.map(a=>({...a,id:uid(),st:'ok'})); renderDrawer(); const i2=$('#askInp'); if(i2&&!i2.value&&!back?.auto) i2.value=q; }
 }
 /* ===================== HOME ===================== */
 const WORK = [
@@ -8095,10 +8294,10 @@ document.addEventListener('click', async e=>{
     case 'addDoc': go('records'); UI.rfolder='legal'; recOpenForm({}, {folder:'legal'}); break;
     case 'saveCompany': { const v=readForm(CO_FIELDS,$('#view')); if(!v) return; try{ await db.doc('settings/company').set({...company(),...v,updated_at:new Date().toISOString(),updated_by:me.name||''}); logAct('Updated company profile'); toast('Company profile saved.'); }catch(err){ handleErr(err); } } break;
     case 'saveForm': { const v=readForm(drawer.fields); if(!v) return; el.disabled=true; const ok=await drawer.onSave(v); el.disabled=false; if(ok!==false){ closeDrawer(); toast('Saved.'); } } break;
-    case 'askSend': askSend(); break;
-    case 'askNew': UI.chat=[]; UI.askId=null; UI.askAnim=null; UI.askHist=false; askSave(); renderDrawer(); setTimeout(()=>$('#askInp')?.focus(),50); break;
+    case 'askSend': askSend(); break; case 'askAttMenu': askAttMenu(); break;
+    case 'askNew': UI.chat=[]; UI.askAtt=[]; UI.askId=null; UI.askAnim=null; UI.askHist=false; askSave(); renderDrawer(); setTimeout(()=>$('#askInp')?.focus(),50); break;
     case 'askWebT': UI.askWeb=UI.askWeb===false; renderDrawer(); break;
-    case 'askRetry': { if(UI.busy.ask) break; const last=UI.chat.length-1; if(last<1||UI.chat[last].role!=='assistant') break; const q=UI.chat[last-1].content; UI.chat.splice(last-1,2); askSend(q); } break;
+    case 'askRetry': { if(UI.busy.ask) break; const last=UI.chat.length-1; if(last<1||UI.chat[last].role!=='assistant') break; const q=UI.chat[last-1].content, ra=UI.chat[last-1].att; UI.chat.splice(last-1,2); askSend(q,ra); } break;
     case 'saveChecklist': if(T){ const cl={}; BID_CHECK.forEach(([k])=>{ cl[k]=!!document.getElementById('ck_'+k)?.checked; }); await patch('tenders',T.id,{checklist:cl}); const s=checklistState({checklist:cl}); logAct(`Bid checklist for "${T.title}": ${s.done}/${s.total}`); toast(`Checklist saved: ${s.done} of ${s.total} done.`); } break;
     case 'saveOutcome': if(T){ const v=readForm(OUTCOME_FIELDS.map(f=>({...f,k:'o_'+f.k}))); if(!v) return; const up={}; OUTCOME_FIELDS.forEach(f=>{ up[f.k]=v['o_'+f.k]; }); await patch('tenders',T.id,up); logAct(`Recorded bid result for "${T.title}"`); toast('Result saved.'); } break;
     case 'addCert': if(!certOk()) break; formDrawer('New payment certificate',certFields(null),{status:'Submitted',submitted:today(),terms:28},async v=>{ await put('certificates',null,v); logAct(`Recorded ${v.no} for ${projName(v.project_id)} – ${tzs(v.amount)}`); },{sub:'Payment certificates',saveLabel:'Save certificate'}); break;
