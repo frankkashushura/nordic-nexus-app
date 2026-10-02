@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=156"></script>
+<script src="config.js?v=157"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=156"></script>
-<script src="nexus-chat.js?v=156"></script>
+<script src="nexus-sb.js?v=157"></script>
+<script src="nexus-chat.js?v=157"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -905,7 +905,7 @@ function toast(msg){ let t=$('#toast'); if(!t){ t=document.createElement('div');
 function confirmBox(msg, okLabel='Confirm', danger=false){
   return new Promise(res=>{
     const w=document.createElement('div'); w.className='confirm';
-    w.innerHTML=`<div class="card" role="dialog" aria-modal="true"><p>${esc(msg)}</p><div class="toolbar"><div class="sp"></div><button class="btn" data-x="0">Cancel</button><button class="btn ${danger?'danger':'pri'}" data-x="1">${esc(okLabel)}</button></div></div>`;
+    w.innerHTML=`<div class="card" role="dialog" aria-modal="true"><p style="white-space:pre-line">${esc(msg)}</p><div class="toolbar"><div class="sp"></div><button class="btn" data-x="0">Cancel</button><button class="btn ${danger?'danger':'pri'}" data-x="1">${esc(okLabel)}</button></div></div>`;
     w.addEventListener('click',e=>{ const b=e.target.closest('[data-x]'); if(b||e.target===w){ w.remove(); res(b?.dataset.x==='1'); } });
     document.body.append(w); w.querySelector('[data-x="1"]').focus();
   });
@@ -1447,7 +1447,7 @@ function pageProjects(){
       <div class="small muted">${reps.length} site reports${last?' · last '+fmtD(last.date):''}${money()&&p.budget?` · spent ${tzsShort(spent)} of ${tzsShort(p.budget)}`:''}</div>
     </div></div>`}).join('')||'<div class="empty card">No projects yet.</div>'}</div>
   ${isAdmin&&(S.projectsAll||[]).some(p=>p.deleted)?(()=>{const rm=S.projectsAll.filter(p=>p.deleted);return `<div class="toolbar"><button class="btn sm" data-act="showRemovedProj">${UI.showRemovedProj?'Hide':'Show'} removed projects (${rm.length})</button></div>
-  ${UI.showRemovedProj?`<div class="card"><div class="list">${rm.map(p=>{const l=projLinks(p.id);return `<div class="li"><div class="grow"><div class="ttl2">${esc(p.name)}</div><div class="sub">Removed by ${esc(p.deleted_by||'')} · ${fmtD(p.deleted_at)} · ${l.length?l.map(([a,n])=>n+' '+a).join(', '):'no linked records'}</div></div><button class="btn sm" data-restoreproj="${esc(p.id)}">Restore</button>${l.length?'':`<button class="btn sm danger" data-purgeproj="${esc(p.id)}">Delete permanently</button>`}</div>`}).join('')}</div></div>`:''}`})():''}`;
+  ${UI.showRemovedProj?`<div class="card"><div class="list">${rm.map(p=>{const l=projLinks(p.id);return `<div class="li"><div class="grow"><div class="ttl2">${esc(p.name)}</div><div class="sub">Removed by ${esc(p.deleted_by||'')} · ${fmtD(p.deleted_at)} · ${l.length?l.map(([a,n])=>n+' '+a).join(', '):'no linked records'}</div></div><button class="btn sm" data-restoreproj="${esc(p.id)}">Restore</button><button class="btn sm danger" data-purgeproj="${esc(p.id)}">Delete permanently</button></div>`}).join('')}</div></div>`:''}`})():''}`;
 }
 function projectDrawer(p){
   const reps=S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -8586,7 +8586,14 @@ document.addEventListener('click', async e=>{
   if(el.dataset.photos){ UI.photos=el.dataset.photos; applyPhotos(); renderView(true); return; }
   if(el.dataset.boq){ go('qs',el.dataset.boq); return; }
   if(el.dataset.restoreproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.restoreproj); if(!p) return; await patch('projects',p.id,{deleted:false,restored_by:me.name||'',restored_at:new Date().toISOString()}); logAct(`Restored project ${p.name}`); toast(`Project "${p.name}" restored.`); return; }
-  if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p||projLinks(p.id).length) return; if(await confirmBox(`Delete project "${p.name}" permanently? It has no linked records. This cannot be undone.`,'Delete permanently',true)){ await remove('projects',p.id); logAct(`Permanently deleted project ${p.name}`); toast('Project deleted.'); } return; }
+  if(el.dataset.purgeproj&&isAdmin){ const p=(S.projectsAll||[]).find(x=>x.id===el.dataset.purgeproj); if(!p) return; const L=projLinks(p.id);
+    const DEL=['milestones','risks','snags','tasks'], dl=PROJ_LINKS.filter(([c])=>DEL.includes(c)).map(([c,l])=>[c,l,(S[c]||[]).filter(x=>x.project_id===p.id)]).filter(x=>x[2].length), kl=PROJ_LINKS.filter(([c])=>!DEL.includes(c)).map(([c,l])=>[c,l,(S[c]||[]).filter(x=>x.project_id===p.id)]).filter(x=>x[2].length);
+    const msg=`Delete project "${p.name}" permanently? This cannot be undone.`+(dl.length?`\n\nAlso deleted (planning items of this project): ${dl.map(([,l,a])=>a.length+' '+l).join(', ')}.`:'')+(kl.length?`\n\nKept for the company records but no longer linked to a project: ${kl.map(([,l,a])=>a.length+' '+l).join(', ')} (marked "deleted project: ${p.name}").`:'');
+    if(!await confirmBox(msg,'Delete permanently',true)) return;
+    toast('Deleting…'); let n=0;
+    for(const [c,,a] of dl) for(const x of a){ if(await remove(c,x.id)) n++; }
+    for(const [c,,a] of kl) for(const x of a) await patch(c,x.id,{project_id:'',former_project:p.name,former_project_id:p.id});
+    if(await remove('projects',p.id)){ logAct(`Permanently deleted project ${p.name}${n?` (+${n} planning items)`:''}`); toast('Project deleted permanently.'); } return; }
   if(el.dataset.mkroom){ const p=MEET_PLAT.find(x=>x.k===el.dataset.mkroom), root=$('#overlay'), L=root.querySelector('#f_link'), P=root.querySelector('#f_platform'), M=root.querySelector('#f_mode'); if(!p) return;
     if(P) P.value=p.n; if(M&&M.value==='In person') M.value='Online';
     if(p.make==='jitsi'){ const t=(root.querySelector('#f_title')?.value||'Meeting').replace(/[^A-Za-z0-9]+/g,'').slice(0,30)||'Meeting'; const r=Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); if(L) L.value=`https://meet.jit.si/NordicNexus-${t}-${r}`; toast('Free video room link created – it is saved with the meeting.'); }
