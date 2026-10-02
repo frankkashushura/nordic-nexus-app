@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=151"></script>
+<script src="config.js?v=152"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=151"></script>
-<script src="nexus-chat.js?v=151"></script>
+<script src="nexus-sb.js?v=152"></script>
+<script src="nexus-chat.js?v=152"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -463,6 +463,8 @@ ul.clean li{margin:3px 0}
 .nxfp-i{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer}.nxfp-i:hover{background:var(--panel2)}.nxfp-i.on{border-color:var(--accent);background:var(--accent-soft)}
 .nxfp-i img,.nxfp-ic{width:40px;height:40px;object-fit:cover;border-radius:8px;flex:none;display:grid;place-items:center;font-size:20px;background:var(--panel2)}.nxfp-i .grow{display:flex;flex-direction:column;min-width:0}.nxfp-i .ttl2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nxfp-f{display:flex;align-items:center;gap:8px}
+.bq-run{margin-top:10px;padding:8px 12px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent);font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bq-sug{margin-top:6px;padding:6px 8px;border-radius:9px;border:1px dashed var(--line);text-align:right}.bq-sug.ai{border-color:color-mix(in srgb,var(--accent) 60%,transparent)}.bq-sug.web{border-color:color-mix(in srgb,#3b82f6 55%,transparent)}.bq-sug .btn{margin-top:3px}.bq-src summary{cursor:pointer;list-style:none}.bq-src summary::-webkit-details-marker{display:none}
 .pf-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}.pf-head .sp{flex:1}.pf-stats{display:flex;gap:22px}.pf-stats div{display:flex;flex-direction:column}.pf-stats b{font-size:20px;font-family:var(--fh,inherit)}.pf-stats span{font-size:12px;color:var(--muted)}
 .pf-drop{border:2px dashed var(--line);border-radius:14px;padding:14px;text-align:center;color:var(--muted);margin-bottom:12px;transition:border-color .15s,background .15s}.pf-drop.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}.pf-drop span{font-size:18px}
 .pf-cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:thin}.pf-cat{all:unset;cursor:pointer;white-space:nowrap;font-size:13px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}.pf-cat span{color:var(--muted);margin-left:3px;font-size:12px}.pf-cat.zero{opacity:.55}.pf-cat.on{background:var(--accent);border-color:var(--accent);color:#1b1b1b;font-weight:700;opacity:1}.pf-cat.on span{color:inherit}
@@ -1937,7 +1939,8 @@ function bqStats(b){ const s={n:0,priced:0,lib:0,ai:0,man:0,other:0,old:0,noqty:
 function bqSrcChip(it){
   if(it.rate===''||it.rate==null) return '<span class="chip bad">Unpriced</span>';
   const p=it.p||{};
-  if(p.s==='lib') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Library: '+(p.src||'')+(p.date?' · '+p.date:' · no price date')+(p.reg?' · '+p.reg:''))}">Library${p.old?' · old':''}</span>`;
+  if(p.s==='lib') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Library: '+(p.src||'')+(p.date?' · '+p.date:' · no price date')+(p.reg?' · '+p.reg:'')+(p.ai?' · matched by AI: '+(p.why||'')+(p.factor&&p.factor!==1?' (× '+p.factor+')':''):''))}">Library${p.ai?' · AI':''}${p.old?' · old':''}</span>`;
+  if(p.s==='web') return `<span class="chip amb" title="${esc('Market range from web '+rtFmt(p.low)+' – '+rtFmt(p.high)+' ('+(p.n||0)+' sources, '+(p.at||'')+'): '+(p.basis||''))}">Market (web)</span>`;
   if(p.s==='ai') return `<span class="chip amb" title="${esc('AI estimate – check. Basis: '+(p.basis||''))}">AI estimate</span>`;
   if(p.s==='man') return `<span class="chip blue" title="${esc('Rate entered by '+(p.by||'QS')+(p.at?' on '+p.at:''))}">QS rate</span>`;
   if(p.s==='file') return `<span class="chip blue" title="${esc('Rate from the imported file '+(p.src||'')+(p.at?' · '+p.at:''))}">From file</span>`;
@@ -1947,6 +1950,63 @@ function bqSrcChip(it){
 function bqLibP(m){ return {s:'lib',id:m.id,src:m.source||'',date:m.price_date||'',reg:m.region||'General',old:rtCheck(m)}; }
 
 /* ---------- QS pricing view (BoQ editor → "Price (QS)") ---------- */
+/* ---------- v152 · AI RATE MATCHING (library rates worded differently) + MARKET RATE RANGES FROM THE WEB (Tanzania) ---------- */
+const BQ_SYN=[[/\b(blockwork|blocks?|block ?walls?|walling|masonry|sandcrete)\b/g,' blockwork '],[/\b(rebars?|reinforcement|reinforcing|high ?yield|mild ?steel ?bars?|y\d{1,2}|r\d{1,2}|bars?)\b/g,' rebar '],[/\b(formwork|shuttering|form ?work|soffits?)\b/g,' formwork '],[/\b(excavat\w*|dig\w*|trench\w*)\b/g,' excavate '],[/\b(hardcore|hard ?core|filling|murram|backfill\w*|fill)\b/g,' fill '],[/\b(screed\w*|topping)\b/g,' screed '],[/\b(plaster\w*|render\w*|skim\w*)\b/g,' plaster '],[/\b(emulsion|paint\w*|coats?|undercoat|gloss)\b/g,' paint '],[/\b(gypsum|ceiling ?boards?|plasterboard|celotex|ceilings?)\b/g,' ceiling '],[/\b(dpc|damp ?proof ?course)\b/g,' dpc '],[/\b(dpm|polythene|visqueen|damp ?proof ?membrane)\b/g,' dpm '],[/\b(concrete|conc|grade|c\d\d|mix)\b/g,' concrete '],[/\b(tiles?|tiling|terrazzo|porcelain|ceramic)\b/g,' tile '],[/\b(roof\w*|iron ?sheets?|mabati|corrugated|igs)\b/g,' roof '],[/\b(timber|wood\w*|cypress|hardwood|softwood|mbao)\b/g,' timber '],[/\b(doors?|doorsets?)\b/g,' door '],[/\b(windows?|casements?|glazing)\b/g,' window '],[/\b(nine ?inch|9 ?inch|9")\b/g,' 230 '],[/\b(six ?inch|6 ?inch|6")\b/g,' 150 '],[/\b(four ?inch|4 ?inch|4")\b/g,' 100 ']];
+const bqNorm=s=>{ let t=' '+String(s||'').toLowerCase().replace(/(\d)\s*mm\b/g,'$1 ')+' '; BQ_SYN.forEach(([r,v])=>{ t=t.replace(r,v); }); return new Set((t.match(/[a-z]{3,}|\d+(?:\.\d+)?/g)||[]).filter(w=>!/^(the|and|with|for|including|all|supply|fix|fixing|provide|complete|approved|specified|per)$/.test(w))); };
+const BQ_LUMP=/^(sum|ls|l\.s\.?|item|ps|p\.s\.?|prov\w*)$/i;
+function bqCands(it,reg){ const a=bqNorm(it.desc), u=rtWords(it.unit);
+  return (S.rates||[]).map(rtN).filter(r=>r.kind==='item'&&+r.rate>0).map(r=>{ const b=bqNorm(r.desc); let n=0; a.forEach(x=>b.has(x)&&n++); let sc=n/Math.max(1,Math.min(a.size,b.size)); if(rtWords(r.unit)===u) sc+=.25; if(r.region===reg) sc+=.08; return [sc,r]; })
+    .filter(x=>x[0]>.18).sort((x,y)=>y[0]-x[0]).slice(0,12).map(x=>x[1]); }
+const bqUnpricedList=b=>{ const L=[]; (b.bills||[]).forEach((bl,bi)=>(bl.items||[]).forEach((it,ii)=>{ if(!(it.desc||'').trim()||(it.rate!==''&&it.rate!=null)||!it.unit||BQ_LUMP.test(String(it.unit).trim())) return; L.push({bi,ii,it,bill:bl.name||''}); })); return L; };
+async function bqAIMatch(){ const b=curBoq(); if(!b||UI.bqRun) return; const reg=rtBoqRegion(b); const todo=bqUnpricedList(b).map(x=>({...x,c:bqCands(x.it,reg)})).filter(x=>x.c.length);
+  if(!todo.length) return toast(bqUnpricedList(b).length?'No library rate is even close to the unpriced items – try “Market rates (web)”.':'There are no unpriced items to match.');
+  UI.bqRun={k:'ai',n:todo.length,done:0,found:0}; renderView(true);
+  try{ for(let s=0;s<todo.length;s+=8){ const grp=todo.slice(s,s+8);
+      const lst=grp.map((x,i)=>`#${i} ${x.it.desc} [unit: ${x.it.unit}] (bill: ${x.bill})\n${x.c.map((r,k)=>`   c${k+1}: ${r.desc} | ${r.unit} | ${Math.round(r.rate)} TZS | ${r.region} ${r.price_date||'no date'}`).join('\n')}`).join('\n');
+      window.NX_AI_KIND='ask';
+      const res=await sample.json(`You are a senior Tanzanian quantity surveyor pricing a Bill of Quantities from Nordic Construction's own Rate library. For each BoQ item, pick the ONE candidate library rate that describes the SAME work, even when it is worded differently (examples: "230 mm sandcrete block walling" = "nine inch blockwork"; "Y12 reinforcement" = "high yield steel bars 12 mm diameter"; "hardcore filling" = "approved hardcore well compacted").
+The work must match: material, size or thickness, grade or mix, finish and method. If a candidate is the same work but measured in a different unit that converts simply (e.g. concrete per m3 against a 150 mm slab per m2 → factor 0.15; per tonne against per kg → 0.001), give "factor" so that library rate × factor = rate per the BoQ unit, and say so in "why". Never pick a different kind of work just because words overlap – return "id": null when none is the same work.
+Reply with JSON only: {"matches":[{"i":0,"id":"c1 or null","factor":1,"conf":"high | medium | low","why":"short reason"}]}
+ITEMS AND THEIR CANDIDATES:
+${lst}`,{max_tokens:3000});
+      (res?.matches||[]).forEach(m=>{ const x=grp[+m?.i]; if(!x) return; const k=/^c(\d+)$/i.exec(String(m.id||'')); const r=k?x.c[+k[1]-1]:null; let f=+m.factor||1; if(!(f>0.0005&&f<1000)) f=1;
+        if(r){ x.it.aim={id:r.id,rate:Math.round(+r.rate*f),lib:String(r.desc).slice(0,160),lunit:r.unit,reg:r.region,date:r.price_date||'',old:rtCheck(r),factor:f,conf:['high','medium','low'].includes(m.conf)?m.conf:'low',why:String(m.why||'').slice(0,200),at:today()}; UI.bqRun.found++; }
+        else x.it.aim={none:true,why:String(m.why||'').slice(0,160),at:today()}; });
+      UI.bqRun.done=Math.min(todo.length,s+8); renderView(true); }
+    await patch('boqs',b.id,{bills:b.bills}); logAct(`AI matched ${UI.bqRun.found} of ${todo.length} unpriced BoQ items to library rates (${b.title||'BoQ'})`);
+    toast(UI.bqRun.found?`AI found library rates for ${UI.bqRun.found} of ${todo.length} items – check them and tap Use.`:'AI found no library rate that is the same work. Try “Market rates (web)”.'); }
+  catch(e){ toast(e?.code==='rate_limited'?'AI is busy – try again in a minute.':'AI matching stopped: '+(e?.message||e)); try{ await patch('boqs',b.id,{bills:b.bills}); }catch(_){} }
+  UI.bqRun=null; renderView(true); }
+async function bqMarket(only,fresh){ const b=curBoq(); if(!b||UI.bqRun) return; const reg=rtBoqRegion(b);
+  let list=only?[only]:bqUnpricedList(b).filter(x=>!(x.it.aim&&!x.it.aim.none)&&!(x.it.mkt&&!x.it.mkt.none));
+  if(!list.length) return toast('Every unpriced item already has a library match or a market range.');
+  if(!only&&list.length>5&&!(await confirmBox(`Search Tanzanian web sources for ${list.length} items? Each item uses about 3 of the 1,000 free web searches per month (repeat searches within 30 days are free).`,'Search the web'))) return;
+  UI.bqRun={k:'web',n:list.length,done:0,found:0}; renderView(true);
+  try{ for(let s=0;s<list.length;s+=5){ const grp=list.slice(s,s+5);
+      const r=await supAICall({mode:'rates',region:reg,...(fresh?{fresh:true}:{}),items:grp.map((x,i)=>({i,desc:x.it.desc,unit:x.it.unit}))});
+      if(r?.error&&!(r.items||[]).length) throw new Error(r.message||r.error);
+      (r.items||[]).forEach(m=>{ const x=grp[+m.i]; if(!x) return; x.it.mkt=m.none?{none:true,basis:m.basis||'',at:today()}:{low:m.low,high:m.high,typ:m.typical,unit:m.unit||x.it.unit,kind:m.kind,basis:m.basis,conf:m.conf,src:(m.sources||[]).slice(0,6),reg:m.region||reg,at:(m.cached_at||new Date().toISOString()).slice(0,10)}; if(!m.none) UI.bqRun.found++; });
+      UI.bqRun.done=Math.min(list.length,s+5); renderView(true); }
+    await patch('boqs',b.id,{bills:b.bills}); logAct(`Market rate search (web) for ${list.length} BoQ items – ${UI.bqRun.found} ranges found (${b.title||'BoQ'})`);
+    toast(UI.bqRun.found?`Market ranges found for ${UI.bqRun.found} of ${list.length} items – open the sources and choose a rate.`:'No usable Tanzanian prices were found on the web for these items.'); }
+  catch(e){ toast('Web search stopped: '+(e?.message||e)); try{ await patch('boqs',b.id,{bills:b.bills}); }catch(_){} }
+  UI.bqRun=null; renderView(true); }
+async function bqAIUse(bi,ii){ const b=curBoq(); const it=b?.bills?.[bi]?.items?.[ii]; if(!it?.aim||it.aim.none) return; const r=byId('rates',it.aim.id);
+  it.rate=it.aim.rate; it.p={...(r?bqLibP(rtN(r)):{s:'lib',id:it.aim.id,src:'',date:it.aim.date,reg:it.aim.reg,old:it.aim.old}),ai:true,why:it.aim.why,factor:it.aim.factor}; await patch('boqs',b.id,{bills:b.bills}); }
+async function bqAIUseAll(){ const b=curBoq(); if(!b) return; let n=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.aim&&!it.aim.none&&it.aim.conf==='high'){ const r=byId('rates',it.aim.id); it.rate=it.aim.rate; it.p={...(r?bqLibP(rtN(r)):{s:'lib',id:it.aim.id}),ai:true,why:it.aim.why,factor:it.aim.factor}; n++; } }));
+  if(!n) return toast('No unpriced item has a high-confidence AI match.'); await patch('boqs',b.id,{bills:b.bills}); logAct(`Used ${n} high-confidence AI library matches`); toast(`${n} rates filled from AI library matches.`); }
+async function bqMktUse(bi,ii,which){ const b=curBoq(); const it=b?.bills?.[bi]?.items?.[ii]; const m=it?.mkt; if(!m||m.none) return; const v=which==='low'?m.low:which==='high'?m.high:m.typ; if(!v) return;
+  it.rate=Math.round(v); it.p={s:'web',low:m.low,high:m.high,typ:m.typ,pick:which||'typical',basis:String(m.basis||'').slice(0,200),src:(m.src||[])[0]?.u||'',n:(m.src||[]).length,at:today()}; await patch('boqs',b.id,{bills:b.bills}); }
+function bqSugHtml(it,bi,ii){ let h=''; const a=it.aim, m=it.mkt, un=it.rate===''||it.rate==null;
+  if(a&&!a.none) h+=`<div class="bq-sug ai"><div><span class="chip ${a.conf==='high'?'good':a.conf==='medium'?'amb':'bad'}" style="font-size:10px">✨ AI match · ${esc(a.conf)}</span> <span class="num">${rtFmt(a.rate)}</span></div><div class="sub" style="font-size:11px" title="${esc(a.why||'')}">${esc(a.lib)}${a.factor&&a.factor!==1?` × ${a.factor}`:''} · ${esc(a.reg||'')} ${esc(a.date||'no date')}${a.old?' · old':''}</div>${canWrite&&Math.round(+a.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="aiuse" data-i="${bi}.${ii}">Use</button>`:''}</div>`;
+  else if(a?.none&&un) h+=`<div class="sub" style="font-size:11px" title="${esc(a.why||'')}">✨ AI: no same work in library</div>`;
+  if(m&&!m.none) h+=`<div class="bq-sug web"><div><span class="chip blue" style="font-size:10px">🌐 Market · ${esc(m.conf||'')}</span></div><div class="num" style="font-size:12.5px">${rtFmt(m.low)} – ${rtFmt(m.high)} <span class="sub">/${esc(m.unit||it.unit||'')}</span></div>
+    <details class="bq-src"><summary class="sub" style="font-size:11px">${(m.src||[]).length} source${(m.src||[]).length===1?'':'s'} · ${esc(m.kind||'')}</summary><div class="sub" style="font-size:11px">${esc(m.basis||'')}</div>${(m.src||[]).map(z=>`<a href="${esc(z.u)}" data-dhopen="${esc(z.u)}" data-dhname="${esc(z.t||'Source')}" class="sub" style="font-size:11px;display:block">${esc((z.t||z.u).slice(0,70))} ↗</a>`).join('')}</details>
+    ${canWrite?`<div class="toolbar" style="gap:3px;justify-content:flex-end"><button class="btn sm ghost" data-bx="mktuse" data-v="low" data-i="${bi}.${ii}" title="Use the low figure">Low</button><button class="btn sm" data-bx="mktuse" data-v="typ" data-i="${bi}.${ii}" title="Use the typical figure ${rtFmt(m.typ)}">Use ${rtFmt(m.typ)}</button><button class="btn sm ghost" data-bx="mktuse" data-v="high" data-i="${bi}.${ii}" title="Use the high figure">High</button></div>`:''}</div>`;
+  else if(m?.none&&un) h+=`<div class="sub" style="font-size:11px" title="${esc(m.basis||'')}">🌐 no Tanzanian price found${canWrite?` · <a href="#" data-bx="mktone" data-fresh="1" data-i="${bi}.${ii}">search again</a>`:''}</div>`;
+  if(un&&canWrite&&!m&&it.unit&&!BQ_LUMP.test(String(it.unit).trim())) h+=`<button class="btn sm ghost" data-bx="mktone" data-i="${bi}.${ii}" title="Search Tanzanian web sources for a price range">🌐 Market price</button>`;
+  return h; }
+
 function bqPriceView(b){
   const s=bqStats(b), f=UI.bqf||'all', reg=rtBoqRegion(b);
   const keep=it=>{ if(!(it.desc||'').trim()) return false; const un=it.rate===''||it.rate==null; if(f==='unpriced') return un; if(f==='ai') return it.p?.s==='ai'; if(f==='old') return it.p?.s==='lib'&&it.p.old; if(f==='man') return it.p?.s==='man'; return true; };
@@ -1954,12 +2014,14 @@ function bqPriceView(b){
   const head=`<div class="card"><div class="bd">
     <div class="toolbar small"><b>Priced ${s.priced} of ${s.n} items</b><span class="sub">· region ${esc(reg)}</span><div class="sp"></div><span class="num">${s.pct}%</span></div><div class="bar"><i style="width:${s.pct}%"></i></div>
     <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;gap:6px"><span class="chip good">Library ${s.lib}</span><span class="chip amb">AI estimate ${s.ai}</span><span class="chip blue">QS rate ${s.man}</span><span class="chip bad">Unpriced ${s.n-s.priced}</span>${s.noqty?`<span class="chip">${s.noqty} without quantity</span>`:''}</div>
-    <p class="sub" style="margin:8px 0 0">Type your current rate in <b>Your rate</b> – it is marked <b>QS rate</b>. <b>Library</b> shows the best matching library rate for this region (tap <b>Use</b> to take it). <b>AI estimate</b> rates were proposed from similar library rates and must be checked.</p></div></div>
+    <p class="sub" style="margin:8px 0 0">Type your current rate in <b>Your rate</b> – it is marked <b>QS rate</b>. <b>Library</b> shows the best matching library rate for this region (tap <b>Use</b> to take it). <b>✨ AI match</b> finds library rates for the same work written in different words. <b>🌐 Market</b> gives a price range from Tanzanian web sources – always open the sources and judge before using. <b>AI estimate</b> rates were proposed from similar library rates and must be checked.</p>
+    ${UI.bqRun?`<div class="bq-run"><span class="spin sm"></span> ${UI.bqRun.k==='ai'?'AI is comparing unpriced items with the Rate library':'Searching Tanzanian web sources for prices'}… ${UI.bqRun.done} of ${UI.bqRun.n} items${UI.bqRun.found?` · ${UI.bqRun.found} found`:''}</div>`:''}
+    ${(()=>{ let hi=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.aim&&!it.aim.none&&it.aim.conf==='high') hi++; })); return hi&&canWrite&&!UI.bqRun?`<div class="bq-run"><b>${hi}</b> unpriced item${hi===1?' has':'s have'} a high-confidence AI library match. <button class="btn sm pri" data-bx="aiuseall">Use all ${hi}</button></div>`:''; })()}</div></div>
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><div class="seg" style="flex-wrap:wrap">${segs.map(([k,l])=>`<button data-bx="filter" data-v="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${canWrite?`<button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
+    ${canWrite?`<button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="aimatch" ${UI.bqRun?'disabled':''} title="AI compares the unpriced items with the Rate library and finds rates for the same work written differently">✨ AI match from library</button><button class="btn" data-bx="web" ${UI.bqRun?'disabled':''} title="Price ranges for the remaining unpriced items from Tanzanian web sources">🌐 Market rates (web)</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
   const bills=(b.bills||[]).map((bl,bi)=>{ const rows=(bl.items||[]).map((it,ii)=>({it,ii})).filter(x=>keep(x.it)); if(!rows.length) return '';
-    return `<div class="card"><div class="hd"><span class="label mono">Bill ${bi+1}</span><h2 style="font-size:16px">${esc(bl.name||'')}</h2><div class="sp"></div><span class="num">${tzs(boqTotals(b).bills[bi].total)}</span></div><div class="tbl-wrap"><table><thead><tr><th style="width:52px">Item</th><th>Description</th><th style="width:56px">Unit</th><th class="r" style="width:80px">Qty</th><th class="r" style="width:150px">Library</th><th class="r" style="width:130px">Your rate</th><th class="r" style="width:130px">Amount</th><th style="width:96px">Source</th></tr></thead><tbody>
-      ${rows.map(({it,ii})=>{ const m=matchRate(it.desc,it.unit,reg); const sug=m?`<span class="num">${rtFmt(m.rate)}</span>${rtCheck(m)?' <span class="chip amb" style="font-size:10px">old</span>':''}<div class="sub" style="font-size:11px">${esc((m.region||'')+' · '+(m.price_date||'no date'))}</div>${canWrite&&Math.round(+m.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="use" data-i="${bi}.${ii}" style="margin-top:3px">Use</button>`:''}`:'<span class="sub">no match</span>';
+    return `<div class="card"><div class="hd"><span class="label mono">Bill ${bi+1}</span><h2 style="font-size:16px">${esc(bl.name||'')}</h2><div class="sp"></div><span class="num">${tzs(boqTotals(b).bills[bi].total)}</span></div><div class="tbl-wrap"><table><thead><tr><th style="width:52px">Item</th><th>Description</th><th style="width:56px">Unit</th><th class="r" style="width:80px">Qty</th><th class="r" style="width:230px">Library / AI / market</th><th class="r" style="width:130px">Your rate</th><th class="r" style="width:130px">Amount</th><th style="width:96px">Source</th></tr></thead><tbody>
+      ${rows.map(({it,ii})=>{ const m=matchRate(it.desc,it.unit,reg); const sug0=m?`<span class="num">${rtFmt(m.rate)}</span>${rtCheck(m)?' <span class="chip amb" style="font-size:10px">old</span>':''}<div class="sub" style="font-size:11px">${esc((m.region||'')+' · '+(m.price_date||'no date'))}</div>${canWrite&&Math.round(+m.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="use" data-i="${bi}.${ii}" style="margin-top:3px">Use</button>`:''}`:'<span class="sub">no match</span>', sug=sug0+bqSugHtml(it,bi,ii);
         return `<tr><td class="mono small">${esc(it.ref||'')}</td><td class="small" style="max-width:520px">${esc(it.desc||'')}${it.p?.s==='ai'&&it.p.basis?`<div class="sub" style="font-size:11px">AI basis: ${esc(it.p.basis)}</div>`:''}</td><td>${esc(it.unit||'')}</td><td class="r num">${it.qty===''||it.qty==null?'<span class="sub">—</span>':(+it.qty).toLocaleString('en-US')}</td><td class="r">${sug}</td>
           <td><input class="inp num" style="text-align:right" type="number" step="any" data-it="${bi}.${ii}.rate" value="${esc(it.rate??'')}" aria-label="Rate" ${canWrite?'':'disabled'}></td><td class="r num" id="amt_${bi}_${ii}">${tzs((+it.qty||0)*(+it.rate||0)).replace('TZS ','')}</td><td id="src_${bi}_${ii}">${bqSrcChip(it)}</td></tr>`; }).join('')}
     </tbody></table></div></div>`; }).join('');
@@ -2171,6 +2233,10 @@ document.addEventListener('click', async e=>{ const el=e.target.closest('[data-b
   if(a==='filter'){ UI.bqf=el.dataset.v; renderView(true); return; }
   if(a==='use'){ const [bi,ii]=el.dataset.i.split('.').map(Number); await bqUse(bi,ii); return; }
   if(a==='filllib'){ await bqFillLib(); return; }
+  if(a==='aimatch'){ await bqAIMatch(); return; }
+  if(a==='web'){ await bqMarket(); return; }
+  if(a==='aiuseall'){ await bqAIUseAll(); return; }
+  if(a==='aiuse'||a==='mktuse'||a==='mktone'){ const [bi,ii]=el.dataset.i.split('.').map(Number); if(a==='aiuse') await bqAIUse(bi,ii); else if(a==='mktuse') await bqMktUse(bi,ii,el.dataset.v); else { const b=curBoq(), it=b?.bills?.[bi]?.items?.[ii]; if(it) await bqMarket({bi,ii,it,bill:b.bills[bi].name||''},!!el.dataset.fresh); } return; }
   if(a==='savelib'){ await bqSaveLib(); return; }
   if(a==='bgstart'){ await bgRun(); return; }
   if(a==='imp'){ bgOpen('','import'); return; }
