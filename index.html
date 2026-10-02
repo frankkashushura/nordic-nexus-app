@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=147"></script>
+<script src="config.js?v=148"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=147"></script>
-<script src="nexus-chat.js?v=147"></script>
+<script src="nexus-sb.js?v=148"></script>
+<script src="nexus-chat.js?v=148"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1028,8 +1028,8 @@ async function ai(kind, fn){
   if(kind==='fin' && !(isAdmin||isFin)){ toast('The risk & loss check is for administrators and Finance users.'); return null; }
   window.NX_AI_KIND=kind;
   if(!sample){ toast('AI is not available in this view.'); return null; }
-  UI.busy[kind]=true; renderAll();
-  try{ return await fn(); }
+  UI.busy[kind]=true; renderAll(); window.NX_AI_PANEL=null;
+  try{ const res=await fn(); const p=window.NX_AI_PANEL; if(p&&p.agreement==='low') toast('⚠ The AIs disagreed on this – read the differences before deciding.'); return res; }
   catch(e){
     if(e?.code==='not_granted') toast('AI needs your permission. Allow it when asked, then try again.');
     else if(e?.code==='rate_limited') toast('AI is busy. Wait a minute and try again.');
@@ -1039,6 +1039,14 @@ async function ai(kind, fn){
   } finally { UI.busy[kind]=false; renderAll(); }
 }
 const spin = k => UI.busy[k] ? '<span class="spin" aria-hidden="true"></span>' : '';
+/* v148 · AI panel badge: two AIs answer separately, a third checks both and writes the final answer */
+function aiPanelBadge(p){ if(!p||!p.agreement) return ''; const n=(p.models||[]).length;
+  const nm=m=>String(m||'').replace(/^(groq|gemini):/,'').replace(/^openai\//,'').replace(/^moonshotai\//,'').replace(/^meta-llama\//,'').replace(/-versatile|-instruct|-latest/g,'');
+  const t={high:['good','🤝 '+n+' AIs agree · high confidence'],medium:['amb','🤝 AIs mostly agree · medium confidence'],low:['bad','⚠ AIs disagree – check before deciding'],single:['','1 AI (others busy)'],unchecked:['',n>1?'2 AIs · not cross-checked':'1 AI · too long to cross-check']}[p.agreement]||['',''];
+  const tip=(p.models||[]).map(nm).join(' + ')+(p.note?' – '+p.note:'');
+  const d=(p.differences||[]).filter(Boolean);
+  return `<span class="aip"><span class="chip ${t[0]}" title="${esc(tip)}">${t[1]}</span>${d.length?`<details class="aip-d"><summary>${d.length} point${d.length===1?'':'s'} the AIs saw differently</summary><ul class="clean small">${d.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}</span>`; }
+(()=>{ const st=document.createElement('style'); st.textContent='.aip{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.aip .chip{font-size:11.5px;cursor:help}.aip-d{font-size:12.5px;width:100%}.aip-d summary{cursor:pointer;color:var(--muted,#888)}.aip-d ul{margin:4px 0 0}'; document.head.appendChild(st); })();
 
 /* ===================== DASHBOARD ===================== */
 function pageDash(){
@@ -1063,7 +1071,7 @@ function pageDash(){
     <h2>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h2>
     <p class="muted">${closing.length} tender${closing.length===1?'':'s'} close within 7 days, ${alerts.length} alert${alerts.length===1?'':'s'} need attention, ${active.length} project${active.length===1?' is':'s are'} on site.</p>
     <div class="toolbar"><button class="btn pri" data-act="brief">${spin('brief')}Generate AI briefing</button><button class="btn" data-go="tenders">Open Tender Radar</button><button class="btn" data-act="newReport">New site report</button></div>
-    ${UI.briefing?`<div class="card" style="background:var(--panel);color:var(--ink);padding:14px 16px"><div class="toolbar" style="margin-bottom:6px"><span class="ai-tag">AI BRIEFING</span><span class="sub">${esc(UI.briefingAt||'')}</span></div><div class="prose">${esc(UI.briefing)}</div></div>`:''}
+    ${UI.briefing?`<div class="card" style="background:var(--panel);color:var(--ink);padding:14px 16px"><div class="toolbar" style="margin-bottom:6px"><span class="ai-tag">AI BRIEFING</span><span class="sub">${esc(UI.briefingAt||'')}</span>${aiPanelBadge(UI.briefingPanel)}</div><div class="prose">${esc(UI.briefing)}</div></div>`:''}
   </section>
   <div class="grid g4">
     <div class="card kpi blu"><span class="label">Live tenders</span><span class="v num">${open.length}</span><span class="s">${open.filter(t=>t.screen==='Pursue').length} Pursue · ${open.filter(t=>t.screen==='Check').length} Check · <span class="chip ${syncHealth().cls}">${syncHealth().label}</span></span></div>
@@ -1160,7 +1168,7 @@ async function runBriefing(){
     projects:S.projects.map(p=>({name:p.name,status:p.status,progress:p.progress})), reports_last_7d:S.reports.filter(r=>daysLeft(r.date)>-7).map(r=>({project:projName(r.project_id),issues:r.issues,hse:r.hse})),
     pending_procurement:S.procurement.filter(p=>p.status==='Requested').map(p=>p.item)};
   const r = await ai('brief', ()=>sample(`You are NORDIC NEXUS, the operations assistant of a Tanzanian contractor.\n${companyContext()}\n\nWrite a short morning briefing for the management team (max 180 words, plain text, no markdown headings). Order: 1) tender decisions needed today with deadlines, 2) site and HSE issues, 3) approvals waiting, 4) one practical recommendation. Use dates as written. Do not invent figures.\n\nDATA:\n${JSON.stringify(data)}`, {modelTier:'default'}));
-  if(r){ UI.briefing=r.text; UI.briefingAt='Generated '+fmtDT(new Date()); renderAll(); }
+  if(r){ UI.briefing=r.text; UI.briefingPanel=r.panel||null; UI.briefingAt='Generated '+fmtDT(new Date()); renderAll(); }
 }
 
 /* ===================== TENDERS ===================== */
@@ -1300,14 +1308,14 @@ function aiAdviceHtml(t){
     ${(a.gates||[]).length?`<div class="tbl-wrap"><table><tbody>${a.gates.map(g=>`<tr><td>${esc(g.gate)}</td><td><span class="chip ${g.status==='Pass'?'good':g.status==='Fail'?'bad':'amb'}">${esc(g.status)}</span></td><td class="small">${esc(g.note||'')}</td></tr>`).join('')}</tbody></table></div>`:''}
     <div class="grid g2"><div><div class="label">Strengths</div>${li(a.strengths)}</div><div><div class="label">Risks</div>${li(a.risks)}</div>
     <div><div class="label">Verify in the tender document</div>${li(a.verify)}</div><div><div class="label">Next steps</div>${li(a.next_steps)}</div></div>
-    <p class="sub">Advice by NEXUS AI, ${fmtDT(a.at)}${a.by?' for '+esc(a.by):''}. A first view only: the decision is the MD's.</p></div>`;
+    ${aiPanelBadge(a._ai)}<p class="sub">Advice by NEXUS AI, ${fmtDT(a.at)}${a.by?' for '+esc(a.by):''}. A first view only: the decision is the MD's.</p></div>`;
 }
 async function aiTender(t){
   const facts={no:t.no,title:t.title,client:t.client,client_type:t.client_type,location:t.location,category:t.category,notice:t.notice,advertised:t.advertised,deadline:t.deadline,days_left:+(daysLeft(t.deadline)||0).toFixed(1),scope:t.scope,crb_required:t.crb,est_value:t.value,bid_security:t.bid_security,screen:t.screen,screen_reason:t.reason,notes:t.notes};
   const prompt=`You are the bid/no-bid adviser for a Tanzanian contractor.\n${companyContext()}\n\nF-02 method: gates G1 CRB class & category within Nordic's classes, G2 turnover/experience, G3 bid security & performance guarantee within bank limits, G4 deadline achievable. Then 12 criteria scored 0-5 with weights: ${F02.map((c,i)=>`${i+1}. ${c[0]} (${c[1]})`).join('; ')}. Weighted score = sum(weight*score)/5. Bid if >=70, Conditional (MD) if >=50, else No-Bid.\nPublic notices do not show CRB class, value or bid security: mark such gates TBC and list them under verify. Distances: Dar/Coast near; Morogoro, Dodoma, Tanga mid; far regions add logistics cost. Be realistic and specific to this tender. Never invent values.\n\nTENDER:\n${JSON.stringify(facts)}\n\nReply with only JSON: {"verdict":"Bid"|"Conditional (MD)"|"No-Bid","confidence":0-100,"score_estimate":number,"scores":[12 integers 0-5],"gates":[{"gate":"G1 CRB class","status":"Pass"|"Fail"|"TBC","note":"..."},...4],"summary":"2-3 sentences","strengths":["..."],"risks":["..."],"verify":["..."],"next_steps":["..."]}`;
   const r=await ai('tender',()=>sample.json(prompt,{modelTier:'default'}));
   if(!r||!r.verdict) return;
-  const adv={...r, at:new Date().toISOString(), by:me.name||''};
+  const adv={...r, at:new Date().toISOString(), by:me.name||'', ...(window.NX_AI_PANEL?{_ai:window.NX_AI_PANEL}:{})};
   t.ai=adv; await patch('tenders',t.id,{ai:adv}); logAct(`AI advice on "${t.title}": ${r.verdict}`);
   const box=$('#aiBox'); if(box) box.innerHTML=aiAdviceHtml(t);
 }
@@ -1507,13 +1515,13 @@ document.addEventListener('change',e=>{ if(drawer?.type!=='report-form') return;
 /* after submitting: management summary + risk flags written by AI in the background (the report is already saved) */
 async function rpAutoSummary(id){ try{ if(!sample) return; const r=byId('reports',id)||{}; if(!r.work_done||r.ai_summary) return;
   const out=await sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Plain text.\nProject: ${projName(r.project_id)}\n${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,labour:r.labour,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,instructions:r.instructions,visitors:r.visitors,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'});
-  if(out?.text) await patch('reports',id,{ai_summary:out.text}); }catch(e){ console.warn('auto summary skipped',e); } }
+  if(out?.text) await patch('reports',id,{ai_summary:out.text,...(out.panel?{ai_panel:out.panel}:{})}); }catch(e){ console.warn('auto summary skipped',e); } }
 
 function reportDrawer(r){
   const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers',r.workforce!=null&&r.workforce!==''?r.workforce+(rpLabTxt(r)?' ('+rpLabTxt(r)+')':''):''],['Work done',r.work_done],['Materials received',r.materials],['Plant',r.plant],['Issues / delays',r.issues],['Instructions received',r.instructions],['Visitors',r.visitors],['HSE',r.hse],['Next day',r.next_day]].filter(x=>x[1]!=null&&x[1]!=='');
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd class="prose">${esc(v)}</dd>`).join('')}</dl>
   ${(r.photos||[]).length?`<div class="card"><div class="hd"><h2>Photos</h2><span class="sub">${r.photos.length}</span></div><div class="bd photos">${r.photos.map(p=>photoTag(p)).join('')}</div></div>`:''}
-  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}</div></div>`;
+  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}${r.ai_summary?'<br>'+aiPanelBadge(r.ai_panel):''}</div></div>`;
   return drawerShell(`${projName(r.project_id)} · ${fmtD(r.date)}`, 'Site report', body, `<button class="btn dark" data-act="editReport">Edit</button><button class="btn" data-act="rpDownloadOne">Download (Word)</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delReport">Delete</button>':''}`);
 }
 
@@ -2375,7 +2383,7 @@ function pageFinance(){
     <select class="inp" id="fproj" aria-label="Project"><option value="All">All projects</option><option value="" ${UI.fproj===''?'selected':''}>Office / overheads</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${UI.fproj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
     <div class="seg">${[['All','All'],['Income','Income'],['Expense','Expenditure']].map(([t,l])=>`<button data-ftype="${t}" aria-pressed="${UI.ftype===t}">${l}</button>`).join('')}</div><div class="sp"></div>
     <div class="fin-r2"><button class="btn" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}<span class="ai-tag">AI</span> Risk check</button><button class="btn" data-act="exportFin">Export CSV</button></div></div>
-  ${risk?`<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Check again</button></div><div class="bd"><div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>
+  ${risk?`<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Risk & loss check</h2><div class="sp"></div><button class="btn sm" data-act="aiFinance" ${UI.busy.fin?'disabled':''}>${spin('fin')}Check again</button></div><div class="bd"><div class="verdict" style="margin-bottom:10px"><span class="big ${risk.level==='Low'?'good':risk.level==='High'?'bad':'warn'}">${esc(risk.level)} risk</span><span class="sub">${esc(risk.at)}</span></div>${aiPanelBadge(risk._ai)}
     <div class="list">${(risk.findings||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div><span class="chip ${f.severity==='High'?'bad':f.severity==='Medium'?'amb':'blue'}">${esc(f.severity)}</span></div>`).join('')}</div>
     ${(risk.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended controls</div><ul class="clean small">${risk.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}</div></div>`:''}
   <div class="card fin-led">${groups.length?groups.map(g=>{ const gi=sum(g.rows,'Income'), go=sum(g.rows,'Expense'); return `<div class="fin-mh"><span>${mName(g.k)}</span><span class="num">${gi?`<em class="in">+${amt(gi)}</em>`:''}${go?`<em class="out">−${amt(go)}</em>`:''}</span></div>`+
@@ -2837,7 +2845,7 @@ function askSave(){ const at=new Date().toISOString();
   try{ localStorage.setItem(askKey(),JSON.stringify({id:UI.askId||'',at})); }catch(_){}
   if(!UI.chat.length||!me.id||!db) return;
   if(!UI.askId){ UI.askId=uid(); try{ localStorage.setItem(askKey(),JSON.stringify({id:UI.askId,at})); }catch(_){} }
-  const id=me.id+'_'+UI.askId, prev=(S.askchat||[]).find(c=>c.id===id), data={title:askTitle(UI.chat),msgs:UI.chat.slice(-60).map(m=>({role:m.role,content:String(m.content||'').slice(0,20000),...(m.sources?{sources:(m.sources||[]).slice(0,6)}:{}),...(m.web?{web:true}:{}),...(m.checked?{checked:true}:{})})),at,created:prev?.created||at};
+  const id=me.id+'_'+UI.askId, prev=(S.askchat||[]).find(c=>c.id===id), data={title:askTitle(UI.chat),msgs:UI.chat.slice(-60).map(m=>({role:m.role,content:String(m.content||'').slice(0,20000),...(m.sources?{sources:(m.sources||[]).slice(0,6)}:{}),...(m.web?{web:true}:{}),...(m.checked?{checked:true}:{}),...(m.panel?{panel:m.panel}:{})})),at,created:prev?.created||at};
   S.askchat=[...(S.askchat||[]).filter(c=>c.id!==id),{id,...data}];          // show in History at once
   clearTimeout(askSaveT); askSaveT=setTimeout(async()=>{ try{ await db.doc('askchat/'+id).set(data); }catch(e){ console.warn('ask history',e); }
     const old=askMine().slice(ASK_KEEP); for(const c of old){ try{ await db.doc('askchat/'+c.id).delete(); }catch(_){} } },600); }
@@ -2876,7 +2884,7 @@ function askMsgHtml(m,i){
   const anim=UI.askAnim&&UI.askAnim.i===i, txt=anim?m.content.slice(0,UI.askAnim.n):m.content, last=i===UI.chat.length-1;
   return `<div class="ask-row bot"><div class="ask-ava" aria-hidden="true"><img alt="" src="${LOGO}"></div><div class="ask-ans"><div class="ask-md" ${anim?'id="askAnim"':''}>${askFmt(txt)}${anim?'<span class="ask-caret"></span>':''}</div>
     ${!anim&&(m.sources||[]).length?`<div class="ask-src">${m.sources.slice(0,6).map((s,k)=>`<a href="${esc(s.url||s)}" target="_blank" rel="noopener" title="${esc(s.title||s.url||s)}"><span>${k+1}</span>${esc(((s.title||s.url||String(s)).replace(/^https?:\/\/(www\.)?/,'')).slice(0,38))}</a>`).join('')}</div>`:''}
-    ${!anim?`<div class="ask-tools"><button class="ask-tb" data-askcopy="${i}" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>${last?`<button class="ask-tb" data-act="askRetry" title="Regenerate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg></button>`:''}${m.checked?'<span class="ask-web-tag" title="Technical answer re-checked by a second AI review against verified reference facts">✓ checked</span>':''}${m.web?'<span class="ask-web-tag">🌐 web</span>':''}</div>`:''}</div></div>`; }
+    ${!anim?`<div class="ask-tools"><button class="ask-tb" data-askcopy="${i}" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>${last?`<button class="ask-tb" data-act="askRetry" title="Regenerate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg></button>`:''}${m.checked?'<span class="ask-web-tag" title="Technical answer re-checked by a second AI review against verified reference facts">✓ checked</span>':''}${m.web?'<span class="ask-web-tag">🌐 web</span>':''}${m.panel?aiPanelBadge(m.panel):''}</div>`:''}</div></div>`; }
 function askDrawer(){ askLoad();
   const first=(me.name||'').split(' ')[0]||'', h=new Date().getHours(), greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const empty=!UI.chat.length&&!UI.busy.ask;
@@ -2939,13 +2947,13 @@ NEXUS DATA:${JSON.stringify(snap)}`},{role:'assistant',content:'Understood. Ask 
   const tech=ASK_TECH.test(q), web=UI.askWeb!==false||tech;
   UI.askStage=web?'Thinking and searching the web…':'Thinking…';
   const r=await ai('ask',async()=>{ const d=await sample(turns,{modelTier:'default',cache:false,web});
-    if(!tech) return d;
+    if(!tech||(d.panel&&['high','medium','low'].includes(d.panel.agreement))) return d;
     UI.askStage='Checking the answer for accuracy…'; renderDrawer(); window.NX_AI_KIND='review';
     try{ const c=await sample([{role:'user',content:askReviewPrompt(q,d)}],{modelTier:'default',cache:false,web:false});
       const t=(c&&c.text||'').trim(); if(t.length>40) return {...d,text:t,checked:true}; }catch(_){}
     return d; });
   UI.askStage='';
-  if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web,checked:!!r.checked}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
+  if(r){ UI.chat.push({role:'assistant',content:r.text,sources:r.sources||[],web:!!r.web,checked:!!r.checked,...(r.panel?{panel:r.panel}:{})}); askSave(); renderDrawer(); askAnimate(UI.chat.length-1); }
   else { UI.chat.pop(); askSave(); renderDrawer(); const i2=$('#askInp'); if(i2&&!i2.value) i2.value=q; }
 }
 /* ===================== HOME ===================== */
@@ -3320,7 +3328,7 @@ function pageReport(){
   return `<div class="card"><div class="hd"><h2>Weekly management report</h2><span class="sub">${esc(w.period)}</span><div class="sp"></div>
     <button class="btn" data-act="aiWeekly" ${UI.busy.weekly?'disabled':''}>${spin('weekly')}Write summary with AI</button><button class="btn pri" data-act="downloadWeekly">Download for MD (Word)</button></div>
     <div class="bd prose-rep" style="display:flex;flex-direction:column;gap:10px">
-      ${UI.weeklySummary?`<div class="ai" style="padding:12px 14px"><span class="ai-tag">AI SUMMARY</span><p class="prose" style="margin-top:6px">${esc(UI.weeklySummary)}</p></div>`:''}
+      ${UI.weeklySummary?`<div class="ai" style="padding:12px 14px"><span class="ai-tag">AI SUMMARY</span>${aiPanelBadge(UI.weeklyPanel)}<p class="prose" style="margin-top:6px">${esc(UI.weeklySummary)}</p></div>`:''}
       ${reportBody(w,false)}
     </div></div>`;
 }
@@ -3332,7 +3340,7 @@ async function aiWeekly(){
     certified_unpaid_tzs:w.certsDue.reduce((a,c)=>a+(+c.amount||0),0),overdue_certs:w.certsDue.filter(c=>certState(c).cls==='bad').map(c=>c.no+' '+projName(c.project_id)),
     pending_purchase_requests:w.pendingPR.length,overdue_tasks:w.overdueTasks.map(t=>t.title),compliance_expiring:w.compliance.map(c=>c.name+' '+c.expiry)};
   const r=await ai('weekly',()=>sample(`Write the weekly management summary for the Managing Director of Nordic Construction Company Ltd (Tanzania). Max 170 words, plain text, 3 short paragraphs: (1) winning work – decisions the MD must make this week, with deadlines; (2) delivery – project, site and HSE points, payments; (3) risks and the top 3 actions for next week, each with who should act. Use only this data; do not invent numbers.\nDATA:${JSON.stringify(data)}`,{modelTier:'default'}));
-  if(r){ UI.weeklySummary=r.text; renderAll(); logAct('Generated weekly management summary'); }
+  if(r){ UI.weeklySummary=r.text; UI.weeklyPanel=r.panel||null; renderAll(); logAct('Generated weekly management summary'); }
 }
 async function downloadWeekly(){
   const w=weekData(), c=company();
@@ -3410,7 +3418,7 @@ function pageProject(){
       <div class="card kpi ${F.revEnd&&daysLeft(F.revEnd)<0&&!/complet|close/i.test(p.status||'')?'hot':'amb'}"><span class="label">Completion date</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(F.revEnd):'—'}</span><span class="s">${F.eot?F.eot+' days EOT granted':'original date'}${F.revEnd?' · '+(daysLeft(F.revEnd)>=0?Math.ceil(daysLeft(F.revEnd))+' days left':Math.ceil(-daysLeft(F.revEnd))+' days late'):''}</span></div>
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
-      <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n<span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
+      <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
     ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
     <div class="grid g2">
       <div class="card"><div class="hd"><h2>Latest site reports</h2></div><div class="list">${S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div></div>`).join('')||'<div class="empty">No site reports yet.</div>'}</div></div>
@@ -3465,7 +3473,7 @@ async function aiProject(p){
     recent_site_reports:S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,8).map(r=>({date:r.date,work:r.work_done,issues:r.issues,hse:r.hse,workers:r.workforce,weather:r.weather})),
     open_snags:F.openSn.length};
   const r=await ai('proj',()=>sample(`You are a senior construction project manager in Tanzania reviewing a project for Nordic Construction's management. Today is ${new Date().toDateString()}. All site staff read this review, so never write money amounts (no TZS figures, contract sums or certificate values) – describe payments only as on time, late or overdue.\nGive: first line "Status: RED/AMBER/GREEN – <one-sentence reason>"; then up to 4 short lines on time, cost/cash, quality/HSE and contract (variations/EOT); then "Top actions this week:" with 3 numbered actions, each naming who should act (PM, QS, site engineer, MD). Max 160 words, plain text. Use only this data; say what data is missing if it limits the review.\nDATA:${JSON.stringify(data)}`,{modelTier:'default'}));
-  if(r){ await patch('projects',p.id,{ai_health:{text:r.text,at:new Date().toISOString()}}); logAct(`AI health review for ${p.name}`); }
+  if(r){ await patch('projects',p.id,{ai_health:{text:r.text,at:new Date().toISOString(),...(r.panel?{panel:r.panel}:{})}}); logAct(`AI health review for ${p.name}`); }
 }
 
 /* ===================== PROGRAMME TOOLS: Gantt, links, critical path, baseline, forecast, look-ahead, portfolio ===================== */
@@ -3894,7 +3902,7 @@ function hseDash(){ const s=hseStats(), m=today().slice(0,7), inc=hL('hse_inc'),
     <div class="card"><div class="hd"><h2>By project</h2></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="r">Days w/o LTI</th><th class="r">Incidents</th><th class="r">Near misses</th><th class="r">Open actions</th></tr></thead><tbody>
       ${hseActProj().map(p=>{ const x=hseStats(p.id); return `<tr><td class="ttl2">${esc(p.name)}</td><td class="r num">${x.days==null?'—':x.days}</td><td class="r num">${x.inc12}</td><td class="r num">${x.nm12}</td><td class="r num">${x.acts.length}${x.late?` <span class="chip bad">${x.late} late</span>`:''}</td></tr>`; }).join('')||'<tr><td colspan="5"><div class="empty">No active projects.</div></td></tr>'}</tbody></table></div></div></div>
   <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Safety trends</h2><div class="sp"></div><button class="btn sm pri" data-hse="ai" ${UI.busy.hse?'disabled':''}>${spin('hse')}${ai?'Check again':'Find patterns'}</button></div>
-    ${ai?`<div class="bd"><p>${esc(ai.summary||'')}</p><div class="list">${(ai.patterns||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div></div>`).join('')}</div>${(ai.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended</div><ul class="clean small">${ai.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}<p class="sub">${esc(ai.at||'')}</p></div>`:''}</div>`; }
+    ${ai?`<div class="bd"><p>${esc(ai.summary||'')}</p><div class="list">${(ai.patterns||[]).map(f=>`<div class="li"><div class="stripe ${f.severity==='High'?'bad':f.severity==='Medium'?'warn':'blue'}"></div><div class="grow"><div class="ttl2">${esc(f.title)}</div><div class="small">${esc(f.detail)}</div></div></div>`).join('')}</div>${(ai.actions||[]).length?`<div class="label" style="margin-top:10px">Recommended</div><ul class="clean small">${ai.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}${aiPanelBadge(ai._ai)}<p class="sub">${esc(ai.at||'')}</p></div>`:''}</div>`; }
 
 /* lists */
 const hseEmpty=t=>`<div class="card empty">${t}</div>`;
@@ -8047,7 +8055,7 @@ document.addEventListener('click', async e=>{
     case 'newReport': openDrawer('report-form',null,{proj:el.dataset.proj||(UI.rproj!=='All'?UI.rproj:'')}); break;
     case 'editReport': openDrawer('report-form',drawer.id); break;
     case 'saveReport': saveReport(); break;
-    case 'aiReport': { const r=byId('reports',drawer.id); const out=await ai('report',()=>sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Plain text.\nProject: ${projName(r.project_id)}\n${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'})); if(out){ await patch('reports',r.id,{ai_summary:out.text}); } } break;
+    case 'aiReport': { const r=byId('reports',drawer.id); const out=await ai('report',()=>sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Plain text.\nProject: ${projName(r.project_id)}\n${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'})); if(out){ await patch('reports',r.id,{ai_summary:out.text,...(out.panel?{ai_panel:out.panel}:{})}); } } break;
     case 'delReport': { const r=byId('reports',drawer.id); if(await confirmBox('Delete this site report?','Delete',true)){ await remove('reports',r.id); logAct(`Deleted site report ${projName(r.project_id)} ${r.date}`); closeDrawer(); } } break;
     case 'newBoq': { const id=await put('boqs',null,{title:'New BoQ',bills:[{name:'Preliminaries',items:[]}],vat:18,contingency:0}); if(id) go('qs',id); } break;
     case 'addBill': { const b=curBoq(); await patch('boqs',b.id,{title:b.title,contingency:b.contingency,vat:b.vat,bills:[...(b.bills||[]),{name:'New bill',items:[]}]}); } break;

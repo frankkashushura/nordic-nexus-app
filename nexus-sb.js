@@ -176,14 +176,19 @@
   // AI answers are shown as plain text: remove markdown marks (**bold**, # headings, * bullets)
   const plain = t => String(t || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1')
     .replace(/^#{1,6}\s*/gm, '').replace(/^\s*[*•]\s+/gm, '- ').replace(/`([^`]+)`/g, '$1').replace(/\n{3,}/g, '\n\n').trim();
+  // v148: every AI request goes to the AI panel (2 AIs answer, a 3rd checks); the agreement comes back as d.panel
   const sample = async (x, o = {}) => {
-    const d = await callAI({ ...toPayload(x), ...(o && o.web ? { web: true } : {}) });
-    return { text: plain(d.text), sources: Array.isArray(d.sources) ? d.sources : [], web: !!d.web };
+    const d = await callAI({ ...toPayload(x), ...(o && o.web ? { web: true } : {}), ...(o && o.panel === false ? { panel: false } : {}) });
+    if (d.panel) window.NX_AI_PANEL = d.panel;
+    return { text: plain(d.text), sources: Array.isArray(d.sources) ? d.sources : [], web: !!d.web, ...(d.panel ? { panel: d.panel } : {}) };
   };
   sample.json = async (x, o = {}) => {
-    const d = await callAI({ ...toPayload(x), json: true, ...(o && o.max_tokens ? { max_tokens: o.max_tokens } : {}) });
+    const d = await callAI({ ...toPayload(x), json: true, ...(o && o.max_tokens ? { max_tokens: o.max_tokens } : {}), ...(o && o.panel === false ? { panel: false } : {}) });
+    if (d.panel) window.NX_AI_PANEL = d.panel;
     const t = String(d.text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
-    try { return JSON.parse(t); } catch (_) { const e = new Error('invalid json'); e.code = 'invalid_json'; throw e; }
+    let v; try { v = JSON.parse(t); } catch (_) { const e = new Error('invalid json'); e.code = 'invalid_json'; throw e; }
+    if (d.panel && v && typeof v === 'object' && !Array.isArray(v)) v._ai = d.panel;
+    return v;
   };
 
   /* ---------------- downloads ---------------- */
