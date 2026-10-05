@@ -43,6 +43,7 @@
       if (data === null) s.cache.delete(id); else s.cache.set(id, { id, data });
       try { s.cb(colSnap(s.cache)); } catch (e) { console.warn(e); }
     }
+    if (col === 'system' && id === 'sync') lastSyncSeen = data?.last_sync || '';
     const ds = docSubs.get(col + '/' + id);
     if (ds) for (const cb of ds) { try { cb(docSnap(id, data === null ? null : { data })); } catch (e) { console.warn(e); } }
   }
@@ -76,11 +77,25 @@
     }
     for (const [key, cbs] of docSubs) {
       const [col, id] = splitPath(key);
-      try { const r = await fetchDoc(col, id); for (const cb of cbs) cb(docSnap(id, r)); } catch (e) { console.warn(e); }
+      try { const r = await fetchDoc(col, id); if (key === 'system/sync') lastSyncSeen = r?.data?.last_sync || ''; for (const cb of cbs) cb(docSnap(id, r)); } catch (e) { console.warn(e); }
     }
   }
-  window.addEventListener('online', () => resyncAll());
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && wasDown) resyncAll(); });
+  // v159: the live connection can die silently (computer asleep, network switch) – then the app shows old data
+  // ("Sync stopped"). Re-read everything after the app was hidden > 2 min, and every 4 min compare the server's
+  // last sync time with ours: if they differ, live updates were missed → reload data and reconnect.
+  let lastSyncSeen = '', hiddenAt = 0;
+  function restartChannel() { try { if (channel) sb.removeChannel(channel); } catch (_) {} channel = null; if (colSubs.size || docSubs.size) ensureChannel(); }
+  window.addEventListener('online', () => { resyncAll(); restartChannel(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (wasDown || (hiddenAt && Date.now() - hiddenAt > 120e3)) { resyncAll(); if (!wasDown) restartChannel(); }
+  });
+  setInterval(async () => {
+    if (document.hidden || !docSubs.has('system/sync')) return;
+    try { const r = await fetchDoc('system', 'sync'); const ls = r?.data?.last_sync || '';
+      if (ls && lastSyncSeen && ls !== lastSyncSeen && Date.now() - Date.parse(ls) > 90e3) { console.warn('NEXUS: live updates were missed – reloading'); await resyncAll(); restartChannel(); }
+      else if (ls) lastSyncSeen = ls; } catch (_) { /* offline */ }
+  }, 240e3);
 
   const db = {
     collection(col) {
@@ -126,7 +141,7 @@
           if (!docSubs.has(key)) docSubs.set(key, new Set());
           docSubs.get(key).add(cb);
           ensureChannel();
-          fetchDoc(col, id).then(r => cb(docSnap(id, r))).catch(e => onErr && onErr(e));
+          fetchDoc(col, id).then(r => { if (key === 'system/sync') lastSyncSeen = r?.data?.last_sync || ''; cb(docSnap(id, r)); }).catch(e => onErr && onErr(e));
           return () => docSubs.get(key)?.delete(cb);
         }
       };
