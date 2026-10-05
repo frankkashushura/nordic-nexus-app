@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=158"></script>
+<script src="config.js?v=159"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=158"></script>
-<script src="nexus-chat.js?v=158"></script>
+<script src="nexus-sb.js?v=159"></script>
+<script src="nexus-chat.js?v=159"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -643,6 +643,9 @@ th{font-size:11.5px}
 .ab-co p{margin:4px 0 0}
 .ab-vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .ab-vals .chip{font-size:13px;padding:4px 10px}
+/* v159 tender inbox card */
+.ti-addr{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}.ti-addr code{font-size:12.5px;font-weight:700;padding:5px 9px;border-radius:7px;background:rgba(83,159,220,.13);color:var(--accent);border:1px dashed rgba(83,159,220,.45);word-break:break-all}
+.ti-src{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 5px}.ti-log{display:grid;gap:5px;margin-top:6px}.ti-log>div{padding:5px 7px;border-radius:6px;background:rgba(127,127,127,.07)}
 @media (max-width:700px){.ab-co{grid-template-columns:1fr;gap:14px}}
 /* v115 Company profile */
 .co-head{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--panel);border:1px solid var(--card-bd,var(--line));border-radius:var(--r);box-shadow:var(--shadow)}
@@ -1008,6 +1011,7 @@ function computeAlerts(){
   if(isAdmin && window.NX_PENDING>0){ const PL=window.NX_PENDING_LIST;
     if(Array.isArray(PL)&&PL.length) PL.forEach(u=>A.push({lvl:'warn', kind:'Access request', text:`${u.name||(u.email||'').split('@')[0]||'Someone'}${u.position?' ('+u.position+')':''} asked to join NEXUS`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3, at:u.requested_at, nk:'access|'+u.user_id}));
     else A.push({lvl:'warn', kind:'Access request', text:`${window.NX_PENDING} ${window.NX_PENDING>1?'people are':'person is'} waiting for approval`, sub:'Tap to open Manage logins → choose a role → Approve or Reject', go:['route','logins'], sort:3}); }
+  if(isAdmin&&S.inbox&&S.inbox.ok===false) A.push({lvl:'warn', kind:'Tender inbox', text:'The tender inbox cannot read emails', sub:String(S.inbox.error||'').slice(0,90), go:['route','tenders'], sort:4, at:S.inbox.last_check});
   { const em=S.sync&&S.sync.email; if(isAdmin&&em){ if(em.configured===false) A.push({lvl:'bad', kind:'Email alerts', text:'Email alerts are not sending – Gmail password missing', sub:'Add SMTP_PASSWORD in Supabase → Edge Functions → Secrets', go:['route','alerts'], sort:4}); else if((em.failed||[]).length) A.push({lvl:'warn', kind:'Email alerts', text:`${em.failed.length} email(s) could not be delivered`, sub:String(em.failed[0]).slice(0,90), go:['route','alerts'], sort:4, at:S.sync.last_sync}); } }
   if(typeof pmAlerts==='function') pmAlerts(A);
   if(typeof deptAlerts==='function') deptAlerts(A);
@@ -1237,6 +1241,29 @@ function sourcesCard(){
   return `<div class="card"><div class="hd"><h2>Where tenders come from</h2></div><div class="bd small">${src.length?`<table><tbody>${src.slice(0,6).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r mono"><b>${v.open}</b> open</td><td class="r sub">${v.newest?fmtD(v.newest):'—'}</td></tr>`).join('')}</tbody></table>`:'<span class="muted">Shown after the next automatic sync.</span>'}
     <div class="sub" style="margin-top:6px">${dups?`${dups} duplicate${dups>1?'s':''} found on two sources ${dups>1?'were':'was'} merged automatically. `:''}New Pursue / Check tenders get AI advice and their key facts (value, CRB class, bid security, site visit) filled in automatically.</div></div></div>`;
 }
+/* v159 · embassies, UN, US-Government, EU and private tenders: tender-intl Edge Function (hourly portals + tender inbox) */
+const INTL_SRC=[['UNDP','UNDP','UNDP procurement notices (Tanzania office)'],['UNGM','UN agencies','UNGM – UNOPS, UNICEF, WFP, UNHCR, FAO, IOM, ILO … (country: Tanzania)'],['SAM.gov','US Gov / Embassy','SAM.gov – US Embassy Dar es Salaam, US Navy/Army works in Tanzania'],['TED (EU)','EU','TED – EU Delegation, EU member-state embassies & agencies (place of work: Tanzania)'],['Web search','Web (AI-checked)','Embassy, NGO, mining and private invitations found by web search, checked by AI']];
+const INTL_REG=[['UNGM','https://www.ungm.org'],['SAM.gov (UEI)','https://sam.gov'],['UNDP','https://www.undp.org/procurement'],['TED / EU','https://ted.europa.eu']];
+function inboxAddr(){ return S.inbox?.address||'kashushuraconstruction+tenders@gmail.com'; }
+function intlCard(){
+  const it=S.intl||{}, ib=S.inbox||{}, src=it.sources||{};
+  const ibAge=ib.last_check?(Date.now()-Date.parse(ib.last_check))/36e5:null;
+  const ibChip=!S.inbox?'<span class="chip">Starting…</span>':ib.ok===false?'<span class="chip bad" title="'+esc(ib.error||'')+'">Inbox error</span>':ibAge!=null&&ibAge>2?'<span class="chip amb">Inbox idle</span>':'<span class="chip good">Inbox live</span>';
+  const n=S.tenders.filter(t=>/^(UNDP|UNGM|SAM|TED|WEB|MAIL):/.test(t.id)&&isOpenT(t)).length;
+  const log=(ib.log||[]).slice(0,4);
+  return `<div class="card ti-card"><div class="hd"><h2>Embassies · UN · private</h2><div class="sp"></div>${ibChip}</div><div class="bd small">
+    <div class="sub">Tender inbox – staff forward any invitation (email + PDFs) to:</div>
+    <div class="ti-addr"><code>${esc(inboxAddr())}</code><button class="btn sm" data-act="copyInbox">Copy</button></div>
+    <div class="sub" style="margin-top:4px">NEXUS reads it within 10 min, saves the documents, fills the facts with AI and replies to you. Only emails from staff on the Staff page (or @nordictz.co.tz) are accepted.</div>
+    <div class="ti-src">${INTL_SRC.map(([k,l,d])=>{ const v=src[k]; const cls=!v?'':v.ok===false?'bad':'good'; return `<span class="chip ${cls}" title="${esc(d+(v?` · ${v.ok===false?'error: '+(v.err||''):`${v.found||0} open works notice(s) · checked ${fmtDT(v.at)}`}`:' · not checked yet'))}">${esc(l)}${v&&v.found?` · ${v.found}`:''}</span>`; }).join('')}</div>
+    <div class="sub">${n?`<b>${n}</b> open tender${n>1?'s':''} from these sources · `:''}Portals checked every hour${it.portals_at?` (last ${fmtDT(it.portals_at).split(' ').pop()})`:''}.</div>
+    <details style="margin-top:6px"><summary class="muted" style="cursor:pointer">To bid, Nordic must be registered on</summary><div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${INTL_REG.map(([l,u])=>`<a class="btn sm" href="${esc(u)}" data-dhopen="${esc(u)}" data-dhname="${esc(l)}">${esc(l)} ↗</a>`).join('')}</div>
+      <div class="sub">UN agencies, the US Government and EU bodies only accept bids from registered vendors. Registration is free; do it once and renew yearly (SAM.gov).</div></details>
+    ${isAdmin&&log.length?`<details style="margin-top:4px"><summary class="muted" style="cursor:pointer">Inbox – last ${log.length} email${log.length>1?'s':''}</summary><div class="ti-log">${log.map(x=>`<div><b>${esc((x.subject||'(no subject)').slice(0,70))}</b><span class="sub"> · ${esc(x.from||'')} · ${fmtDT(x.at)} · ${x.tender?(x.is_tender===false?'filed under Drop':'added'+(x.files?` with ${x.files} file${x.files>1?'s':''}`:'')):esc(x.skip||'')}</span></div>`).join('')}</div></details>`:''}
+    ${isAdmin&&ib.ok===false?`<p class="sub" style="color:var(--bad)">Inbox error: ${esc(ib.error||'')}</p>`:''}
+  </div></div>`;
+}
+function isOpenT(t){ return Date.parse(t.deadline||'')>Date.now()&&t.screen!=='Drop'&&!/no-?bid|submitted|won|lost|cancel|closed/i.test(t.status||''); }
 function scannerCard(last){
   const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
   const nt=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0];
@@ -1288,7 +1315,7 @@ function pageTenders(){
   return tabs+`
   <div class="grid g3">
     ${scannerCard(last)}
-    <div class="card"><div class="hd"><h2>AI bid advisor</h2></div><div class="bd small">Open a tender → <b>Get AI advice</b> for a Bid / Conditional / No-Bid suggestion.</div></div>
+    ${intlCard()}
     ${sourcesCard()}
   </div>
   <div class="toolbar">
@@ -1328,7 +1355,7 @@ const TENDER_EDIT = [
   const legacy=[...new Set(S.tenders.map(t=>t.owner).filter(o=>o&&!byId('staff',o)))]; return [['','— nobody yet —'],...act.map(s=>[s.id,s.name+(s.position?' · '+s.position:'')]),...legacy.map(o=>[o,o+' (old entry)'])]; },configurable:true}); }
 function tenderDrawer(t){
   const f=t.f02||{gates:{},scores:[]}, res=f02Result(f);
-  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',[fmtD(t.date_found),t.found_by,t.source].filter(x=>x&&x!=='—').join(' · ')],['Also listed on',(t.sources||[]).filter(x=>x&&x!==t.source).join(', ')],['Owner',t.owner?staffName(t.owner):''],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
+  const kv=[['Tender no.',t.no],['Client',t.client+(t.client_type?` (${t.client_type})`:'')],['Location',t.location],['Work type',t.category],['Notice',t.notice],['Advertised',fmtD(t.advertised)],['Deadline',fmtDT(t.deadline)],['Found',[fmtD(t.date_found),t.found_by,t.source].filter(x=>x&&x!=='—').join(' · ')],['Forwarded by',t.forwarded_by?`${t.forwarded_by} (tender inbox${t.email_subject?' · “'+t.email_subject+'”':''})`:''],['Also listed on',(t.sources||[]).filter(x=>x&&x!==t.source).join(', ')],['Owner',t.owner?staffName(t.owner):''],['Screen reason',t.reason],['Next action',t.next],['Scope',t.scope]].filter(x=>x[1]);
   const docs=(t.files||[]);
   const body=`
     <div class="toolbar">${daysChip(t.deadline)} ${screenChip(t.screen)} <span class="chip">${esc(t.status||'Watching')}</span> ${t.url?`<a class="btn sm" href="${esc(t.url)}" target="_blank" rel="noopener">Open source page ↗</a>`:''}</div>
@@ -8661,6 +8688,7 @@ document.addEventListener('click', async e=>{
     case 'applyAiScores': if(T?.ai?.scores){ T.ai.scores.forEach((s,i)=>{ const el=$('#s'+i); if(el) el.value=String(s); }); (T.ai.gates||[]).forEach((g,i)=>{ const el=$('#g'+i); if(el&&['Pass','Fail','TBC'].includes(g.status)) el.value=g.status; }); toast('AI suggestions filled in. Review each score, then save.'); } break;
     case 'saveTender': if(T){ const v=readForm(tenderEdit()); if(!v) return; await patch('tenders',T.id,v); logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
     case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ await remove('tenders',T.id); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
+    case 'copyInbox': { const a=inboxAddr(); try{ await navigator.clipboard.writeText(a); toast('Tender inbox address copied – forward invitations to it.'); }catch(_){ toast('Copy is blocked here: '+a); } break; }
     case 'copyAlert': if(T){ const txt=alertText(T); try{ await navigator.clipboard.writeText(txt); toast('Alert text copied. Paste it into WhatsApp, SMS or email.'); }catch(_){ toast('Copy is blocked here. Select the text shown instead.'); } } break;
     case 'tenderToBoq': if(T){ const id=await put('boqs',null,{title:'BoQ – '+T.title,tender_id:T.id,bills:[],vat:18,contingency:0,scope:T.scope||'',owner:me.name||'',owner_uid:me.id||''}); if(id){ logAct(`Started BoQ for tender "${T.title}"`); go('qs',id); } } break;
     case 'addProject': formDrawer('New project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),{status:'Active',progress:0},async v=>{ await put('projects',safeId(v.name.toLowerCase()).slice(0,60)+'-'+uid().slice(-4),v); logAct(`Created project ${v.name}`); }); break;
@@ -8960,6 +8988,8 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
   for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('system/intl').onSnapshot(s=>{ S.intl=s.exists?s.data():null; renderAll(); }, ()=>{});
+  db.doc('system/inbox').onSnapshot(s=>{ S.inbox=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('imports/last').onSnapshot(s=>{ S.lastImport=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/backup').onSnapshot(s=>{ S.backup=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/recipients').onSnapshot(s=>{ S.recip=s.exists?s.data():null; renderAll(); }, ()=>{});
