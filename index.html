@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=157"></script>
+<script src="config.js?v=158"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=157"></script>
-<script src="nexus-chat.js?v=157"></script>
+<script src="nexus-sb.js?v=158"></script>
+<script src="nexus-chat.js?v=158"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1191,6 +1191,22 @@ function inboxHtml(){ const L=inbox(), c={new:0,unread:0,read:0}; L.forEach(a=>c
   return `${pushBar()}<div class="toolbar" style="padding:10px 12px;gap:8px;flex-wrap:wrap"><div class="seg" role="group" aria-label="Show">${[['all','All',L.length],['new','New',c.new],['unread','Unread',c.unread],['read','Read',c.read]].map(([k,l,n])=>`<button data-nf="${k}" aria-pressed="${F===k}">${l} ${n}</button>`).join('')}</div><div class="sp"></div>${(window.NX_PUSH_STATE&&NX_PUSH_STATE()==='on')?`<button class="iconbtn" data-act="pushOff" title="Notifications on this device are ON – click to turn off" aria-label="Turn off notifications on this device" style="width:30px;height:30px;font-size:14px">🔔</button>`:''}${open.length?'<button class="btn sm" data-nf="markall">Mark all as read</button>':''}${c.read?`<button class="btn sm" data-nf="clearread">Clear read (${c.read})</button>`:''}</div>
   <div class="list">${show.map(alertRow).join('')||`<div class="empty">${F==='all'?'Nothing needs attention right now.':'No '+F+' notifications.'}</div>`}</div>`; }
 const tNewAt=t=>nsIso(firstSeen(t));
+
+/* v158 · tender relevance filter — same rules as the tender-sync server (goods, services, ICT, renting… are not construction works) */
+const T_STRONG=/\b(construct|ujenzi|kujenga|rehabilitat|renovat|ukarabati|refurbish|remodel|fit-?out|civil works?|building works?|road works?|upgrading of|extension of|completion of|erection of|paving|tarmac|culvert|bridge|dam\b|borehole drilling|drilling of borehole|water supply (?:project|scheme|works)|sewer|drainage works|fenc(?:e|ing) works|repairs? (?:of|to) (?:the )?(?:office |staff |school |hospital )?(?:buildings?|houses?|roofs?|quarters|blocks?)|maintenance of (?:the |office |staff )?buildings?|building maintenance)/i;
+const T_NEG=/\b(internet|routers?|switch(?:es)?\b|network equipment|ict\b|software|licen[cs]es?\b|computers?|laptops?|desktops?|printers?|servers?\b|ups\b|cctv|telephones?|airtime|bandwidth|website|system development|renting|rental of|rent of|to rent|for rent|lease of|leasing|hire of|hiring of|insurance|audit(?:ing)?\b|consultancy|consultant|training|capacity building|workshop|seminar|transport(?:ation)? services|fuel|lubricants?|diesel|petrol|food|meals?|catering|medical|medicines?|drugs|reagents?|laboratory (?:equipment|consumables)|advertis|publicity|media|tickets?|travel|accommodation|conference|events?\b|courier|vehicles?\b|motor ?cycles?|tyres?|spare parts|generators? (?:service|maintenance)|maintenance of (?:vehicles?|generators?|air ?condition\w*|computers?|equipment|lifts?|printers?)|repair of (?:vehicles?|motor|computers?|equipment)|uniforms?\b|stationer|printing|furniture|cleaning|fumigation|security guard|guarding|seeds?\b|fertili[sz]ers?|livestock|books?\b|textbooks?|decorations?\b|supply of|supplies of|delivery of|purchase of|acquisition of|provision of|usambazaji|ugavi|ununuzi wa|huduma ya|vifaa)/i;
+function tIrrelevant(t,ignore){ const tt=String(t.title||''); const ig=(ignore||[]).find(w=>w&&tt.toLowerCase().includes(String(w).toLowerCase())); if(ig) return `Matches the ignore list: “${ig}”`;
+  if(T_STRONG.test(tt)) return ''; const m=tt.match(T_NEG); return m?`Not construction works – “${m[0]}” (relevance filter)`:''; }
+async function tFilterOpen(){ if(!isAdmin) return; let cur={}; try{ const d=await db.doc('settings/tender_filter').get(); cur=d.exists?d.data():{}; }catch(_){}
+  const keep=t=>!(t.dup_of||t.example||t.screen==='Drop'||(t.status&&t.status!=='Watching')||t.f02||(t.files||[]).length||String(t.found_by||'').startsWith('Manual'));
+  const prev=ig=>S.tenders.filter(t=>keep(t)&&tIrrelevant(t,ig));
+  formDrawer('Tender relevance filter',[{k:'ignore',label:'Also hide tenders whose title contains (one word or phrase per line)',type:'textarea',full:1,ph:'internet\nrouter\nwarehouse\nrenting\nsoftware',help:'Built-in rule: tenders for goods, supplies, ICT, renting/leasing, insurance, consultancy, training, transport, food, vehicles, cleaning, security … are hidden unless the title also says construction, rehabilitation, renovation, building/road works etc. Hidden tenders move to the “Drop” tab (never deleted) and give no alerts.'},
+    {k:'info',label:`Open tenders that will be hidden now: ${prev(cur.ignore||[]).length}`,type:'textarea',full:1}],
+    {ignore:(cur.ignore||[]).join('\n'),info:prev(cur.ignore||[]).slice(0,40).map(t=>'• '+t.title).join('\n')||'—'},async v=>{
+      const ignore=String(v.ignore||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+      try{ await db.doc('settings/tender_filter').set({ignore,updated_at:new Date().toISOString(),updated_by:me.name||''}); }catch(e){ handleErr(e); return false; }
+      const L=prev(ignore); for(const t of L) await patch('tenders',t.id,{screen:'Drop',screen_was:t.screen||'',reason:tIrrelevant(t,ignore)});
+      logAct(`Tender relevance filter saved (${ignore.length} ignore words, ${L.length} tenders hidden)`); toast(L.length?`${L.length} irrelevant tender${L.length>1?'s':''} moved to Drop.`:'Saved – nothing to hide right now.'); return true; },{saveLabel:'Save & clean now',sub:'Tender Radar · hide tenders that are not construction works'}); }
 function newTenders(since){ const b=since||NS.tr; if(!b) return []; return openTenders().filter(t=>t.screen!=='Drop'&&tNewAt(t)&&tNewAt(t)>b); }
 function nsUnread(){ return inbox().filter(a=>a.st!=='read').length; }
 function barChart(rows,max){
@@ -1280,7 +1296,7 @@ function pageTenders(){
     <div class="seg" role="group" aria-label="Screen">${['Open','Pursue','Check','Drop','Closed','All'].map(s=>`<button data-tscreen="${s}" aria-pressed="${UI.tscreen===s}">${s}</button>`).join('')}</div>
     <select class="inp" id="tcat" aria-label="Work type">${cats.map(c=>`<option ${c===UI.tcat?'selected':''}>${esc(c)}</option>`).join('')}</select>
     <div class="sp"></div>
-    <button class="btn" data-act="importXlsx">Import pipeline (.xlsx)</button>
+    ${isAdmin?'<button class="btn" data-act="tFilter" title="Hide tenders that are not construction works">🧹 Relevance filter</button>':''}<button class="btn" data-act="importXlsx">Import pipeline (.xlsx)</button>
     <button class="btn" data-act="exportTenders">Export CSV</button>
     <button class="btn pri" data-act="addTender">Add tender</button>
     <input type="file" id="xlsxFile" accept=".xlsx,.xlsm" hidden>
@@ -8638,6 +8654,7 @@ document.addEventListener('click', async e=>{
     case 'brief': runBriefing(); break;
     case 'addTender': formDrawer('Add tender',TENDER_FIELDS,{source:'NeST',screen:'Check',category:'building',client_type:'government'},async v=>{ const id=safeId(v.no||v.title); if(byId('tenders',id)){ toast('A tender with this number is already on the radar.'); return false; } await put('tenders',id,{...v,deadline:v.deadline?new Date(v.deadline).toISOString():'',status:'Watching',date_found:new Date().toISOString(),found_by:'Manual – '+(me.name||''),owner:me.name||''}); logAct(`Added tender "${v.title}"`); },{saveLabel:'Add to radar'}); break;
     case 'importXlsx': $('#xlsxFile').click(); break;
+    case 'tFilter': return tFilterOpen();
     case 'exportTenders': exportCsv('nordic-tenders.csv',['Tender no','Title','Client','Location','Category','Deadline','Screen','AI advice','Status','Owner'],filteredTenders().map(t=>[t.no,t.title,t.client,t.location,t.category,fmtDT(t.deadline),t.screen,t.ai?.verdict,t.status,t.owner])); break;
     case 'aiTender': if(T) aiTender(T); break;
     case 'saveF02': if(T){ const f02={gates:GATES.map((_,i)=>$('#g'+i).value),scores:F02.map((_,i)=>{const v=$('#s'+i).value; return v===''?'':+v;})}; f02.gates=Object.fromEntries(f02.gates.map((g,i)=>[i,g])); const r=f02Result(f02); await patch('tenders',T.id,{f02,f02_result:r?.label||''}); logAct(`F-02 score saved for "${T.title}": ${r?.label}`); toast('Score saved: '+(r?.label||'')); drawer.form=false; renderDrawer(); } break;
