@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=171"></script>
+<script src="config.js?v=172"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=171"></script>
-<script src="nexus-chat.js?v=171"></script>
+<script src="nexus-sb.js?v=172"></script>
+<script src="nexus-chat.js?v=172"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -2399,7 +2399,9 @@ const PFA=['Pending','Finance approved','Approved','Rejected'];
 const pfA=x=>PFA.includes(x?.status)?x.status:'Pending';
 const pfAL=s=>s==='Pending'?'Waiting for Finance':s==='Finance approved'?'Waiting for Director':s;
 const pfACls=s=>s==='Approved'?'good':s==='Rejected'?'bad':s==='Finance approved'?'blue':'amb';
-const prfCanDel=x=>canWrite&&(isAdmin||((x.by_uid===me.id||poCanQ())&&pfA(x)!=='Approved'));
+/* v172: a proforma with any payment against its purchase request / order can never be deleted (SQL 44 enforces it) */
+const pfPaidAny=x=>{ const p=x.pr_id?byId('procurement',x.pr_id):null, o=x.po_id?byId('po',x.po_id):null; return !!((p&&prPaid(p)>0)||(o&&(poPaid(o)>0||+o.paid_total>0))); };
+const prfCanDel=x=>canWrite&&!pfPaidAny(x)&&(isAdmin||((x.by_uid===me.id||poCanQ())&&pfA(x)!=='Approved'));
 const pfCanAp=x=>{ const s=pfA(x); return isAdmin?['Pending','Finance approved'].includes(s):isFinR()&&s==='Pending'; };
 function pfTab(){
   const all=pfList(), q=lcN(UI.pfq||''), C=k=>all.filter(x=>pfA(x)===k).length;
@@ -2415,7 +2417,7 @@ function pfTab(){
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Proforma</th><th class="hide-m">Attached by</th><th>${tab==='cab'?'Approved':'Date'}</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(x=>{ const st=pfA(x), f=x.files||[], nm=x.supplier||(f[0]?.name)||'Proforma';
     return `<tr class="click" style="cursor:pointer" data-pfx="o:${esc(x.id)}"><td><div class="ttl2">📄 ${esc(nm)}${UI.pfReading?.[x.id]?' <span class="chip blue">🤖 reading…</span>':''}</div>${x.supplier&&f[0]?`<div class="sub">${esc(f[0].name)}</div>`:''}${x.amount||x.item?`<div class="sub">${[x.item?esc(x.item):'',+x.amount?tzs(+x.amount):''].filter(Boolean).join(' · ')}</div>`:''}${st==='Rejected'&&x.rej_reason?`<div class="sub" style="color:var(--bad)">Reason: ${esc(x.rej_reason)}</div>`:''}</td>
-      <td class="hide-m small">${esc(x.by||'')}</td><td class="small">${fmtD(tab==='cab'?x.appr_at:x.at||x.date)}${tab==='cab'&&x.appr_by?`<div class="sub">${esc(x.appr_by)}</div>`:''}</td><td><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span></td>
+      <td class="hide-m small">${esc(x.by||'')}</td><td class="small">${fmtD(tab==='cab'?x.appr_at:x.at||x.date)}${tab==='cab'&&x.appr_by?`<div class="sub">${esc(x.appr_by)}</div>`:''}</td><td><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span>${pfPaidAny(x)?' <span class="chip good" title="Payment recorded – cannot be deleted">💰 Paid</span>':''}</td>
       <td class="r" style="white-space:nowrap">${f.length?`<button class="btn sm" data-pfx="fo:${esc(x.id)}:0">Open</button> `:''}${pfCanAp(x)?`<button class="btn sm pri" data-pfx="ap:${esc(x.id)}">Approve</button> <button class="btn sm danger" data-pfx="rj:${esc(x.id)}">Reject</button> `:''}${prfCanDel(x)?`<button class="btn sm danger" data-pfx="del:${esc(x.id)}" title="Delete this proforma" aria-label="Delete proforma">🗑</button>`:''}</td></tr>`; }).join('')
     ||`<tr><td colspan="5" class="empty">${tab==='wait'?(all.length?'Nothing waiting for approval.':'No proformas yet – click “Attach proforma” above.'):tab==='cab'?'No approved proformas yet.':'No rejected proformas.'}</td></tr>`}
   </tbody></table></div></div>`;
@@ -2518,7 +2520,7 @@ function pfDrawer(){ const x=byId('proformas',drawer.id); if(!x||x.deleted) retu
     <div class="${x.fin_at?'ok':st==='Rejected'&&x.rej_stage==='Finance'?'no':st==='Approved'?'ok':''}">💰 Finance check: ${x.fin_at?`approved by <b>${esc(x.fin_by)}</b> · ${fmtD(x.fin_at)}`:st==='Rejected'&&x.rej_stage==='Finance'?`<b>rejected</b> by ${esc(x.rej_by)} · ${fmtD(x.rej_at)}`:st==='Approved'?esc(x.fin_note||'done'):'waiting'}</div>
     <div class="${x.appr_at?'ok':st==='Rejected'&&x.rej_stage==='Director'?'no':''}">✍ Director approval: ${x.appr_at?`approved by <b>${esc(x.appr_by)}</b> · ${fmtD(x.appr_at)}`:st==='Rejected'&&x.rej_stage==='Director'?`<b>rejected</b> by ${esc(x.rej_by)} · ${fmtD(x.rej_at)}`:'waiting'}</div>
     ${st==='Rejected'&&x.rej_reason?`<div class="no">Reason: ${esc(x.rej_reason)}</div>`:''}</div>`;
-  return drawerShell(x.supplier?`Proforma ${x.pf_no||''} – ${x.supplier}`:(f[0]?.name||'Proforma'),x.item?esc(x.item):'Proforma',`<div class="toolbar"><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span>${o?`<span class="chip ${pfStCls(s)}">${s}</span>`:''}${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>${tl}
+  return drawerShell(x.supplier?`Proforma ${x.pf_no||''} – ${x.supplier}`:(f[0]?.name||'Proforma'),x.item?esc(x.item):'Proforma',`<div class="toolbar"><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span>${pfPaidAny(x)?'<span class="chip good" title="A payment is recorded against this proforma – it is kept permanently">💰 Paid · cannot be deleted</span>':''}${o?`<span class="chip ${pfStCls(s)}">${s}</span>`:''}${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>${tl}
     <table class="kv">${[['Supplier',x.supplier],['Items',x.item],['Project',x.project_id?projName(x.project_id):''],['Proforma no.',x.pf_no],['Date',x.date&&fmtD(x.date)],['Amount',+x.amount>0?tzs(+x.amount)+(x.vat==='add'?' + VAT 18%':x.vat==='none'?' (no VAT)':' (VAT incl.)'):''],['Valid until',x.valid&&fmtD(x.valid)],['Payment terms',x.terms],['Note',x.note],['Purchase request',p?`${p.pr_no||''} – ${p.item||''} (${p.status})`:''],['RFQ / order',o?[o.rfq_no,o.po_no].filter(Boolean).join(' → '):''],['Added by',[x.by,x.at&&fmtD(x.at)].filter(Boolean).join(' · ')]].filter(z=>z[1]).map(([l,v])=>`<tr><th>${l}</th><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
     ${(x.lines||[]).length?`<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Item</th><th class="r">Qty</th><th>Unit</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>${x.lines.map(i=>`<tr><td>${esc(i.d)}</td><td class="r num">${i.q??''}</td><td>${esc(i.u||'')}</td><td class="r num">${i.r?Math.round(i.r).toLocaleString('en-US'):''}</td><td class="r num">${i.a?Math.round(i.a).toLocaleString('en-US'):''}</td></tr>`).join('')}</tbody></table></div>`:''}
     ${(st!=='Approved'||isAdmin)&&canWrite&&pfReadable(f[0])?`<div class="toolbar" style="margin-top:6px"><button class="btn sm" data-pfx="read:${esc(x.id)}">${UI.pfReading?.[x.id]?'🤖 Reading…':x.ai_read_at?'🤖 Read the proforma again':'🤖 Read details from the proforma'}</button><span class="sub">${x.ai_read_at?'Details read by AI '+fmtD(x.ai_read_at)+' – check them against the copy.':''}</span></div>`:''}
