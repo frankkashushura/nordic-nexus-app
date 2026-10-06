@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=167"></script>
+<script src="config.js?v=168"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=167"></script>
-<script src="nexus-chat.js?v=167"></script>
+<script src="nexus-sb.js?v=168"></script>
+<script src="nexus-chat.js?v=168"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -728,6 +728,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 .tile .ti,.ab-ico{background:none!important;box-shadow:none!important;border:0!important}
 .tile .ti{font-size:24px}
 .tile .ti svg{width:24px;height:24px}
+.pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}
 </style>
 
 <div class="app" id="app">
@@ -2386,47 +2387,40 @@ function pfRows(){
     A.push({k:'q',id:o.id,qi:i,date:String(q.at||o.rfq_at||'').slice(0,10),s:q.s,item:o.item,project_id:o.project_id,amount:+q.amount||0,pf_no:q.pf_no,valid:q.valid,files:q.files||[],pr_id:o.pr_id,po:o,chosen:o.chosen===i,by:q.by}); }));
   return A.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
-const pfSt=r=>r.chosen?(r.po&&r.po.po_no?'Ordered':'Chosen'):r.po?'In RFQ':r.pr_id?'Waiting to link':r.valid&&r.valid<today()?'Expired':'Not linked';
-const pfStCls=s=>s==='Ordered'||s==='Chosen'?'good':s==='In RFQ'?'blue':s==='Expired'?'bad':'amb';
+const pfSt=r=>r.chosen?(r.po&&r.po.po_no?'Ordered':'Chosen'):r.po?'In RFQ':r.pr_id?'Waiting to link':r.valid&&r.valid<today()?'Expired':'Attached';
+const pfStCls=s=>s==='Ordered'||s==='Chosen'?'good':s==='In RFQ'?'blue':s==='Expired'?'bad':s==='Attached'?'':'amb';
 const pfOpenPRs=()=>S.procurement.filter(p=>['Requested','Approved'].includes(p.status)&&!p.example&&!(poForPR(p.id)&&poForPR(p.id).status!=='RFQ'));
 function pfTab(){
-  const all=pfRows(), q=lcN(UI.pfq||''), f=UI.pff||'all', m=today().slice(0,7);
-  const rows=all.filter(r=>(f==='all'||pfSt(r)===f||(f==='Not linked'&&pfSt(r)==='Waiting to link'))&&(!q||lcN([r.s,r.item,r.pf_no,r.po?.rfq_no,r.project_id?projName(r.project_id):''].join(' ')).includes(q)));
-  const soon=all.filter(r=>r.valid&&!r.chosen&&r.valid>=today()&&daysLeft(r.valid+'T23:59')<=3).length;
-  return `<div class="grid g4">
-    <div class="card kpi blu"><span class="label">Proformas</span><span class="v num">${all.length}</span><span class="s">${all.filter(r=>r.date.startsWith(m)).length} this month</span></div>
-    <div class="card kpi amb"><span class="label">Not linked yet</span><span class="v num">${all.filter(r=>!r.po).length}</span><span class="s">not in any request</span></div>
-    <div class="card kpi grn"><span class="label">Value this month</span><span class="v num">${tzsShort(all.filter(r=>r.date.startsWith(m)).reduce((a,r)=>a+r.amount,0))}</span><span class="s">${m}</span></div>
-    <div class="card kpi ${soon?'hot':'grn'}"><span class="label">Expiring ≤ 3 days</span><span class="v num">${soon}</span><span class="s">ask supplier to extend</span></div></div>
-  <div class="toolbar" style="flex-wrap:wrap;gap:6px"><div class="seg">${[['all','All'],['Not linked','Not linked'],['In RFQ','In RFQ'],['Chosen','Chosen'],['Expired','Expired']].map(([k,l])=>`<button data-pfx="f:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
-    <input class="inp" id="pfq" placeholder="Search supplier, item, proforma no…" value="${esc(UI.pfq||'')}" style="max-width:260px" aria-label="Search proformas"><div class="sp"></div>${canWrite?'<button class="btn pri" data-pfx="new">+ Add proforma</button>':''}</div>
-  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Supplier</th><th>Item</th><th class="hide-m">Proforma no.</th><th class="r">Amount (TZS)</th><th class="hide-m">Valid to</th><th>Status</th><th class="hide-m">File</th></tr></thead><tbody>
-  ${rows.map(r=>{ const s=pfSt(r); return `<tr class="click" style="cursor:pointer" data-pfx="${r.k==='s'?'o:'+esc(r.id):'q:'+esc(r.id)}"><td class="small">${fmtD(r.date)}</td><td class="ttl2">${esc(r.s||'')}</td><td>${esc(r.item||'')}<div class="sub">${esc(r.project_id?projName(r.project_id):'Office / general')}${r.po?.rfq_no?' · '+esc(r.po.rfq_no):''}</div></td><td class="hide-m small mono">${esc(r.pf_no||'—')}</td><td class="r num">${r.amount?Math.round(r.amount).toLocaleString('en-US'):'—'}</td><td class="hide-m small">${r.valid?fmtD(r.valid):'—'}</td><td><span class="chip ${pfStCls(s)}">${s}</span></td><td class="hide-m">${r.files.length?'📎 '+r.files.length:'<span class="sub">none</span>'}</td></tr>`; }).join('')||`<tr><td colspan="8" class="empty">${all.length?'Nothing matches.':'No proformas yet. Click “+ Add proforma” to record a supplier proforma – take a photo of a handwritten / printed one, or attach the PDF received by WhatsApp or e-mail.'}</td></tr>`}
-  </tbody></table></div></div>
-  <p class="sub">Every proforma is kept here – also those recorded inside an RFQ. Link a proforma to a purchase request to compare it with other quotations; the Procurement Officer then chooses the supplier and issues the PO.</p>`;
+  const all=pfRows(), q=lcN(UI.pfq||'');
+  const rows=all.filter(r=>!q||lcN([r.s,r.item,r.pf_no,r.files.map(f=>f.name).join(' '),r.po?.rfq_no,r.by].join(' ')).includes(q));
+  return `${canWrite?`<label class="pf-drop" id="pfdrop"><input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-pfnew="1"><span class="pf-ico">📎</span><b>Attach proforma</b><span class="sub">Click to choose files from your computer or phone – or drag &amp; drop them here. PDF, photo, Word or Excel.</span></label>`:''}
+  <div class="toolbar"><b>${all.length} proforma${all.length===1?'':'s'}</b><div class="sp"></div><input class="inp" id="pfq" placeholder="Search…" value="${esc(UI.pfq||'')}" style="max-width:220px" aria-label="Search proformas"></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Proforma</th><th class="hide-m">Added by</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>
+  ${rows.map(r=>{ const s=pfSt(r), nm=r.s||(r.files[0]?.name)||'Proforma'; return `<tr class="click" style="cursor:pointer" data-pfx="${r.k==='s'?'o:'+esc(r.id):'q:'+esc(r.id)}"><td><div class="ttl2">📄 ${esc(nm)}</div>${r.s&&r.files[0]?`<div class="sub">${esc(r.files[0].name)}</div>`:''}${r.amount||r.item?`<div class="sub">${[r.item?esc(r.item):'',r.amount?tzs(r.amount):''].filter(Boolean).join(' · ')}</div>`:''}</td><td class="hide-m small">${esc(r.by||'')}</td><td class="small">${fmtD(r.date)}</td><td><span class="chip ${pfStCls(s)}">${s}</span></td><td class="r">${r.files.length?`<button class="btn sm" data-pfx="${r.k==='s'?'fo:'+esc(r.id)+':0':'q:'+esc(r.id)}">Open</button>`:''}</td></tr>`; }).join('')||`<tr><td colspan="5" class="empty">${all.length?'Nothing matches.':'No proformas yet – click “Attach proforma” above.'}</td></tr>`}
+  </tbody></table></div></div>`;
 }
 function pfFields(isNew){ const sups=(S.suppliers||[]).map(s=>s.name).sort((a,b)=>a.localeCompare(b));
-  return [{k:'supplier',label:'Supplier',type:'select',req:1,options:[['','— choose —'],...sups.map(n=>[n,n]),['__other','Other – not in the list (type below)']]},{k:'supplier_other',label:'…supplier name (if not in the list)',ph:'e.g. Mwanza Hardware'},
-    {k:'item',label:'Items / description',req:1,full:1,ph:'e.g. Cement 42.5N – 200 bags'},{k:'project_id',label:'Project',type:'select',options:projOpts('Office / general')},
+  return [{k:'supplier',label:'Supplier',type:'select',options:[['','— choose —'],...sups.map(n=>[n,n]),['__other','Other – not in the list (type below)']]},{k:'supplier_other',label:'…supplier name (if not in the list)',ph:'e.g. Mwanza Hardware'},
+    {k:'item',label:'Items / description',full:1,ph:'e.g. Cement 42.5N – 200 bags'},{k:'project_id',label:'Project',type:'select',options:projOpts('Office / general')},
     {k:'pf_no',label:'Proforma no.',ph:'as written (leave blank if none)'},{k:'date',label:'Proforma date',type:'date'},
-    {k:'amount',label:'Total amount (TZS)',type:'number',req:1},{k:'vat',label:'VAT',type:'select',options:PF_VAT},
+    {k:'amount',label:'Total amount (TZS)',type:'number'},{k:'vat',label:'VAT',type:'select',options:PF_VAT},
     {k:'valid',label:'Valid until',type:'date'},{k:'terms',label:'Payment terms',type:'select',options:PF_TERMS},
     {k:'pr_id',label:'For purchase request',type:'select',options:[['','Not yet – link later'],...pfOpenPRs().map(p=>[p.id,`${p.pr_no||''} – ${String(p.item||'').slice(0,40)}`])],help:poCanQ()?'Linking adds it as a quotation in that request\'s RFQ.':'The Procurement Officer adds it to the request.'},
     {k:'note',label:'Note (delivery, brand, transport…)',type:'textarea',full:1},
     ...(isNew?[{k:'pffile',label:'Attach the proforma – photo of paper / handwritten, or PDF from WhatsApp / e-mail',type:'file',full:1,accept:'.pdf,image/*,.doc,.docx,.xls,.xlsx'}]:[])]; }
 function pfSupName(v){ return v.supplier==='__other'?String(v.supplier_other||'').trim():v.supplier; }
 function prfEdit(x,pre){ const isNew=!x, sup=x?.supplier||pre?.supplier||'', known=!sup||(S.suppliers||[]).some(s=>lcN(s.name)===lcN(sup));
-  formDrawer(isNew?'Add proforma':'Edit proforma',pfFields(isNew),x?{...x,supplier:known?sup:'__other',supplier_other:known?'':sup}:{date:today(),vat:'incl',terms:PF_TERMS[0],...(pre||{})},async v=>{
-    const s=pfSupName(v); if(!s){ toast('Choose or type the supplier.'); return false; } if(!(+v.amount>0)){ toast('Enter the total amount.'); return false; }
-    const inp=$('#f_pffile'), files=inp?[...inp.files]:[]; delete v.pffile; delete v.supplier_other; v.supplier=s; v.amount=+v.amount;
+  formDrawer(isNew?'Add proforma':'Proforma details (optional)',pfFields(isNew),x?{...x,supplier:known?sup:'__other',supplier_other:known?'':sup}:{date:today(),vat:'incl',terms:PF_TERMS[0],...(pre||{})},async v=>{
+    const s=pfSupName(v)||''; const inp=$('#f_pffile'), files=inp?[...inp.files]:[]; delete v.pffile; delete v.supplier_other; v.supplier=s; v.amount=+v.amount||0;
     if(isNew&&!files.length&&!await confirmBox('No file attached. Save the proforma without a copy?','Save anyway')) return false;
     if(isNew){ const id=await put('proformas',null,{...v,files:await poFiles({project_id:v.project_id||'company'},files),by:me.name||'',by_uid:me.id||'',at:new Date().toISOString()}); if(!id) return false;
       logAct(`Added proforma ${v.pf_no||''} from ${s} – ${tzs(v.amount)}`); if(v.pr_id&&poCanQ()){ for(let k=0;k<30&&!byId('proformas',id);k++) await new Promise(r=>setTimeout(r,100)); await pfLink(id,v.pr_id,true); } return true; }
-    const pr=v.pr_id; await patch('proformas',x.id,v); pfSyncQuote(x.id); if(pr&&pr!==x.pr_id&&!x.po_id&&poCanQ()) await pfLink(x.id,pr,true); logAct(`Updated proforma ${v.pf_no||''} from ${s}`); return true; },
+    const pr=v.pr_id; await patch('proformas',x.id,v); pfSyncQuote(x.id); if(pr&&!byId('proformas',x.id)?.po_id&&poCanQ()) await pfLink(x.id,pr,true,v); logAct(`Updated proforma ${v.pf_no||''} from ${s}`); return true; },
     {sub:'Procurement · Proformas',saveLabel:isNew?'Save proforma':'Save'}); }
 function pfQuote(x){ const sup=supByName(x.supplier); return {s:x.supplier,email:sup?.email||'',phone:sup?.phone||'',amount:+x.amount||0,days:'',valid:x.valid||'',note:x.note||'',pf_no:x.pf_no||'',vat:x.vat||'incl',terms:x.terms||'',files:x.files||[],pf_id:x.id,at:x.at||new Date().toISOString(),by:x.by||me.name||''}; }
 async function pfSyncQuote(id){ const x=byId('proformas',id), o=x&&x.po_id?byId('po',x.po_id):null; if(!o||o.status!=='RFQ'||!poCanQ()) return; const i=(o.quotes||[]).findIndex(q=>q.pf_id===id); if(i<0) return; const Q=[...o.quotes]; Q[i]={...Q[i],...pfQuote(x),at:Q[i].at,by:Q[i].by}; await poPatch(o.id,{quotes:Q}); }
-async function pfLink(id,prId,quiet){ const x=byId('proformas',id), p=byId('procurement',prId); if(!x||!p) return;
+async function pfLink(id,prId,quiet,cur){ const x=cur?{...byId('proformas',id),...cur}:byId('proformas',id), p=byId('procurement',prId); if(!x||!p) return;
+  if(poCanQ()&&(!x.supplier||!(+x.amount>0))){ await patch('proformas',id,{pr_id:prId}); toast('Add the supplier and amount so it can be compared with other quotations.'); return setTimeout(()=>prfEdit(byId('proformas',id)),300); }
   if(!poCanQ()){ await patch('proformas',id,{pr_id:prId}); return toast('Saved – the Procurement Officer will add it to '+(p.pr_no||'the request')+'.'); }
   const poId=await poStart(prId,true); if(!poId) return; let o=byId('po',poId); for(let k=0;k<30&&!o;k++){ await new Promise(r=>setTimeout(r,100)); o=byId('po',poId); } if(!o) return;
   if(o.status!=='RFQ'){ await patch('proformas',id,{pr_id:prId}); return toast((o.po_no||'A PO')+' was already issued for this request – the proforma stays in the register.'); }
@@ -2442,16 +2436,16 @@ function pfNewPR(x){ formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='p
     for(let k=0;k<30&&!byId('procurement',prId);k++) await new Promise(r=>setTimeout(r,100)); await pfLink(x.id,prId,true); toast('Request sent for approval with the proforma attached.'); return true; },{saveLabel:'Send for approval'}); }
 function pfDrawer(){ const x=byId('proformas',drawer.id); if(!x||x.deleted) return ''; const o=x.po_id?byId('po',x.po_id):null, p=x.pr_id?byId('procurement',x.pr_id):null, r=pfRows().find(z=>z.k==='s'&&z.id===x.id)||{}, s=pfSt(r), f=x.files||[];
   const mine=x.by_uid===me.id||poCan(), opens=pfOpenPRs();
-  return drawerShell(`Proforma ${x.pf_no||''} – ${x.supplier||''}`,`${esc(x.item||'')}`,`<div class="toolbar"><span class="chip ${pfStCls(s)}">${s}</span>${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>
-    <table class="kv">${[['Supplier',x.supplier],['Items',x.item],['Project',x.project_id?projName(x.project_id):'Office / general'],['Proforma no.',x.pf_no],['Date',x.date&&fmtD(x.date)],['Amount',tzs(+x.amount||0)+(x.vat==='add'?' + VAT 18%':x.vat==='none'?' (no VAT)':' (VAT incl.)')],['Valid until',x.valid&&fmtD(x.valid)],['Payment terms',x.terms],['Note',x.note],['Purchase request',p?`${p.pr_no||''} – ${p.item||''} (${p.status})`:''],['RFQ / order',o?[o.rfq_no,o.po_no].filter(Boolean).join(' → '):''],['Added by',[x.by,x.at&&fmtD(x.at)].filter(Boolean).join(' · ')]].filter(z=>z[1]).map(([l,v])=>`<tr><th>${l}</th><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
+  return drawerShell(x.supplier?`Proforma ${x.pf_no||''} – ${x.supplier}`:(f[0]?.name||'Proforma'),x.item?esc(x.item):'Proforma',`<div class="toolbar"><span class="chip ${pfStCls(s)}">${s}</span>${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>
+    <table class="kv">${[['Supplier',x.supplier],['Items',x.item],['Project',x.project_id?projName(x.project_id):''],['Proforma no.',x.pf_no],['Date',x.date&&fmtD(x.date)],['Amount',+x.amount>0?tzs(+x.amount)+(x.vat==='add'?' + VAT 18%':x.vat==='none'?' (no VAT)':' (VAT incl.)'):''],['Valid until',x.valid&&fmtD(x.valid)],['Payment terms',x.terms],['Note',x.note],['Purchase request',p?`${p.pr_no||''} – ${p.item||''} (${p.status})`:''],['RFQ / order',o?[o.rfq_no,o.po_no].filter(Boolean).join(' → '):''],['Added by',[x.by,x.at&&fmtD(x.at)].filter(Boolean).join(' · ')]].filter(z=>z[1]).map(([l,v])=>`<tr><th>${l}</th><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
     <div class="label" style="margin-top:12px">Proforma copy (${f.length})</div>
     ${f.length?`<div class="hx-osf">${f.map((d,i)=>`<div class="hx-osfr"><span>📄</span><div class="grow"><b>${esc(d.name)}</b><small>${esc(d.by||'')} · ${fmtD(d.at)}</small></div><button class="btn sm" data-pfx="fo:${esc(x.id)}:${i}">Open</button><button class="btn sm" data-pfx="fd:${esc(x.id)}:${i}">Download</button></div>`).join('')}</div>`:'<p class="sub">No copy attached – add a photo or PDF.</p>'}
     ${canWrite?`<label class="btn sm" style="margin-top:8px">📷 Add photo / file<input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-pffile="${esc(x.id)}"></label>`:''}
-    ${!o&&canWrite?`<div class="card" style="margin-top:14px"><div class="hd"><h2>Use this proforma</h2></div><div class="bd">
+    ${!o&&canWrite?`<details class="card" style="margin-top:14px"${x.pr_id?' open':''}><summary class="hd" style="cursor:pointer;list-style:none"><h2>Link to a purchase request <span class="sub">(optional)</span></h2></summary><div class="bd">
       ${opens.length?`<div class="toolbar" style="flex-wrap:wrap;gap:6px"><select class="inp" id="pfpr" style="max-width:320px" aria-label="Purchase request"><option value="">Link to purchase request…</option>${opens.map(q=>`<option value="${esc(q.id)}" ${q.id===x.pr_id?'selected':''}>${esc(q.pr_no||'')} – ${esc(String(q.item||'').slice(0,40))} (${esc(q.status)})</option>`).join('')}</select><button class="btn sm pri" data-pfx="link:${esc(x.id)}">Link</button></div>`:'<p class="sub">No open purchase request to link to.</p>'}
       <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-pfx="newpr:${esc(x.id)}">+ Create purchase request from this proforma</button></div>
-      <p class="sub">${poCanQ()?'Linking adds it as a quotation in the request\'s RFQ, next to other suppliers\' prices.':'The Procurement Officer adds linked proformas to the request\'s RFQ.'}</p></div></div>`:''}`,
-    `${o?`<button class="btn pri" data-p5="open:${esc(o.id)}">Open ${esc(o.po_no||o.rfq_no||'RFQ')}</button>`:''}<div class="sp"></div>${mine&&canWrite?`<button class="btn" data-pfx="edit:${esc(x.id)}">Edit</button>`:''}${mine&&canWrite&&!r.chosen?`<button class="btn danger" data-pfx="del:${esc(x.id)}">Remove</button>`:''}`); }
+      <p class="sub">${poCanQ()?'Linking adds it as a quotation in the request\'s RFQ, next to other suppliers\' prices.':'The Procurement Officer adds linked proformas to the request\'s RFQ.'}</p></div></details>`:''}`,
+    `${o?`<button class="btn pri" data-p5="open:${esc(o.id)}">Open ${esc(o.po_no||o.rfq_no||'RFQ')}</button>`:''}<div class="sp"></div>${mine&&canWrite?`<button class="btn" data-pfx="edit:${esc(x.id)}">${x.supplier||x.amount?'Edit details':'+ Add details (optional)'}</button>`:''}${mine&&canWrite&&!r.chosen?`<button class="btn danger" data-pfx="del:${esc(x.id)}">Remove</button>`:''}`); }
 document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pfx]'); if(!el) return; const [a,...r]=el.dataset.pfx.split(':'), x=r.join(':');
   if(a==='f'){ UI.pff=x; return renderView(true); }
   if(a==='new') return prfEdit(null);
@@ -2465,6 +2459,11 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pf
     await patch('proformas',x,{deleted:true,deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Removed proforma ${p.pf_no||''} (${p.supplier})`); closeDrawer(); toast('Proforma removed.'); return; }
   if(a==='fo'||a==='fd'){ const [id,i]=x.split(':'); const p=byId('proformas',id), f=p&&(p.files||[])[+i]; if(f) pfOpen(f,a==='fd'); return; }
 });
+async function pfQuick(files){ files=[...files]; if(!files.length||!canWrite) return; let n=0;
+  for(const f of files){ const up=await poFiles({project_id:'company'},[f]); if(!up.length) continue; if(await put('proformas',null,{files:up,date:today(),by:me.name||'',by_uid:me.id||'',at:new Date().toISOString(),source:'Attached'})) n++; }
+  if(n){ logAct(`Attached ${n} proforma${n>1?'s':''}`); toast(`${n} proforma${n>1?'s':''} attached.`); renderView(true); } }
+document.addEventListener('change',e=>{ const t=e.target; if(t.dataset&&t.dataset.pfnew&&t.files.length){ const fl=[...t.files]; t.value=''; pfQuick(fl); } });
+['dragover','dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ const d=e.target.closest&&e.target.closest('#pfdrop'); if(!d) return; e.preventDefault(); d.classList.toggle('over',ev==='dragover'); if(ev==='drop'&&e.dataTransfer?.files?.length) pfQuick(e.dataTransfer.files); }));
 document.addEventListener('change',async e=>{ const t=e.target; if(!t.dataset||!t.dataset.pffile||!t.files.length) return; const p=byId('proformas',t.dataset.pffile); if(!p) return;
   const add=await poFiles({project_id:p.project_id||'company'},[...t.files]); t.value=''; if(!add.length) return; await patch('proformas',p.id,{files:[...(p.files||[]),...add]}); setTimeout(()=>pfSyncQuote(p.id),400); toast('Proforma copy attached.'); });
 document.addEventListener('input',e=>{ if(e.target.id==='pfq'){ UI.pfq=e.target.value; renderView(true); setTimeout(()=>{ const i=$('#pfq'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } },0); } });
