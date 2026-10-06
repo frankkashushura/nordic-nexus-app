@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=168"></script>
+<script src="config.js?v=169"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=168"></script>
-<script src="nexus-chat.js?v=168"></script>
+<script src="nexus-sb.js?v=169"></script>
+<script src="nexus-chat.js?v=169"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -728,7 +728,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 .tile .ti,.ab-ico{background:none!important;box-shadow:none!important;border:0!important}
 .tile .ti{font-size:24px}
 .tile .ti svg{width:24px;height:24px}
-.pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}
+.pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}.pf-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}.pf-step{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card,rgba(255,255,255,.03));flex:1;min-width:150px}.pf-step b{display:block;font-size:.9rem}.pf-step small{opacity:.75}.pf-step.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.pf-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#000;font-weight:700;flex:none}.pf-ar{opacity:.5;font-size:1.3rem}.pf-tl{margin:10px 0 4px;border-left:3px solid var(--line);padding-left:12px;display:grid;gap:6px}.pf-tl>div{opacity:.75}.pf-tl .ok{opacity:1}.pf-tl .no{opacity:1;color:var(--bad)}@media(max-width:700px){.pf-ar{display:none}.pf-step{min-width:45%}}
 </style>
 
 <div class="app" id="app">
@@ -1006,6 +1006,10 @@ function computeAlerts(){
   S.reports.filter(r=>r.hse && r.hse.trim() && !/^(none|nil|no)\b/i.test(r.hse.trim()) && daysLeft(r.date)>-7).forEach(r=>A.push({lvl:'bad', kind:'HSE', text:`HSE note on ${projName(r.project_id)}`, sub:r.hse.slice(0,90), go:['report',r.id], sort:2, at:r.updated_at||r.date}));
   (certOk()?(S.certificates||[]):[]).forEach(c=>{ if(typeof certState!=='function') return; const st=certState(c); if(st.cls==='bad') A.push({lvl:'bad', kind:'Payment overdue', text:`${c.no} – ${projName(c.project_id)}`, sub:`${tzs(c.amount)} · ${st.label}`, go:['route','certs'], sort:3}); });
   S.tenders.filter(t=>/preparing/i.test(t.status||'')).forEach(t=>{ const d=daysLeft(t.deadline); if(d==null||d<0||d>5||typeof checklistState!=='function') return; const s=checklistState(t); if(s.done<s.total) A.push({lvl:d<=2?'bad':'warn', kind:'Bid not ready', text:t.title, sub:`Checklist ${s.done}/${s.total} · closes ${fmtDT(t.deadline)}`, go:['tender',t.id], sort:d}); });
+  if(typeof pfList==='function'){ const P=pfList(); const nf=P.filter(x=>pfA(x)==='Pending').length, nd=P.filter(x=>pfA(x)==='Finance approved').length, nr=P.filter(x=>pfA(x)==='Rejected'&&x.by_uid===me.id).length;
+    if(isFinR()&&!isAdmin&&nf) A.push({lvl:'warn', kind:'Proformas to approve', text:`${nf} proforma${nf>1?'s':''} waiting for the Finance check`, sub:'Procurement → Proformas', go:['route','procure'], sort:7});
+    if(isAdmin&&(nd||nf)) A.push({lvl:'warn', kind:'Proformas to approve', text:`${nd} waiting for director approval${nf?` · ${nf} not yet checked by Finance`:''}`, sub:'Procurement → Proformas', go:['route','procure'], sort:7});
+    if(nr) A.push({lvl:'bad', kind:'Proforma rejected', text:`${nr} of your proformas ${nr>1?'were':'was'} rejected`, sub:'Open Procurement → Proformas → Rejected to see the reason and re-submit', go:['route','procure'], sort:6}); }
   if(typeof pfList==='function'&&poCanQ()) pfList().filter(x=>x.pr_id&&!x.po_id).forEach(x=>A.push({lvl:'blue', kind:'Proforma to link', text:`${x.supplier||''} – ${tzs(+x.amount||0)}`, sub:`Added by ${x.by||'staff'} for ${(byId('procurement',x.pr_id)||{}).pr_no||'a purchase request'} – open Procurement → Proformas and click Link`, go:['route','procure'], sort:17}));
   if(typeof poList==='function'&&(poCan()||money())) poList().forEach(o=>{ if(poInvMissing(o)) A.push({lvl:'warn', kind:'Tax invoice missing', text:`${o.po_no} – ${o.supplier||''}`, sub:`Paid ${tzs(poPaid(o))} but no tax invoice / EFD receipt attached`, go:['route','procure'], sort:9});
     const d=poPFDays(o); if(d!=null&&d<2&&poCan()) A.push({lvl:d<0?'bad':'warn', kind:'Proforma expiring', text:`${o.rfq_no} – ${poPF(o).s}`, sub:d<0?'The chosen proforma has expired – ask the supplier to confirm the price':'The chosen proforma expires '+fmtD(poPF(o).valid)+' – issue the PO or ask for an extension', go:['route','procure'], sort:8}); });
@@ -2390,15 +2394,40 @@ function pfRows(){
 const pfSt=r=>r.chosen?(r.po&&r.po.po_no?'Ordered':'Chosen'):r.po?'In RFQ':r.pr_id?'Waiting to link':r.valid&&r.valid<today()?'Expired':'Attached';
 const pfStCls=s=>s==='Ordered'||s==='Chosen'?'good':s==='In RFQ'?'blue':s==='Expired'?'bad':s==='Attached'?'':'amb';
 const pfOpenPRs=()=>S.procurement.filter(p=>['Requested','Approved'].includes(p.status)&&!p.example&&!(poForPR(p.id)&&poForPR(p.id).status!=='RFQ'));
+/* v169 · proforma APPROVAL flow: Attached (Pending) → Finance check → Director approval → Approved cabinet. Rejected → Procurement re-submits. Guarded by SQL 43. */
+const PFA=['Pending','Finance approved','Approved','Rejected'];
+const pfA=x=>PFA.includes(x?.status)?x.status:'Pending';
+const pfAL=s=>s==='Pending'?'Waiting for Finance':s==='Finance approved'?'Waiting for Director':s;
+const pfACls=s=>s==='Approved'?'good':s==='Rejected'?'bad':s==='Finance approved'?'blue':'amb';
+const pfCanAp=x=>{ const s=pfA(x); return isAdmin?['Pending','Finance approved'].includes(s):isFinR()&&s==='Pending'; };
 function pfTab(){
-  const all=pfRows(), q=lcN(UI.pfq||'');
-  const rows=all.filter(r=>!q||lcN([r.s,r.item,r.pf_no,r.files.map(f=>f.name).join(' '),r.po?.rfq_no,r.by].join(' ')).includes(q));
+  const all=pfList(), q=lcN(UI.pfq||''), C=k=>all.filter(x=>pfA(x)===k).length;
+  const wait=all.filter(x=>['Pending','Finance approved'].includes(pfA(x)));
+  const tab=UI.pft||(isAdmin||isFinR()?(wait.some(pfCanAp)?'wait':'cab'):'wait');
+  const list=(tab==='wait'?wait:tab==='cab'?all.filter(x=>pfA(x)==='Approved'):all.filter(x=>pfA(x)==='Rejected'))
+    .filter(x=>!q||lcN([x.supplier,x.item,x.pf_no,(x.files||[]).map(f=>f.name).join(' '),x.by,x.appr_by,x.fin_by].join(' ')).includes(q))
+    .sort((a,b)=>String(tab==='cab'?b.appr_at||'':b.at||'').localeCompare(String(tab==='cab'?a.appr_at||'':a.at||'')));
+  const step=(n,t,c,on)=>`<div class="pf-step${on?' on':''}"><span class="pf-n">${n}</span><div><b>${t}</b><small>${c}</small></div></div>`;
   return `${canWrite?`<label class="pf-drop" id="pfdrop"><input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-pfnew="1"><span class="pf-ico">📎</span><b>Attach proforma</b><span class="sub">Click to choose files from your computer or phone – or drag &amp; drop them here. PDF, photo, Word or Excel.</span></label>`:''}
-  <div class="toolbar"><b>${all.length} proforma${all.length===1?'':'s'}</b><div class="sp"></div><input class="inp" id="pfq" placeholder="Search…" value="${esc(UI.pfq||'')}" style="max-width:220px" aria-label="Search proformas"></div>
-  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Proforma</th><th class="hide-m">Added by</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>
-  ${rows.map(r=>{ const s=pfSt(r), nm=r.s||(r.files[0]?.name)||'Proforma'; return `<tr class="click" style="cursor:pointer" data-pfx="${r.k==='s'?'o:'+esc(r.id):'q:'+esc(r.id)}"><td><div class="ttl2">📄 ${esc(nm)}</div>${r.s&&r.files[0]?`<div class="sub">${esc(r.files[0].name)}</div>`:''}${r.amount||r.item?`<div class="sub">${[r.item?esc(r.item):'',r.amount?tzs(r.amount):''].filter(Boolean).join(' · ')}</div>`:''}</td><td class="hide-m small">${esc(r.by||'')}</td><td class="small">${fmtD(r.date)}</td><td><span class="chip ${pfStCls(s)}">${s}</span></td><td class="r">${r.files.length?`<button class="btn sm" data-pfx="${r.k==='s'?'fo:'+esc(r.id)+':0':'q:'+esc(r.id)}">Open</button>`:''}</td></tr>`; }).join('')||`<tr><td colspan="5" class="empty">${all.length?'Nothing matches.':'No proformas yet – click “Attach proforma” above.'}</td></tr>`}
+  <div class="pf-flow">${step(1,'Attached','Procurement',false)}<span class="pf-ar">›</span>${step(2,'Finance check',C('Pending')+' waiting',isFinR()&&C('Pending'))}<span class="pf-ar">›</span>${step(3,'Director approval',C('Finance approved')+' waiting',isAdmin&&C('Finance approved'))}<span class="pf-ar">›</span>${step('✓','Approved cabinet',C('Approved')+' proformas',false)}</div>
+  <div class="toolbar"><div class="seg">${[['wait',`Waiting approval (${wait.length})`],['cab',`🗄 Approved cabinet (${C('Approved')})`],['rej',`Rejected (${C('Rejected')})`]].map(([k,l])=>`<button data-pfx="t:${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div><div class="sp"></div><input class="inp" id="pfq" placeholder="Search…" value="${esc(UI.pfq||'')}" style="max-width:200px" aria-label="Search proformas"></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Proforma</th><th class="hide-m">Attached by</th><th>${tab==='cab'?'Approved':'Date'}</th><th>Status</th><th></th></tr></thead><tbody>
+  ${list.map(x=>{ const st=pfA(x), f=x.files||[], nm=x.supplier||(f[0]?.name)||'Proforma';
+    return `<tr class="click" style="cursor:pointer" data-pfx="o:${esc(x.id)}"><td><div class="ttl2">📄 ${esc(nm)}</div>${x.supplier&&f[0]?`<div class="sub">${esc(f[0].name)}</div>`:''}${x.amount||x.item?`<div class="sub">${[x.item?esc(x.item):'',+x.amount?tzs(+x.amount):''].filter(Boolean).join(' · ')}</div>`:''}${st==='Rejected'&&x.rej_reason?`<div class="sub" style="color:var(--bad)">Reason: ${esc(x.rej_reason)}</div>`:''}</td>
+      <td class="hide-m small">${esc(x.by||'')}</td><td class="small">${fmtD(tab==='cab'?x.appr_at:x.at||x.date)}${tab==='cab'&&x.appr_by?`<div class="sub">${esc(x.appr_by)}</div>`:''}</td><td><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span></td>
+      <td class="r" style="white-space:nowrap">${f.length?`<button class="btn sm" data-pfx="fo:${esc(x.id)}:0">Open</button> `:''}${pfCanAp(x)?`<button class="btn sm pri" data-pfx="ap:${esc(x.id)}">Approve</button> <button class="btn sm danger" data-pfx="rj:${esc(x.id)}">Reject</button>`:''}</td></tr>`; }).join('')
+    ||`<tr><td colspan="5" class="empty">${tab==='wait'?(all.length?'Nothing waiting for approval.':'No proformas yet – click “Attach proforma” above.'):tab==='cab'?'No approved proformas yet.':'No rejected proformas.'}</td></tr>`}
   </tbody></table></div></div>`;
 }
+async function pfApprove(id){ const x=byId('proformas',id); if(!x||!pfCanAp(x)) return; const st=pfA(x), now=new Date().toISOString(), nm=x.supplier||(x.files||[])[0]?.name||'proforma';
+  if(isAdmin){ if(!await confirmBox(`Give final approval to “${nm}”?${st==='Pending'?'\n\nFinance has not checked it yet – your approval as director completes both steps.':''}\n\nIt moves to the Approved cabinet and is locked.`,'Approve')) return;
+    await patch('proformas',id,{status:'Approved',appr_by:me.name||'',appr_uid:me.id||'',appr_at:now,...(st==='Pending'?{fin_note:'Finance step done by director'}:{})}); logAct(`Approved proforma ${nm}`); toast('Approved – saved in the Approved cabinet.'); }
+  else { if(!await confirmBox(`Approve “${nm}” for Finance?\n\nIt then goes to the directors for final approval.`,'Approve')) return;
+    await patch('proformas',id,{status:'Finance approved',fin_by:me.name||'',fin_uid:me.id||'',fin_at:now}); logAct(`Finance approved proforma ${nm}`); toast('Approved by Finance – sent to the directors.'); }
+  renderView(true); if(drawer&&drawer.type==='pfv') renderDrawer(); }
+function pfReject(id){ const x=byId('proformas',id); if(!x||!pfCanAp(x)) return;
+  formDrawer('Reject proforma',[{k:'reason',label:'Reason (shown to Procurement)',type:'textarea',req:1,full:1,ph:'e.g. price too high – ask for a better offer / wrong items'}],{},async v=>{
+    await patch('proformas',id,{status:'Rejected',rej_by:me.name||'',rej_uid:me.id||'',rej_at:new Date().toISOString(),rej_reason:v.reason,rej_stage:pfA(x)==='Pending'?'Finance':'Director'}); logAct(`Rejected proforma ${x.supplier||(x.files||[])[0]?.name||''}: ${v.reason}`); return true; },{saveLabel:'Reject',sub:'Procurement · Proformas'}); }
 function pfFields(isNew){ const sups=(S.suppliers||[]).map(s=>s.name).sort((a,b)=>a.localeCompare(b));
   return [{k:'supplier',label:'Supplier',type:'select',options:[['','— choose —'],...sups.map(n=>[n,n]),['__other','Other – not in the list (type below)']]},{k:'supplier_other',label:'…supplier name (if not in the list)',ph:'e.g. Mwanza Hardware'},
     {k:'item',label:'Items / description',full:1,ph:'e.g. Cement 42.5N – 200 bags'},{k:'project_id',label:'Project',type:'select',options:projOpts('Office / general')},
@@ -2435,19 +2464,27 @@ function pfNewPR(x){ formDrawer('New purchase request',PR_FIELDS.map(f=>f.k==='p
     logAct(`Raised purchase request "${v.item}" ${tzs(v.est_cost)} from proforma ${x.pf_no||''}`); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR();
     for(let k=0;k<30&&!byId('procurement',prId);k++) await new Promise(r=>setTimeout(r,100)); await pfLink(x.id,prId,true); toast('Request sent for approval with the proforma attached.'); return true; },{saveLabel:'Send for approval'}); }
 function pfDrawer(){ const x=byId('proformas',drawer.id); if(!x||x.deleted) return ''; const o=x.po_id?byId('po',x.po_id):null, p=x.pr_id?byId('procurement',x.pr_id):null, r=pfRows().find(z=>z.k==='s'&&z.id===x.id)||{}, s=pfSt(r), f=x.files||[];
-  const mine=x.by_uid===me.id||poCan(), opens=pfOpenPRs();
-  return drawerShell(x.supplier?`Proforma ${x.pf_no||''} – ${x.supplier}`:(f[0]?.name||'Proforma'),x.item?esc(x.item):'Proforma',`<div class="toolbar"><span class="chip ${pfStCls(s)}">${s}</span>${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>
+  const mine=(x.by_uid===me.id||poCan())&&pfA(x)!=='Approved', opens=pfOpenPRs(), st=pfA(x);
+  const tl=`<div class="pf-tl"><div class="ok">📎 Attached by <b>${esc(x.by||'')}</b> · ${fmtD(x.at||x.date)}</div>
+    <div class="${x.fin_at?'ok':st==='Rejected'&&x.rej_stage==='Finance'?'no':st==='Approved'?'ok':''}">💰 Finance check: ${x.fin_at?`approved by <b>${esc(x.fin_by)}</b> · ${fmtD(x.fin_at)}`:st==='Rejected'&&x.rej_stage==='Finance'?`<b>rejected</b> by ${esc(x.rej_by)} · ${fmtD(x.rej_at)}`:st==='Approved'?esc(x.fin_note||'done'):'waiting'}</div>
+    <div class="${x.appr_at?'ok':st==='Rejected'&&x.rej_stage==='Director'?'no':''}">✍ Director approval: ${x.appr_at?`approved by <b>${esc(x.appr_by)}</b> · ${fmtD(x.appr_at)}`:st==='Rejected'&&x.rej_stage==='Director'?`<b>rejected</b> by ${esc(x.rej_by)} · ${fmtD(x.rej_at)}`:'waiting'}</div>
+    ${st==='Rejected'&&x.rej_reason?`<div class="no">Reason: ${esc(x.rej_reason)}</div>`:''}</div>`;
+  return drawerShell(x.supplier?`Proforma ${x.pf_no||''} – ${x.supplier}`:(f[0]?.name||'Proforma'),x.item?esc(x.item):'Proforma',`<div class="toolbar"><span class="chip ${pfACls(st)}">${esc(pfAL(st))}</span>${o?`<span class="chip ${pfStCls(s)}">${s}</span>`:''}${x.valid&&x.valid<today()&&!r.chosen?'<span class="chip bad">expired</span>':''}</div>${tl}
     <table class="kv">${[['Supplier',x.supplier],['Items',x.item],['Project',x.project_id?projName(x.project_id):''],['Proforma no.',x.pf_no],['Date',x.date&&fmtD(x.date)],['Amount',+x.amount>0?tzs(+x.amount)+(x.vat==='add'?' + VAT 18%':x.vat==='none'?' (no VAT)':' (VAT incl.)'):''],['Valid until',x.valid&&fmtD(x.valid)],['Payment terms',x.terms],['Note',x.note],['Purchase request',p?`${p.pr_no||''} – ${p.item||''} (${p.status})`:''],['RFQ / order',o?[o.rfq_no,o.po_no].filter(Boolean).join(' → '):''],['Added by',[x.by,x.at&&fmtD(x.at)].filter(Boolean).join(' · ')]].filter(z=>z[1]).map(([l,v])=>`<tr><th>${l}</th><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
     <div class="label" style="margin-top:12px">Proforma copy (${f.length})</div>
     ${f.length?`<div class="hx-osf">${f.map((d,i)=>`<div class="hx-osfr"><span>📄</span><div class="grow"><b>${esc(d.name)}</b><small>${esc(d.by||'')} · ${fmtD(d.at)}</small></div><button class="btn sm" data-pfx="fo:${esc(x.id)}:${i}">Open</button><button class="btn sm" data-pfx="fd:${esc(x.id)}:${i}">Download</button></div>`).join('')}</div>`:'<p class="sub">No copy attached – add a photo or PDF.</p>'}
-    ${canWrite?`<label class="btn sm" style="margin-top:8px">📷 Add photo / file<input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-pffile="${esc(x.id)}"></label>`:''}
+    ${canWrite&&st!=='Approved'?`<label class="btn sm" style="margin-top:8px">📷 Add photo / file<input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-pffile="${esc(x.id)}"></label>`:''}
     ${!o&&canWrite?`<details class="card" style="margin-top:14px"${x.pr_id?' open':''}><summary class="hd" style="cursor:pointer;list-style:none"><h2>Link to a purchase request <span class="sub">(optional)</span></h2></summary><div class="bd">
       ${opens.length?`<div class="toolbar" style="flex-wrap:wrap;gap:6px"><select class="inp" id="pfpr" style="max-width:320px" aria-label="Purchase request"><option value="">Link to purchase request…</option>${opens.map(q=>`<option value="${esc(q.id)}" ${q.id===x.pr_id?'selected':''}>${esc(q.pr_no||'')} – ${esc(String(q.item||'').slice(0,40))} (${esc(q.status)})</option>`).join('')}</select><button class="btn sm pri" data-pfx="link:${esc(x.id)}">Link</button></div>`:'<p class="sub">No open purchase request to link to.</p>'}
       <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-pfx="newpr:${esc(x.id)}">+ Create purchase request from this proforma</button></div>
       <p class="sub">${poCanQ()?'Linking adds it as a quotation in the request\'s RFQ, next to other suppliers\' prices.':'The Procurement Officer adds linked proformas to the request\'s RFQ.'}</p></div></details>`:''}`,
-    `${o?`<button class="btn pri" data-p5="open:${esc(o.id)}">Open ${esc(o.po_no||o.rfq_no||'RFQ')}</button>`:''}<div class="sp"></div>${mine&&canWrite?`<button class="btn" data-pfx="edit:${esc(x.id)}">${x.supplier||x.amount?'Edit details':'+ Add details (optional)'}</button>`:''}${mine&&canWrite&&!r.chosen?`<button class="btn danger" data-pfx="del:${esc(x.id)}">Remove</button>`:''}`); }
+    `${o?`<button class="btn pri" data-p5="open:${esc(o.id)}">Open ${esc(o.po_no||o.rfq_no||'RFQ')}</button>`:''}${pfCanAp(x)?`<button class="btn pri" data-pfx="ap:${esc(x.id)}">${isAdmin?'Approve (final)':'Approve'}</button><button class="btn danger" data-pfx="rj:${esc(x.id)}">Reject</button>`:''}${st==='Rejected'&&canWrite&&(x.by_uid===me.id||poCanQ())?`<button class="btn pri" data-pfx="rs:${esc(x.id)}">Re-submit for approval</button>`:''}<div class="sp"></div>${mine&&canWrite?`<button class="btn" data-pfx="edit:${esc(x.id)}">${x.supplier||x.amount?'Edit details':'+ Add details (optional)'}</button>`:''}${mine&&canWrite&&!r.chosen?`<button class="btn danger" data-pfx="del:${esc(x.id)}">Remove</button>`:''}`); }
 document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pfx]'); if(!el) return; const [a,...r]=el.dataset.pfx.split(':'), x=r.join(':');
   if(a==='f'){ UI.pff=x; return renderView(true); }
+  if(a==='t'){ UI.pft=x; return renderView(true); }
+  if(a==='ap'){ e.stopPropagation(); return pfApprove(x); }
+  if(a==='rj'){ e.stopPropagation(); return pfReject(x); }
+  if(a==='rs'){ await patch('proformas',x,{status:'Pending'}); logAct('Re-submitted a proforma for approval'); toast('Sent back to Finance for approval.'); return renderDrawer(); }
   if(a==='new') return prfEdit(null);
   if(a==='o') return openDrawer('pfv',x);
   if(a==='q') return openDrawer('p5po',x);
@@ -2457,11 +2494,11 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pf
   if(a==='del'){ const p=byId('proformas',x); if(!p) return; if(!await confirmBox('Remove this proforma from the register?','Remove',true)) return;
     if(p.po_id){ const o=byId('po',p.po_id); if(o&&o.status==='RFQ'&&poCanQ()){ const i=(o.quotes||[]).findIndex(q=>q.pf_id===p.id); if(i>=0&&o.chosen!==i){ const Q=o.quotes.filter((q,k)=>k!==i); await poPatch(o.id,{quotes:Q,...(o.chosen!=null&&o.chosen>i?{chosen:o.chosen-1}:{})}); } } }
     await patch('proformas',x,{deleted:true,deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Removed proforma ${p.pf_no||''} (${p.supplier})`); closeDrawer(); toast('Proforma removed.'); return; }
-  if(a==='fo'||a==='fd'){ const [id,i]=x.split(':'); const p=byId('proformas',id), f=p&&(p.files||[])[+i]; if(f) pfOpen(f,a==='fd'); return; }
+  if(a==='fo'||a==='fd'){ e.stopPropagation(); const [id,i]=x.split(':'); const p=byId('proformas',id), f=p&&(p.files||[])[+i]; if(f) pfOpen(f,a==='fd'); return; }
 });
 async function pfQuick(files){ files=[...files]; if(!files.length||!canWrite) return; let n=0;
-  for(const f of files){ const up=await poFiles({project_id:'company'},[f]); if(!up.length) continue; if(await put('proformas',null,{files:up,date:today(),by:me.name||'',by_uid:me.id||'',at:new Date().toISOString(),source:'Attached'})) n++; }
-  if(n){ logAct(`Attached ${n} proforma${n>1?'s':''}`); toast(`${n} proforma${n>1?'s':''} attached.`); renderView(true); } }
+  for(const f of files){ const up=await poFiles({project_id:'company'},[f]); if(!up.length) continue; if(await put('proformas',null,{files:up,date:today(),by:me.name||'',by_uid:me.id||'',at:new Date().toISOString(),source:'Attached',status:'Pending'})) n++; }
+  if(n){ logAct(`Attached ${n} proforma${n>1?'s':''}`); toast(`${n} proforma${n>1?'s':''} attached – sent to Finance for approval.`); UI.pft='wait'; renderView(true); } }
 document.addEventListener('change',e=>{ const t=e.target; if(t.dataset&&t.dataset.pfnew&&t.files.length){ const fl=[...t.files]; t.value=''; pfQuick(fl); } });
 ['dragover','dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ const d=e.target.closest&&e.target.closest('#pfdrop'); if(!d) return; e.preventDefault(); d.classList.toggle('over',ev==='dragover'); if(ev==='drop'&&e.dataTransfer?.files?.length) pfQuick(e.dataTransfer.files); }));
 document.addEventListener('change',async e=>{ const t=e.target; if(!t.dataset||!t.dataset.pffile||!t.files.length) return; const p=byId('proformas',t.dataset.pffile); if(!p) return;
