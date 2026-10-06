@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=172"></script>
+<script src="config.js?v=173"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=172"></script>
-<script src="nexus-chat.js?v=172"></script>
+<script src="nexus-sb.js?v=173"></script>
+<script src="nexus-chat.js?v=173"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -2401,7 +2401,7 @@ const pfAL=s=>s==='Pending'?'Waiting for Finance':s==='Finance approved'?'Waitin
 const pfACls=s=>s==='Approved'?'good':s==='Rejected'?'bad':s==='Finance approved'?'blue':'amb';
 /* v172: a proforma with any payment against its purchase request / order can never be deleted (SQL 44 enforces it) */
 const pfPaidAny=x=>{ const p=x.pr_id?byId('procurement',x.pr_id):null, o=x.po_id?byId('po',x.po_id):null; return !!((p&&prPaid(p)>0)||(o&&(poPaid(o)>0||+o.paid_total>0))); };
-const prfCanDel=x=>canWrite&&!pfPaidAny(x)&&(isAdmin||((x.by_uid===me.id||poCanQ())&&pfA(x)!=='Approved'));
+const prfCanDel=x=>isAdmin&&!pfPaidAny(x);   // v173: only directors delete proformas (SQL 45)
 const pfCanAp=x=>{ const s=pfA(x); return isAdmin?['Pending','Finance approved'].includes(s):isFinR()&&s==='Pending'; };
 function pfTab(){
   const all=pfList(), q=lcN(UI.pfq||''), C=k=>all.filter(x=>pfA(x)===k).length;
@@ -2547,7 +2547,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-pf
   if(a==='link'){ const pr=$('#pfpr')?.value; if(!pr) return toast('Choose the purchase request.'); await pfLink(x,pr); return renderDrawer&&renderDrawer(); }
   if(a==='del'){ e.stopPropagation(); const p=byId('proformas',x); if(!p||!prfCanDel(p)) return; const nm=p.supplier||(p.files||[])[0]?.name||'this proforma';
     if(p.po_id){ const o=byId('po',p.po_id); const i=o?(o.quotes||[]).findIndex(q=>q.pf_id===p.id):-1; if(o&&i>=0&&o.chosen===i) return toast('This proforma was chosen for '+(o.po_no||o.rfq_no)+' – it cannot be deleted.'); }
-    if(!await confirmBox(`Delete “${nm}”?${pfA(p)==='Approved'?'\n\nIt is in the Approved cabinet – only directors can delete approved proformas.':''}${p.pr_id?'\n\nIt will also be removed from the linked purchase request / RFQ.':''}`,'Delete',true)) return;
+    if(!await confirmBox(`Delete “${nm}”?${pfA(p)==='Approved'?'\n\nIt is in the Approved cabinet.':''}${p.pr_id?'\n\nIt will also be removed from the linked purchase request / RFQ.':''}`,'Delete',true)) return;
     if(p.po_id){ const o=byId('po',p.po_id); if(o&&o.status==='RFQ'&&poCanQ()){ const i=(o.quotes||[]).findIndex(q=>q.pf_id===p.id); if(i>=0&&o.chosen!==i){ const Q=o.quotes.filter((q,k)=>k!==i); await poPatch(o.id,{quotes:Q,...(o.chosen!=null&&o.chosen>i?{chosen:o.chosen-1}:{})}); } } }
     await patch('proformas',x,{deleted:true,deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Deleted proforma ${nm}`); if(drawer&&drawer.type==='pfv') closeDrawer(); toast('Proforma deleted.'); renderView(true); return; }
   if(a==='fo'||a==='fd'){ e.stopPropagation(); const [id,i]=x.split(':'); const p=byId('proformas',id), f=p&&(p.files||[])[+i]; if(f) pfOpen(f,a==='fd'); return; }
