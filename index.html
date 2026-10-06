@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=173"></script>
+<script src="config.js?v=174"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=173"></script>
-<script src="nexus-chat.js?v=173"></script>
+<script src="nexus-sb.js?v=174"></script>
+<script src="nexus-chat.js?v=174"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -760,7 +760,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
+const COLS = ['paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -2331,7 +2331,9 @@ const PR_FIELDS=[{k:'item',label:'Item / service',req:1,full:1},{k:'project_id',
 const PR_STAGES=['Requested','Approved','Ordered','Delivered'];
 // payments recorded in Finance against a purchase request
 const canDelPR=()=>isAdmin||isProcOff();   // v79: administrators and the Procurement Officer remove purchase records (Finance payments stay)
-const prPaid=p=>S.finance.filter(f=>f.pr_id===p.id&&f.type!=='Income').reduce((a,f)=>a+(+f.amount||0),0);
+// v174: Finance entries are private (admin / finance) – everyone else reads the server summary "paystat" (SQL 46)
+const psPaid=k=>+((S.paystat||[]).find(x=>x.id===k)?.paid)||0;
+const prPaid=p=>Math.max(S.finance.filter(f=>f.pr_id===p.id&&f.type!=='Income').reduce((a,f)=>a+(+f.amount||0),0),psPaid('pr:'+p.id));
 const prPay=p=>{ const paid=prPaid(p), est=+p.est_cost||0; return {paid,est,left:Math.max(0,est-paid),st:!paid?'Unpaid':paid>=est?'Paid':'Part-paid'}; };
 const prCat=p=>{ const t=(p.item+' '+(p.justification||'')).toLowerCase(); return /fuel|diesel|petrol|transport|lorry|truck hire/.test(t)?'Fuel & transport':/hire|rental|excavator|crane|roller|grader/.test(t)?'Plant hire':/labou?r|wage|casual|fundi/.test(t)?'Labour / wages':/subcontract/.test(t)?'Subcontractor':'Materials'; };
 document.addEventListener('click',e=>{ const m=e.target.closest('[data-prmore]'); if(m){ UI.prAll=UI.prAll||{}; UI.prAll[m.dataset.prmore]=!UI.prAll[m.dataset.prmore]; return renderView(true); } const c=e.target.closest('[data-prx]'); if(!c||e.target.closest('button,a,input,select')) return; UI.prOpen=UI.prOpen||{}; UI.prOpen[c.dataset.prx]=!UI.prOpen[c.dataset.prx]; renderView(true); });
@@ -2375,7 +2377,7 @@ const poNo=(pre,get)=>{ const y=new Date().getFullYear(), re=new RegExp('^'+pre+
    tax invoice / EFD receipt attached to close the purchase. Finance (role finance) may add tax invoices and payment totals (guard_po, SQL 41). */
 const poAdv=q=>{ const m=String(q&&q.terms||'').match(/(\d{1,3})\s*%\s*advance/i); return m?Math.min(100,+m[1]):0; };
 const poPF=o=>o.chosen!=null?o.quotes?.[o.chosen]:null;
-const poPaid=o=>{ const F=(S.finance||[]).filter(x=>x.type==='Expense'&&(x.po_id===o.id||(o.pr_id&&x.pr_id===o.pr_id))); return F.length?F.reduce((a,x)=>a+(+x.amount||0),0):(+o.paid_total||0); };
+const poPaid=o=>{ const F=(S.finance||[]).filter(x=>x.type==='Expense'&&(x.po_id===o.id||(o.pr_id&&x.pr_id===o.pr_id))); return Math.max(F.length?F.reduce((a,x)=>a+(+x.amount||0),0):(+o.paid_total||0),psPaid('po:'+o.id),o.pr_id?psPaid('pr:'+o.pr_id):0); };
 const poInvMissing=o=>poPaid(o)>0&&!(o.tax_invoices||[]).length&&['Part-delivered','Delivered'].includes(o.status);
 const poPFDays=o=>{ const q=poPF(o); return o.status==='RFQ'&&q&&q.valid?daysLeft(q.valid+'T23:59'):null; };
 /* v167 · PROFORMAS – an independent register in Procurement (collection "proformas").
