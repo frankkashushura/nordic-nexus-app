@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=161"></script>
+<script src="config.js?v=162"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=161"></script>
-<script src="nexus-chat.js?v=161"></script>
+<script src="nexus-sb.js?v=162"></script>
+<script src="nexus-chat.js?v=162"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -5932,8 +5932,9 @@ function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object
 let pendingView=false;
 function renderNav(){
   const alerts=nsUnread();
-  $('#nav').innerHTML=navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k||(p.k==='depts'&&route==='dept')?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join('');
-  $('#tabbar').innerHTML=TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join('');
+  const setH=(el,h)=>{ if(el&&el.__h!==h){ el.innerHTML=h; el.__h=h; } };   // v162: no rewrite when nothing changed (stops blinking)
+  setH($('#nav'),navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k||(p.k==='depts'&&route==='dept')?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join(''));
+  setH($('#tabbar'),TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join(''));
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
 function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSave(); }catch(_){}
@@ -5945,14 +5946,17 @@ function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSa
   const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
   $('#crumb').textContent=route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':route==='dept'?'Departments':'NORDIC NEXUS';
   const banner = !db ? `<div class="banner warn"><div><b>Working offline.</b> The NEXUS database is not connected in this view, so nothing you enter is saved.</div></div>` : '';
-  v.innerHTML=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
+  const vh=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
+  const vkey=route+'|'+(routeArg||'')+'|'+vh;
+  if(!force&&v.__h===vkey&&v.__el===v.firstElementChild) return;   // v162: background update changed nothing on this page → keep the screen as it is (no blink)
+  v.innerHTML=vh; v.__h=vkey; v.__el=v.firstElementChild;
   restoreInputs(v,snap, false);
   if(route==='chat'&&window.NX_CHAT_MOUNT) window.NX_CHAT_MOUNT($('#chatHost'));
   setPageBg();
   document.body.classList.toggle('nx-chatconv',route==='chat'&&!!document.querySelector('.nxchat.conv'));
 }
 function renderDrawer(){
-  const o=$('#overlay'); if(!drawer){ o.innerHTML=''; return; }
+  const o=$('#overlay'); if(!drawer){ o.innerHTML=''; o.__h=''; return; }
   if(drawer.form && o.firstChild){ if(drawer.type==='tender'){ const t=byId('tenders',drawer.id), b=$('#aiBox'); if(t&&b) b.innerHTML=aiAdviceHtml(t); } if(drawer.type==='report-form'||drawer.type==='form'){ const btn=o.querySelector('[data-act="saveReport"],[data-act="saveForm"]'); if(btn) btn.disabled=!!UI.busy.saveReport; } return; }
   const snap=snapshotInputs(o); let html='';
   const t=drawer.type;
@@ -5974,11 +5978,13 @@ function renderDrawer(){
   else if(t==='myphoto'){ html=myPhotoDrawer(); drawer.form=true; }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
-  o.innerHTML=html; document.body.style.overflow='hidden';
+  if(o.__h===html&&o.firstChild&&o.__el===o.firstElementChild){ document.body.style.overflow='hidden'; return; }   // v162: unchanged drawer → no rewrite
+  o.innerHTML=html; o.__h=html; o.__el=o.firstElementChild; document.body.style.overflow='hidden';
   restoreInputs(o,snap,true);
   if(t==='ask'){ const l=o.querySelector('.db'), n=UI.chat.length+(UI.busy.ask?1:0); if(l){ l.style.scrollBehavior='auto'; if(n!==UI.askLastN||UI.askKeepBottom!==false) l.scrollTop=l.scrollHeight; else if(UI.askScrollY!=null) l.scrollTop=UI.askScrollY; l.style.scrollBehavior=''; l.onscroll=()=>{ UI.askScrollY=l.scrollTop; UI.askKeepBottom=l.scrollHeight-l.scrollTop-l.clientHeight<80; }; } UI.askLastN=n; const ta=o.querySelector('#askInp'); if(ta&&ta.value){ ta.style.height='auto'; ta.style.height=Math.min(200,ta.scrollHeight)+'px'; } }
 }
 let rq=false;
+['click','input','change','keydown','submit'].forEach(ev=>document.addEventListener(ev,()=>{ const v=$('#view'), o=$('#overlay'); if(v) v.__h=null; if(o) o.__h=null; },true));
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); renderMe(); annMaybePop(); }); }
 function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
