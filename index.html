@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=162"></script>
+<script src="config.js?v=163"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=162"></script>
-<script src="nexus-chat.js?v=162"></script>
+<script src="nexus-sb.js?v=163"></script>
+<script src="nexus-chat.js?v=163"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -759,7 +759,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
+const COLS = ['bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const loaded = new Set();
@@ -1312,7 +1312,7 @@ function filteredTenders(){
 function pageTenders(){
   const rows=filteredTenders(), cats=['All',...new Set(S.tenders.map(t=>t.category).filter(Boolean))];
   const last=S.tenders.reduce((m,t)=>t.imported_at>m?t.imported_at:m,'');
-  const tabs=`<div class="toolbar"><div class="seg" role="group" aria-label="View">${[['list','Tenders'],['cal','Calendar'],['res','Results'],['won','Contracts won']].map(([k,l])=>`<button data-ttab="${k}" aria-pressed="${(UI.ttab||'list')===k}">${l}</button>`).join('')}</div></div>`;
+  const tabs=`<div class="toolbar"><div class="seg" role="group" aria-label="View">${[['list','Tenders'],['cal','Calendar'],['res','Bid history'],['won','Contracts won']].map(([k,l])=>`<button data-ttab="${k}" aria-pressed="${(UI.ttab||'list')===k}">${l}</button>`).join('')}</div></div>`;
   if(UI.ttab==='cal') return tabs+tenderCalendar();
   if(UI.ttab==='res') return tabs+tenderResults();
   if(UI.ttab==='won') return tabs+tenderWon();
@@ -3512,21 +3512,111 @@ function outcomeHtml(t){
     <div class="bd"><div class="form">${OUTCOME_FIELDS.map(f=>field({...f,k:'o_'+f.k},t[f.k])).join('')}</div>
     <div class="toolbar" style="margin-top:10px"><button class="btn dark" data-act="saveOutcome">Save result</button><span class="sub">Opening prices build Nordic's price intelligence on the Results tab.</span></div></div></div>`;
 }
-function tenderResults(){
-  const sub=S.tenders.filter(t=>/submitted|won|lost/i.test(t.status||''));
-  const won=sub.filter(t=>/won/i.test(t.status)), lost=sub.filter(t=>/lost/i.test(t.status)), decided=won.length+lost.length;
-  const gaps=sub.filter(t=>t.our_price&&t.winning_price).map(t=>(t.our_price-t.winning_price)/t.winning_price*100);
-  const avgGap=gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null;
-  const val=won.reduce((a,t)=>a+(+t.winning_price||+t.our_price||0),0);
-  return `<div class="grid g4">
-    <div class="card kpi blu"><span class="label">Bids submitted</span><span class="v num">${sub.length}</span><span class="s">${sub.length-decided} awaiting result</span></div>
-    <div class="card kpi grn"><span class="label">Win rate</span><span class="v num">${decided?Math.round(won.length/decided*100)+'%':'—'}</span><span class="s">${won.length} won · ${lost.length} lost</span></div>
-    <div class="card kpi amb"><span class="label">Average gap to winner</span><span class="v num">${avgGap==null?'—':(avgGap>0?'+':'')+avgGap.toFixed(1)+'%'}</span><span class="s">${gaps.length} tender${gaps.length===1?'':'s'} with opening prices</span></div>
-    <div class="card kpi grn"><span class="label">Value won</span><span class="v num">${tzsShort(val)}</span><span class="s">TZS</span></div></div>
-  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Status</th><th class="r">Our price</th><th class="r">Winner's price</th><th class="r">Gap</th><th class="hide-m">Bidders</th><th class="hide-m">Winner</th></tr></thead><tbody>
-  ${sub.map(t=>{const g=t.our_price&&t.winning_price?(t.our_price-t.winning_price)/t.winning_price*100:null;return `<tr class="click" data-open="tender:${esc(t.id)}"><td><div class="ttl2">${esc(t.title)}</div><div class="sub">${esc(t.client||'')}</div></td><td><span class="chip ${/won/i.test(t.status)?'good':/lost/i.test(t.status)?'bad':'blue'}">${esc(t.status)}</span></td><td class="r num">${t.our_price?tzsShort(t.our_price):'—'}</td><td class="r num">${t.winning_price?tzsShort(t.winning_price):'—'}</td><td class="r num">${g==null?'—':(g>0?'+':'')+g.toFixed(1)+'%'}</td><td class="hide-m num">${esc(t.bidders??'—')}</td><td class="hide-m">${esc(t.winner||'')}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No bids submitted yet. Set a tender’s status to Submitted, then record the opening prices in it.</div></td></tr>'}
-  </tbody></table></div></div>`;
+/* ===================== BID HISTORY (v163) – every tender Nordic bid for: won, lost, cancelled …
+   Rows come from (1) Tender Radar tenders with status Submitted / Won / Lost / Cancelled / No-Bid after submission and
+   (2) collection "bidhist": past or outside tenders typed in or imported from Excel (with documents).
+   Everyone signed in sees it; non-viewers add / edit; administrators delete. ===================== */
+const BH_OUT=['Won','Lost','Awaiting result','Not awarded','Cancelled','Withdrawn'];
+const BH_CT=['Government','Parastatal','Local government (council)','Private company','Bank','Embassy / international','NGO / donor','Other'];
+const bhCls=o=>/won/i.test(o)?'good':/lost/i.test(o)?'bad':/await|submitted/i.test(o)?'blue':'';
+const bhDate=s=>String(s||'').slice(0,10);
+function bhRows(){
+  const T=S.tenders.filter(t=>/submitted|won|lost/i.test(t.status||'')||(/cancel/i.test(t.status||'')&&(t.our_price||t.submitted_on))).map(t=>({src:'t',id:t.id,title:t.title||'',client:t.client||'',no:t.no&&!/^\(/.test(t.no)?t.no:'',
+    date:bhDate(t.submitted_on||t.opening_date||t.deadline),outcome:/won/i.test(t.status)?'Won':/lost/i.test(t.status)?'Lost':/cancel/i.test(t.status)?'Cancelled':'Awaiting result',
+    our_price:+t.our_price||null,winning_price:+t.winning_price||null,winner:t.winner||'',bidders:t.bidders||null,our_rank:t.our_rank||null,reason:t.result_notes||'',sector:t.category||'',location:t.location||'',client_type:t.client_type||''}));
+  const M=(S.bidhist||[]).filter(x=>!x.deleted).map(x=>({src:'m',...x,date:bhDate(x.date),our_price:+x.our_price||null,winning_price:+x.winning_price||null}));
+  return [...T,...M].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
+const bhGap=r=>r.our_price&&r.winning_price&&r.outcome!=='Won'?(r.our_price-r.winning_price)/r.winning_price*100:null;
+function tenderResults(){
+  const all=bhRows(), f=UI.bhf||'all', yr=UI.bhy||'', q=(UI.bhq||'').toLowerCase();
+  const R=all.filter(r=>(f==='all'||(f==='other'?!/won|lost|await/i.test(r.outcome):r.outcome.toLowerCase().startsWith(f)))&&(!yr||String(r.date).startsWith(yr))&&(!q||[r.title,r.client,r.no,r.winner,r.location].join(' ').toLowerCase().includes(q)));
+  const won=all.filter(r=>r.outcome==='Won'), lost=all.filter(r=>r.outcome==='Lost'), dec=won.length+lost.length;
+  const gaps=all.map(bhGap).filter(g=>g!=null), avg=gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null;
+  const val=won.reduce((a,r)=>a+(r.winning_price||r.our_price||0),0);
+  const years=[...new Set(all.map(r=>String(r.date).slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
+  const byY=years.map(y=>{ const L=all.filter(r=>String(r.date).startsWith(y)), w=L.filter(r=>r.outcome==='Won').length, l=L.filter(r=>r.outcome==='Lost').length; return [y,L.length,w,l,w+l?Math.round(w/(w+l)*100)+'%':'—',L.filter(r=>r.outcome==='Won').reduce((a,r)=>a+(r.winning_price||r.our_price||0),0)]; });
+  return `<div class="grid g4">
+    <div class="card kpi blu"><span class="label">Tenders bid</span><span class="v num">${all.length}</span><span class="s">${years.length?'since '+years[years.length-1]:'add past tenders below'}</span></div>
+    <div class="card kpi grn"><span class="label">Win rate</span><span class="v num">${dec?Math.round(won.length/dec*100)+'%':'—'}</span><span class="s">${won.length} won · ${lost.length} lost</span></div>
+    <div class="card kpi amb"><span class="label">Average gap to winner</span><span class="v num">${avg==null?'—':(avg>0?'+':'')+avg.toFixed(1)+'%'}</span><span class="s">on ${gaps.length} lost tender${gaps.length===1?'':'s'} with prices</span></div>
+    <div class="card kpi grn"><span class="label">Value won</span><span class="v num">${tzsShort(val)}</span><span class="s">TZS</span></div></div>
+  ${byY.length>1?`<div class="card"><div class="hd"><h2>Year by year</h2></div><div class="tbl-wrap"><table><thead><tr><th>Year</th><th class="r">Bids</th><th class="r">Won</th><th class="r">Lost</th><th class="r">Win rate</th><th class="r">Value won (TZS)</th></tr></thead><tbody>${byY.map(([y,n,w,l,p,v])=>`<tr class="click" data-bh="y:${y}"><td><b>${y}</b></td><td class="r num">${n}</td><td class="r num">${w}</td><td class="r num">${l}</td><td class="r num">${p}</td><td class="r num">${v?tzsShort(v):'—'}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+  <div class="toolbar"><div class="seg">${[['all','All'],['won','Won'],['lost','Lost'],['await','Awaiting'],['other','Other']].map(([k,l])=>`<button data-bh="f:${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
+    <select class="inp" data-bhy style="width:auto"><option value="">All years</option>${years.map(y=>`<option ${y===yr?'selected':''}>${y}</option>`).join('')}</select>
+    <input class="inp" id="bhq" type="search" placeholder="Search title, client, winner" value="${esc(UI.bhq||'')}" style="max-width:240px"><div class="sp"></div>
+    <button class="btn" data-bh="xlsx">Excel</button>${canWrite?`<button class="btn" data-bh="tpl" title="Empty Excel layout to fill in past tenders">Template</button><button class="btn" data-bh="imp">Import from Excel</button><button class="btn pri" data-bh="new">+ Add past tender</button>`:''}</div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Tender</th><th>Result</th><th class="r">Our price</th><th class="r">Winner's price</th><th class="r hide-m">Gap</th><th class="hide-m">Winner</th></tr></thead><tbody>
+  ${R.map(r=>{ const g=bhGap(r); return `<tr class="click" data-bh="${r.src==='t'?'t':'m'}:${esc(r.id)}"><td class="mono small">${r.date?fmtD(r.date):'—'}</td><td><div class="ttl2">${esc(r.title)}</div><div class="sub">${[esc(r.client),esc(r.no||''),r.src==='m'?'added to history':'from Tender Radar'].filter(Boolean).join(' · ')}${(r.files||[]).length?` · 📎 ${r.files.length}`:''}</div></td><td><span class="chip ${bhCls(r.outcome)}">${esc(r.outcome)}</span></td><td class="r num">${r.our_price?tzsShort(r.our_price):'—'}</td><td class="r num">${r.winning_price?tzsShort(r.winning_price):'—'}</td><td class="r num hide-m">${g==null?'—':(g>0?'+':'')+g.toFixed(1)+'%'}</td><td class="hide-m small">${esc(r.winner||'')}</td></tr>`; }).join('')||`<tr><td colspan="7" class="empty">${all.length?'Nothing matches.':'No tender history yet. Click “+ Add past tender” or “Import from Excel” to record tenders Nordic won or lost before NEXUS.'}</td></tr>`}
+  </tbody></table></div></div>
+  <p class="sub">Tenders in Tender Radar appear here automatically once their status is Submitted, Won or Lost. Past tenders and tenders handled outside NEXUS are added with “+ Add past tender” or imported from Excel – they are kept permanently.</p>`;
+}
+function bhFields(){ return [{k:'title',label:'Tender / project name',req:1,full:1,ph:'e.g. Construction of Ward Office – Kinondoni'},{k:'client',label:'Client / procuring entity',req:1},{k:'no',label:'Tender number'},
+  {k:'client_type',label:'Client type',type:'select',options:['',...BH_CT]},{k:'sector',label:'Type of work',type:'select',options:['',...WIN_SECT]},{k:'location',label:'Location'},
+  {k:'date',label:'Date submitted',type:'date',req:1},{k:'outcome',label:'Result',type:'select',options:BH_OUT,req:1},
+  {k:'our_price',label:'Our bid price (TZS)',type:'number'},{k:'winning_price',label:'Winning / awarded price (TZS)',type:'number'},{k:'winner',label:'Winning contractor'},
+  {k:'bidders',label:'Number of bidders',type:'number'},{k:'our_rank',label:'Our rank',type:'number'},{k:'reason',label:'Why we won or lost (lessons)',type:'textarea',full:1},{k:'notes',label:'Notes',type:'textarea',full:1}]; }
+async function bhUpload(list,files){ const out=[...(list||[])]; if(!files.length) return out; if(!window.NX_PF){ toast('Attaching files needs the NEXUS app (signed in).'); return out; }
+  for(const f of files){ if(f.size>50*1024*1024){ toast(f.name+' is larger than 50 MB.'); continue; } try{ toast('Uploading '+f.name+'…'); const r=await window.NX_PF.upload('company',f,f.name,f.type); out.push({name:f.name,path:r.path,size:f.size,type:f.type||'',at:new Date().toISOString(),by:me.name||''}); }catch(e){ toast('Could not upload '+f.name+': '+(e?.message||e)); } }
+  return out; }
+function bhEdit(x){ const isNew=!x; formDrawer(isNew?'Add a past tender':'Edit tender history',[...bhFields(),...(isNew?[{k:'bhfile',label:'Documents (bid, award / regret letter, opening record – optional)',type:'file',full:1,accept:'.pdf,image/*,.doc,.docx,.xls,.xlsx'}]:[])],x||{outcome:'Lost'},async v=>{
+    const inp=$('#f_bhfile'), files=inp?[...inp.files]:[]; delete v.bhfile;
+    if(isNew){ const id=await put('bidhist',null,{...v,files:await bhUpload([],files),source:'Manual',by:me.name||'',by_uid:me.id||''}); if(!id) return false; logAct(`Added tender history: ${v.title} (${v.outcome})`); toast('Saved in the tender history.'); return true; }
+    await patch('bidhist',x.id,v); logAct(`Updated tender history: ${v.title}`); return true; },{sub:'Tender Radar · Bid history',saveLabel:isNew?'Add':'Save',onDelete:x?async()=>{ await patch('bidhist',x.id,{deleted:true,deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Removed tender history: ${x.title}`); }:null,delMsg:'Remove this tender from the history?'}); }
+function bhDrawer(){ const x=byId('bidhist',drawer.id); if(!x||x.deleted) return ''; const g=bhGap({...x,our_price:+x.our_price,winning_price:+x.winning_price}), f=x.files||[], linked=winList().some(w=>w.bh_id===x.id);
+  return drawerShell(x.title,`${esc(x.client||'')} · tender history`,`<div class="toolbar"><span class="chip ${bhCls(x.outcome)}">${esc(x.outcome||'')}</span>${g!=null?`<span class="chip ${g<=5?'amb':'bad'}">${g>0?'+':''}${g.toFixed(1)}% vs winner</span>`:''}</div>
+    <table class="kv">${[['Tender no.',x.no],['Client',x.client+(x.client_type?' ('+x.client_type+')':'')],['Type of work',x.sector],['Location',x.location],['Date submitted',x.date&&fmtD(x.date)],['Our price',x.our_price?tzs(+x.our_price):''],['Winning price',x.winning_price?tzs(+x.winning_price):''],['Winner',x.winner],['Bidders',x.bidders],['Our rank',x.our_rank],['Why won / lost',x.reason],['Notes',x.notes],['Recorded by',[x.by,x.source].filter(Boolean).join(' · ')]].filter(r=>r[1]).map(([l,v])=>`<tr><th>${l}</th><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
+    <div class="label" style="margin-top:12px">Documents (${f.length})</div>
+    ${f.length?`<div class="hx-osf">${f.map((d,i)=>`<div class="hx-osfr"><span>📄</span><div class="grow"><b>${esc(d.name)}</b><small>${esc(d.by||'')} · ${fmtD(d.at)}</small></div><button class="btn sm" data-bh="fo:${esc(x.id)}:${i}">Open</button><button class="btn sm" data-bh="fd:${esc(x.id)}:${i}">Download</button></div>`).join('')}</div>`:'<p class="sub">No documents attached.</p>'}
+    ${canWrite?`<label class="btn sm" style="margin-top:8px">📎 Attach documents<input type="file" hidden multiple accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" data-bhfile="${esc(x.id)}"></label>`:''}`,
+    `${canWrite&&x.outcome==='Won'&&!linked?`<button class="btn pri" data-bh="win:${esc(x.id)}">Add to Contracts won</button>`:''}<div class="sp"></div>${canWrite?`<button class="btn" data-bh="edit:${esc(x.id)}">Edit</button>`:''}`); }
+/* Excel template / import / export */
+const BH_COLS=[['title','Tender / project name'],['client','Client'],['no','Tender number'],['client_type','Client type'],['sector','Type of work'],['location','Location'],['date','Date submitted'],['outcome','Result'],['our_price','Our price (TZS)'],['winning_price','Winning price (TZS)'],['winner','Winning contractor'],['bidders','Number of bidders'],['our_rank','Our rank'],['reason','Why won or lost'],['notes','Notes']];
+async function bhExport(tpl){ try{ await loadScript(XLSX_URL); }catch(e){ return toast(e.message); }
+  const rows=tpl?[BH_COLS.map(c=>c[1]),['Construction of Ward Office','Kinondoni Municipal Council','LGA/015/2023/W/04','Local government (council)','Building','Dar es Salaam','2023-05-12','Lost',845000000,812000000,'ABC Builders Ltd',6,2,'Price 4% above winner','']]
+    :[[...BH_COLS.map(c=>c[1]),'Gap to winner %','Source'],...bhRows().map(r=>[...BH_COLS.map(([k])=>k==='date'?r.date:(r[k]??'')),bhGap(r)==null?'':+bhGap(r).toFixed(1),r.src==='t'?'Tender Radar':'Added / imported'])];
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=rows[0].map((h,i)=>({wch:i===0||i===13?40:18})); XLSX.utils.book_append_sheet(wb,ws,tpl?'Tender history':'Bid history');
+  if(await oxSave(tpl?'Tender history – import template':'Bid history – '+(company().name||'Nordic'),new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx')) logAct(tpl?'Downloaded tender history template':'Downloaded bid history (Excel)'); }
+const bhNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+function bhCellDate(v){ if(v==null||v==='') return ''; if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*864e5)); return d.toISOString().slice(0,10); }
+  const s=String(v).trim(); let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/); if(m){ const y=m[3].length===2?'20'+m[3]:m[3]; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  m=s.match(/^(\d{4})$/); if(m) return m[1]+'-01-01'; const t=Date.parse(s); return isNaN(t)?'':new Date(t).toISOString().slice(0,10); }
+function bhOutcome(s){ s=String(s||'').toLowerCase(); return /won|win|award(ed)? to us|success/.test(s)?'Won':/lost|unsuccess|regret|not success/.test(s)?'Lost':/cancel/.test(s)?'Cancelled':/withdr/.test(s)?'Withdrawn':/not award|no award/.test(s)?'Not awarded':s?'Awaiting result':'Awaiting result'; }
+async function bhImport(file){ try{ await loadScript(XLSX_URL); }catch(e){ return toast(e.message); }
+  let rows; try{ const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'}); rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}); }catch(e){ return toast('Could not read that file: '+(e.message||e)); }
+  const hi=rows.findIndex(r=>r.some(c=>/tender|project|title/i.test(String(c)))&&r.some(c=>/client|employer|procuring/i.test(String(c)))); if(hi<0) return toast('No header row found – use the template (Excel → Template).');
+  const H=rows[hi].map(c=>bhNorm(c)); const col=(...keys)=>H.findIndex(h=>keys.some(k=>h.startsWith(k)||h.includes(k)));
+  const idx={title:col('tender project name','project name','tender name','title','tender','project'),client:col('client','employer','procuring'),no:col('tender number','tender no','reference','ref'),client_type:col('client type'),sector:col('type of work','sector','category'),location:col('location','region','site'),date:col('date submitted','submission','date','year'),outcome:col('result','outcome','status'),our_price:col('our price','our bid','bid price','our amount'),winning_price:col('winning price','awarded price','contract price','winner price'),winner:col('winning contractor','winner','awarded to'),bidders:col('number of bidders','bidders'),our_rank:col('our rank','rank','position'),reason:col('why','reason','lesson'),notes:col('notes','remarks','comment')};
+  if(idx.client_type===idx.client) idx.client_type=-1;
+  const have=new Set(bhRows().map(r=>bhNorm(r.title)+'|'+bhNorm(r.client)+'|'+String(r.date).slice(0,7)));
+  const out=[]; let dup=0;
+  for(const r of rows.slice(hi+1)){ const g=k=>idx[k]>=0?r[idx[k]]:''; const title=String(g('title')).trim(), client=String(g('client')).trim(); if(!title) continue;
+    const num=k=>{ const v=g(k); const n=typeof v==='number'?v:+String(v).replace(/[^\d.]/g,''); return n||null; };
+    const x={title,client,no:String(g('no')).trim(),client_type:String(g('client_type')).trim(),sector:String(g('sector')).trim(),location:String(g('location')).trim(),date:bhCellDate(g('date')),outcome:bhOutcome(g('outcome')),our_price:num('our_price'),winning_price:num('winning_price'),winner:String(g('winner')).trim(),bidders:num('bidders'),our_rank:num('our_rank'),reason:String(g('reason')).trim(),notes:String(g('notes')).trim()};
+    const k=bhNorm(x.title)+'|'+bhNorm(x.client)+'|'+String(x.date).slice(0,7); if(have.has(k)){ dup++; continue; } have.add(k); out.push(x); }
+  if(!out.length) return toast(dup?`All ${dup} rows are already in the history.`:'No tender rows found in that file.');
+  const won=out.filter(x=>x.outcome==='Won').length, lost=out.filter(x=>x.outcome==='Lost').length;
+  if(!await confirmBox(`Import ${out.length} tender${out.length>1?'s':''} into the history?\n\n${won} won · ${lost} lost · ${out.length-won-lost} other${dup?`\n${dup} row${dup>1?'s':''} already in the history will be skipped.`:''}`,'Import')) return;
+  let n=0; for(const x of out){ if(await put('bidhist',null,{...x,files:[],source:'Excel import ('+file.name+')',by:me.name||'',by_uid:me.id||''})) n++; }
+  logAct(`Imported ${n} tenders into the bid history`); toast(`${n} tender${n>1?'s':''} added to the history.`); }
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bh]'); if(!el) return; const [a,...r]=el.dataset.bh.split(':'), x=r.join(':');
+  if(a==='f'){ UI.bhf=x; return renderView(true); }
+  if(a==='y'){ UI.bhy=UI.bhy===x?'':x; return renderView(true); }
+  if(a==='t') return openTender(x);
+  if(a==='m') return openDrawer('bh',x);
+  if(a==='new') return bhEdit(null);
+  if(a==='edit'){ const h=byId('bidhist',x); if(h) bhEdit(h); return; }
+  if(a==='xlsx') return bhExport(false);
+  if(a==='imp'){ const ok=await confirmBox('Import past tenders from Excel.\n\nUse one row per tender with columns such as: Tender name, Client, Tender number, Date submitted, Result (Won / Lost …), Our price, Winning price, Winning contractor.\n\nDownload the template first if you are not sure.','Choose Excel file'); if(ok===false){ return; }
+    const i=document.createElement('input'); i.type='file'; i.accept='.xlsx,.xls,.csv'; i.onchange=()=>i.files[0]&&bhImport(i.files[0]); i.click(); return; }
+  if(a==='tpl') return bhExport(true);
+  if(a==='win'){ const h=byId('bidhist',x); if(!h) return; return winOpen(null,{title:h.title,client:h.client,tender_no:h.no||'',location:h.location||'',sector:WIN_SECT.includes(h.sector)?h.sector:'Building',awarded:h.date||'',sum:+h.winning_price||+h.our_price||null,status:'Completed',bh_id:h.id}); }
+  if(a==='fo'||a==='fd'){ const [id,i]=x.split(':'); const h=byId('bidhist',id), f=h&&(h.files||[])[+i]; if(f) pfOpen(f,a==='fd'); return; }
+});
+document.addEventListener('change',async e=>{ const t=e.target; if(t.matches&&t.matches('[data-bhy]')){ UI.bhy=t.value; return renderView(true); }
+  if(t.dataset&&t.dataset.bhfile&&t.files.length){ const h=byId('bidhist',t.dataset.bhfile); if(!h) return; const files=await bhUpload(h.files,[...t.files]); t.value=''; await patch('bidhist',h.id,{files}); toast('Document saved.'); } });
+document.addEventListener('input',e=>{ if(e.target.id==='bhq'){ UI.bhq=e.target.value; renderView(true); } });
 function tenderCalendar(){
   const ev=[];
   S.tenders.filter(t=>t.screen!=='Drop'&&!/closed|cancel|won|lost|no-bid/i.test(t.status||'')).forEach(t=>{
@@ -4542,7 +4632,7 @@ function winFields(){ return [{k:'title',label:'Project / contract name',req:1,f
   {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date',type:'date'},{k:'status',label:'Status',type:'select',options:WIN_ST},{k:'project_id',label:'Linked NEXUS project',type:'select',options:projOpts('— none —')},
   {k:'contact',label:'Client contact (for reference letters)',full:1,ph:'Name, title, phone / email'},{k:'scope',label:'Scope of works',type:'textarea',full:1},{k:'photos',label:'Award letter / completion certificate (photos)',type:'photos'}]; }
 function winOpen(w,pre){ const isNew=!w; formDrawer(isNew?'Add a contract won':'Contract won',winFields(),w||pre||{status:'Ongoing',sector:'Building'},async v=>{
-    if(v.sum!=null) v.sum=+v.sum; const ok=isNew?await put('wins',null,{...v,...(pre&&pre.tender_id?{tender_id:pre.tender_id}:{}),added_by:me.name||''}):(await patch('wins',w.id,v),true);
+    if(v.sum!=null) v.sum=+v.sum; const ok=isNew?await put('wins',null,{...v,...(pre&&pre.tender_id?{tender_id:pre.tender_id}:{}),...(pre&&pre.bh_id?{bh_id:pre.bh_id}:{}),added_by:me.name||''}):(await patch('wins',w.id,v),true);
     if(ok&&isNew) logAct(`Added contract won: ${v.title}`); return !!ok; },{saveLabel:isNew?'Add':'Save',onDelete:w?async()=>remove('wins',w.id):null,delMsg:'Remove this contract from the register?'}); }
 function tenderWon(){ const L=winList(), M=money(), f=UI.winf||'all', sec=UI.winsec||'', q=(UI.winq||'').toLowerCase();
   const R=L.filter(w=>(f==='all'||w.status===f)&&(!sec||w.sector===sec)&&(!q||[w.title,w.client,w.tender_no,w.location].join(' ').toLowerCase().includes(q)));
@@ -5968,7 +6058,7 @@ function renderDrawer(){
   else if(t==='rec'){ const x=byId('records',drawer.id); if(!x) return closeDrawer(); html=recDrawer(x); }
   else if(t==='p5val'){ const x=byId('valuations',drawer.id); if(!x) return closeDrawer(); html=valDrawer(x); }
   else if(t==='bqnotes'){ html=bqNotesDrawer(); if(!html) return closeDrawer(); }
-  else if(t==='hse'){ html=hseDrawer(); if(!html) return closeDrawer(); }   else if(t==='hx'){ html=hxDrawer(); if(!html) return closeDrawer(); }   else if(t==='supv'){ html=supDrawer(); if(!html) return closeDrawer(); }   else if(t==='hxform'){ html=hxForm(); if(!html) return closeDrawer(); drawer.form=true; }
+  else if(t==='hse'){ html=hseDrawer(); if(!html) return closeDrawer(); }   else if(t==='bh'){ html=bhDrawer(); if(!html) return closeDrawer(); }   else if(t==='hx'){ html=hxDrawer(); if(!html) return closeDrawer(); }   else if(t==='supv'){ html=supDrawer(); if(!html) return closeDrawer(); }   else if(t==='hxform'){ html=hxForm(); if(!html) return closeDrawer(); drawer.form=true; }
   else if(t==='hseinsp'){ html=hseInspForm(); drawer.form=true; }
   else if(t==='p5po'){ const x=byId('po',drawer.id); if(!x) return closeDrawer(); html=poDrawer(x); }
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
