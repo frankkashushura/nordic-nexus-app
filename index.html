@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=184"></script>
+<script src="config.js?v=185"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=184"></script>
-<script src="nexus-chat.js?v=184"></script>
+<script src="nexus-sb.js?v=185"></script>
+<script src="nexus-chat.js?v=185"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -4504,7 +4504,7 @@ function pmProgrammeTab(p){
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
     ${canWrite&&ms.length?'<button class="btn sm" data-act="pmShift" title="Move every activity to a new start date, keeping the same durations and sequence">📅 Change start date</button>':''}
     ${isAdmin&&ms.length?'<button class="btn sm danger" data-act="pmDelAll" title="Delete the whole programme of this project">🗑 Delete programme</button>':''}
-    ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
+    ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmPdf" title="Download the Gantt chart as PDF (choose “Save as PDF” in the print window)">⬇ PDF</button><button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
   ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
   ${view==='table'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Activity</th><th>Planned</th><th class="r hide-m">Weight</th><th style="min-width:130px">Progress</th><th class="r">Float</th><th class="hide-m">vs baseline</th><th>Status</th></tr></thead><tbody>
@@ -4517,6 +4517,27 @@ function pmProgrammeTab(p){
   ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2><span class="sub">planned vs actual progress</span></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
   <div class="banner small"><div><b>How it works:</b> add activities with dates and link them with <i>Starts after</i>. When an activity is moved or delayed, every activity after it moves automatically. The <b style="color:#C0392B">red critical path</b> shows the activities that decide the completion date. Site reports can update progress. An administrator sets the <b>baseline</b> (the approved programme) to see slippage.</div></div>`;
 }
+/* v185 · one-click PDF of the Gantt chart (A3 landscape print window → Save as PDF) */
+function pmPdf(pid){ const p=byId('projects',pid); if(!p) return; const ms=msOf(pid).filter(m=>msStart(m)).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||''));
+  if(!ms.length){ toast('No activities to print yet.'); return; }
+  const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups for NEXUS to download the PDF.'); return; }
+  const f=pmForecast(p), cpm=pmCpm(pid).res, pr=programme(pid), c=company();
+  const svg=pmGantt(pid,{fc:f&&f.fc,contract:f&&f.contract}).replace(/Tap a bar to edit\.?/g,'');
+  const rows=ms.map((m,i)=>{ const sm=msStart(m), fm=msFinish(m), k=cpm.get(m.id)||{}; return `<tr><td>${i+1}</td><td>${m.kind==='milestone'?'◆ ':''}${esc(m.name)}</td><td>${esc(m.resp||'')}</td><td>${fmtD(ymd(sm))}</td><td>${fm?fmtD(ymd(fm)):''}</td><td class="r">${m.kind==='milestone'||!fm?'0':dDiff(fm,sm)+1}</td><td class="r">${msPg(m)}%</td><td class="r">${k.float==null?'':k.crit?'0 (critical)':k.float}</td><td>${msPreds(m).map(id=>ms.findIndex(x=>x.id===id)+1).filter(n=>n>0).join(', ')}</td></tr>`; }).join('');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(p.name)} – programme ${today()}</title><style>
+    @page{size:A3 landscape;margin:10mm} *{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{font:11px 'Segoe UI',Arial,sans-serif;color:#1B2633;margin:0;background:#fff}
+    :root{--line:#D9DEE5;--ink:#1B2633;--muted:#6B7785;--panel:#fff;--good:#1E8E3E;--good-soft:#CDEFD8;--bad:#C0392B;--accent:#F2A900}
+    .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #F2A900;padding-bottom:6px;margin-bottom:8px} h1{font-size:18px;margin:0} .s{color:#6B7785;font-size:11px}
+    .pm-gantt{overflow:visible!important} .pm-gantt svg{width:100%;height:auto} .lg{margin:6px 0 0;color:#6B7785;font-size:10px}
+    table{border-collapse:collapse;width:100%;margin-top:6px;page-break-before:always} th,td{border:1px solid #D9DEE5;padding:4px 6px;text-align:left;font-size:10.5px} th{background:#0B2545;color:#fff} td.r,th.r{text-align:right} tr:nth-child(even) td{background:#F5F7FA}
+  </style></head><body>
+  <div class="hd"><div><div class="s">${esc(c.name||'Nordic Construction Co. Ltd')}</div><h1>${esc(p.name)} – Programme (Gantt chart)</h1>
+    <div class="s">${esc(p.client||'')}${p.location?' · '+esc(p.location):''}${p.start?' · Contract '+fmtD(p.start)+' → '+fmtD(p.end):''}</div></div>
+    <div class="s" style="text-align:right">Printed ${fmtD(today())}${pr?`<br>Progress ${pr.actual.toFixed(0)}% done · ${pr.planned.toFixed(0)}% planned`:''}${f&&f.fc?`<br>Forecast finish ${fmtD(ymd(f.fc))}`:''}</div></div>
+  ${svg}
+  <table><thead><tr><th>#</th><th>Activity</th><th>Responsible</th><th>Start</th><th>Finish</th><th class="r">Days</th><th class="r">Done</th><th class="r">Float</th><th>After #</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`);
+  w.document.close(); logAct(`Programme PDF – ${p.name}`); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },700); }
 /* v184 · move the whole programme to a new start date (same durations and gaps) · delete the whole programme */
 function pmShiftStart(pid){ const ms=msOf(pid).filter(m=>msStart(m)); if(!ms.length) return;
   const cur=ymd(new Date(Math.min(...ms.map(m=>msStart(m).getTime())))), base=ms.some(m=>m.baseline_finish);
@@ -9201,6 +9222,7 @@ document.addEventListener('click', async e=>{
     case 'pmView': UI.pmView=el.dataset.v; renderView(true); break;
     case 'pmBaseline': await pmSetBaseline(routeArg); break;
     case 'pmShift': pmShiftStart(routeArg); break;
+    case 'pmPdf': pmPdf(routeArg); break;
     case 'pmDelAll': await pmDeleteAll(routeArg); break;
     case 'pmExport': pmExcel([routeArg],safeId(projName(routeArg))+'-programme'); break;
     case 'pmProject': oxEnsureCss(); oxjOpen(routeArg); break;
