@@ -177,15 +177,35 @@
   };
 
   /* ---------------- AI (Gemini through the "ai" server function) ---------------- */
-  async function callAI(payload) {
-    const { data, error } = await sb.functions.invoke('ai', { body: { ...payload, kind: window.NX_AI_KIND || '' } });
+  // v180: never wait forever – 140 s ceiling, clear 'took too long' message, one quick retry with a single AI
+  async function callAI1(payload) {
+    const ctl = new AbortController(); let tm;
+    const tooLong = () => { const e = new Error('The AI took too long to answer. Please try again.'); e.code = 'timeout'; return e; };
+    const inv = sb.functions.invoke('ai', { body: payload, signal: ctl.signal });
+    let r;
+    try { r = await Promise.race([inv, new Promise((_, rej) => { tm = setTimeout(() => { try { ctl.abort(); } catch (_) {} rej(tooLong()); }, 140000); })]); }
+    catch (err) { if (err && err.code === 'timeout') throw err; if (/abort/i.test(String(err && (err.name || err.message)))) throw tooLong(); throw err; }
+    finally { clearTimeout(tm); }
+    const { data, error } = r;
     if (error) {
+      const st = error.context && error.context.status;
       let body = null; try { body = await error.context?.json(); } catch (_) {}
-      const e = new Error(body?.message || body?.error || error.message);
+      if (st === 546 || st === 504 || body?.error === 'timeout' || /timed? ?out|abort/i.test(error.message || '')) throw tooLong();
+      const e = new Error(body?.message || body?.error || (st >= 500 ? 'The AI service had a problem (' + st + '). Please try again.' : error.message));
       if (body?.error === 'rate_limited') e.code = 'rate_limited';
-      throw e;
+      e.status = st; throw e;
     }
     return data;
+  }
+  async function callAI(payload) {
+    const p = { ...payload, kind: window.NX_AI_KIND || '' }, t0 = Date.now();
+    try { return await callAI1(p); }
+    catch (e) {
+      // the slow 3-AI check failed: ask one AI straight away (only if that still makes sense time-wise)
+      const retry = p.panel !== false && (e.code === 'timeout' || (e.status >= 500 && e.code !== 'rate_limited')) && Date.now() - t0 < 60000;
+      if (!retry) throw e;
+      return await callAI1({ ...p, panel: false });
+    }
   }
   const toPayload = x => Array.isArray(x) ? { turns: x } : { prompt: String(x) };
   // AI answers are shown as plain text: remove markdown marks (**bold**, # headings, * bullets)

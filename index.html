@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=180"></script>
+<script src="config.js?v=181"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=180"></script>
-<script src="nexus-chat.js?v=180"></script>
+<script src="nexus-sb.js?v=181"></script>
+<script src="nexus-chat.js?v=181"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1081,6 +1081,7 @@ async function ai(kind, fn){
   catch(e){
     if(e?.code==='not_granted') toast('AI needs your permission. Allow it when asked, then try again.');
     else if(e?.code==='rate_limited') toast('AI is busy. Wait a minute and try again.');
+    else if(e?.code==='timeout') toast('The AI took too long to answer. Please try again – shorter questions answer faster.');
     else if(e?.code==='invalid_json') toast('The AI answer could not be read. Try again.');
     else toast('AI request failed: '+(e?.message||'unknown error'));
     return null;
@@ -3616,9 +3617,11 @@ async function askSend(text,reAtt){
   let q=(text||inp?.value||'').trim(), auto=false; if(!q&&att.length){ q='Please look at the attached '+(att.length>1?'files':'file')+' and tell me what '+(att.length>1?'they contain':'it contains')+' – a short summary, the key facts and figures, and anything Nordic should check or act on.'; auto=true; }
   if(!q) return; if(inp) inp.value=''; if(!text) UI.askAtt=[];
   UI.askAnim=null; UI.askHist=false; UI.chat.push({role:'user',content:q,...(att.length?{att}:{}),...(auto?{auto:true}:{})}); askSave();
-  const snap={today:new Date().toString(), tenders:openTenders().map(t=>({title:t.title,client:t.client,no:t.no,location:t.location,category:t.category,deadline:t.deadline,screen:t.screen,status:t.status,ai:t.ai?.verdict})),
-    projects:S.projects.map(p=>({name:p.name,client:p.client,location:p.location,status:p.status,progress:p.progress})), recent_reports:S.reports.slice(-15).map(r=>({project:projName(r.project_id),date:r.date,work:r.work_done,issues:r.issues,hse:r.hse})),
-    procurement:S.procurement.map(p=>({item:p.item,status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').map(t=>({title:t.title,who:staffName(t.assignee),due:t.due})),
+  // v180: compact snapshot (long prompts make the free AI slow or refuse) – newest / most relevant items, long texts cut
+  const cut=(x,n)=>x==null?x:String(x).length>n?String(x).slice(0,n)+'…':x, tOrd=t=>(t.screen==='Pursue'?0:t.screen==='Check'?1:2);
+  const snap={today:new Date().toString(), tenders:openTenders().filter(t=>t.screen!=='Drop').sort((a,b)=>tOrd(a)-tOrd(b)||String(a.deadline||'9').localeCompare(String(b.deadline||'9'))).slice(0,40).map(t=>({title:cut(t.title,140),client:cut(t.client,60),no:t.no,location:cut(t.location,40),deadline:t.deadline,screen:t.screen,status:t.status,ai:t.ai?.verdict})),
+    projects:S.projects.map(p=>({name:p.name,client:p.client,location:p.location,status:p.status,progress:p.progress})), recent_reports:S.reports.slice(-8).map(r=>({project:projName(r.project_id),date:r.date,work:cut(r.work_done,220),issues:cut(r.issues,160),hse:cut(r.hse,100)})),
+    procurement:S.procurement.slice(-40).map(p=>({item:cut(p.item,80),status:p.status,cost:p.est_cost,project:projName(p.project_id)})), tasks:S.tasks.filter(t=>t.status!=='Done').slice(-40).map(t=>({title:cut(t.title,100),who:staffName(t.assignee),due:t.due})),
     staff:S.staff.filter(s=>s.status!=='Left').map(s=>({name:s.name,position:s.position})), compliance:compItems().map(c=>({name:c.name,expiry:c.expiry})),
     finance_summary:(isAdmin||isFin)?{records:S.finance.length}:'restricted'};
   const turns=[{role:'user',content:`You are NORDIC NEXUS, the AI assistant of Nordic Construction Company Ltd (Tanzania): an experienced construction professional – quantity surveyor, contracts manager, site engineer and tender adviser. Answer practically and concisely in the language the user writes in (English or Swahili).
