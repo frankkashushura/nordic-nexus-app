@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=176"></script>
+<script src="config.js?v=177"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=176"></script>
-<script src="nexus-chat.js?v=176"></script>
+<script src="nexus-sb.js?v=177"></script>
+<script src="nexus-chat.js?v=177"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -4287,6 +4287,72 @@ const msPg=m=>Math.max(0,Math.min(100,+m.progress||0));
 const msStart=m=>pd(m.planned_start), msFinish=m=>m.kind==='milestone'?pd(m.planned_start):(pd(m.planned_finish)||pd(m.planned_start));
 const msPreds=m=>Array.isArray(m.preds)?m.preds.filter(Boolean):[];
 
+document.addEventListener('change',e=>{ const t=e.target; if(t.dataset&&t.dataset.pmimp&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; pmiFile(routeArg,f); } });
+/* v177 · IMPORT A PROGRAMME (Gantt chart) made outside NEXUS – Microsoft Project XML, Excel / CSV (MS Project, Primavera P6, consultant
+   spreadsheets) or a PDF / photo of a printed Gantt chart (read by AI). Activities go into the project's programme (collection "milestones"). */
+const PMI_COLS=[['id','ID'],['name','Activity / task name'],['start','Start'],['finish','Finish'],['duration','Duration (days)'],['progress','% complete'],['weight','Weight %'],['resp','Responsible'],['preds','Predecessors (IDs)'],['milestone','Milestone (Yes/No)']];
+const pmiDate=v=>{ if(v instanceof Date&&!isNaN(v)) return ymd(v); if(typeof v==='number') return bhCellDate(v); let s=String(v||'').trim(); if(!s) return ''; s=s.replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i,'').replace(/\s+\d{1,2}:\d{2}.*$/,'').replace(/(\d)(st|nd|rd|th)\b/,'$1');
+  let m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2})$/); if(m) return `20${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  if(/^\d{4}-\d{1,2}-\d{1,2}|^\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}$/.test(s)) return bhCellDate(s); const t=new Date(s); return isNaN(t)?'':ymd(t); };   // text dates: local calendar date (no UTC shift)
+const pmiNum=v=>{ const n=typeof v==='number'?v:parseFloat(String(v??'').replace(/[^\d.\-]/g,'')); return isFinite(n)?n:null; };
+function pmiXml(text){ const doc=new DOMParser().parseFromString(text,'application/xml'); if(doc.documentElement.localName!=='Project') throw new Error('This is not a Microsoft Project XML file. In MS Project use File → Save As → XML Format (*.xml).');
+  const g=(el,n)=>[...el.children].find(c=>c.localName===n)?.textContent||''; const all=[...doc.getElementsByTagNameNS('*','Task')].filter(t=>t.parentNode.localName==='Tasks');
+  const resN={}; for(const r of doc.getElementsByTagNameNS('*','Resource')) if(g(r,'Name')) resN[g(r,'UID')]=g(r,'Name'); const asg={}; for(const a of doc.getElementsByTagNameNS('*','Assignment')){ const n=resN[g(a,'ResourceUID')]; if(n) (asg[g(a,'TaskUID')]=asg[g(a,'TaskUID')]||[]).push(n); }
+  const parents=[], T=[]; for(const t of all){ if(g(t,'IsNull')==='1'||!g(t,'Name')) continue; const lvl=+g(t,'OutlineLevel')||0; if(lvl===0) continue; parents.length=lvl-1; if(g(t,'Summary')==='1'){ parents[lvl-1]=g(t,'Name'); continue; }
+    const s=g(t,'Start').slice(0,10), f=g(t,'Finish').slice(0,10); if(!/^\d{4}-\d\d-\d\d$/.test(s)) continue;
+    T.push({key:g(t,'UID'),name:[...parents.filter(Boolean).slice(-1),g(t,'Name')].join(' – '),milestone:g(t,'Milestone')==='1',start:s,finish:f||s,progress:+g(t,'PercentComplete')||0,resp:(asg[g(t,'UID')]||[]).join(', '),
+      preds:[...t.children].filter(c=>c.localName==='PredecessorLink').map(l=>g(l,'PredecessorUID')),lag:Math.max(0,...[...t.children].filter(c=>c.localName==='PredecessorLink').map(l=>Math.round((+g(l,'LinkLag')||0)/4800))),a_start:g(t,'ActualStart').slice(0,10),a_finish:g(t,'ActualFinish').slice(0,10)}); }
+  return T; }
+async function pmiSheet(file){ await loadScript(XLSX_URL); const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'}); let best=[];
+  for(const sn of wb.SheetNames){ const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});
+    const hi=rows.slice(0,30).findIndex(r=>r.some(c=>/task|activity|description|item/i.test(String(c)))&&r.some(c=>/start|begin/i.test(String(c)))); if(hi<0) continue;
+    const H=rows[hi].map(c=>String(c).toLowerCase().replace(/\s+/g,' ').trim()); const col=(...re)=>H.findIndex(h=>re.some(r=>r.test(h)));
+    const ix={id:col(/^(id|no\.?|s\/?n|#|activity id|task id|unique id|wbs)$/),name:col(/task name|activity name|^name$|^task$|^activity$|description|item/),start:col(/^start|planned start|baseline start|begin/),finish:col(/^finish|^end|planned finish|baseline finish|completion/),
+      duration:col(/duration|days/),progress:col(/% ?complete|percent|progress|%/),weight:col(/weight/),resp:col(/resource|responsib|trade|owner|by$/),preds:col(/predecess/),milestone:col(/milestone/)};
+    if(ix.name<0||ix.start<0) continue; const T=[];
+    rows.slice(hi+1).forEach((r,k)=>{ const g=n=>ix[n]>=0?r[ix[n]]:''; const name=String(g('name')).trim(); const s=pmiDate(g('start')); if(!name||!s) return;
+      const dur=pmiNum(g('duration')); let f=pmiDate(g('finish')); if(!f&&dur!=null) f=nYmd(dayN(s)+Math.max(0,Math.round(dur)-1)); const ms=/^(y|yes|true|1)$/i.test(String(g('milestone')).trim())||(dur===0);
+      T.push({key:String(g('id')||'').trim()||('r'+k),name,start:s,finish:f||s,milestone:ms,progress:pmiNum(g('progress'))!=null?(pmiNum(g('progress'))<=1&&String(g('progress')).indexOf('%')<0&&typeof g('progress')==='number'?pmiNum(g('progress'))*100:pmiNum(g('progress'))):0,
+        weight:pmiNum(g('weight')),resp:String(g('resp')).trim(),preds:String(g('preds')||'').split(/[,;]+/).map(x=>(x.match(/^\s*([A-Za-z]*\d+)/)||[])[1]).filter(Boolean),lag:(()=>{ const m=String(g('preds')||'').match(/\+\s*(\d+)/); return m?+m[1]:0; })()}); });
+    if(T.length>best.length) best=T; }
+  if(!best.length) throw new Error('No activities found. The sheet needs at least an activity name column and a Start date column (download the template).'); return best; }
+async function pmiAi(file){ if(!window.NX_ASKF||!sample||!sample.json) throw new Error('Reading a PDF / picture needs the NEXUS app (signed in).'); const m=file.type||(/\.pdf$/i.test(file.name)?'application/pdf':'image/jpeg');
+  const ap=(await window.NX_ASKF.upload(file,file.name,m)).path;
+  try{ let r=null; for(let k=0;k<3;k++){ try{ window.NX_AI_KIND='ask'; r=await sample.json(`The attached file is a construction programme / Gantt chart (MS Project, Primavera or Excel printout) for a Tanzanian building project. Read EVERY activity row exactly as written – including the task list on the left and the dates; do not invent tasks. Ignore summary rows that only group other tasks unless they have no sub-tasks.
+Reply with only JSON: {"tasks":[{"id":"1","name":"Excavation to foundation","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","duration_days":10,"progress":0,"milestone":false,"preds":["0"]}]}
+Dates must be YYYY-MM-DD. If only a start and a duration are shown, give both. Use null for anything you cannot read clearly.`,{max_tokens:8000,panel:false,files:[{path:ap,mime:m,name:file.name}]}); break; }catch(e){ if(e?.code==='rate_limited'&&k<2){ toast('AI is busy – trying again in 20 seconds…'); await new Promise(z=>setTimeout(z,20000)); continue; } throw e; } }
+    const T=[]; for(const t of (r?.tasks||[])){ const s=pmiDate(t.start); if(!t.name||!s) continue; let f=pmiDate(t.finish); if(!f&&+t.duration_days>0) f=nYmd(dayN(s)+Math.round(+t.duration_days)-1);
+      T.push({key:String(t.id??T.length),name:String(t.name).trim(),start:s,finish:f||s,milestone:!!t.milestone,progress:+t.progress||0,preds:(t.preds||[]).map(String),lag:0}); }
+    if(!T.length) throw new Error('The AI could not read any activities with dates from this file.'); return T; }
+  finally{ window.NX_ASKF.remove([ap]).catch(()=>{}); } }
+function pmiTemplate(){ (async()=>{ try{ await loadScript(XLSX_URL); }catch(e){ return toast(e.message); }
+  const rows=[PMI_COLS.map(c=>c[1]),[1,'Site clearance and setting out','2026-11-02','2026-11-08',7,0,3,'Foreman','', 'No'],[2,'Excavation to foundations','2026-11-09','2026-11-22',14,0,6,'Masons','1',''],[3,'Concrete to foundations','2026-11-23','2026-12-06',14,0,10,'Masons','2',''],[4,'Handover','2027-06-30','2027-06-30',0,0,0,'PM','3','Yes']];
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=rows[0].map((h,i)=>({wch:i===1?44:16})); XLSX.utils.book_append_sheet(wb,ws,'Programme');
+  await oxSave('Programme import template',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx'); })(); }
+async function pmiFile(pid,file){ if(!canWrite) return toast('Read-only login.'); let T, src=file.name;
+  try{ toast('Reading '+file.name+'…');
+    if(/\.mpp$/i.test(file.name)) return toast('NEXUS cannot open .mpp files directly. In Microsoft Project use File → Save As → “XML Format (*.xml)” and import that file.');
+    if(/\.xer$/i.test(file.name)) return toast('Primavera .xer cannot be read directly. In P6 export the activities to Excel (File → Export → Spreadsheet) and import the .xlsx.');
+    if(/\.xml$/i.test(file.name)) T=pmiXml(await file.text());
+    else if(/\.(xlsx|xlsm|xls|csv|ods)$/i.test(file.name)) T=await pmiSheet(file);
+    else if(/\.pdf$/i.test(file.name)||/^image\//.test(file.type)){ toast('AI is reading the Gantt chart – this can take up to a minute…'); T=await pmiAi(file); }
+    else return toast('Use MS Project XML, Excel / CSV, PDF or a photo of the Gantt chart.');
+  }catch(e){ return toast(e.message||String(e)); }
+  const have=msOf(pid).length, ai=/\.pdf$/i.test(file.name)||/^image\//.test(file.type), anyW=T.some(t=>+t.weight>0);
+  formDrawer(`Import programme – ${T.length} activities`,[
+    {k:'mode',label:'Where to put them',type:'select',options:have?[['add',`Add to the current programme (${have} activities)`],...(isAdmin?[['replace',`Replace the current programme (${have} activities are removed)`]]:[])]:[['add','Create the programme']],full:1,
+      help:`From “${src}”: ${T.slice(0,5).map(t=>`${t.name} (${fmtD(t.start)}${t.finish!==t.start?' – '+fmtD(t.finish):''})`).join(' · ')}${T.length>5?' · …':''}${ai?' – read by AI: check the dates after importing.':''}`},
+    {k:'weights',label:'Weights (needed for progress %)',type:'select',options:[...(anyW?[['file','Use the weights in the file']]:[]),['dur','Share 100% by activity duration (recommended)'],['none','Leave weights empty – I will set them']],full:1}],
+    {mode:'add',weights:anyW?'file':'dur'},async v=>{
+      if(v.mode==='replace'&&!await confirmBox(`Remove the ${have} current activities of ${projName(pid)} and replace them with the ${T.length} imported ones?`,'Replace',true)) return false;
+      toast('Importing '+T.length+' activities…'); if(v.mode==='replace'&&isAdmin){ for(const m of msOf(pid)) await remove('milestones',m.id); }
+      const dur=t=>t.milestone?0:Math.max(1,dayN(t.finish)-dayN(t.start)+1), tot=T.reduce((a,t)=>a+dur(t),0)||1, map={};
+      for(const t of T){ const x={name:t.name,kind:t.milestone?'milestone':'activity',planned_start:t.start,planned_finish:t.milestone?t.start:t.finish,progress:Math.round(+t.progress||0),resp:t.resp||'',
+          weight:v.weights==='file'?(+t.weight||0):v.weights==='dur'?Math.round(dur(t)/tot*1000)/10:0,preds:[],lag:+t.lag||0,actual_start:t.a_start||'',actual_finish:t.a_finish||'',imported_from:src,created_at:new Date().toISOString()};
+        msNormalise(x); map[t.key]=await put('milestones',null,{...x,project_id:pid}); }
+      for(const t of T){ const pr=(t.preds||[]).map(k=>map[k]).filter(Boolean); if(pr.length&&map[t.key]) await patch('milestones',map[t.key],{preds:pr}); }
+      logAct(`Imported programme (${T.length} activities) from ${src} – ${projName(pid)}`); toast(`${T.length} activities imported into the Gantt chart.`); return true; },
+    {sub:'Programme · import',saveLabel:'Import'}); }
 function msFields(pid, selfId){
   const others=msOf(pid).filter(m=>m.id!==selfId).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')).map(m=>[m.id,`${m.name} (${fmtD(m.planned_finish||m.planned_start)})`]);
   return [{k:'name',label:'Activity / milestone',req:1,full:1},
@@ -4433,7 +4499,7 @@ function pmProgrammeTab(p){
     <span class="muted small">${ms.length} activities${pr?` · weights ${pr.weight}%${pr.weight!==100?' (should be 100)':''}`:''}${base?` · baseline ${fmtD(p.baseline_at)}`:''}</span><div class="sp"></div>
     ${pr?`<button class="btn sm" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
-    <button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
+    ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
   ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
   ${view==='table'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Activity</th><th>Planned</th><th class="r hide-m">Weight</th><th style="min-width:130px">Progress</th><th class="r">Float</th><th class="hide-m">vs baseline</th><th>Status</th></tr></thead><tbody>
@@ -9113,6 +9179,7 @@ document.addEventListener('click', async e=>{
     case 'pmBaseline': await pmSetBaseline(routeArg); break;
     case 'pmExport': pmExcel([routeArg],safeId(projName(routeArg))+'-programme'); break;
     case 'pmProject': oxEnsureCss(); oxjOpen(routeArg); break;
+    case 'pmTpl': pmiTemplate(); break;
     case 'pmExportAll': pmExcel(S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')&&msOf(p.id).length).map(p=>p.id),'NEXUS-programme-report'); break;
     case 'addVo': formDrawer('Record instruction / claim',voFields(),{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
     case 'addRisk': formDrawer('Add risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),{kind:'Risk',status:'Open'},async v=>{ await put('risks',null,{...v,project_id:routeArg}); logAct(`Risk logged: ${v.title} – ${projName(routeArg)}`); },{sub:'Risks & issues'}); break;
