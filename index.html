@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="4e60c1c7b79a">
+<meta name="nexus-build" content="06e5bb6b7801">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3243,6 +3243,7 @@ function acReports(){
   const needRange=['tb','pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs'].includes(r);
   const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
     ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
+    ${r==='ledger'&&UI.acBack?`<button class="btn sm" data-ac="acBack">← Back to ${UI.acBack.tab==='annual'?'Annual accounts':esc((AC_REPS.find(x=>x[0]===UI.acBack.rep)||[0,'report'])[1])}</button>`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
   return `${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>`;
@@ -3284,7 +3285,7 @@ function acPLData(from,to){
 function acPLHtml(P,title){
   const D=P.map(([a,b])=>acPLData(a,b)), names=k=>{ const s=new Map(); D.forEach(d=>d[k].forEach(x=>s.set(x.l.id,x.l))); return [...s.values()]; };
   const val=(d,k,id)=>{ const x=d[k].find(y=>y.l.id===id); return x?x.v:0; };
-  const sec=(lbl,keys)=>keys.flatMap(k=>names(k)).length?`<tr class="ac-gh"><td colspan="${P.length+1}">${lbl}</td></tr>`+keys.flatMap(k=>names(k).map(l=>`<tr><td class="ac-in">${esc(l.name)}</td>${D.map(d=>`<td class="r num">${acSign(val(d,k,l.id))}</td>`).join('')}</tr>`)).join(''):'';
+  const sec=(lbl,keys)=>keys.flatMap(k=>names(k)).length?`<tr class="ac-gh"><td colspan="${P.length+1}">${lbl}</td></tr>`+keys.flatMap(k=>names(k).map(l=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${P[0][0]}" data-t="${P[0][1]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map(d=>`<td class="r num">${acSign(val(d,k,l.id))}</td>`).join('')}</tr>`)).join(''):'';
   const tot=(lbl,f,cls='')=>`<tr class="ac-tot ${cls}"><th>${lbl}</th>${D.map(d=>`<th class="r num">${acSign(f(d))}</th>`).join('')}</tr>`;
   return `${title===false?'':acHd('Profit & Loss account',P.map(([a,b])=>`${fmtD(a)} – ${fmtD(b)}`).join(' | '))}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Particulars</th>${P.map(([a,b])=>`<th class="r">${P.length>1?acFyLbl(acFyStart(b)):'TZS'}</th>`).join('')}</tr></thead><tbody>
     ${sec('Revenue (sales & direct income)',['sales','dinc'])}${tot('Total revenue',d=>d.rev)}
@@ -3313,7 +3314,7 @@ function acBSData(to){
 function acBSHtml(dates,title){
   const D=dates.map(acBSData), n=dates.length;
   const ids=f=>{ const m=new Map(); D.forEach(d=>f(d).forEach(x=>m.set(x.l.id,x.l))); return [...m.values()]; };
-  const row=(f,l)=>`<tr><td class="ac-in">${esc(l.name)}</td>${D.map(d=>{ const x=f(d).find(y=>y.l.id===l.id); return `<td class="r num">${acSign(x?x.v:0)}</td>`; }).join('')}</tr>`;
+  const row=(f,l)=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${acFyStart(dates[0])}" data-t="${dates[0]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map(d=>{ const x=f(d).find(y=>y.l.id===l.id); return `<td class="r num">${acSign(x?x.v:0)}</td>`; }).join('')}</tr>`;
   const blk=(lbl,f)=>{ const L=ids(f); return L.length?`<tr class="ac-gh"><td colspan="${n+1}">${lbl}</td></tr>`+L.map(l=>row(f,l)).join(''):''; };
   const tot=(lbl,f,c='')=>`<tr class="ac-tot ${c}"><th>${lbl}</th>${D.map(d=>`<th class="r num">${acSign(f(d))}</th>`).join('')}</tr>`;
   const CA=['Stock-in-Hand','Sundry Debtors','Loans & Advances (Asset)','Deposits (Asset)','Bank Accounts','Cash-in-Hand','Other current assets'], CL=['Sundry Creditors','Duties & Taxes','Provisions','Other current liabilities'];
@@ -3426,7 +3427,7 @@ function acLedgerHtml(id,from,to){ const R=acLedgerRows(id,from,to); if(!R) retu
   const dr=R.rows.reduce((a,x)=>a+x.dr,0), cr=R.rows.reduce((a,x)=>a+x.cr,0);
   return `${acHd(esc(R.l.name),`${esc(R.l.group)} · ${fmtD(from)} – ${fmtD(to)}`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Particulars</th><th>Voucher</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Balance</th></tr></thead><tbody>
     <tr class="ac-tot"><td></td><th>Opening balance</th><td></td><td></td><td></td><th class="r num">${acFmt(R.ob)} ${acDC(R.ob)}</th></tr>
-    ${R.rows.map(x=>`<tr class="click" data-ac="open" data-v="${esc(x.v.id)}"><td>${fmtD(x.d)}</td><td>${x.dr?'To':'By'} ${esc(x.part)}${x.v.narr?`<div class="small muted">${esc(String(x.v.narr).slice(0,90))}</div>`:''}</td><td class="small">${esc(x.v.vtype)} <span class="mono">${esc(x.v.no||'')}</span></td><td class="r num">${x.dr?acFmt(x.dr):''}</td><td class="r num">${x.cr?acFmt(x.cr):''}</td><td class="r num">${acFmt(x.run)} ${acDC(x.run)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No entries in this period.</td></tr>'}
+    ${R.rows.map(x=>`<tr class="click" data-ac="open" data-v="${esc(x.v.id)}"><td>${fmtD(x.d)}</td><td>${x.dr?'To':'By'} ${x.part.split(', ').length>2?`<span title="${esc(x.part)}">(as per details)</span>`:esc(x.part)}${x.v.narr?`<div class="small muted">${esc(String(x.v.narr).slice(0,90))}</div>`:''}</td><td class="small">${esc(x.v.vtype)} <span class="mono">${esc(x.v.no||'')}</span></td><td class="r num">${x.dr?acFmt(x.dr):''}</td><td class="r num">${x.cr?acFmt(x.cr):''}</td><td class="r num">${acFmt(x.run)} ${acDC(x.run)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No entries in this period.</td></tr>'}
   </tbody><tfoot><tr><th colspan="3">Current total</th><th class="r num">${acFmt(dr)}</th><th class="r num">${acFmt(cr)}</th><th class="r num">${acFmt(R.cb)} ${acDC(R.cb)}</th></tr></tfoot></table></div>`; }
 /* Outstandings with ageing (FIFO – payments clear the oldest bills first) */
 const AC_AGE=['Current','1–30 days','31–60','61–90','91–120','Over 120'];
@@ -3487,7 +3488,7 @@ function acAnnual(){
     <button class="btn sm" data-ac="annDet">✎ Report details</button><button class="btn sm" data-ac="annXlsS">Simple Excel</button><button class="btn sm" data-ac="annXls">⬇ Excel (audit format)</button><button class="btn sm" data-ac="annPdfS">Simple PDF</button><button class="btn pri sm" data-ac="annPdf">⬇ PDF (audit format)</button></div>
   <div class="banner"><div>Annual financial statements ${acFyEnd(fy)>today()?`for the period <b>${fmtD(fy)} – ${fmtD(fe)}</b> (year to date)`:`for the year ended <b>${fmtD(fe)}</b>`}${hasPrev?` with comparative figures for ${acFyLbl(prev)}`:''}: statement of profit or loss, statement of financial position, statement of cash flows, notes (schedules) and trial balance. Hand the PDF / Excel to the auditor.${acFyEnd(fy)>today()?` <b>This year is not finished yet – figures are up to today (${fmtD(fe)}); the year ends ${fmtD(acFyEnd(fy))}.</b>`:''}</div></div>
   <div class="card">${acPLHtml(P)}</div><div class="card">${acBSHtml(B)}</div><div class="card">${acCFHtml(P)}</div>
-  <div class="card">${acHd('Notes – schedules',`ledger balances that make up each line · as at ${fmtD(fe)}`)}${acNotesHtml(fy,fe)}</div>`;
+  <p class="small muted" style="padding:2px 4px">Click any ledger name to open its ledger sheet with every entry. The audit-format Excel / PDF still include the notes for the auditor.</p>`;
 }
 function acNotesHtml(fs,fe){ let n=0; return AC_GROUPS.map(([g])=>{ const ls=acLed().filter(l=>l.group===g&&l.id!=='L_pl'); const items=ls.map(l=>({l,v:acIsPL(g)?acSum(l.id,fs,fe):acBalTo(l.id,fe)})).filter(x=>x.v); if(!items.length) return '';
   const sign=acNat(g)==='A'||acNat(g)==='E'?1:-1; n++; return `<h3 style="margin:12px 14px 4px">Note ${n} – ${esc(g)}</h3><div class="tbl-wrap"><table class="ac-t"><tbody>${items.map(x=>`<tr><td class="ac-in">${esc(x.l.name)}</td><td class="r num">${acSign(x.v*sign)}</td></tr>`).join('')}</tbody><tfoot><tr><th>Total</th><th class="r num">${acSign(items.reduce((a,x)=>a+x.v,0)*sign)}</th></tr></tfoot></table></div>`; }).join('')||'<div class="empty">No balances.</div>'; }
@@ -3534,9 +3535,10 @@ document.addEventListener('click',async e=>{
   if(a==='setup') return acSetup();
   if(a==='new') return acNew(v);
   if(a==='open') return acEdit(v);
-  if(a==='rep'){ UI.actab='rep'; UI.acrep=v; renderView(true); return; }
+  if(a==='rep'){ UI.actab='rep'; UI.acrep=v; UI.acBack=null; renderView(true); return; }
   if(a==='fy'){ const t=today(), fs=acFyStart(t), p=acFyStart(acDay(fs,-1)); UI.acr={...(UI.acr||{}),from:v==='prev'?p:fs,to:v==='prev'?acDay(fs,-1):t}; renderView(true); return; }
-  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.actab='rep'; UI.acrep='ledger'; UI.acr={...(UI.acr||{}),l:v}; renderView(true); return; }
+  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.acBack=UI.actab==='rep'&&UI.acrep==='ledger'?UI.acBack:{tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}; UI.actab='rep'; UI.acrep='ledger'; UI.acr={...(UI.acr||{}),l:v,...(b.dataset.f?{from:b.dataset.f,to:b.dataset.t}:{})}; renderView(true); window.scrollTo(0,0); return; }
+  if(a==='acBack'){ const k=UI.acBack; UI.acBack=null; if(!k) return; UI.actab=k.tab; UI.acrep=k.rep; UI.acr=k.acr; renderView(true); setTimeout(()=>window.scrollTo(0,k.y||0),30); return; }
   if(a==='ledNew') return acLedForm(null);
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
   if(a==='autoToggle'){ const st=acSet(); await patch('acset','main',{auto_post:!st.auto_post}); return; }
@@ -3573,7 +3575,7 @@ document.addEventListener('keydown',e=>{
 .ac-vbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px}.ac-vbtns .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}.ac-vbtns .btn span{font-size:11px;opacity:.7;font-family:'IBM Plex Mono',monospace}
 .ac-t{width:100%;border-collapse:collapse}.ac-t th,.ac-t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}.ac-t td.r,.ac-t th.r{text-align:right}.ac-t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ac-gh td{font-weight:700;background:color-mix(in srgb,var(--line) 35%,transparent)}.ac-sec td{font-weight:800;letter-spacing:.05em;color:var(--accent,#F2A900);padding-top:14px}.ac-in{padding-left:24px!important}
-.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
+.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
 .ac-ln{white-space:nowrap}.ac-filt{flex-wrap:wrap;gap:8px}.ac-filt label{display:flex;align-items:center;gap:6px}.ac-wide th,.ac-wide td{white-space:nowrap}
 .ac-replinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.ac-rl{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}.ac-rl:hover{border-color:var(--accent,#F2A900)}.ac-rl small{opacity:.7}
 .ac-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
@@ -4076,7 +4078,7 @@ function acTB6Html(from,to){ const rows=[]; let T=[0,0,0,0,0,0];
   const body=rows.map(r=>{ const s=k=>acR(r.items.reduce((a,x)=>a+x[k],0)); const go=s('op'), gc=s('cl');
     r.items.forEach(x=>{ sp(x.op,0); T[2]+=x.dr; T[3]+=x.cr; sp(x.cl,4); });
     return `<tr class="ac-gh"><td>${esc(r.g)}</td><td class="r num">${go>0?c(go):''}</td><td class="r num">${go<0?c(go):''}</td><td class="r num">${c(s('dr'))}</td><td class="r num">${c(s('cr'))}</td><td class="r num">${gc>0?c(gc):''}</td><td class="r num">${gc<0?c(gc):''}</td></tr>`+
-      r.items.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}"><td class="ac-in">${esc(x.l.name)}</td><td class="r num">${x.op>0?c(x.op):''}</td><td class="r num">${x.op<0?c(x.op):''}</td><td class="r num">${c(x.dr)}</td><td class="r num">${c(x.cr)}</td><td class="r num">${x.cl>0?c(x.cl):''}</td><td class="r num">${x.cl<0?c(x.cl):''}</td></tr>`).join(''); }).join('');
+      r.items.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}" data-f="${from}" data-t="${to}" title="Open the ledger"><td class="ac-in ac-lk">${esc(x.l.name)}</td><td class="r num">${x.op>0?c(x.op):''}</td><td class="r num">${x.op<0?c(x.op):''}</td><td class="r num">${c(x.dr)}</td><td class="r num">${c(x.cr)}</td><td class="r num">${x.cl>0?c(x.cl):''}</td><td class="r num">${x.cl<0?c(x.cl):''}</td></tr>`).join(''); }).join('');
   const od=acOpDiff(); if(od){ if(od<0) T[0]-=od, T[4]-=od; else T[1]+=od, T[5]+=od; }
   const ok=Math.abs(T[0]-T[1])<0.01&&Math.abs(T[2]-T[3])<0.01&&Math.abs(T[4]-T[5])<0.01;
   return `${acHd('Trial Balance',`${fmtD(from)} – ${fmtD(to)} · opening, movements in the period and closing balances`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th rowspan="2">Particulars</th><th class="r" colspan="2">Opening balance</th><th class="r" colspan="2">Transactions</th><th class="r" colspan="2">Closing balance</th></tr><tr><th class="r">Debit</th><th class="r">Credit</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="empty">No balances.</td></tr>'}
