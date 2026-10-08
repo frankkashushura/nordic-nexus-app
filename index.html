@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=179"></script>
+<script src="config.js?v=180"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=179"></script>
-<script src="nexus-chat.js?v=179"></script>
+<script src="nexus-sb.js?v=180"></script>
+<script src="nexus-chat.js?v=180"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -349,7 +349,7 @@ ul.clean li{margin:3px 0}
 .ann .ann-body{white-space:pre-wrap;margin:10px 0 0;color:rgba(255,255,255,.95);font-size:14.5px;line-height:1.5}
 .ann .ann-meta{font-size:12px;opacity:.85;margin-top:10px}
 .ann .ann-img{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:12px;margin-top:12px;cursor:zoom-in;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-.ann .ann-file{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;margin-top:12px;font-weight:600}
+.ann .ann-files{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.ann .ann-files .ann-file{margin-top:0;cursor:pointer;font:inherit;font-weight:600}.ann .ann-file{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;margin-top:12px;font-weight:600}
 .ann .ann-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .ann .ann-acts button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer}
 .ann .ann-acts button:hover{background:rgba(255,255,255,.28)}
@@ -9288,6 +9288,14 @@ const annCanPost=()=>{ const r=window.NX_ANN?window.NX_ANN.role():''; return isA
 const annMyUid=()=>window.NX_ANN?window.NX_ANN.uid():(me.id||'');
 const annEnd=a=>a.expires?Date.parse(a.expires+'T23:59:59+03:00'):Infinity;
 const annActive=()=>(S.announcements||[]).filter(a=>!a.example&&annEnd(a)>=Date.now()).sort((x,y)=>(y.created_at||'').localeCompare(x.created_at||''));
+async function annDownload(btn){
+  const url=btn.dataset.anndl, name=(btn.dataset.annname||'attachment').replace(/[\\/:*?"<>|]+/g,'_');
+  const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Downloading…';
+  try{ const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); const bl=await r.blob();
+    await downloads.save({filename:name, data:new Uint8Array(await bl.arrayBuffer()), type:bl.type||'application/octet-stream'}); toast('Downloaded '+name); }
+  catch(err){ if(err?.code==='declined'){} else { const a=document.createElement('a'); a.href=url+(url.includes('?')?'&':'?')+'download='+encodeURIComponent(name); a.download=name; a.rel='noopener'; document.body.append(a); a.click(); a.remove(); } }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
 const annFileIco=n=>/\.pdf$/i.test(n||'')?'📄':/\.(xlsx?|csv)$/i.test(n||'')?'📊':/\.(docx?)$/i.test(n||'')?'📝':'📎';
 function annCard(a,pop,idx,total){
   const at=a.attach||null, own=annCanPost();
@@ -9297,7 +9305,7 @@ function annCard(a,pop,idx,total){
     <div class="ann-top"><div class="ann-ic" aria-hidden="true">${esc(a.icon||'📢')}</div><div style="flex:1;min-width:0"><div class="ann-lbl">Announcement</div><h3 ${pop?'id="annTtl"':''}>${esc(a.title||'')}</h3></div></div>
     ${a.body?`<div class="ann-body">${esc(a.body)}</div>`:''}
     ${at&&at.kind==='image'?`<img class="ann-img" src="${esc(at.url)}" alt="${esc(at.name||'Announcement picture')}" data-annzoom="${esc(at.url)}">`:''}
-    ${at&&at.kind==='file'?`<a class="ann-file" href="${esc(at.url)}" target="_blank" rel="noopener">${annFileIco(at.name)} ${esc(at.name||'Open attachment')}</a>`:''}
+    ${at?`<div class="ann-files">${at.kind==='file'?`<a class="ann-file" href="${esc(at.url)}" target="_blank" rel="noopener">${annFileIco(at.name)} ${esc(at.name||'Open attachment')}</a>`:''}<button type="button" class="ann-file ann-dl" data-anndl="${esc(at.url)}" data-annname="${esc(at.name||(at.kind==='image'?'announcement-picture.jpg':'attachment'))}">⬇ Download</button></div>`:''}
     <div class="ann-meta">From ${esc(a.by||'the office')}${when?' · '+when:''}${a.expires?' · until '+esc(fmtD(a.expires)):''}</div>
     ${pop?`<div class="ann-acts" style="margin-top:16px;align-items:center"><button class="ann-got" data-ann="got:${esc(a.id)}">Got it</button><button data-ann="later:${esc(a.id)}">Remind me later</button></div>`
       :own?`<div class="ann-acts"><button data-ann="seen:${esc(a.id)}">👁 Seen by…</button><button data-ann="edit:${esc(a.id)}">✏️ Edit</button><button data-ann="del:${esc(a.id)}">🗑 Remove</button></div>`:''}
@@ -9372,6 +9380,7 @@ async function annSeenBox(id){
 }
 document.addEventListener('click',async e=>{
   const z=e.target.closest('[data-annzoom]'); if(z){ lightbox(z.dataset.annzoom); return; }
+  const dl=e.target.closest('[data-anndl]'); if(dl){ e.preventDefault(); e.stopPropagation(); annDownload(dl); return; }
   const b=e.target.closest('[data-ann]'); if(!b) return; e.stopPropagation();
   const [k,id]=b.dataset.ann.split(/:(.*)/);
   if(k==='got'){ ANN.seen&&ANN.seen.add(id); try{ window.NX_ANN&&await window.NX_ANN.markSeen(id); }catch(_){} annClose(); }
