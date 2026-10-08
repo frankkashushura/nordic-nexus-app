@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="1be7af19effc">
+<meta name="nexus-build" content="4e60c1c7b79a">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -4095,7 +4095,8 @@ function acTB6Html(from,to){ const rows=[]; let T=[0,0,0,0,0,0];
   const go=()=>{ try{ sessionStorage.setItem('nx_updated',next||''); }catch(_){} location.reload(); };
   const bar=()=>{ if(document.getElementById('nxUpd')) return; const b=document.createElement('div'); b.id='nxUpd'; b.setAttribute('role','status');
     b.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:#182340;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px #0006;display:flex;gap:12px;align-items:center;font:14px system-ui,sans-serif;max-width:calc(100% - 32px)';
-    b.innerHTML='<span>A new version of NEXUS is ready.</span><button class="btn sm pri" id="nxUpdGo">Update now</button><button class="btn sm ghost" id="nxUpdLater" style="color:#fff">Later</button>';
+    const bs='all:unset;cursor:pointer;padding:7px 14px;border-radius:8px;font:600 13px system-ui,sans-serif;white-space:nowrap;';
+    b.innerHTML='<span style="color:#fff">A new version of NEXUS is ready.</span><button id="nxUpdGo" style="'+bs+'background:#F5B014;color:#14213D;border:1px solid #F5B014">Update now</button><button id="nxUpdLater" style="'+bs+'background:transparent;color:#fff;border:1px solid #ffffff66">Later</button>';
     document.body.append(b); b.querySelector('#nxUpdGo').onclick=go; b.querySelector('#nxUpdLater').onclick=()=>b.remove(); };
   const tryApply=()=>{ if(!next) return; if(document.hidden||(!busy()&&Date.now()-last>120000)) return go(); bar(); };
   async function check(){ if(checking||!navigator.onLine) return; checking=true;
