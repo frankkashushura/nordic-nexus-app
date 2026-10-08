@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="04fd0ea6b758">
+<meta name="nexus-build" content="242abc5508c9">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -8,7 +8,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="config.js?v=188"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=188"></script>
+<script src="nexus-sb.js?v=195"></script>
 <script src="nexus-chat.js?v=188"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
@@ -765,6 +765,7 @@ const LOGO = document.querySelector('#brandMark img').src;
 const COLS = ['ledgers','vouchers','acset','paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
+const AC_BIG={vouchers:20000,ledgers:5000,finance:10000,procurement:10000,po:10000,certificates:5000,valuations:5000,paystat:5000,tenders:5000,records:5000};
 const loaded = new Set();
 let db=null, assets=null, sample=null, user=null, downloads=null;
 let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, isQSRole=false, canWrite=true;
@@ -2916,7 +2917,7 @@ const acSet=()=>(S.acset||[]).find(x=>x.id==='main')||null;
 let AC_LS=null; const acLed=()=>{ if(!AC_LS||AC_LS.s!==S.ledgers) AC_LS={s:S.ledgers,a:(S.ledgers||[]).filter(l=>!l.deleted).sort((x,y)=>String(x.name||'').localeCompare(String(y.name||'')))}; return AC_LS.a; };
 const acL=id=>(S.ledgers||[]).find(l=>l.id===id);
 const acLN=id=>{ const l=acL(id); return l?l.name:'(missing ledger)'; };
-const acVch=()=>(S.vouchers||[]).filter(v=>!v.cancelled&&!v.deleted);
+const acVch=()=>(S.vouchers||[]).filter(v=>!v.cancelled&&!v.deleted&&(!v.status||v.status==='posted'));
 const acR=n=>Math.round((+n||0)*100)/100;
 const acFmt=n=>{ n=acR(n); return Math.abs(n)<0.005?'–':Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 const acSign=n=>{ n=acR(n); return Math.abs(n)<0.005?'–':(n<0?'('+acFmt(n)+')':acFmt(n)); };
@@ -3036,6 +3037,7 @@ function acGateway(){
   const vat=-(acTB('L_vatout',t)+acTB('L_vatin',t)), recent=[...acVch()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.no).localeCompare(String(a.no))).slice(0,8);
   const lk=(acSet()||{}).locked_until;
   return `<div class="ac-vbtns">${AC_VT.map(([n,,k])=>`<button class="btn" data-ac="new" data-v="${n}"><b>${n}</b><span>${k}</span></button>`).join('')}</div>
+  ${acApprovalsCard()}
   <div class="fin-kpis">
     <div class="fin-k in"><span class="fi">₮</span><div><span class="l">Cash & bank</span><b class="num">${tzsShort(cash.reduce((a,x)=>a+x.b,0))}</b><small>${cash.filter(x=>x.b).map(x=>esc(x.l.name)+': '+tzsShort(x.b)).slice(0,3).join(' · ')||'No balances yet'}</small></div></div>
     <div class="fin-k nt"><span class="fi">↓</span><div><span class="l">Receivables (debtors)</span><b class="num">${tzsShort(deb)}</b><small>Clients owe Nordic</small></div></div>
@@ -3056,20 +3058,21 @@ function acPart(v){ const L=v.lines||[]; const dr=L.filter(x=>x.dc==='Dr').map(x
 
 /* ---------- Day Book ---------- */
 function acDayBook(){
-  const f=UI.acdb||{}, fs=acFyStart(today()), from=f.from||fs, to=f.to||today(), vt=f.vt||'All', q=(f.q||'').toLowerCase();
-  let rows=(S.vouchers||[]).filter(v=>!v.deleted&&(v.date||'')>=from&&(v.date||'')<=to&&(vt==='All'||v.vtype===vt));
+  const f=UI.acdb||{}, fs=acFyStart(today()), from=f.from||fs, to=f.to||today(), vt=f.vt||'All', q=(f.q||'').toLowerCase(), sf=f.st||'';
+  let rows=(S.vouchers||[]).filter(v=>!v.deleted&&(v.date||'')>=from&&(v.date||'')<=to&&(vt==='All'||v.vtype===vt)&&(!sf||(sf==='posted'?acVSt(v)==='posted':acVSt(v)!=='posted')));
   if(q) rows=rows.filter(v=>[v.no,v.narr,v.ref,v.party_name,...(v.lines||[]).map(x=>acLN(x.l))].join(' ').toLowerCase().includes(q));
   rows.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||String(a.no).localeCompare(String(b.no)));
-  const tot=rows.filter(v=>!v.cancelled).reduce((a,v)=>a+(+v.amount||0),0);
+  const tot=rows.filter(v=>!v.cancelled&&acVSt(v)==='posted').reduce((a,v)=>a+(+v.amount||0),0), nUnp=(S.vouchers||[]).filter(v=>!v.deleted&&!v.cancelled&&acVSt(v)!=='posted').length;
   return `<div class="toolbar ac-filt">${acRange('acdb',from,to)}
     <select class="inp" data-acf="acdb.vt"><option>All</option>${AC_VT.map(([n])=>`<option ${vt===n?'selected':''}>${n}</option>`).join('')}</select>
+    <select class="inp" data-acf="acdb.st"><option value="">All statuses</option><option value="posted" ${sf==='posted'?'selected':''}>Posted</option><option value="open" ${sf==='open'?'selected':''}>Drafts & awaiting approval${nUnp?` (${nUnp})`:''}</option></select>
     <input class="inp" placeholder="Search ledger, narration, no." value="${esc(f.q||'')}" data-acf="acdb.q" style="max-width:220px"><div class="sp"></div>
     <button class="btn sm" data-ac="xls" data-v="day">Excel</button><button class="btn pri sm" data-ac="new" data-v="Journal">＋ Voucher</button></div>
   <div class="card"><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Type</th><th>No.</th><th>Particulars</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>
-  ${rows.map(v=>`<tr class="click ${v.cancelled?'ac-cx':''}" data-ac="open" data-v="${esc(v.id)}"><td>${fmtD(v.date)}</td><td>${esc(v.vtype)}${v.auto?' <span class="chip" title="Posted automatically from a quick entry">auto</span>':''}${v.cancelled?' <span class="chip bad">cancelled</span>':''}</td><td class="mono small">${esc(v.no||'')}</td>
+  ${rows.map(v=>`<tr class="click ${v.cancelled?'ac-cx':acVSt(v)!=='posted'?'ac-unp':''}" data-ac="open" data-v="${esc(v.id)}"><td>${fmtD(v.date)}</td><td>${esc(v.vtype)}${v.auto?' <span class="chip" title="Posted automatically from a quick entry">auto</span>':''}${v.cancelled?' <span class="chip bad">cancelled</span>':acStChip(v)}</td><td class="mono small">${esc(v.no||'')}</td>
     <td>${(v.lines||[]).map(x=>`<div class="ac-ln"><span>${x.dc==='Dr'?'Dr':'&nbsp;&nbsp;&nbsp;Cr'} ${esc(acLN(x.l))}</span></div>`).join('')}${v.narr?`<div class="small muted">${esc(v.narr)}</div>`:''}</td>
     <td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Dr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td><td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Cr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No vouchers in this period.</td></tr>'}
-  </tbody><tfoot><tr><th colspan="4">${rows.length} voucher${rows.length===1?'':'s'}</th><th class="r num">${acFmt(tot)}</th><th class="r num">${acFmt(tot)}</th></tr></tfoot></table></div></div>`;
+  </tbody><tfoot><tr><th colspan="4">${rows.length} voucher${rows.length===1?'':'s'}${rows.some(v=>!v.cancelled&&acVSt(v)!=='posted')?' <span class="small muted">· totals = posted only</span>':''}</th><th class="r num">${acFmt(tot)}</th><th class="r num">${acFmt(tot)}</th></tr></tfoot></table></div></div>`;
 }
 function acRange(key,from,to){ return `<label class="small">From <input type="date" class="inp" value="${esc(from)}" data-acf="${key}.from"></label><label class="small">To <input type="date" class="inp" value="${esc(to)}" data-acf="${key}.to"></label>`; }
 
@@ -3095,12 +3098,13 @@ function acLedForm(l){
     {k:'op',label:`Opening balance as at ${fmtD((acSet()||{}).books_from)} (TZS)`,type:'number',help:'Only for balance-sheet ledgers (bank, cash, debtors, creditors, assets, loans, capital).'},
     {k:'op_dc',label:'Opening balance is',type:'select',options:[['Dr','Debit (Dr) – asset / amount owed to Nordic'],['Cr','Credit (Cr) – liability / capital / amount Nordic owes']]},
     {k:'tin',label:'TIN'},{k:'vrn',label:'VRN (VAT number)'},{k:'phone',label:'Phone'},{k:'email',label:'Email'},
+    {k:'credit_days',label:'Credit period (days)',type:'number',help:'Debtors / creditors: days allowed before a bill is overdue (ageing). Empty = 30.'},{k:'credit_limit',label:'Credit limit (TZS)',type:'number',help:'Flags the party in Outstandings when the balance is above it.'},
     {k:'bank',label:'Bank name (bank accounts)'},{k:'acc_no',label:'Account number'},
     {k:'inactive',label:'Status',type:'select',options:[['','Active'],['1','Inactive (hidden in voucher entry)']]},{k:'note',label:'Note',type:'textarea'}],
     {...l,inactive:l.inactive?'1':''},async v=>{
       const nm=String(v.name||'').trim(); if(!nm) return;
       if(acLed().some(x=>x.id!==l.id&&x.name.toLowerCase()===nm.toLowerCase())){ toast('A ledger with this name already exists.'); return; }
-      const o={...v,name:nm,op:acR(v.op),op_dc:v.op_dc||'Dr',inactive:v.inactive==='1'};
+      const o={...v,name:nm,op:acR(v.op),op_dc:v.op_dc||'Dr',inactive:v.inactive==='1',credit_days:v.credit_days===''||v.credit_days==null?'':+v.credit_days,credit_limit:v.credit_limit===''||v.credit_limit==null?'':acR(v.credit_limit)};
       if(isNew){ await put('ledgers',null,o); logAct(`Ledger created – ${nm}`); } else { await patch('ledgers',l.id,o); logAct(`Ledger altered – ${nm}`); }
     },{sub:'Accounts · masters',onDelete:(!isNew&&!used&&!l.sys)?async()=>{ await remove('ledgers',l.id); logAct(`Ledger deleted – ${l.name}`); }:null,delLabel:'Delete ledger',delMsg:'Delete this ledger? It has no entries.'});
 }
@@ -3117,7 +3121,7 @@ function acNew(vt,preset){
 }
 function acEdit(id){ const v=(S.vouchers||[]).find(x=>x.id===id); if(!v) return; ACV=JSON.parse(JSON.stringify(v)); ACV.lines=(ACV.lines||[]).map(x=>({...x,amt:x.amt})); acVOpen(); }
 function acLocked(d){ const lk=(acSet()||{}).locked_until; return !!(lk&&d&&d<=lk); }
-function acVOpen(){ let w=document.getElementById('acvModal'); if(!w){ w=document.createElement('div'); w.id='acvModal'; w.className='acm'; document.body.append(w); w.addEventListener('click',acVClick); w.addEventListener('input',acVInput); w.addEventListener('change',acVInput); w.addEventListener('keydown',acVKey); } acVRender(); setTimeout(()=>{ const i=w.querySelector('[data-vl="0"][data-k="l"]'); i&&!ACV.id&&i.focus(); },50); }
+function acVOpen(){ let w=document.getElementById('acvModal'); if(!w){ w=document.createElement('div'); w.id='acvModal'; w.className='acm'; document.body.append(w); w.addEventListener('click',acVClick); w.addEventListener('input',acVInput); w.addEventListener('change',acVInput); w.addEventListener('keydown',acVKey); } acVRender(); setTimeout(()=>{ const i=w.querySelector('[data-vl="0"][data-k="l"]'); i&&ACV&&!ACV.id&&i.focus(); },50); }
 function acVClose(){ const w=document.getElementById('acvModal'); if(w) w.remove(); ACV=null; }
 function acTot(){ let dr=0,cr=0; for(const x of ACV.lines) if(+x.amt){ if(x.dc==='Dr') dr+=+x.amt; else cr+=+x.amt; } return {dr:acR(dr),cr:acR(cr),diff:acR(dr-cr)}; }
 function acVRender(){
@@ -3148,8 +3152,8 @@ function acVRender(){
   <datalist id="acLedList">${opts.map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist>
   <div id="acmNewLed" hidden class="acm-newled"><input class="inp" placeholder="New ledger name" data-nl="name"><select class="inp" data-nl="group">${AC_GROUPS.filter(g=>g[0]!=='Profit & Loss A/c').map(g=>`<option ${g[0]==='Sundry Creditors'?'selected':''}>${g[0]}</option>`).join('')}</select><button class="btn sm pri" data-vx="mkled">Create</button></div>
   <label class="acm-narr">Narration <textarea class="inp" rows="2" data-vk="narr" placeholder="What was this for? (shown on the ledger statement)">${esc(ACV.narr||'')}</textarea></label>
-  <div class="acm-ft">${ACV.id&&!ACV.cancelled&&!acLocked(ACV.date)?'<button class="btn danger" data-vx="cancel">Cancel voucher</button>':''}${ACV.id&&isAdmin&&!acLocked(ACV.date)?' <button class="btn ghost" data-vx="delete">Delete</button>':''}${ACV.id?' <button class="btn" data-vx="print">Print</button>':''}<div class="sp"></div>
-    <span class="small muted">Ctrl+Enter = accept · Esc = close</span><button class="btn" data-vx="close">Close</button>${ro?'':`<button class="btn pri" data-vx="save">${ACV.id?'Save changes':'Accept'}</button>`}</div></div>`;
+  ${acVStamp()}<div class="acm-ft">${ACV.id&&!ACV.cancelled&&!acLocked(ACV.date)?'<button class="btn danger" data-vx="cancel">Cancel voucher</button>':''}${ACV.id&&isAdmin&&!acLocked(ACV.date)?' <button class="btn ghost" data-vx="delete">Delete</button>':''}${ACV.id?' <button class="btn" data-vx="print">Print</button>':''}<div class="sp"></div>
+    <span class="small muted">Ctrl+Enter = accept · Esc = close</span><button class="btn" data-vx="close">Close</button>${ro?'':acVBtns()}</div></div>`;
 }
 function acVInput(e){ const t=e.target; if(!ACV) return;
   if(t.dataset.vk){ ACV[t.dataset.vk]=t.value; if(t.dataset.vk==='date'&&!ACV.id&&e.type==='change'&&ACV.no===ACV.no_auto){ ACV.no=ACV.no_auto=acNextNo(ACV.vtype,t.value); acVR(); } return; }
@@ -3178,29 +3182,45 @@ async function acVClick(e){
     if(acLed().some(l=>l.name.toLowerCase()===nm.toLowerCase())){ toast('That ledger already exists.'); return; }
     const id=await put('ledgers',null,{name:nm,group:g,op:0,op_dc:acNat(g)==='L'?'Cr':'Dr'}); if(id){ logAct(`Ledger created – ${nm}`); const empty=ACV.lines.find(x=>!x.l); if(empty) empty.l=id; toast('Ledger created.'); setTimeout(acVRender,400); } return; }
   if(a==='save') return acVSave();
+  if(['draft','submit','post','approve','reject','todraft'].includes(a)) return acVFlow(a);
   if(a==='print') return acPrintV(ACV);
   if(a==='cancel'){ if(!await confirmBox(`Cancel voucher ${ACV.no}? It stays in the Day Book marked "cancelled" but has no effect on the books.`,'Cancel voucher',true)) return; await patch('vouchers',ACV.id,{cancelled:true,cancelled_by:me.name||'',cancelled_at:new Date().toISOString(),manual:true}); logAct(`Voucher cancelled – ${ACV.no}`); acVClose(); return; }
   if(a==='delete'){ if(!await confirmBox(`Delete voucher ${ACV.no} permanently? Prefer "Cancel voucher" so the audit trail is kept.`,'Delete',true)) return; if(await remove('vouchers',ACV.id)){ logAct(`Voucher deleted – ${ACV.no}`); acVClose(); } return; }
 }
-async function acVSave(){
-  if(!ACV) return; const v=ACV, L=v.lines.filter(x=>x.l&&+x.amt>0).map(x=>({l:x.l,dc:x.dc==='Cr'?'Cr':'Dr',amt:acR(x.amt),...(x.cc?{cc:x.cc}:{}),...(x.bd?{bd:x.bd}:{})}));
-  if(v.lines.some(x=>+x.amt>0&&!x.l)){ toast('Every line with an amount needs a ledger.'); return; }
-  if(L.length<2){ toast('A voucher needs at least one debit and one credit line.'); return; }
+async function acVSave(mode){
+  if(!ACV) return; const v=ACV, st0=v.id?acVSt(v):'', L=v.lines.filter(x=>x.l&&+x.amt>0).map(x=>({l:x.l,dc:x.dc==='Cr'?'Cr':'Dr',amt:acR(x.amt),...(x.cc?{cc:x.cc}:{}),...(x.bd?{bd:x.bd}:{})}));
   const dr=acR(L.filter(x=>x.dc==='Dr').reduce((a,x)=>a+x.amt,0)), cr=acR(L.filter(x=>x.dc==='Cr').reduce((a,x)=>a+x.amt,0));
-  if(!dr||!cr){ toast('A voucher needs at least one debit and one credit line.'); return; }
-  if(Math.abs(dr-cr)>0.004){ toast(`Debit ${acFmt(dr)} and credit ${acFmt(cr)} are not equal (difference ${acFmt(dr-cr)}).`); return; }
+  const need=!isAdmin&&!v.auto&&acNeedsAppr(dr);
+  if(!mode) mode=st0==='posted'?'save':st0==='submitted'&&isAdmin?'approve':need&&st0!=='approved'?'submit':'post';
+  if(mode==='approve'&&!isAdmin) return;
+  if(mode==='post'&&need&&st0!=='approved'){ toast('Above your approval limit – submit it for a director\'s approval.'); return; }
+  const draft=mode==='draft';
+  if(v.lines.some(x=>+x.amt>0&&!x.l)){ toast('Every line with an amount needs a ledger.'); return; }
+  if(draft){ if(!L.length){ toast('Enter at least one line before saving a draft.'); return; } }
+  else {
+    if(L.length<2||!dr||!cr){ toast('A voucher needs at least one debit and one credit line.'); return; }
+    if(Math.abs(dr-cr)>0.004){ toast(`Debit ${acFmt(dr)} and credit ${acFmt(cr)} are not equal (difference ${acFmt(dr-cr)}).`); return; } }
   if(!v.date){ toast('Enter the date.'); return; }
   const st=acSet()||{}; if(st.books_from&&v.date<st.books_from){ toast(`The books begin on ${fmtD(st.books_from)} – earlier dates are not allowed.`); return; }
   if(acLocked(v.date)){ toast(`Entries up to ${fmtD(st.locked_until)} are locked.`); return; }
-  const cashN=L.filter(x=>acIsCash(x.l)).length;
-  if(['Payment','Receipt'].includes(v.vtype)&&!cashN){ toast(`A ${v.vtype} voucher must use a bank or cash ledger.`); return; }
-  if(v.vtype==='Contra'&&cashN!==L.length){ toast('Contra is only for transfers between bank and cash ledgers.'); return; }
-  if(['Payment','Receipt','Contra'].includes(v.vtype)){ /* cash going out must not exceed? only warn */ }
-  const o={vtype:v.vtype,no:String(v.no||'').trim()||acNextNo(v.vtype,v.date),date:v.date,ref:v.ref||'',narr:v.narr||'',project_id:v.project_id||'',lines:L,amount:dr,
-    ...(v.pr_id?{pr_id:v.pr_id}:{}),...(v.po_id?{po_id:v.po_id}:{}),...(v.src?{src:v.src}:{}),...(v.auto?{auto:true,manual:true}:{})};
+  if(!draft){ const cashN=L.filter(x=>acIsCash(x.l)).length;
+    if(['Payment','Receipt'].includes(v.vtype)&&!cashN){ toast(`A ${v.vtype} voucher must use a bank or cash ledger.`); return; }
+    if(v.vtype==='Contra'&&cashN!==L.length){ toast('Contra is only for transfers between bank and cash ledgers.'); return; } }
+  const orig=v.id?(S.vouchers||[]).find(x=>x.id===v.id):null, chg=!orig||JSON.stringify(orig.lines||[])!==JSON.stringify(L);
+  if(st0==='approved'&&chg&&mode!=='draft'){ toast('An approved voucher cannot be changed – send it back to draft first.'); return; }
+  const now=new Date().toISOString(), who=me.name||''; let status=null, stamp={};
+  if(mode==='draft') status='draft';
+  else if(mode==='submit'){ status='submitted'; stamp={submitted_by:who,submitted_at:now,reject_reason:''}; }
+  else if(mode==='approve'){ status='posted'; stamp={approved_by:who,approved_uid:me.id||'',approved_at:now,posted_by:who,posted_at:now,reject_reason:''}; }
+  else if(mode==='post'){ status='posted'; stamp={posted_by:who,posted_at:now}; }
+  else if(need&&chg){ if(!await confirmBox('This change is above your approval limit. Send the voucher to a director for approval? Until it is approved it is left out of the books.','Submit for approval')) return; status='submitted'; stamp={submitted_by:who,submitted_at:now}; mode='submit'; }
+  const o={vtype:v.vtype,no:String(v.no||'').trim()||acNextNo(v.vtype,v.date),date:v.date,ref:v.ref||'',narr:v.narr||'',project_id:v.project_id||'',lines:L,amount:draft?Math.max(dr,cr):dr,
+    ...(v.pr_id?{pr_id:v.pr_id}:{}),...(v.po_id?{po_id:v.po_id}:{}),...(v.src?{src:v.src}:{}),...(v.auto?{auto:true,manual:true}:{}),...(status?{status}:{}),...stamp};
   if(!v.id&&(o.no===v.no_auto||(S.vouchers||[]).some(x=>x.no===o.no&&x.vtype===o.vtype))){ o.no=acNextNo(v.vtype,v.date,true); }
-  if(v.id){ await patch('vouchers',v.id,o); logAct(`Voucher altered – ${o.vtype} ${o.no} ${tzs(dr)}`); toast('Voucher saved.'); acVClose(); }
-  else { const id=await put('vouchers',null,{...o,by:me.name||'',by_uid:me.id||''}); if(id){ logAct(`Voucher – ${o.vtype} ${o.no} ${tzs(dr)}`); toast(`${o.vtype} ${o.no} accepted.`); const vt=v.vtype; acVClose(); if(UI.acAgain!==false) setTimeout(()=>acNew(vt),250); } }
+  const msg={draft:'Saved as draft – not in the books until it is posted.',submit:'Submitted – a director will approve it.',approve:'Approved and posted.',post:`${o.vtype} ${o.no} posted.`,save:'Voucher saved.'}[mode];
+  const act={draft:'Voucher draft',submit:'Voucher submitted for approval',approve:'Voucher approved & posted',post:'Voucher',save:'Voucher altered'}[mode];
+  if(v.id){ await patch('vouchers',v.id,o); logAct(`${act} – ${o.vtype} ${o.no} ${tzs(o.amount)}`); toast(msg); acVClose(); }
+  else { const id=await put('vouchers',null,{...o,by:who,by_uid:me.id||'',created_at:now}); if(id){ logAct(`${act} – ${o.vtype} ${o.no} ${tzs(o.amount)}`); toast(mode==='post'?`${o.vtype} ${o.no} accepted.`:msg); const vt=v.vtype; acVClose(); if(mode==='post'&&UI.acAgain!==false) setTimeout(()=>acNew(vt),250); } }
 }
 function acPrintV(v){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; } const c=company();
   const L=v.lines.filter(x=>x.l&&+x.amt);
@@ -3220,7 +3240,7 @@ function acReports(){
   const r=UI.acrep||'tb', f=UI.acr||{}, t=today(), fs=acFyStart(t);
   const from=f.from||fs, to=f.to||t;
   const sel=`<div class="seg ac-rsel">${AC_REPS.map(([k,l])=>`<button data-ac="rep" data-v="${k}" aria-pressed="${r===k}">${l}</button>`).join('')}</div>`;
-  const needRange=['pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['tb','bs','out','brs'].includes(r);
+  const needRange=['tb','pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs'].includes(r);
   const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
     ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
@@ -3228,7 +3248,7 @@ function acReports(){
   return `${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>`;
 }
 function acRepHtml(r,from,to){
-  if(r==='tb') return acTBHtml(to);
+  if(r==='tb') return acTB6Html(from,to);
   if(r==='pl') return acPLHtml([[from,to]]);
   if(r==='bs') return acBSHtml([to]);
   if(r==='cf') return acCFHtml([[from,to]]);
@@ -3409,16 +3429,18 @@ function acLedgerHtml(id,from,to){ const R=acLedgerRows(id,from,to); if(!R) retu
     ${R.rows.map(x=>`<tr class="click" data-ac="open" data-v="${esc(x.v.id)}"><td>${fmtD(x.d)}</td><td>${x.dr?'To':'By'} ${esc(x.part)}${x.v.narr?`<div class="small muted">${esc(String(x.v.narr).slice(0,90))}</div>`:''}</td><td class="small">${esc(x.v.vtype)} <span class="mono">${esc(x.v.no||'')}</span></td><td class="r num">${x.dr?acFmt(x.dr):''}</td><td class="r num">${x.cr?acFmt(x.cr):''}</td><td class="r num">${acFmt(x.run)} ${acDC(x.run)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No entries in this period.</td></tr>'}
   </tbody><tfoot><tr><th colspan="3">Current total</th><th class="r num">${acFmt(dr)}</th><th class="r num">${acFmt(cr)}</th><th class="r num">${acFmt(R.cb)} ${acDC(R.cb)}</th></tr></tfoot></table></div>`; }
 /* Outstandings with ageing (FIFO – payments clear the oldest bills first) */
+const AC_AGE=['Current','1–30 days','31–60','61–90','91–120','Over 120'];
+const acCrDays=l=>{ const d=l&&l.credit_days; return d===''||d==null||isNaN(+d)?30:+d; };
 function acAge(id,to,side){ const ps=acPost(id).filter(p=>p.d<=to), l=acL(id); const items=[]; const op=acOpS(l)*side; if(op>0) items.push({d:(acSet()||{}).books_from||'0000',a:op}); let pay=op<0?-op:0;
   for(const p of ps){ const v=p.s*side; if(v>0) items.push({d:p.d,a:v}); else pay+=-v; }
   for(const it of items){ const k=Math.min(it.a,pay); it.a=acR(it.a-k); pay=acR(pay-k); }
-  const B=[0,0,0,0]; const T=new Date(to+'T00:00:00'); items.forEach(it=>{ if(!it.a) return; const age=Math.floor((T-new Date(it.d+'T00:00:00'))/864e5); B[age<=30?0:age<=60?1:age<=90?2:3]+=it.a; }); return B.map(acR); }
-function acOutData(to){ const mk=(g,side)=>acLed().filter(l=>l.group===g).map(l=>({l,b:acR(acBalTo(l.id,to)*side)})).filter(x=>x.b>0.004).map(x=>({...x,age:acAge(x.l.id,to,side)})).sort((a,b)=>b.b-a.b); return {rec:mk('Sundry Debtors',1),pay:mk('Sundry Creditors',-1)}; }
+  const B=[0,0,0,0,0,0], cd=acCrDays(l); const T=new Date(to+'T00:00:00'); items.forEach(it=>{ if(!it.a) return; const od=Math.floor((T-new Date(it.d+'T00:00:00'))/864e5)-cd; B[od<=0?0:od<=30?1:od<=60?2:od<=90?3:od<=120?4:5]+=it.a; }); return B.map(acR); }
+function acOutData(to){ const mk=(g,side)=>acLed().filter(l=>l.group===g).map(l=>({l,b:acR(acBalTo(l.id,to)*side)})).filter(x=>x.b>0.004).map(x=>({...x,age:acAge(x.l.id,to,side),over:+x.l.credit_limit>0&&x.b>+x.l.credit_limit})).sort((a,b)=>b.b-a.b); return {rec:mk('Sundry Debtors',1),pay:mk('Sundry Creditors',-1)}; }
 function acOutHtml(to){ const {rec,pay}=acOutData(to);
-  const tb=(lbl,a)=>`<h3 style="margin:14px 14px 6px">${lbl}</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Party</th><th class="r">0–30 days</th><th class="r">31–60</th><th class="r">61–90</th><th class="r">Over 90</th><th class="r">Total</th></tr></thead><tbody>
-    ${a.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}"><td>${esc(x.l.name)}${x.l.phone?` <span class="small muted">${esc(x.l.phone)}</span>`:''}</td>${x.age.map((v,i)=>`<td class="r num" style="${i===3&&v?'color:var(--bad)':''}">${acFmt(v)}</td>`).join('')}<td class="r num"><b>${acFmt(x.b)}</b></td></tr>`).join('')||'<tr><td colspan="6" class="empty">None.</td></tr>'}
-    </tbody><tfoot><tr><th>Total</th>${[0,1,2,3].map(i=>`<th class="r num">${acFmt(a.reduce((s,x)=>s+x.age[i],0))}</th>`).join('')}<th class="r num">${acFmt(a.reduce((s,x)=>s+x.b,0))}</th></tr></tfoot></table></div>`;
-  return `${acHd('Outstandings',`as at ${fmtD(to)} · ageing by date of bill (oldest paid first)`)}${tb('Receivables – clients owe Nordic',rec)}${tb('Payables – Nordic owes suppliers & subcontractors',pay)}`; }
+  const tb=(lbl,a)=>`<h3 style="margin:14px 14px 6px">${lbl}</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Party</th><th class="r">Terms</th>${AC_AGE.map(h=>`<th class="r">${h}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>
+    ${a.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}"><td>${esc(x.l.name)}${x.l.phone?` <span class="small muted">${esc(x.l.phone)}</span>`:''}${x.over?` <span class="chip bad" title="Credit limit ${acFmt(x.l.credit_limit)}">over limit</span>`:''}</td><td class="r small muted">${acCrDays(x.l)} d</td>${x.age.map((v,i)=>`<td class="r num" style="${i>=4&&v?'color:var(--bad)':i>=2&&v?'color:var(--warn)':''}">${v?acFmt(v):''}</td>`).join('')}<td class="r num"><b>${acFmt(x.b)}</b></td></tr>`).join('')||'<tr><td colspan="9" class="empty">None.</td></tr>'}
+    </tbody><tfoot><tr><th>Total</th><th></th>${AC_AGE.map((_,i)=>`<th class="r num">${acFmt(a.reduce((s,x)=>s+x.age[i],0))}</th>`).join('')}<th class="r num">${acFmt(a.reduce((s,x)=>s+x.b,0))}</th></tr></tfoot></table></div>`;
+  return `${acHd('Outstandings',`as at ${fmtD(to)} · overdue days counted after each party's credit period (Terms; 30 days if not set on the ledger) · oldest bills paid first`)}${tb('Receivables – clients owe Nordic',rec)}${tb('Payables – Nordic owes suppliers & subcontractors',pay)}`; }
 /* Cost centres – project profitability */
 function acCCData(from,to){ const M=new Map(); for(const l of acLed()){ if(!acIsPL(l.group)) continue; for(const p of acPost(l.id)){ if(p.d<from||p.d>to) continue; const k=p.cc||''; if(!M.has(k)) M.set(k,{inc:0,cost:0,dir:0}); const r=M.get(k), n=acNat(l.group);
     if(n==='I') r.inc+=-p.s; else { r.cost+=p.s; if(['Purchase Accounts','Direct Expenses'].includes(l.group)) r.dir+=p.s; } } }
@@ -3478,6 +3500,8 @@ function acSettings(){ const st=acSet()||{};
     <div><b>Company TIN / VRN</b><div>${esc(st.company_tin||'–')} / ${esc(st.company_vrn||'–')} <button class="btn sm ghost" data-ac="setEdit">Edit</button></div></div>
     <div><b>Accrual posting</b><div>${st.accrual_from?'IPCs and supplier tax invoices posted to client / supplier accounts from '+esc(fmtD(st.accrual_from)):'Off – cash basis (only payments and receipts are posted)'} <button class="btn sm ghost" data-ac="accrSet">Edit</button></div></div>
     <div><b>Locked period</b><div>${st.locked_until?`Entries up to <b>${fmtD(st.locked_until)}</b> are locked`:'Nothing locked'} ${isAdmin?'<button class="btn sm ghost" data-ac="lock">Change</button>':''}</div><div class="small muted">Lock a year after the audit so nobody can change those figures. Only directors can lock or unlock.</div></div>
+    <div><b>Voucher approval</b><div>${acApprText()} ${isAdmin?'<button class="btn sm ghost" data-ac="apprSet">Change</button>':''}</div><div class="small muted">Drafts and vouchers awaiting approval stay out of the ledgers. The database enforces these rules.</div></div>
+    ${isAdmin||(typeof myRole==='function'&&myRole()==='finance')||money()?`<div><b>Audit trail</b><div>Every change to vouchers, ledgers and settings – who, when, before and after <button class="btn sm ghost" data-ac="audit">View</button></div></div>`:''}
   </div></div>
   <div class="card"><div class="hd"><h2>How the books work</h2></div><div class="bd small"><ul class="clean">
     <li><b>Groups & ledgers</b> follow Tally.ERP 9: every ledger sits under a group (Bank Accounts, Sundry Debtors, Sundry Creditors, Direct Expenses, Duties & Taxes …) that decides where it appears in the Profit & Loss account and Balance Sheet.</li>
@@ -3517,6 +3541,8 @@ document.addEventListener('click',async e=>{
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
   if(a==='autoToggle'){ const st=acSet(); await patch('acset','main',{auto_post:!st.auto_post}); return; }
   if(a==='accrSet') return acAccrForm();
+  if(a==='apprSet') return acApprForm();
+  if(a==='audit') return acAuditView();
   if(a==='setEdit'){ const st=acSet()||{}; formDrawer('Company tax numbers',[{k:'company_tin',label:'TIN'},{k:'company_vrn',label:'VRN'}],st,async x=>{ await patch('acset','main',{company_tin:x.company_tin||'',company_vrn:x.company_vrn||''}); },{sub:'Accounts · settings'}); return; }
   if(a==='lock'){ if(!isAdmin) return; const st=acSet()||{}; formDrawer('Lock period',[{k:'locked_until',label:'Lock all entries up to and including',type:'date',help:'Leave empty to unlock everything.'}],st,async x=>{ await patch('acset','main',{locked_until:x.locked_until||''}); logAct(`Accounts locked up to ${x.locked_until||'(nothing)'}`); },{sub:'Accounts · settings',saveLabel:'Save'}); return; }
   if(a==='xls'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t;
@@ -3547,7 +3573,7 @@ document.addEventListener('keydown',e=>{
 .ac-vbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px}.ac-vbtns .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}.ac-vbtns .btn span{font-size:11px;opacity:.7;font-family:'IBM Plex Mono',monospace}
 .ac-t{width:100%;border-collapse:collapse}.ac-t th,.ac-t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}.ac-t td.r,.ac-t th.r{text-align:right}.ac-t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ac-gh td{font-weight:700;background:color-mix(in srgb,var(--line) 35%,transparent)}.ac-sec td{font-weight:800;letter-spacing:.05em;color:var(--accent,#F2A900);padding-top:14px}.ac-in{padding-left:24px!important}
-.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-cx td{opacity:.5;text-decoration:line-through}
+.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
 .ac-ln{white-space:nowrap}.ac-filt{flex-wrap:wrap;gap:8px}.ac-filt label{display:flex;align-items:center;gap:6px}.ac-wide th,.ac-wide td{white-space:nowrap}
 .ac-replinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.ac-rl{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}.ac-rl:hover{border-color:var(--accent,#F2A900)}.ac-rl small{opacity:.7}
 .ac-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
@@ -3991,6 +4017,72 @@ const acHasAccrV=src=>(S.vouchers||[]).some(v=>!v.cancelled&&v.src===src);
 function acAccrForm(){ const st=acSet()||{};
   formDrawer('Accrual posting (client & supplier accounts)',[{k:'accrual_from',label:'Post certificates and supplier invoices from',type:'date',help:'From this date a Certified IPC is posted to the client’s account (with VAT, retention, advance recovery and WHT) and a supplier tax invoice / EFD receipt to the supplier’s account; payments then clear those accounts. Leave empty to switch off (cash basis: only payments and receipts are posted).'}],
     {accrual_from:st.accrual_from||today()},async x=>{ await patch('acset','main',{accrual_from:x.accrual_from||''}); logAct(`Accrual posting ${x.accrual_from?'from '+x.accrual_from:'switched off'}`); toast(x.accrual_from?'Saved – certificates and supplier invoices will be posted from '+fmtD(x.accrual_from)+'.':'Accrual posting switched off.'); },{sub:'Accounts · settings',saveLabel:'Save'}); }
+/* ===================== ACCOUNTS v195 · Controls: voucher workflow & approvals, audit trail, 6-column trial balance =====================
+   Status: draft → submitted (awaiting approval) → approved → posted. Only posted, uncancelled vouchers reach the ledgers (acVch).
+   Approval rules (Settings): acset.approval {finance_limit, four_eyes}. The database (guard_vouchers, SQL 51) enforces the same rules. */
+const AC_ST={draft:['Draft',''],submitted:['Awaiting approval','amb'],approved:['Approved – not posted','blue'],posted:['Posted','good']};
+const acVSt=v=>v&&v.status&&AC_ST[v.status]?v.status:'posted';
+const acStChip=v=>{ const s=acVSt(v); return s==='posted'?'':` <span class="chip ${AC_ST[s][1]}">${AC_ST[s][0]}</span>`; };
+const acAppr=()=>((acSet()||{}).approval)||{};
+const acNeedsAppr=amt=>{ const a=acAppr(); return !!(a.four_eyes||(a.finance_limit!=null&&a.finance_limit!==''&&+amt>+a.finance_limit)); };
+function acVBtns(){ const st=acVSt(ACV), T=acTot(), need=acNeedsAppr(T.dr)&&!isAdmin&&!ACV.auto;
+  if(!ACV.id||st==='draft') return `<button class="btn" data-vx="draft">Save draft</button>${need?'<button class="btn pri" data-vx="submit" title="Above your approval limit – a director approves it">Submit for approval</button>':`<button class="btn pri" data-vx="post">${ACV.id?'Post':'Accept'}</button>`}`;
+  if(st==='submitted') return isAdmin?`<button class="btn" data-vx="reject">Reject</button><button class="btn pri" data-vx="approve">Approve & post</button>`:'<button class="btn" data-vx="todraft">Withdraw (back to draft)</button>';
+  if(st==='approved') return '<button class="btn" data-vx="todraft">Back to draft</button><button class="btn pri" data-vx="post">Post</button>';
+  return '<button class="btn pri" data-vx="save">Save changes</button>'; }
+function acVStamp(){ const s=acVSt(ACV), w=x=>x?`${esc(x.by||'')}${x.at?' · '+fmtDT(x.at):''}`:'';
+  const items=[['Created',ACV.by?{by:ACV.by,at:ACV.created_at||ACV.updated_at}:null],['Submitted',ACV.submitted_by?{by:ACV.submitted_by,at:ACV.submitted_at}:null],['Approved',ACV.approved_by?{by:ACV.approved_by,at:ACV.approved_at}:null],['Posted',ACV.posted_by?{by:ACV.posted_by,at:ACV.posted_at}:null],['Rejected',ACV.rejected_by?{by:ACV.rejected_by,at:ACV.rejected_at}:null]].filter(x=>x[1]);
+  return (s!=='posted'||items.length)?`<div class="small muted acm-stamp">${s!=='posted'?`<span class="chip ${AC_ST[s][1]}">${AC_ST[s][0]}</span> `:''}${items.map(([k,x])=>`${k}: ${w(x)}`).join(' · ')}${ACV.reject_reason?` · <b>Reason:</b> ${esc(ACV.reject_reason)}`:''}</div>`:''; }
+async function acVFlow(a){ if(!ACV) return; const st=acVSt(ACV);
+  if(a==='draft') return acVSave('draft');
+  if(a==='submit') return acVSave('submit');
+  if(a==='post') return acVSave('post');
+  if(a==='approve'){ if(!isAdmin) return; return acVSave('approve'); }
+  if(a==='reject'||a==='todraft'){ if(!ACV.id) return;
+    const reason=a==='reject'?(window.prompt('Reason for rejecting this voucher (shown to Finance):','')||''):'';
+    if(a==='reject'&&!reason.trim()) return toast('Give a short reason.');
+    const now=new Date().toISOString(); await patch('vouchers',ACV.id,{status:'draft',...(a==='reject'?{rejected_by:me.name||'',rejected_at:now,reject_reason:reason.trim()}:{})});
+    logAct(`Voucher ${a==='reject'?'rejected':'returned to draft'} – ${ACV.vtype} ${ACV.no}`); toast(a==='reject'?'Rejected – returned to the preparer as draft.':'Back to draft.'); acVClose(); } }
+/* approvals queue (Gateway) */
+function acApprovalsCard(){ const P=(S.vouchers||[]).filter(v=>!v.cancelled&&!v.deleted&&['submitted','approved'].includes(v.status)), D=(S.vouchers||[]).filter(v=>!v.cancelled&&!v.deleted&&v.status==='draft');
+  if(!P.length&&!D.length) return '';
+  const row=v=>`<tr class="click" data-ac="open" data-v="${esc(v.id)}"><td>${fmtD(v.date)}</td><td><span class="chip">${esc(v.vtype)}</span> <span class="mono small">${esc(v.no||'')}</span>${acStChip(v)}</td><td>${esc(acPart(v))}</td><td class="small muted">${esc(v.submitted_by||v.by||'')}</td><td class="r num">${acFmt(v.amount)}</td></tr>`;
+  return `<div class="card ac-appr"><div class="hd"><h2>${P.length?`Awaiting approval / posting (${P.length})`:''}${P.length&&D.length?' · ':''}${D.length?`Drafts (${D.length})`:''}</h2><div class="sp"></div><span class="small muted">${isAdmin?'Open a voucher to approve or reject it.':'A director approves vouchers above your limit.'}</span></div>
+    <div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Voucher</th><th>Particulars</th><th>By</th><th class="r">Amount</th></tr></thead><tbody>${[...P,...D].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(row).join('')}</tbody></table></div>
+    <div class="small muted" style="padding:6px 14px 10px">Drafts and vouchers awaiting approval are not in the ledgers or reports until they are posted.</div></div>`; }
+/* approval rules (Settings) */
+function acApprText(){ const a=acAppr(); const p=[]; if(a.finance_limit!=null&&a.finance_limit!=='') p.push(`Finance posts vouchers up to <b>TZS ${(+a.finance_limit).toLocaleString('en-US')}</b>; larger ones need a director's approval`); if(a.four_eyes) p.push('every manual voucher by Finance needs a director\'s approval'); return p.join(' · ')||'Off – Finance posts vouchers directly'; }
+function acApprForm(){ if(!isAdmin) return toast('Only a director can change approval rules.'); const a=acAppr();
+  formDrawer('Voucher approval rules',[
+    {k:'finance_limit',label:'Finance users may post vouchers up to (TZS)',type:'number',help:'Above this amount a director must approve the voucher before it is posted. Leave empty for no limit.'},
+    {k:'four_eyes',label:'Approve every manual voucher',type:'select',options:[['','No – only those above the limit'],['1','Yes – a director approves every voucher Finance enters by hand']]}],
+    {finance_limit:a.finance_limit??'',four_eyes:a.four_eyes?'1':''},
+    async v=>{ const o={finance_limit:v.finance_limit===''||v.finance_limit==null?null:acR(v.finance_limit),four_eyes:v.four_eyes==='1'}; await patch('acset','main',{approval:o}); logAct(`Voucher approval rules changed: limit ${o.finance_limit??'none'}, approve all ${o.four_eyes?'yes':'no'}`); toast('Approval rules saved.'); },
+    {sub:'Accounts · settings',saveLabel:'Save'}); }
+/* audit trail viewer (database log, newest first) */
+async function acAuditView(){ let rows=[]; try{ const s=await db.collection('acaudit').limit(500).get(); rows=s.docs.map(d=>({id:d.id,...d.data()})); }catch(e){ return toast('Could not read the audit trail: '+(e.message||e)); }
+  rows.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
+  const what=r=>{ const d=r.after||r.before||{}; if(r.col==='vouchers') return `${esc(d.vtype||'Voucher')} ${esc(d.no||'')} · ${fmtD(d.date)} · ${acFmt(d.amount)}`; if(r.col==='ledgers') return `Ledger: ${esc(d.name||r.doc)}`; return 'Accounting settings'; };
+  const chg=r=>{ if(r.op!=='update') return r.op==='insert'?'created':'deleted'; const b=r.before||{}, a=r.after||{}, ks=[...new Set([...Object.keys(b),...Object.keys(a)])].filter(k=>!['updated_at','updated_by','src_h'].includes(k)&&JSON.stringify(b[k])!==JSON.stringify(a[k]));
+    return ks.map(k=>k==='lines'?'lines changed':k==='status'?`status ${esc(b[k]||'posted')} → ${esc(a[k]||'posted')}`:k==='cancelled'?(a[k]?'cancelled':'un-cancelled'):`${esc(k)}: ${esc(String(b[k]??'—').slice(0,30))} → ${esc(String(a[k]??'—').slice(0,30))}`).join('; ')||'no change'; };
+  openDrawer('html',null,{title:'Audit trail – accounts',sub:`${rows.length} most recent changes to vouchers, ledgers and settings (written by the database; cannot be edited or deleted)`,
+    html:`<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>When</th><th>Who</th><th>Record</th><th>Change</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="small">${fmtDT(r.at)}</td><td class="small">${esc(r.who||'system')}<div class="muted">${esc(r.role||'')}</div></td><td class="small">${what(r)}</td><td class="small">${chg(r)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No changes recorded yet.</td></tr>'}</tbody></table></div>`}); }
+/* Trial balance with opening / period / closing columns */
+function acTB6Html(from,to){ const rows=[]; let T=[0,0,0,0,0,0];
+  const sp=(v,i)=>{ if(v>0) T[i]+=v; else T[i+1]-=v; };
+  for(const [g] of AC_GROUPS){ const items=acLed().filter(l=>l.group===g).map(l=>{ const cl=acR(acTB(l.id,to)), pd=acPost(l.id).filter(p=>p.d>=from&&p.d<=to), dr=acR(pd.filter(p=>p.s>0).reduce((a,p)=>a+p.s,0)), cr=acR(-pd.filter(p=>p.s<0).reduce((a,p)=>a+p.s,0)), op=acR(cl-dr+cr); return {l,op,dr,cr,cl}; }).filter(x=>x.op||x.dr||x.cr||x.cl);
+    if(items.length) rows.push({g,items}); }
+  const c=v=>v?acFmt(Math.abs(v)):'';
+  const body=rows.map(r=>{ const s=k=>acR(r.items.reduce((a,x)=>a+x[k],0)); const go=s('op'), gc=s('cl');
+    r.items.forEach(x=>{ sp(x.op,0); T[2]+=x.dr; T[3]+=x.cr; sp(x.cl,4); });
+    return `<tr class="ac-gh"><td>${esc(r.g)}</td><td class="r num">${go>0?c(go):''}</td><td class="r num">${go<0?c(go):''}</td><td class="r num">${c(s('dr'))}</td><td class="r num">${c(s('cr'))}</td><td class="r num">${gc>0?c(gc):''}</td><td class="r num">${gc<0?c(gc):''}</td></tr>`+
+      r.items.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}"><td class="ac-in">${esc(x.l.name)}</td><td class="r num">${x.op>0?c(x.op):''}</td><td class="r num">${x.op<0?c(x.op):''}</td><td class="r num">${c(x.dr)}</td><td class="r num">${c(x.cr)}</td><td class="r num">${x.cl>0?c(x.cl):''}</td><td class="r num">${x.cl<0?c(x.cl):''}</td></tr>`).join(''); }).join('');
+  const od=acOpDiff(); if(od){ if(od<0) T[0]-=od, T[4]-=od; else T[1]+=od, T[5]+=od; }
+  const ok=Math.abs(T[0]-T[1])<0.01&&Math.abs(T[2]-T[3])<0.01&&Math.abs(T[4]-T[5])<0.01;
+  return `${acHd('Trial Balance',`${fmtD(from)} – ${fmtD(to)} · opening, movements in the period and closing balances`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th rowspan="2">Particulars</th><th class="r" colspan="2">Opening balance</th><th class="r" colspan="2">Transactions</th><th class="r" colspan="2">Closing balance</th></tr><tr><th class="r">Debit</th><th class="r">Credit</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="empty">No balances.</td></tr>'}
+    ${od?`<tr><td><i>Difference in opening balances</i></td><td class="r num">${od<0?c(od):''}</td><td class="r num">${od>0?c(od):''}</td><td></td><td></td><td class="r num">${od<0?c(od):''}</td><td class="r num">${od>0?c(od):''}</td></tr>`:''}</tbody>
+    <tfoot><tr class="ac-key"><th>Grand total</th>${T.map(v=>`<th class="r num">${acFmt(v)}</th>`).join('')}</tr></tfoot></table></div>
+    <div class="small ${ok?'muted':''}" style="padding:6px 14px;${ok?'':'color:var(--bad)'}">${ok?'✓ Debits equal credits in every column.':'Debits and credits do not agree – check opening balances.'} Only posted vouchers are included${(S.vouchers||[]).some(v=>!v.cancelled&&v.status&&v.status!=='posted')?' (drafts / unapproved vouchers are left out)':''}.</div>`; }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
@@ -7597,6 +7689,7 @@ function renderDrawer(){
   else if(t==='bqgen'){ html=bgDrawer(); drawer.form=true; }
   else if(t==='ask'){ html=askDrawer(); }
   else if(t==='myphoto'){ html=myPhotoDrawer(); drawer.form=true; }
+  else if(t==='html'){ html=drawerShell(drawer.title||'',drawer.sub||'',`<div class="card">${drawer.html||''}</div>`); }
   else if(t==='alerts'){ html=drawerShell('Notifications','Newest first',`<div class="card">${inboxHtml()}</div>`); }
   else if(t==='more'){ html=drawerShell('Menu','NORDIC NEXUS',`<div class="card"><div class="list">${navPages().filter(p=>p.k).map(p=>`<div class="li" style="cursor:pointer" data-go="${p.k}">${ico(p.k)}<div class="grow ttl2">${p.t}</div></div>`).join('')}</div></div>`); }
   if(o.__h===html&&o.firstChild&&o.__el===o.firstElementChild){ document.body.style.overflow='hidden'; return; }   // v162: unchanged drawer → no rewrite
@@ -10634,7 +10727,7 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
-  for(const c of COLS){ db.collection(c).limit(1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
+  for(const c of COLS){ db.collection(c).limit(AC_BIG[c]||1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/intl').onSnapshot(s=>{ S.intl=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/inbox').onSnapshot(s=>{ S.inbox=s.exists?s.data():null; renderAll(); }, ()=>{});

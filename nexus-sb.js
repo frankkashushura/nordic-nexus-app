@@ -62,9 +62,16 @@
   function setLive(ok) { const el = document.getElementById('syncState'); if (el) el.textContent = ok ? 'Live · synced' : 'Reconnecting…'; }
 
   async function fetchCol(col, limit) {
-    const { data, error } = await sb.from('docs').select('id,data').eq('col', col).order('updated_at', { ascending: false }).limit(limit || 1000);
-    if (error) throw mapErr(error);
-    return data;
+    // v195: the server returns at most 1000 rows per request – read in pages so large collections (vouchers) are complete
+    const max = limit || 1000, out = [], PG = 1000;
+    for (let from = 0; from < max; from += PG) {
+      const to = Math.min(from + PG, max) - 1;
+      const { data, error } = await sb.from('docs').select('id,data').eq('col', col).order('updated_at', { ascending: false }).order('id', { ascending: true }).range(from, to);
+      if (error) throw mapErr(error);
+      out.push(...(data || []));
+      if (!data || data.length < to - from + 1) break;
+    }
+    return out;
   }
   async function fetchDoc(col, id) {
     const { data, error } = await sb.from('docs').select('data').eq('col', col).eq('id', id).maybeSingle();
