@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="963961dbe5ee">
+<meta name="nexus-build" content="1be7af19effc">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3013,7 +3013,7 @@ function finRows(){ const out=[...(S.finance||[])];
   return out; }
 
 /* ===================== PAGE ===================== */
-const AC_TABS=[['gate','Gateway'],['day','Day Book'],['led','Ledgers'],['rep','Reports'],['annual','Annual accounts'],['quick','Quick entries'],['set','Settings']];
+const AC_TABS=[['gate','Gateway'],['day','Cash Book'],['led','Ledgers'],['rep','Reports'],['annual','Annual accounts'],['quick','Quick entries'],['set','Settings']];
 function pageFinance(){
   if(!money()) return `<div class="card empty">Finance is restricted to administrators and Finance users.</div>`;
   const st=acSet(), tab=UI.actab||'gate';
@@ -3021,7 +3021,7 @@ function pageFinance(){
   const tabs=`<div class="seg ac-tabs" role="tablist">${AC_TABS.map(([k,l])=>`<button data-ac="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
   if(!st&&tab!=='quick') return `${tabs}<div class="card ac-setup"><div class="bd"><h2 style="margin-top:0">Accounts – Tally-style books</h2>
     <p>Set up proper double-entry books like Tally.ERP 9: <b>groups & ledgers</b>, <b>vouchers</b> (Contra F4, Payment F5, Receipt F6, Journal F7, Sales F8, Purchase F9, Credit/Debit notes) with Debit and Credit lines,
-    and reports that build themselves – <b>Day Book, Ledger, Trial Balance, Profit & Loss, Balance Sheet, Cash Flow</b>, cash-flow forecast, outstandings, project (cost centre) profit, VAT & statutory, bank reconciliation and the <b>annual financial statements</b> for the auditor.</p>
+    and reports that build themselves – <b>Cash Book, Ledger, Trial Balance, Profit & Loss, Balance Sheet, Cash Flow</b>, cash-flow forecast, outstandings, project (cost centre) profit, VAT & statutory, bank reconciliation and the <b>annual financial statements</b> for the auditor.</p>
     <p class="small muted">A standard chart of accounts for a Tanzanian contractor is created (about 55 ledgers – you can rename, add and remove). Your existing finance records stay and can be posted automatically as vouchers.</p>
     <button class="btn pri" data-ac="setup">Set up the books</button></div></div>`;
   let body='';
@@ -3045,7 +3045,7 @@ function acGateway(){
     <div class="fin-k ${prof>=0?'in':'out'}"><span class="fi">=</span><div><span class="l">${prof>=0?'Profit':'Loss'} ${acFyLbl(fs)} to date</span><b class="num">${tzsShort(Math.abs(prof))}</b><small>VAT ${vat>=0?'payable':'refundable'}: ${tzsShort(Math.abs(vat))}</small></div></div>
   </div>
   <div class="grid2">
-    <div class="card"><div class="hd"><h2>Latest vouchers</h2><div class="sp"></div><button class="btn sm" data-ac="tab" data-v="day">Day Book</button></div>
+    <div class="card"><div class="hd"><h2>Latest vouchers</h2><div class="sp"></div><button class="btn sm" data-ac="tab" data-v="day">Cash Book</button></div>
       <div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Voucher</th><th>Particulars</th><th class="r">Amount</th></tr></thead><tbody>
       ${recent.map(v=>`<tr class="click" data-ac="open" data-v="${esc(v.id)}"><td>${fmtD(v.date)}</td><td><span class="chip">${esc(v.vtype)}</span> <span class="mono small">${esc(v.no||'')}</span></td><td>${esc(acPart(v))}</td><td class="r num">${acFmt(v.amount)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No vouchers yet – press a voucher button above.</td></tr>'}</tbody></table></div></div>
     <div class="card"><div class="hd"><h2>Reports</h2></div><div class="bd ac-replinks">${AC_REPS.map(([k,l,d])=>`<button class="ac-rl" data-ac="rep" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
@@ -3056,7 +3056,7 @@ function acGateway(){
 function acPart(v){ const L=v.lines||[]; const dr=L.filter(x=>x.dc==='Dr').map(x=>acLN(x.l)), cr=L.filter(x=>x.dc==='Cr').map(x=>acLN(x.l));
   const main=v.vtype==='Payment'?dr:v.vtype==='Receipt'?cr:v.vtype==='Sales'?dr:v.vtype==='Purchase'?cr:dr; return (main.slice(0,2).join(', ')||'—')+(v.narr?' – '+String(v.narr).slice(0,60):''); }
 
-/* ---------- Day Book ---------- */
+/* ---------- Cash Book ---------- */
 function acDayBook(){
   const f=UI.acdb||{}, fs=acFyStart(today()), from=f.from||fs, to=f.to||today(), vt=f.vt||'All', q=(f.q||'').toLowerCase(), sf=f.st||'';
   let rows=(S.vouchers||[]).filter(v=>!v.deleted&&(v.date||'')>=from&&(v.date||'')<=to&&(vt==='All'||v.vtype===vt)&&(!sf||(sf==='posted'?acVSt(v)==='posted':acVSt(v)!=='posted')));
@@ -3184,7 +3184,7 @@ async function acVClick(e){
   if(a==='save') return acVSave();
   if(['draft','submit','post','approve','reject','todraft'].includes(a)) return acVFlow(a);
   if(a==='print') return acPrintV(ACV);
-  if(a==='cancel'){ if(!await confirmBox(`Cancel voucher ${ACV.no}? It stays in the Day Book marked "cancelled" but has no effect on the books.`,'Cancel voucher',true)) return; await patch('vouchers',ACV.id,{cancelled:true,cancelled_by:me.name||'',cancelled_at:new Date().toISOString(),manual:true}); logAct(`Voucher cancelled – ${ACV.no}`); acVClose(); return; }
+  if(a==='cancel'){ if(!await confirmBox(`Cancel voucher ${ACV.no}? It stays in the Cash Book marked "cancelled" but has no effect on the books.`,'Cancel voucher',true)) return; await patch('vouchers',ACV.id,{cancelled:true,cancelled_by:me.name||'',cancelled_at:new Date().toISOString(),manual:true}); logAct(`Voucher cancelled – ${ACV.no}`); acVClose(); return; }
   if(a==='delete'){ if(!await confirmBox(`Delete voucher ${ACV.no} permanently? Prefer "Cancel voucher" so the audit trail is kept.`,'Delete',true)) return; if(await remove('vouchers',ACV.id)){ logAct(`Voucher deleted – ${ACV.no}`); acVClose(); } return; }
 }
 async function acVSave(mode){
@@ -3507,7 +3507,7 @@ function acSettings(){ const st=acSet()||{};
     <li><b>Groups & ledgers</b> follow Tally.ERP 9: every ledger sits under a group (Bank Accounts, Sundry Debtors, Sundry Creditors, Direct Expenses, Duties & Taxes …) that decides where it appears in the Profit & Loss account and Balance Sheet.</li>
     <li><b>Vouchers</b> are entered with Debit and Credit lines; NEXUS refuses a voucher unless debits equal credits. Payment and Receipt need a bank/cash ledger; Contra is only bank ↔ cash.</li>
     <li><b>Year end</b> needs no closing entries: income and expense ledgers start each year from zero and the profit moves to “Profit & Loss A/c” (retained earnings) automatically, like Tally. Record depreciation, accruals and closing stock with Journal vouchers.</li>
-    <li><b>Quick entries</b> (payments of purchase requests, IPC payments, the simple form) become Payment / Receipt vouchers automatically – marked “auto” in the Day Book.</li>
+    <li><b>Quick entries</b> (payments of purchase requests, IPC payments, the simple form) become Payment / Receipt vouchers automatically – marked “auto” in the Cash Book.</li>
     <li><b>Accrual posting</b> (when switched on): a Certified IPC is posted to the client’s account with VAT output, retention and advance recovery; a supplier tax invoice / EFD receipt to the supplier’s account with VAT input. Payments and receipts then clear those accounts, with withholding tax posted separately – so Outstandings, VAT and the annual accounts are complete.</li></ul></div></div>`; }
 
 /* ===================== EXPORT (Excel / PDF) ===================== */
@@ -3548,7 +3548,7 @@ document.addEventListener('click',async e=>{
   if(a==='xls'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t;
     if(r==='tb') return acTBXlsx(to);
     if(r==='ledger') return acLedgerXlsx(f.l||(acLed()[0]||{}).id,from,to);
-    const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Day Book':'Ledgers'])[1];
+    const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Cash Book':'Ledgers'])[1];
     return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`); }
   if(a==='pdf'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t; const nm=(AC_REPS.find(x=>x[0]===r)||[0,r])[1]; return acPdf(nm,acRepHtml(r,from,to),r==='cfm'?'landscape':'portrait'); }
   if(a==='annPdf') return acAuditPdf();
