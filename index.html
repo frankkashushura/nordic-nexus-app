@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=175"></script>
+<script src="config.js?v=176"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=175"></script>
-<script src="nexus-chat.js?v=175"></script>
+<script src="nexus-sb.js?v=176"></script>
+<script src="nexus-chat.js?v=176"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -4165,13 +4165,17 @@ function programme(pid, at=new Date()){
 const dayN=v=>{ const m=String(v||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?Date.UTC(+m[1],+m[2]-1,+m[3])/864e5:null; };
 const nYmd=n=>new Date(n*864e5).toISOString().slice(0,10);
 const pEots=p=>S.variations.filter(v=>v.project_id===p.id&&v.status==='Approved'&&+v.days_granted>0).sort((a,b)=>String(a.date_instructed||a.ref||'').localeCompare(String(b.date_instructed||b.ref||'')));
-const pEnd=p=>{ const n=dayN(p.end); return n==null?'':nYmd(n+pEots(p).reduce((a,v)=>a+(+v.days_granted||0),0)); };
+/* v176: Nordic rule – each approved EOT runs from its own date (date instructed / granted): completion = date of the LAST EOT + its days.
+   An EOT without a date is added to the previous completion date. */
+const pEndN=p=>{ let n=dayN(p.end); if(n==null) return null; for(const v of pEots(p)){ const d=dayN(v.date_instructed); n=(d!=null?d:n)+(+v.days_granted||0); } return n; };
+const pEnd=p=>{ const n=pEndN(p); return n==null?'':nYmd(n); };
+const pLastEot=p=>{ const L=pEots(p); return L.length?L[L.length-1]:null; };
 const dLeft=v=>{ const n=dayN(v); return n==null?null:n-dayN(today()); };
 const pPcBad=p=>!!p.pc_date&&pEots(p).some(v=>v.date_instructed&&dayN(v.date_instructed)>dayN(p.pc_date));
 const pEndState=p=>{ const e=pEnd(p); if(!e) return ''; const pc=p.pc_date&&!pPcBad(p)?p.pc_date:'';
   if(pc){ const dd=dayN(pc)-dayN(e); return dd<=0?'handed over on time':`handed over ${dd} day${dd>1?'s':''} late`; }
   const d=dLeft(e); return d>0?`${d} day${d>1?'s':''} left`:d===0?'due today':`${-d} day${d<-1?'s':''} late`; };
-const pEotTrail=p=>{ let n=dayN(p.end); if(n==null) return ''; return [`Contract completion ${fmtD(p.end)}`,...pEots(p).map(v=>{ n+=(+v.days_granted||0); return `+ ${v.days_granted} days (${v.ref||'EOT'}) → ${fmtD(nYmd(n))}`; })].join('\n'); };
+const pEotTrail=p=>{ let n=dayN(p.end); if(n==null) return ''; return [`Contract completion ${fmtD(p.end)}`,...pEots(p).map(v=>{ const d=dayN(v.date_instructed); const from=d!=null?d:n; n=from+(+v.days_granted||0); return `${v.ref||'EOT'}: ${fmtD(nYmd(from))}${d!=null?'':' (no EOT date – from previous completion)'} + ${v.days_granted} days → ${fmtD(nYmd(n))}`; })].join('\n')+(pEots(p).length?`\nCompletion = date of the last EOT + its days = ${fmtD(nYmd(n))}`:''); };
 function projectFacts(p){
   const vos=S.variations.filter(v=>v.project_id===p.id), approved=vos.filter(v=>v.status==='Approved');
   const voVal=approved.reduce((a,v)=>a+(+v.value_approved||0),0), eot=approved.reduce((a,v)=>a+(+v.days_granted||0),0);
@@ -4209,7 +4213,7 @@ function pageProject(){
     body=`<div class="grid g4">
       <div class="card kpi ${gap==null?'blu':gap>=-5?'grn':'hot'}"><span class="label">Progress · actual / planned</span><span class="v num">${pr?pr.actual.toFixed(0)+'% / '+pr.planned.toFixed(0)+'%':(+p.progress||0)+'%'}</span><span class="s">${pr?(gap>=0?'Ahead':'Behind')+' by '+Math.abs(gap).toFixed(0)+' points':'Add a programme to compare with plan'}</span></div>
       ${money()?`<div class="card kpi blu"><span class="label">Revised contract sum</span><span class="v num">${F.revSum?tzsShort(F.revSum):'—'}</span><span class="s">${F.voVal?'incl. '+tzsShort(F.voVal)+' approved variations':'no approved variations'}</span></div>`:`<div class="card kpi blu"><span class="label">Variations & claims</span><span class="v num">${F.vos.length}</span><span class="s">${F.pending.length} waiting for approval</span></div>`}
-      <div class="card kpi ${F.revEnd&&dLeft(pEnd(p))<0&&!(p.pc_date&&!pPcBad(p))&&!/complet|close/i.test(p.status||'')?'hot':'amb'}" title="${esc(pEotTrail(p))}"><span class="label">${F.eot?'Revised completion':'Completion date'}</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(pEnd(p)):'—'}</span><span class="s">${F.eot?`${fmtD(p.end)} + ${F.eot} days EOT`:'original date'}${F.revEnd?' · '+pEndState(p):''}</span>${pPcBad(p)?`<span class="s" style="color:var(--bad)">⚠ Handover date ${fmtD(p.pc_date)} is before the approved EOTs – correct it in Edit project</span>`:''}</div>
+      <div class="card kpi ${F.revEnd&&dLeft(pEnd(p))<0&&!(p.pc_date&&!pPcBad(p))&&!/complet|close/i.test(p.status||'')?'hot':'amb'}" title="${esc(pEotTrail(p))}"><span class="label">${F.eot?'Revised completion':'Completion date'}</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(pEnd(p)):'—'}</span><span class="s">${F.eot?(()=>{ const v=pLastEot(p); return v&&v.date_instructed?`last EOT ${esc(v.ref||'')}: ${fmtD(v.date_instructed)} + ${v.days_granted} days`:`${fmtD(p.end)} + ${F.eot} days EOT`; })():'original date'}${F.revEnd?' · '+pEndState(p):''}</span>${pPcBad(p)?`<span class="s" style="color:var(--bad)">⚠ Handover date ${fmtD(p.pc_date)} is before the approved EOTs – correct it in Edit project</span>`:''}</div>
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
       <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
