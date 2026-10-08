@@ -3617,7 +3617,7 @@ function acSheet(W){
   const xml=(cols,o={})=>{ const rows={}; for(const [k,cl] of cells){ const r=Math.floor(k/100), c=k%100; (rows[r]=rows[r]||[]).push([c,cl]); }
     const sd=Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}"${heights[r]?` ht="${heights[r]}" customHeight="1"`:''}>${rows[r].sort((a,b)=>a[0]-b[0]).map(([c,cl])=>{ const ref=col(c)+r, s=W.xf(cl.s); if(cl.v===undefined||cl.v===null||cl.v==='') return `<c r="${ref}" s="${s}"/>`;
       if(typeof cl.v==='number') return `<c r="${ref}" s="${s}"><v>${acR(cl.v)}</v></c>`; if(typeof cl.v==='object') return `<c r="${ref}" s="${s}"><f>${esc(cl.v.f)}</f><v>${acR(cl.v.v||0)}</v></c>`; return `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(String(cl.v))}</t></is></c>`; }).join('')}</row>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView showGridLines="0" workbookViewId="0"${o.zoom?` zoomScale="${o.zoom}"`:''}/></sheetViews><sheetFormatPr defaultRowHeight="13.8"/><cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${o.land?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/>${breaks.length?`<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b=>`<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>`:''}</worksheet>`; };
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"${o.zoom?` zoomScale="${o.zoom}"`:''}/></sheetViews><sheetFormatPr defaultRowHeight="13.8"/><cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${o.land?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/>${breaks.length?`<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b=>`<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>`:''}</worksheet>`; };
   return {set,box,merge:(r,c0,c1)=>merges.push(`${col(c0)}${r}:${col(c1)}${r}`),brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,get max(){return max;},col};
 }
 
@@ -3626,14 +3626,21 @@ async function acAuditXlsx(){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const st=acSet()||{}, fy=UI.acfy||acFyStart(today()), fe=acFyEnd(fy), ps=acFyStart(acDay(fy,-1)), pe=acDay(fy,-1), hasPrev=st.books_from&&ps>=acFyStart(st.books_from);
   const D=acAudData(fy,fe), P=hasPrev?acAudData(ps,pe):null, Y=fe.slice(0,4), Y0=pe.slice(0,4);
-  const co=company(), coName=(co.name||'Nordic Construction Company Limited').toUpperCase(), W=acXW(), A=acSheet(W);
+  const co=company(), coName=(co.name||'Nordic Construction Company Limited').toUpperCase(), SN=`'ACC ${Y}'!`;
+  // built twice: pass 1 fixes the layout (row numbers), pass 2 writes the formulas that point to those rows
+  const build=Q=>{
+  const W=acXW(), A=acSheet(W), K={};
   const C=2, Dn=3, E=4, F=5;   // columns: B=1 (box), C label, D note, E current, F prior
-  const T=(r,v,s)=>A.set(r,C,v,s), N=(r,c,v,s)=>A.set(r,c,typeof v==='number'?v:v,{nf:'n0',al:'right',...(s||{})});
+  const T=(r,v,s)=>A.set(r,C,v,s), N=(r,c,v,s)=>A.set(r,c,v,{nf:'n0',al:'right',...(s||{})});
   const head=(r,title)=>{ A.set(r,1,coName,{b:1,al:'center'}); A.merge(r,1,F); A.set(r+2,1,title,{b:1,al:'center'}); A.merge(r+2,1,F); return r+4; };
   const yrs=(r,nl)=>{ if(nl!==false) A.set(r,Dn,'Note',{b:1,al:'center'}); A.set(r,E,acDot(fe),{b:1,al:'right'}); if(P) A.set(r,F,acDot(pe),{b:1,al:'right'}); A.set(r+1,E,'TShs',{b:1,al:'right'}); if(P) A.set(r+1,F,'TShs',{b:1,al:'right'}); return r+3; };
   const two=(r,lbl,a,b,s={},note)=>{ T(r,lbl,s.lb?{b:1}:{}); if(note) A.set(r,Dn,note,{al:'center',b:s.lb?1:0}); N(r,E,a,{b:s.b?1:0,bd:s.bd}); if(P) N(r,F,b,{b:s.b?1:0,bd:s.bd}); return r+1; };
-  let r=3, page0;
-  const page=(min=46)=>{ page0=r; return r; }, endPage=(extra=2,c1=F)=>{ const last=Math.max(r+extra,page0+44); A.box(page0,last,1,c1); A.brk(last); r=last+3; };
+  const fp=(fn,a,b)=>{ const fe_=fn('E'), ff_=fn('F'); return [fe_?{f:fe_,v:a}:a, ff_?{f:ff_,v:b}:b]; };   // formula (or plain value when fn gives nothing)
+  const sumR=(c,r0,r1)=>r1>=r0?`SUM(${c}${r0}:${c}${r1})`:'';
+  const vv=x=>x&&typeof x==='object'?x.v:x;
+  let r=3, page0; const at=k=>(K[k]=r);
+  const page=()=>{ page0=r; return r; }, endPage=(extra=2,c1=F)=>{ const last=Math.max(r+extra,page0+44); A.box(page0,last,1,c1); A.brk(last); r=last+3; };
+  const pv=k=>P?P[k]:0;
   // ---- cover
   page(); A.set(r+10,1,coName,{b:1,sz:20,al:'center'}); A.merge(r+10,1,F); A.ht(r+10,30);
   A.set(r+24,1,'FINANCIAL STATEMENTS',{b:1,al:'center'}); A.merge(r+24,1,F); A.set(r+25,1,'FOR THE YEAR ENDED '+acUpDate(fe),{b:1,al:'center'}); A.merge(r+25,1,F);
@@ -3646,106 +3653,132 @@ async function acAuditXlsx(){
   // ---- directors' report
   page(); T(r,coName,{b:1}); T(r+2,'FINANCIAL STATEMENTS FOR THE YEAR ENDED '+acUpDate(fe),{b:1}); T(r+4,'INTRODUCTION',{b:1}); r+=7;
   T(r,'1.  PRINCIPAL ACTIVITIES:',{b:1}); T(r+2,st.activity||'The Company is dealing with Civil and Building construction business'); r+=4;
-  T(r,'2.  RESULTS FOR THE YEAR:',{b:1}); A.set(r,E,acDot(fe),{b:1,al:'right'}); A.set(r+1,E,'Tshs',{b:1,al:'right'}); T(r+2,'  Profit/(Loss) for the year'); N(r+2,E,D.pat); r+=4;
+  T(r,'2.  RESULTS FOR THE YEAR:',{b:1}); A.set(r,E,acDot(fe),{b:1,al:'right'}); A.set(r+1,E,'Tshs',{b:1,al:'right'}); T(r+2,'  Profit/(Loss) for the year'); N(r+2,E,{f:`E${Q.sPat}`,v:D.pat}); r+=4;
   T(r,'3.  DIRECTORS',{b:1}); T(r+1,'The Directors who held office during the year were:'); r+=3; String(st.directors||'').split('\n').filter(Boolean).forEach((d,i)=>{ T(r,`${['i','ii','iii','iv','v','vi','vii','viii'][i]||i+1}) ${d}`); r++; }); r++;
   T(r,'4.  AUDITORS:',{b:1}); T(r+1,`   The company appointed ${String(st.auditor||'its auditors').split('\n')[0]} to be the company’s auditor for the year ${Y}.`); r+=4;
   T(r,'5.  APPRECIATION:',{b:1}); T(r+1,'       The Directors record their appreciation for the untiring efforts of all employees throughout the year.'); r+=8;
   A.set(r,E,(st.fs_dates||{})[Y]||'',{al:'center'}); T(r+1,'                DIRECTOR',{bd:{t:'thin'}}); A.set(r+1,E,'DATE',{al:'center',bd:{t:'thin'}}); r+=3; endPage();
-  // ---- statement of comprehensive income
+  // ---- statement of comprehensive income (every line linked to its note)
   page(); r=head(r,'STATEMENT OF COMPREHENSIVE INCOME FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r);
-  const pv=k=>P?P[k]:0;
-  r=two(r,'Revenue',acR(D.revT+D.othT),acR(pv('revT')+pv('othT')),{lb:1,b:1},4)+1; T(r,'Less:',{b:1}); r++;
-  r=two(r,'Cost of Sale',D.cos,pv('cos'),{},8)+1; r=two(r,'GROSS PROFIT',D.gp,pv('gp'),{lb:1,b:1,bd:{t:'thin'}})+1;
-  [['fin','Financial Charges',9],['staff','Staff Expenses',10],['ops','Operating Expenses',11],['adm','Administrative Expenses',12]].forEach(([k,l,n])=>{ r=two(r,l,D.cat[k],P?P.cat[k]:0,{},n)+1; });
-  r=two(r,'Depreciation',D.depT,pv('depT'),{},13); r=two(r,'',D.opex,pv('opex'),{b:1,bd:{t:'thin'}})+2;
-  r=two(r,'Profit from Operating Activities Before Taxation',D.pbt,pv('pbt'),{lb:1,b:1})+1; r=two(r,'Tax',D.taxT,pv('taxT'),{lb:1})+1;
-  r=two(r,'Profit from Operating Activities After Taxation',D.pat,pv('pat'),{lb:1,b:1,bd:{t:'thin',b:'double'}}); endPage();
+  at('sRev'); r=two(r,'Revenue',...fp(c=>`${c}${Q.n4tot}`,acR(D.revT+D.othT),acR(pv('revT')+pv('othT'))),{lb:1,b:1},4)+1; T(r,'Less:',{b:1}); r++;
+  at('sCos'); r=two(r,'Cost of Sale',...fp(c=>`${c}${Q.n8tot}`,D.cos,pv('cos')),{},8)+1;
+  at('sGp'); r=two(r,'GROSS PROFIT',...fp(c=>`${c}${K.sRev}-${c}${K.sCos}`,D.gp,pv('gp')),{lb:1,b:1,bd:{t:'thin'}})+1;
+  const op0=r; [['fin','Financial Charges',9],['staff','Staff Expenses',10],['ops','Operating Expenses',11],['adm','Administrative Expenses',12]].forEach(([k,l,n])=>{ r=two(r,l,...fp(c=>`${c}${Q['n_'+k]}`,D.cat[k],P?P.cat[k]:0),{},n)+1; });
+  at('sDep'); r=two(r,'Depreciation',...fp(c=>`${c}${Q.n13tot}`,D.depT,pv('depT')),{},13);
+  at('sOpex'); r=two(r,'',...fp(c=>sumR(c,op0,K.sDep),D.opex,pv('opex')),{b:1,bd:{t:'thin'}})+2;
+  at('sPbt'); r=two(r,'Profit from Operating Activities Before Taxation',...fp(c=>`${c}${K.sGp}-${c}${K.sOpex}`,D.pbt,pv('pbt')),{lb:1,b:1})+1;
+  at('sTax'); r=two(r,'Tax',...fp(c=>`${c}${Q.n5tax}`,D.taxT,pv('taxT')),{lb:1})+1;
+  at('sPat'); r=two(r,'Profit from Operating Activities After Taxation',...fp(c=>`${c}${K.sPbt}-${c}${K.sTax}`,D.pat,pv('pat')),{lb:1,b:1,bd:{t:'thin',b:'double'}}); endPage();
   // ---- statement of financial position
   page(); r=head(r,'STATEMENT OF FINANCIAL POSITION AS AT '+acUpDate(fe)); r=yrs(r)-1; T(r,'ASSETS',{b:1}); r++;
-  const b1=D.B, b0=P?P.B:{};
-  T(r,'Non-Current Assets',{b:1}); r++; r=two(r,'Property, Plant & Equipment',b1.fa,b0.fa||0,{b:1},7)+2; T(r,'CURRENT ASSETS',{b:1}); r+=2;
-  r=two(r,'Trade and Other Receivables',b1.recv,b0.recv||0); r=two(r,'Cash and Bank Balances',b1.cash,b0.cash||0,{},6);
-  if(b1.taxA||b0.taxA) r=two(r,'Tax Recovery',b1.taxA,b0.taxA||0,{},5); r=two(r,'Stock/WIP',b1.stk,b0.stk||0,{},8);
-  r=two(r,'',b1.ca,b0.ca||0,{b:1,bd:{t:'thin'}})+1; r=two(r,'Total Assets',b1.ta,b0.ta||0,{lb:1,b:1,bd:{t:'thin',b:'double'}})+1;
+  const b1=D.B, b0=P?P.B:{}, pc=D.ppe;
+  T(r,'Non-Current Assets',{b:1}); r++; at('bFa'); r=two(r,'Property, Plant & Equipment',...fp(c=>pc.length?`${Q.n7col}${c==='E'?Q.n7nbv:Q.n7nbv0}`:'',b1.fa,b0.fa||0),{b:1},7)+2; T(r,'CURRENT ASSETS',{b:1}); r+=2;
+  const ca0=r; at('bRecv'); r=two(r,'Trade and Other Receivables',b1.recv,b0.recv||0);
+  const cashOk=!b1.od0&&!(b0.od0||0); r=two(r,'Cash and Bank Balances',...fp(c=>cashOk?`${c}${Q.n6tot}`:'',b1.cash,b0.cash||0),{},6);
+  if(b1.taxA||b0.taxA) r=two(r,'Tax Recovery',...fp(c=>`MAX(-${c}${Q.n5cf},0)`,b1.taxA,b0.taxA||0),{},5);
+  at('bStk'); r=two(r,'Stock/WIP',...fp(c=>D.stockL.length?`-SUM(${c}${Q.n8c0}:${c}${Q.n8c1})`:'',b1.stk,b0.stk||0),{},8);
+  at('bCa'); r=two(r,'',...fp(c=>sumR(c,ca0,K.bStk),b1.ca,b0.ca||0),{b:1,bd:{t:'thin'}})+1;
+  at('bTa'); r=two(r,'Total Assets',...fp(c=>`${c}${K.bFa}+${c}${K.bCa}`,b1.ta,b0.ta||0),{lb:1,b:1,bd:{t:'thin',b:'double'}})+1;
   T(r,'EQUITY AND LIABILITIES',{b:1}); r++; T(r,' Capital and Reserves',{b:1}); r++;
-  r=two(r,'Share Capital',b1.cap,b0.cap||0); b1.res.forEach(x=>{ const o=(b0.res||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); });
-  r=two(r,'Retained Earnings',b1.ret,b0.ret||0); r=two(r,' Total Equity',b1.eq,b0.eq||0,{lb:1,b:1,bd:{t:'thin'}})+1;
-  T(r,'Current Liabilities',{b:1}); r++; r=two(r,'Trade and Other Payables',acR(b1.pay+b1.vat),acR((b0.pay||0)+(b0.vat||0)));
-  if(b1.taxP||b0.taxP) r=two(r,'Tax Payable',b1.taxP,b0.taxP||0,{},5);
-  if(b1.od||b0.od) r=two(r,'Bank O/D',b1.od,b0.od||0); b1.loans.forEach(x=>{ const o=(b0.loans||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); });
-  r=two(r,'',b1.cl,b0.cl||0,{b:1,bd:{t:'thin'}})+1; r=two(r,'Total Equity and Liabilities',b1.te,b0.te||0,{lb:1,b:1,bd:{t:'thin',b:'double'}})+2;
+  const eq0=r; r=two(r,'Share Capital',b1.cap,b0.cap||0); b1.res.forEach(x=>{ const o=(b0.res||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); });
+  at('bRet'); r=two(r,'Retained Earnings',...fp(c=>c==='E'?`E${Q.ceClose}`:(Q.ceClose0?`E${Q.ceClose0}`:''),b1.ret,b0.ret||0));
+  at('bEq'); r=two(r,' Total Equity',...fp(c=>sumR(c,eq0,K.bRet),b1.eq,b0.eq||0),{lb:1,b:1,bd:{t:'thin'}})+1;
+  T(r,'Current Liabilities',{b:1}); r++; const cl0=r; r=two(r,'Trade and Other Payables',acR(b1.pay+b1.vat),acR((b0.pay||0)+(b0.vat||0)));
+  if(b1.taxP||b0.taxP) r=two(r,'Tax Payable',...fp(c=>`MAX(${c}${Q.n5cf},0)`,b1.taxP,b0.taxP||0),{},5);
+  if(b1.od||b0.od){ at('bOd'); r=two(r,'Bank O/D',b1.od,b0.od||0); }
+  K.bL0=r; b1.loans.forEach(x=>{ const o=(b0.loans||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); }); K.bL1=r-1;
+  at('bCl'); r=two(r,'',...fp(c=>sumR(c,cl0,r-1),b1.cl,b0.cl||0),{b:1,bd:{t:'thin'}})+1;
+  r=two(r,'Total Equity and Liabilities',...fp(c=>`${c}${K.bEq}+${c}${K.bCl}`,b1.te,b0.te||0),{lb:1,b:1,bd:{t:'thin',b:'double'}})+2;
   T(r,'The Directors are responsible for the preparation and presentation of these financial statements.'); T(r+1,'Signed on behalf of the company by:-'); r+=6;
   A.set(r,E,(st.fs_dates||{})[Y]||'',{al:'center'}); T(r+1,'                  DIRECTOR',{bd:{t:'thin'}}); A.set(r+1,E,'Date',{al:'center',bd:{t:'thin'}}); r+=2; endPage();
   // ---- statement of changes in equity
   page(); r=head(r,'STATEMENT OF CHANGES IN EQUITY FOR THE YEAR ENDED '+acUpDate(fe))+1;
   A.set(r,Dn,'Share',{b:1,al:'center'}); A.set(r,E,'Accumulated',{b:1,al:'center'}); A.set(r,F,'Total',{b:1,al:'center'}); A.set(r+1,Dn,'Capital',{b:1,al:'center'}); A.set(r+1,E,'Profit',{b:1,al:'center'}); A.set(r+2,Dn,'Tshs.',{b:1,al:'center'}); A.set(r+2,E,'Tshs.',{b:1,al:'center'}); A.set(r+2,F,'Tshs.',{b:1,al:'center'}); r+=4;
-  const ce=(lbl,cap,ret,s={})=>{ T(r,lbl,s.lb?{b:1}:{}); N(r,Dn,cap,s); N(r,E,ret,s); N(r,F,acR(cap+ret),s); r+=2; };
-  const blk=(X,yy)=>{ ce(`Balance as at 1st January ${yy}`,X.B0.cap,X.B0.ret,{b:1}); ce(`Profit for the Year ended 31st December ${yy}`,0,X.pat); ce('Tax Paid Prior Year Adjustments',0,-X.plAdj); if(acR(X.B.cap-X.B0.cap)) ce('Capital introduced / (withdrawn)',acR(X.B.cap-X.B0.cap),0); ce(`Balance as at 31st December ${yy}`,X.B.cap,X.B.ret,{b:1,lb:1,bd:{t:'thin',b:'double'}}); r++; };
-  if(P) blk(P,Y0); blk(D,Y);
+  const ce=(lbl,cap,ret,s={})=>{ T(r,lbl,s.lb?{b:1}:{}); N(r,Dn,cap,s); N(r,E,ret,s); N(r,F,{f:`D${r}+E${r}`,v:acR(vv(cap)+vv(ret))},s); r+=2; };
+  const blk=(X,yy,cur)=>{ const o=r, lk=cur&&P;
+    ce(`Balance as at 1st January ${yy}`,lk?{f:`D${K.ceClose0}`,v:X.B0.cap}:X.B0.cap,lk?{f:`E${K.ceClose0}`,v:X.B0.ret}:X.B0.ret,{b:1});
+    ce(`Profit for the Year ended 31st December ${yy}`,0,{f:`${cur?'E':'F'}${Q.sPat}`,v:X.pat}); ce('Tax Paid Prior Year Adjustments',0,-X.plAdj);
+    if(acR(X.B.cap-X.B0.cap)) ce('Capital introduced / (withdrawn)',acR(X.B.cap-X.B0.cap),0);
+    at(cur?'ceClose':'ceClose0'); ce(`Balance as at 31st December ${yy}`,{f:`SUM(D${o}:D${r-1})`,v:X.B.cap},{f:`SUM(E${o}:E${r-1})`,v:X.B.ret},{b:1,lb:1,bd:{t:'thin',b:'double'}}); r++; };
+  if(P) blk(P,Y0,false); blk(D,Y,true);
   if(b1.res.length){ T(r,'Reserves (no movement in the accumulated profit column):',{i:1}); r++; b1.res.forEach(x=>{ T(r,'   '+x.l.name); N(r,F,x.v); r++; }); }
   endPage();
   // ---- cash flow
   page(); r=head(r,'CASH FLOW STATEMENT FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r)-1;
-  const cf=D.cf, cf0=P?P.cf:{}, c2=(lbl,k,s={},n)=>{ r=two(r,lbl,cf[k],cf0[k]||0,s,n); };
-  T(r,'Cash Flows From/(Used in) Operating Activities',{b:1}); r+=2; c2('Profit before Income Tax Expenses and Extraordinary Items','pbt'); T(r,'         Adjustment for'); r++; c2('         Depreciation','dep',{},7); r++;
-  c2('Operating Profit before Working Capital Changes','opp',{b:1,bd:{t:'thin'}}); r++;
-  c2('      (Increase)/Decrease in Stock / WIP','stock'); c2('      (Increase)/Decrease in Trade debtors','debt'); r=two(r,'      (Increase)/Decrease in Prepayments',0,0);
-  c2('      Increase/(Decrease) in Trade creditors','cred'); c2('       Increase/(Decrease) Bank overdraft','od'); c2('       Increase/(Decrease) Loans','loans'); c2('       VAT & statutory accounts','vat');
-  c2('','wc',{b:1,bd:{t:'thin'}}); r++; c2('       Tax Paid','tax',{},5); r++; c2('Cash Generated from Operations','ops',{lb:1,b:1,bd:{t:'thin'}}); r++;
-  T(r,'Cash Flows from/(Used in) Investing Activities',{b:1}); r++; c2('      Acquisition of Property, Plant & Equipment','acq'); r=two(r,'        Disposal of Property and equipments',0,0); c2('','inv',{b:1,bd:{t:'thin'}});
-  T(r,'Cash Flows from/(Used in) Financing Activities',{b:1}); r++; c2('      Increase/(Decrease) in Capital','capCh'); c2('','fin',{b:1,bd:{t:'thin'}}); r++;
-  c2('Net Increase/Decrease in Cash and Cash Equivalents','net',{lb:1,b:1}); r++; c2('Cash and Cash Equivalents at the beginning of the Year','open'); r++; c2('Cash and Cash Equivalents at the end of the Year','close',{lb:1,b:1,bd:{t:'thin',b:'double'}}); endPage();
+  const cf=D.cf, cf0=P?P.cf:{}, c2=(lbl,k,fn,s={},n)=>{ r=two(r,lbl,...fp(fn||(()=>''),cf[k],cf0[k]||0),s,n); };
+  const curOnly=(ok,f)=>c=>c==='E'&&P&&ok?f:'';
+  T(r,'Cash Flows From/(Used in) Operating Activities',{b:1}); r+=2; at('cPbt'); c2('Profit before Income Tax Expenses and Extraordinary Items','pbt',c=>`${c}${K.sPbt}`); T(r,'         Adjustment for'); r++;
+  at('cDep'); c2('         Depreciation','dep',c=>`${c}${Q.n13tot}`,{},7); r++;
+  at('cOpp'); c2('Operating Profit before Working Capital Changes','opp',c=>sumR(c,K.cPbt,K.cDep),{b:1,bd:{t:'thin'}}); r++;
+  const w0=r; c2('      (Increase)/Decrease in Stock / WIP','stock',curOnly(acR(b0.stk-b1.stk)===cf.stock,`F${K.bStk}-E${K.bStk}`)); c2('      (Increase)/Decrease in Trade debtors','debt',curOnly(acR(b0.recv-b1.recv)===cf.debt,`F${K.bRecv}-E${K.bRecv}`)); r=two(r,'      (Increase)/Decrease in Prepayments',0,0);
+  c2('      Increase/(Decrease) in Trade creditors','cred'); c2('       Increase/(Decrease) Bank overdraft','od',curOnly(K.bOd&&acR(b1.od-(b0.od||0))===cf.od,`E${K.bOd}-F${K.bOd}`));
+  c2('       Increase/(Decrease) Loans','loans',curOnly(K.bL1>=K.bL0&&acR(b1.loanT-(b0.loanT||0))===cf.loans,`SUM(E${K.bL0}:E${K.bL1})-SUM(F${K.bL0}:F${K.bL1})`)); at('cVat'); c2('       VAT & statutory accounts','vat');
+  at('cWc'); c2('','wc',c=>sumR(c,w0,K.cVat),{b:1,bd:{t:'thin'}}); r++; at('cTax'); c2('       Tax Paid','tax',c=>`${c}${Q.n5paid}`,{},5); r++;
+  at('cOps'); c2('Cash Generated from Operations','ops',c=>`${c}${K.cOpp}+${c}${K.cWc}+${c}${K.cTax}`,{lb:1,b:1,bd:{t:'thin'}}); r++;
+  T(r,'Cash Flows from/(Used in) Investing Activities',{b:1}); r++; at('cAcq'); c2('      Acquisition of Property, Plant & Equipment','acq',c=>c==='E'&&pc.length&&acR(-pc.reduce((s,x)=>s+x.add,0))===cf.acq?`-${Q.n7col}${Q.n7add}`:''); r=two(r,'        Disposal of Property and equipments',0,0);
+  at('cInv'); c2('','inv',c=>sumR(c,K.cAcq,r-1),{b:1,bd:{t:'thin'}});
+  T(r,'Cash Flows from/(Used in) Financing Activities',{b:1}); r++; at('cCap'); c2('      Increase/(Decrease) in Capital','capCh'); at('cFin'); c2('','fin',c=>sumR(c,K.cCap,K.cCap),{b:1,bd:{t:'thin'}}); r++;
+  at('cNet'); c2('Net Increase/Decrease in Cash and Cash Equivalents','net',c=>`${c}${K.cOps}+${c}${K.cInv}+${c}${K.cFin}`,{lb:1,b:1}); r++;
+  at('cOpen'); c2('Cash and Cash Equivalents at the beginning of the Year','open',c=>c==='E'&&P&&acR(cf0.close)===acR(cf.open)?`F${Q.cClose}`:''); r++;
+  at('cClose'); c2('Cash and Cash Equivalents at the end of the Year','close',c=>`${c}${K.cNet}+${c}${K.cOpen}`,{lb:1,b:1,bd:{t:'thin',b:'double'}}); endPage();
   // ---- notes 4–6
   page(); r=head(r,'NOTES TO THE FINANCIAL STATEMENTS FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r,false);
-  const lst=(a,a0,f=x=>x)=>{ const names=[...new Set([...a,...(a0||[])].map(x=>x.l.id))]; names.forEach(id=>{ const x=a.find(y=>y.l.id===id), y=(a0||[]).find(z=>z.l.id===id); if(!(x&&x.v)&&!(y&&y.v)) return; r=two(r,f((x||y).name),x?x.v:0,y?y.v:0); }); };
-  T(r,'4.          REVENUE',{b:1}); r+=2; T(r,' 4.1        Summary',{b:1}); r+=2; lst(D.rev,P&&P.rev); r++; T(r,'4.2 OTHER OPERATING INCOME',{b:1}); N(r,E,D.othT); if(P) N(r,F,P.othT); r++; lst(D.oth,P&&P.oth); r++;
-  r=two(r,'       TOTAL INCOME',acR(D.revT+D.othT),acR(pv('revT')+pv('othT')),{lb:1,b:1,bd:{t:'thin',b:'double'}})+2;
-  T(r,'4.3          PROFIT FROM OPERATING ACTIVITIES',{b:1}); T(r+1,'                      Stated after Charging/(Crediting)'); r+=3; r=two(r,"Auditors' Remuneration",D.audit,pv('audit')); r=two(r,'Depreciation',D.depT,pv('depT'))+2;
-  T(r,'5.  INCOME TAX EXPENSES',{b:1}); r+=2; r=two(r,'Balance B/Forward',D.Lbf,pv('Lbf')); r=two(r,'Tax  for the year',D.taxT,pv('taxT')); r=two(r,'Prior year Tax Adjustments',D.plAdj,pv('plAdj'));
-  r=two(r,'Tax paid (provisional, withholding & prior-year)',D.taxPaid,pv('taxPaid')); r=two(r,'',D.Lcf,pv('Lcf'),{b:1,bd:{t:'thin',b:'double'}})+2;
-  T(r,'6. CASH AND BANK BALANCES',{b:1}); r+=2; D.cashL.forEach(x=>{ if(!x.v&&!x.v0) return; T(r,x.l.name); N(r,E,x.v); if(P) N(r,F,x.v0); r++; });
-  r=two(r,'',acR(D.cashL.reduce((s,x)=>s+x.v,0)),acR(D.cashL.reduce((s,x)=>s+x.v0,0)),{b:1,bd:{t:'thin',b:'double'}}); endPage();
+  const lst=(a,a0,f=x=>x)=>{ const r0=r, names=[...new Set([...a,...(a0||[])].map(x=>x.l.id))]; names.forEach(id=>{ const x=a.find(y=>y.l.id===id), y=(a0||[]).find(z=>z.l.id===id); if(!(x&&x.v)&&!(y&&y.v)) return; r=two(r,f((x||y).name),x?x.v:0,y?y.v:0); }); return [r0,r-1]; };
+  T(r,'4.          REVENUE',{b:1}); r+=2; T(r,' 4.1        Summary',{b:1}); r+=2; const [rv0,rv1]=lst(D.rev,P&&P.rev); r++;
+  const orow=r; T(r,'4.2 OTHER OPERATING INCOME',{b:1}); r++; const [o0,o1]=lst(D.oth,P&&P.oth);
+  const [oe,of]=fp(c=>sumR(c,o0,o1),D.othT,pv('othT')); N(orow,E,oe); if(P) N(orow,F,of); r++;
+  at('n4tot'); r=two(r,'       TOTAL INCOME',...fp(c=>(rv1>=rv0?sumR(c,rv0,rv1)+'+':'')+`${c}${orow}`,acR(D.revT+D.othT),acR(pv('revT')+pv('othT'))),{lb:1,b:1,bd:{t:'thin',b:'double'}})+2;
+  T(r,'4.3          PROFIT FROM OPERATING ACTIVITIES',{b:1}); T(r+1,'                      Stated after Charging/(Crediting)'); r+=3; r=two(r,"Auditors' Remuneration",D.audit,pv('audit')); r=two(r,'Depreciation',...fp(c=>`${c}${Q.n13tot}`,D.depT,pv('depT')))+2;
+  T(r,'5.  INCOME TAX EXPENSES',{b:1}); r+=2; at('n5bf'); r=two(r,'Balance B/Forward',...fp(c=>c==='E'&&P&&acR(P.Lcf)===acR(D.Lbf)?`F${Q.n5cf}`:'',D.Lbf,pv('Lbf'))); at('n5tax'); r=two(r,'Tax  for the year',D.taxT,pv('taxT')); at('n5adj'); r=two(r,'Prior year Tax Adjustments',D.plAdj,pv('plAdj'));
+  at('n5paid'); r=two(r,'Tax paid (provisional, withholding & prior-year)',D.taxPaid,pv('taxPaid')); at('n5cf'); r=two(r,'',...fp(c=>sumR(c,K.n5bf,K.n5paid),D.Lcf,pv('Lcf')),{b:1,bd:{t:'thin',b:'double'}})+2;
+  T(r,'6. CASH AND BANK BALANCES',{b:1}); r+=2; const c0=r; D.cashL.forEach(x=>{ if(!x.v&&!x.v0) return; T(r,x.l.name); N(r,E,x.v); if(P) N(r,F,x.v0); r++; });
+  at('n6tot'); r=two(r,'',...fp(c=>sumR(c,c0,r-1),acR(D.cashL.reduce((s,x)=>s+x.v,0)),acR(D.cashL.reduce((s,x)=>s+x.v0,0))),{b:1,bd:{t:'thin',b:'double'}}); endPage();
   // ---- note 7 PPE (wide)
-  page(); const pc=D.ppe, lastC=Dn+pc.length; A.set(r,1,coName,{b:1,al:'center'}); A.merge(r,1,lastC); A.set(r+1,1,'ANNUAL REPORT AND FINANCIAL STATEMENTS FOR THE YEAR ENDED '+acUpDate(fe),{b:1,al:'center'}); A.merge(r+1,1,lastC); r+=3;
+  page(); const lastC=Dn+pc.length, LC=A.col(lastC), cl=i=>A.col(Dn+i); K.n7col=LC;
+  A.set(r,1,coName,{b:1,al:'center'}); A.merge(r,1,lastC); A.set(r+1,1,'ANNUAL REPORT AND FINANCIAL STATEMENTS FOR THE YEAR ENDED '+acUpDate(fe),{b:1,al:'center'}); A.merge(r+1,1,lastC); r+=3;
   T(r,'7.         PROPERTY, PLANT & EQUIPMENT',{b:1}); r+=2; pc.forEach((c,i)=>A.set(r,Dn+i,c.name,{b:1,al:'center',wrap:1,bd:{b:'thin'}})); A.set(r,lastC,'TOTAL',{b:1,al:'center',bd:{b:'thin'}}); A.ht(r,42); r++;
   T(r,'Gross Carrying Amount',{b:1}); pc.forEach((c,i)=>A.set(r,Dn+i,'Tzs',{al:'center'})); r++;
-  const pr=(lbl,k,s={})=>{ T(r,lbl,s.lb?{b:1}:{}); let t=0; pc.forEach((c,i)=>{ N(r,Dn+i,c[k],s); t+=c[k]; }); N(r,lastC,acR(t),{...s,b:1}); r++; };
-  pr('Costs  '+acDot(fy),'cb'); pr('Additional','add'); pr('Disposal','disp'); pr('TOTAL','ct',{lb:1,b:1,bd:{t:'thin'}}); r++; T(r,'Depreciation',{b:1}); r++;
+  const pr=(key,lbl,k,fn,s={})=>{ at(key); T(r,lbl,s.lb?{b:1}:{}); let t=0; pc.forEach((c,i)=>{ const L=cl(i); N(r,Dn+i,fn?{f:fn(L),v:c[k]}:c[k],s); t+=c[k]; }); if(pc.length) N(r,lastC,{f:`SUM(${cl(0)}${r}:${cl(pc.length-1)}${r})`,v:acR(t)},{...s,b:1}); r++; };
+  pr('n7cb','Costs  '+acDot(fy),'cb'); pr('n7add','Additional','add'); pr('n7disp','Disposal','disp'); pr('n7ct','TOTAL','ct',L=>`${L}${K.n7cb}+${L}${K.n7add}-${L}${K.n7disp}`,{lb:1,b:1,bd:{t:'thin'}}); r++; T(r,'Depreciation',{b:1}); r++;
   if(pc.some(c=>c.rate!=null)){ T(r,'Rate'); pc.forEach((c,i)=>A.set(r,Dn+i,c.rate==null?'':c.rate,{nf:'pct',al:'right'})); r++; }
-  pr('Balance   '+acDot(fy),'db'); pr('Disposal','ddisp'); pr('Charge for the year','chg'); pr('Accumulated depreciation','dt',{lb:1,b:1,bd:{t:'thin'}}); r++;
-  pr('Net Book Value '+acDot(fe),'nbv',{lb:1,b:1,bd:{b:'double'}}); r++; pr('Net Book Value '+acDot(pe),'nbv0',{lb:1}); endPage(2,lastC);
+  pr('n7db','Balance   '+acDot(fy),'db'); pr('n7dd','Disposal','ddisp'); pr('n7chg','Charge for the year','chg'); pr('n7dt','Accumulated depreciation','dt',L=>`${L}${K.n7db}-${L}${K.n7dd}+${L}${K.n7chg}`,{lb:1,b:1,bd:{t:'thin'}}); r++;
+  pr('n7nbv','Net Book Value '+acDot(fe),'nbv',L=>`${L}${K.n7ct}-${L}${K.n7dt}`,{lb:1,b:1,bd:{b:'double'}}); r++; pr('n7nbv0','Net Book Value '+acDot(pe),'nbv0',L=>`${L}${K.n7cb}-${L}${K.n7db}`,{lb:1}); endPage(2,lastC);
   // ---- notes 8–10
   page(); r=head(r,'DETAILED EXPENDITURE STATEMENT FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r,false)-2; T(r,'NOTE 8',{b:1}); r++; T(r,'COST OF SALE',{b:1}); r++;
-  const sl=(lbl,a,b)=>{ r=two(r,lbl,a,b); };
+  const sl=(lbl,a,b)=>{ r=two(r,lbl,a,b); }, s0=r;
   D.stockL.forEach(l=>{ sl('Opening Stock / '+acDisp(l),acBalTo(l.id,acDay(fy,-1)),P?acBalTo(l.id,acDay(ps,-1)):0); });
-  lst(D.purch,P&&P.purch); D.stockL.forEach(l=>{ sl('Less: Closing Stock / '+acDisp(l),-acBalTo(l.id,fe),P?-acBalTo(l.id,pe):0); });
+  lst(D.purch,P&&P.purch); K.n8c0=r; D.stockL.forEach(l=>{ sl('Less: Closing Stock / '+acDisp(l),-acBalTo(l.id,fe),P?-acBalTo(l.id,pe):0); }); K.n8c1=r-1;
   if(D.stockAdj||(P&&P.stockAdj)) sl('Stock adjustment',D.stockAdj,pv('stockAdj'));
-  r=two(r,'',acR(D.openStock+D.purchT-D.closeStock+D.stockAdj),P?acR(P.openStock+P.purchT-P.closeStock+P.stockAdj):0,{b:1,bd:{t:'thin'}}); T(r,'ADD: Other Direct Costs',{b:1}); r++;
-  lst(D.dir,P&&P.dir); r=two(r,'',D.cos,pv('cos'),{b:1,bd:{t:'thin',b:'double'}})+1;
-  const noteCat=(n,title,k)=>{ T(r,'NOTE '+n,{b:1}); r+=2; T(r,title,{b:1}); r++; lst(D.exp.filter(x=>x.c===k),P&&P.exp.filter(x=>x.c===k)); r=two(r,'',D.cat[k],P?P.cat[k]:0,{b:1,bd:{t:'thin',b:'double'}})+1; };
+  at('n8sub'); r=two(r,'',...fp(c=>sumR(c,s0,r-1),acR(D.openStock+D.purchT-D.closeStock+D.stockAdj),P?acR(P.openStock+P.purchT-P.closeStock+P.stockAdj):0),{b:1,bd:{t:'thin'}}); T(r,'ADD: Other Direct Costs',{b:1}); r++;
+  const [d0,d1]=lst(D.dir,P&&P.dir); at('n8tot'); r=two(r,'',...fp(c=>`${c}${K.n8sub}`+(d1>=d0?'+'+sumR(c,d0,d1):''),D.cos,pv('cos')),{b:1,bd:{t:'thin',b:'double'}})+1;
+  const noteCat=(n,title,k)=>{ T(r,'NOTE '+n,{b:1}); r+=2; T(r,title,{b:1}); r++; const [i0,i1]=lst(D.exp.filter(x=>x.c===k),P&&P.exp.filter(x=>x.c===k)); at('n_'+k); r=two(r,'',...fp(c=>sumR(c,i0,i1),D.cat[k],P?P.cat[k]:0),{b:1,bd:{t:'thin',b:'double'}})+1; };
   noteCat(9,'FINANCIAL CHARGES','fin'); noteCat(10,'STAFF EXPENSES','staff'); endPage();
   page(); r=head(r,'DETAILED EXPENDITURE STATEMENT FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r,false)-2; noteCat(11,'OPERATING EXPENSES.','ops'); endPage();
   page(); r=head(r,'DETAILED EXPENDITURE STATEMENT FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r,false)-2; noteCat(12,'ADMINISTRATIVE EXPENSES','adm'); r++;
-  T(r,'NOTE 13',{b:1}); r++; lst(D.dep,P&&P.dep); r=two(r,'',D.depT,pv('depT'),{b:1,bd:{t:'thin',b:'double'}}); endPage();
+  T(r,'NOTE 13',{b:1}); r++; const [p0,p1]=lst(D.dep,P&&P.dep); at('n13tot'); r=two(r,'',...fp(c=>sumR(c,p0,p1),D.depT,pv('depT')),{b:1,bd:{t:'thin',b:'double'}}); endPage();
   const accXml=A.xml([6.1,3.9,44.4,14.9,16.6,19.9,18,22.1,18.7,20,18.7]);
-  // ---- TAX COMP
-  const X=acSheet(W); let q=2; const xt=(v,s)=>X.set(q,1,v,s), xn=(v,s)=>X.set(q,2,v,{nf:'n0',al:'right',...(s||{})});
+  // ---- TAX COMP (linked to the accounts sheet, like the audited workbook)
+  const X=acSheet(W); let q=2; const xt=(v,s)=>X.set(q,1,v,s), xn=(v,s)=>X.set(q,2,v,{nf:'n0',al:'right',...(s||{})}), tk={};
   xt(coName,{b:1}); q++; xt('FINANCIAL STATEMENT FOR THE YEAR ENDED '+acUpDate(fe),{b:1}); q+=2; xt('INCOME TAX COMPUTATION',{b:1,u:1}); q+=2;
-  xt('Profit as per Accounts'); xn(D.pbt); q+=3; xt('Add back',{b:1}); q++; xt('Depreciation'); xn(D.depT); q+=2; xn(acR(D.pbt+D.depT),{b:1,bd:{t:'thin'}}); q+=2;
-  xt('Less:',{b:1}); q++; xt('Wear and Tear Allowance'); xn(D.depT); q+=3; xt('Adjusted Taxable Income',{b:1}); xn(D.pbt,{b:1,bd:{t:'thin'}}); q+=2;
-  xt('Tax Thereon '); xn(D.taxT); q+=2; xt('Less Payments (provisional & withholding tax)'); xn(acR(-(D.taxPaid+D.plAdj))); q+=2; xt('Balance Due',{b:1}); xn(acR(D.taxT+D.taxPaid+D.plAdj),{b:1,bd:{t:'thin',b:'double'}});
+  tk.p=q; xt('Profit as per Accounts'); xn({f:`${SN}E${Q.sPbt}`,v:D.pbt}); q+=3; xt('Add back',{b:1}); q++; tk.d=q; xt('Depreciation'); xn({f:`${SN}E${Q.n13tot}`,v:D.depT}); q+=2; tk.s=q; xn({f:`C${tk.p}+C${tk.d}`,v:acR(D.pbt+D.depT)},{b:1,bd:{t:'thin'}}); q+=2;
+  xt('Less:',{b:1}); q++; tk.w=q; xt('Wear and Tear Allowance'); xn({f:`C${tk.d}`,v:D.depT}); q+=3; tk.a=q; xt('Adjusted Taxable Income',{b:1}); xn({f:`C${tk.s}-C${tk.w}`,v:D.pbt},{b:1,bd:{t:'thin'}}); q+=2;
+  tk.t=q; xt('Tax Thereon '); xn({f:`${SN}E${Q.n5tax}`,v:D.taxT}); q+=2; tk.y=q; xt('Less Payments (provisional & withholding tax)'); xn({f:`-(${SN}E${Q.n5paid}+${SN}E${Q.n5adj})`,v:acR(-(D.taxPaid+D.plAdj))}); q+=2;
+  xt('Balance Due',{b:1}); xn({f:`C${tk.t}-C${tk.y}`,v:acR(D.taxT+D.taxPaid+D.plAdj)},{b:1,bd:{t:'thin',b:'double'}});
   const taxXml=X.xml([3.1,52,26.3]);
   // ---- VAT ANALYSIS (from the books: monthly sales, purchases and VAT)
   const V=acSheet(W); let v=2; V.set(v,0,coName,{b:1}); v++; V.set(v,0,'SALES AND PURCHASES WITH VAT FROM THE BOOKS',{b:1}); v++; V.set(v,0,+Y,{b:1,al:'left'}); v++;
   const vh=['MONTHS','SALES (REVENUE)','OUTPUT VAT 18%','PURCHASES & DIRECT COSTS','INPUT VAT 18%','NET VAT PAYABLE/(REFUND)']; vh.forEach((h,i)=>V.set(v,i,h,{b:1,al:'center',wrap:1,bd:{t:'thin',b:'thin',l:'thin',r:'thin'}})); V.ht(v,30); v+=2;
   const months=D.vatM.months, mrev=m=>acR(-acLed().filter(l=>['Sales Accounts','Direct Incomes'].includes(l.group)).reduce((s,l)=>s+acSum(l.id,m+'-01',acDay(acDay(m+'-28',4).slice(0,7)+'-01',-1)),0));
   const mpur=m=>acR(acLed().filter(l=>['Purchase Accounts','Direct Expenses'].includes(l.group)&&!acIsWipL(l)).reduce((s,l)=>s+acSum(l.id,m+'-01',acDay(acDay(m+'-28',4).slice(0,7)+'-01',-1)),0));
-  const tot=[0,0,0,0,0]; months.forEach(m=>{ const o=acL('L_vatout')?D.vatM.mv('L_vatout',m,'cr'):0, i=acL('L_vatin')?D.vatM.mv('L_vatin',m,'dr'):0, row=[mrev(m),o,mpur(m),i,acR(o-i)];
-    V.set(v,0,new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'long'}).toUpperCase(),{bd:{l:'thin',r:'thin'}}); row.forEach((x,j)=>{ V.set(v,j+1,x,{nf:'n0',al:'right',bd:{r:'thin'}}); tot[j]+=x; }); v++; });
-  V.set(v,0,'TOTAL',{b:1,bd:{t:'thin',b:'double',l:'thin',r:'thin'}}); tot.forEach((x,j)=>V.set(v,j+1,acR(x),{b:1,nf:'n0',al:'right',bd:{t:'thin',b:'double',r:'thin'}}));
+  const v0=v, tot=[0,0,0,0,0]; months.forEach(m=>{ const o=acL('L_vatout')?D.vatM.mv('L_vatout',m,'cr'):0, i=acL('L_vatin')?D.vatM.mv('L_vatin',m,'dr'):0, row=[mrev(m),o,mpur(m),i,{f:`C${v}-E${v}`,v:acR(o-i)}];
+    V.set(v,0,new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'long'}).toUpperCase(),{bd:{l:'thin',r:'thin'}}); row.forEach((x,j)=>{ V.set(v,j+1,x,{nf:'n0',al:'right',bd:{r:'thin'}}); tot[j]+=vv(x); }); v++; });
+  V.set(v,0,'TOTAL',{b:1,bd:{t:'thin',b:'double',l:'thin',r:'thin'}}); tot.forEach((x,j)=>{ const L=V.col(j+1); V.set(v,j+1,{f:`SUM(${L}${v0}:${L}${v-1})`,v:acR(x)},{b:1,nf:'n0',al:'right',bd:{t:'thin',b:'double',r:'thin'}}); });
   const vatXml=V.xml([14,20,18,22,18,22],{land:1});
   const tbXml=acTBSheet(W,fy,fe);
-  const data=acWbZip(W,[[`ACC ${Y}`,accXml],[`TB ${Y}`,tbXml],['TAX COMP',taxXml],['VAT ANALYSIS',vatXml]]);
+  return {W,K,accXml,taxXml,vatXml,tbXml};
+  };
+  const R=build(build({}).K);
+  const data=acWbZip(R.W,[[`ACC ${Y}`,R.accXml],[`TB ${Y}`,R.tbXml],['TAX COMP',R.taxXml],['VAT ANALYSIS',R.vatXml]]);
   try{ await downloads.save({filename:`${(co.name||'Nordic').replace(/[^\w]+/g,'_')}_ACC_${Y}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Annual accounts ${Y} – Excel (audit format)`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
   return {D,P};
