@@ -3439,7 +3439,7 @@ function acAnnual(){
   const hasPrev=st.books_from&&prev>=acFyStart(st.books_from);
   const P=hasPrev?[[fy,fe],[prev,pe]]:[[fy,fe]], B=hasPrev?[fe,pe]:[fe];
   return `<div class="toolbar"><label class="small">Financial year <select class="inp" data-acf="acfy">${yrs.map(y=>`<option value="${y}" ${y===fy?'selected':''}>${acFyLbl(y)} (${fmtD(y)} – ${fmtD(acFyEnd(y))})</option>`).join('')}</select></label><div class="sp"></div>
-    <button class="btn sm" data-ac="annDet">✎ Report details</button><button class="btn sm" data-ac="annXlsS">Simple Excel</button><button class="btn sm" data-ac="annXls">⬇ Excel (audit format)</button><button class="btn pri sm" data-ac="annPdf">⬇ Annual financial statements (PDF)</button></div>
+    <button class="btn sm" data-ac="annDet">✎ Report details</button><button class="btn sm" data-ac="annXlsS">Simple Excel</button><button class="btn sm" data-ac="annXls">⬇ Excel (audit format)</button><button class="btn sm" data-ac="annPdfS">Simple PDF</button><button class="btn pri sm" data-ac="annPdf">⬇ PDF (audit format)</button></div>
   <div class="banner"><div>Annual financial statements for the year ended <b>${fmtD(fe)}</b>${hasPrev?` with comparative figures for ${acFyLbl(prev)}`:''}: statement of profit or loss, statement of financial position, statement of cash flows, notes (schedules) and trial balance. Hand the PDF / Excel to the auditor.${fe>today()?' <b>The year is not finished – figures are to date.</b>':''}</div></div>
   <div class="card">${acPLHtml(P)}</div><div class="card">${acBSHtml(B)}</div><div class="card">${acCFHtml(P)}</div>
   <div class="card">${acHd('Notes – schedules',`ledger balances that make up each line · as at ${fmtD(fe)}`)}${acNotesHtml(fy,fe)}</div>`;
@@ -3498,7 +3498,8 @@ document.addEventListener('click',async e=>{
     const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Day Book':'Ledgers'])[1];
     return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`); }
   if(a==='pdf'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t; const nm=(AC_REPS.find(x=>x[0]===r)||[0,r])[1]; return acPdf(nm,acRepHtml(r,from,to),r==='cfm'?'landscape':'portrait'); }
-  if(a==='annPdf'){ const A=acAnnualParts(); return acPdf(`Annual financial statements ${acFyLbl(A.fy)}`,`<div style="text-align:center;margin-top:120px"><h1 style="font-size:24px">${esc(company().name||'Nordic Construction Co. Ltd')}</h1><h2 style="font-size:18px">Annual financial statements</h2><div>for the year ended ${fmtD(A.fe)}</div><div class="sub" style="margin-top:20px">Statement of profit or loss · Statement of financial position · Statement of cash flows · Notes · Trial balance</div></div>`+
+  if(a==='annPdf') return acAuditPdf();
+  if(a==='annPdfS'){ const A=acAnnualParts(); return acPdf(`Annual financial statements ${acFyLbl(A.fy)}`,`<div style="text-align:center;margin-top:120px"><h1 style="font-size:24px">${esc(company().name||'Nordic Construction Co. Ltd')}</h1><h2 style="font-size:18px">Annual financial statements</h2><div>for the year ended ${fmtD(A.fe)}</div><div class="sub" style="margin-top:20px">Statement of profit or loss · Statement of financial position · Statement of cash flows · Notes · Trial balance</div></div>`+
     A.parts.map(([,h])=>`<div class="pb">${h}</div>`).join('')+`<div class="sig"><div>Director</div><div>Director</div></div>`); }
   if(a==='annDet') return acReportDetails();
   if(a==='annXls') return acAuditXlsx();
@@ -3609,7 +3610,7 @@ function acXW(){
   return {xf,styles};
 }
 function acSheet(W){
-  const cells=new Map(), merges=[], breaks=[], heights={}; let max=0, maxC=0;
+  const cells=new Map(), merges=[], mg=[], breaks=[], heights={}; let max=0, maxC=0;
   const key=(r,c)=>r*100+c;
   const set=(r,c,v,s)=>{ const o=cells.get(key(r,c))||{}; cells.set(key(r,c),{v:v===undefined?o.v:v,s:{...(o.s||{}),...(s||{}),bd:{...((o.s||{}).bd||{}),...((s||{}).bd||{})}}}); max=Math.max(max,r); maxC=Math.max(maxC,c); };
   const box=(r0,r1,c0,c1,st='double')=>{ for(let r=r0;r<=r1;r++){ set(r,c0,undefined,{bd:{l:st}}); set(r,c1,undefined,{bd:{r:st}}); } for(let c=c0;c<=c1;c++){ set(r0,c,undefined,{bd:{t:st}}); set(r1,c,undefined,{bd:{b:st}}); } };
@@ -3618,7 +3619,25 @@ function acSheet(W){
     const sd=Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}"${heights[r]?` ht="${heights[r]}" customHeight="1"`:''}>${rows[r].sort((a,b)=>a[0]-b[0]).map(([c,cl])=>{ const ref=col(c)+r, s=W.xf(cl.s); if(cl.v===undefined||cl.v===null||cl.v==='') return `<c r="${ref}" s="${s}"/>`;
       if(typeof cl.v==='number') return `<c r="${ref}" s="${s}"><v>${acR(cl.v)}</v></c>`; if(typeof cl.v==='object') return `<c r="${ref}" s="${s}"><f>${esc(cl.v.f)}</f><v>${acR(cl.v.v||0)}</v></c>`; return `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(String(cl.v))}</t></is></c>`; }).join('')}</row>`).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"${o.zoom?` zoomScale="${o.zoom}"`:''}/></sheetViews><sheetFormatPr defaultRowHeight="13.8"/><cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${o.land?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/>${breaks.length?`<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b=>`<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>`:''}</worksheet>`; };
-  return {set,box,merge:(r,c0,c1)=>merges.push(`${col(c0)}${r}:${col(c1)}${r}`),brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,get max(){return max;},col};
+  /* the same grid as HTML pages (for the PDF): fonts, borders, merges, number formats and page breaks as in the workbook */
+  const html=(cols,o={})=>{ const fmt=(v,nf)=>{ if(v&&typeof v==='object') v=v.v; if(v===undefined||v===null||v==='') return ''; if(typeof v!=='number') return esc(String(v));
+      if(nf==='pct') return (v*100).toFixed(1)+'%'; const d=nf==='n2'||nf==='t2'?2:0, a=Math.abs(v), t=a.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+      if(nf==='n0'||nf==='n2'||nf==='t2'){ if(Math.round(a*Math.pow(10,d))===0) return '-'; return v<0?(nf==='t2'?'-'+t:'('+t+')'):t+(nf==='t2'?'':'&nbsp;'); } return String(v); };
+    const bdc=x=>x==='double'?'3px double #000':x?'1px solid #000':'';
+    const pages=[]; let st=1; [...breaks].sort((a,b)=>a-b).forEach(b=>{ pages.push([st,b]); st=b+1; }); if(st<=max) pages.push([st,max]);
+    return pages.map(([r0,r1])=>{ let c1=0; for(const [k] of cells){ const r=Math.floor(k/100); if(r>=r0&&r<=r1) c1=Math.max(c1,k%100); } let rr0=r0; while(rr0<r1&&![...Array(c1+1).keys()].some(c=>cells.has(key(rr0,c)))) rr0++;
+      const wide=c1>5||o.land, cw=cols.slice(0,c1+1), tw=cw.reduce((a,b)=>a+b,0);
+      let h=`<table class="xs${wide?' land':''}" style="font-family:'${o.font||'Book Antiqua'}',Palatino,'Palatino Linotype',Georgia,serif"><colgroup>${cw.map(w=>`<col style="width:${(w/tw*100).toFixed(2)}%">`).join('')}</colgroup>`;
+      for(let r=rr0;r<=r1;r++){ h+=`<tr style="height:${heights[r]||13.8}pt">`; for(let c=0;c<=c1;c++){ const m=mg.find(x=>x[0]===r&&x[1]===c); if(mg.some(x=>x[0]===r&&c>x[1]&&c<=x[2])) continue;
+          const cl=cells.get(key(r,c)); if(!cl&&!m){ h+='<td></td>'; continue; } const s=(cl&&cl.s)||{}, bd=s.bd||{}, nf=s.nf;
+          let css=`font-size:${s.sz||10}pt;`; if(s.b) css+='font-weight:700;'; if(s.i) css+='font-style:italic;'; if(s.u) css+='text-decoration:underline;';
+          const al=s.al||(cl&&typeof (cl.v&&typeof cl.v==='object'?cl.v.v:cl.v)==='number'?'right':''); if(al) css+=`text-align:${al};`; if(s.ind) css+=`padding-left:${s.ind*9+2}px;`; if(s.wrap) css+='white-space:normal;vertical-align:top;'; if(s.fill) css+=`background:#${s.fill};`;
+          [['l','left'],['r','right'],['t','top'],['b','bottom']].forEach(([k,n])=>{ if(bd[k]) css+=`border-${n}:${bdc(bd[k])};`; });
+          if(m){ const last=cells.get(key(r,m[2])); if(last&&last.s&&last.s.bd&&last.s.bd.r) css+=`border-right:${bdc(last.s.bd.r)};`; }
+          h+=`<td${m?` colspan="${m[2]-m[1]+1}"`:''} style="${css}">${cl?fmt(cl.v,nf).replace(/\n/g,'<br>'):''}</td>`; }
+        h+='</tr>'; }
+      return h+'</table>'; }); };
+  return {set,box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,get max(){return max;},col};
 }
 
 /* ---------- the workbook ---------- */
@@ -3775,9 +3794,10 @@ async function acAuditXlsx(){
   V.set(v,0,'TOTAL',{b:1,bd:{t:'thin',b:'double',l:'thin',r:'thin'}}); tot.forEach((x,j)=>{ const L=V.col(j+1); V.set(v,j+1,{f:`SUM(${L}${v0}:${L}${v-1})`,v:acR(x)},{b:1,nf:'n0',al:'right',bd:{t:'thin',b:'double',r:'thin'}}); });
   const vatXml=V.xml([14,20,18,22,18,22],{land:1});
   const tbXml=acTBSheet(W,fy,fe);
-  return {W,K,accXml,taxXml,vatXml,tbXml};
+  return {W,K,accXml,taxXml,vatXml,tbXml,A,X,V,TB:acTBSheet.last};
   };
   const R=build(build({}).K);
+  if(acAuditXlsx.pdf) return {R,co,coName,Y,fe};
   const data=acWbZip(R.W,[[`ACC ${Y}`,R.accXml],[`TB ${Y}`,R.tbXml],['TAX COMP',R.taxXml],['VAT ANALYSIS',R.vatXml]]);
   try{ await downloads.save({filename:`${(co.name||'Nordic').replace(/[^\w]+/g,'_')}_ACC_${Y}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Annual accounts ${Y} – Excel (audit format)`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
@@ -3826,13 +3846,29 @@ function acTBSheet(W,from,to){
   acTBRows(to).forEach(g=>g.items.forEach(x=>x.b>0?DR+=x.b:CR-=x.b)); if(od<0) DR-=od; else CR+=od;
   const tb={t:'thin',b:'double'};
   A.set(r,0,'Grand Total',{...F,b:1,bd:{t:'thin',b:'double',l:'thin'}}); A.set(r,1,{f:refs.map(k=>'B'+k).join('+'),v:acR(DR)},{...nm,b:1,bd:tb}); A.set(r,2,{f:refs.map(k=>'C'+k).join('+'),v:acR(CR)},{...nm,b:1,bd:tb}); draft(r,{b:1,bd:tb},acR(DR-CR));
-  return A.xml([38.3,18.3,18.3,21.1]);
+  acTBSheet.last=A; return A.xml([38.3,18.3,18.3,21.1]);
 }
 async function acTBXlsx(to){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const fs=acFyStart(to), W=acXW(), data=acWbZip(W,[['Trial Balance',acTBSheet(W,fs,to)]]);
   try{ await downloads.save({filename:`Trial_Balance_${to}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Trial balance ${to} – Excel`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
+}
+
+/* Annual financial statements PDF in the same audit layout (rendered from the workbook grid) */
+async function acAuditPdf(){
+  acAuditXlsx.pdf=1; let o; try{ o=await acAuditXlsx(); } finally{ acAuditXlsx.pdf=0; } if(!o||!o.R) return;
+  const {R,co,Y}=o, w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; }
+  const acc=R.A.html([6.1,3.9,44.4,14.9,16.6,19.9,18,22.1,18.7,20,18.7]), tb=R.TB.html([38.3,18.3,18.3,21.1],{font:'Arial'}), tax=R.X.html([3.1,52,26.3]), vat=R.V.html([14,20,18,22,18,22],{land:1});
+  const pg=t=>`<section class="pg${/class="xs land/.test(t)?' land':''}">${t}</section>`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(co.name||'Nordic')} – Annual accounts ${Y}</title><style>
+  @page{size:A4 portrait;margin:12mm 10mm}@page land{size:A4 landscape;margin:10mm}
+  body{margin:0;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pg{page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto}.pg.land{page:land}@media print{.pg.land table.xs{zoom:.78}}
+  table.xs{border-collapse:collapse;table-layout:fixed;width:100%}table.xs td{padding:0 3px;white-space:nowrap;overflow:visible;line-height:1.15;vertical-align:bottom}
+  table.xs tr{page-break-inside:avoid}@media screen{body{background:#888}.pg{background:#fff;width:190mm;margin:10px auto;padding:8mm;box-shadow:0 1px 4px #0006}.pg.land{width:277mm}}
+  </style></head><body>${acc.map(pg).join('')}${tb.map(pg).join('')}${tax.map(pg).join('')}${vat.map(pg).join('')}</body></html>`);
+  w.document.close(); logAct(`Annual accounts ${Y} – PDF (audit format)`); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },800);
 }
 /* ===================== CHAT (private 1-to-1; module in nexus-chat.js) ===================== */
 function pageChat(){ return window.NX_CHAT_MOUNT?'<div id="chatHost"></div>':'<div class="card empty">Chat is available in the NEXUS app (sign in online).</div>'; }
