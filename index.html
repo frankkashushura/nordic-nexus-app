@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=182"></script>
+<script src="config.js?v=183"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=182"></script>
-<script src="nexus-chat.js?v=182"></script>
+<script src="nexus-sb.js?v=183"></script>
+<script src="nexus-chat.js?v=183"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -4238,7 +4238,7 @@ ${money()?`      <div class="card kpi blu"><span class="label">Original contract
     ${p.end&&F.eot?`<div class="card" style="margin-top:10px"><div class="bd small"><b>Completion date after EOT</b><div style="white-space:pre-line;margin-top:4px">${esc(pEotTrail(p))}</div></div></div>`:''}
       <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addVo">Record instruction / claim</button></div>
       <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Description</th><th>Status</th><th class="r">Claimed</th><th class="r">Approved</th><th class="hide-m">EOT days</th><th class="hide-m">Instructed</th></tr></thead><tbody>
-      ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}${(v.activities||[]).length?` · ⏱ ${(v.activities||[]).map(id=>esc((byId('milestones',id)||{}).name||'?')).join(', ')}`:''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${money()&&v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${money()&&v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
+      ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${money()&&v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${money()&&v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
       </tbody></table></div></div>`;
   } else if(tab==='risks'){
     const rs=S.risks.filter(r=>r.project_id===p.id).sort((a,b)=>(a.status==='Closed')-(b.status==='Closed')||(+b.likelihood*+b.impact)-(+a.likelihood*+a.impact));
@@ -4428,29 +4428,13 @@ function pmForecast(p){
 const PM_ST={ok:['good','On time'],risk:['amb','At risk'],late:['bad','Late'],done:['blue','Complete']};
 const pmChip=f=>f?`<span class="chip ${PM_ST[f.status][0]}">${PM_ST[f.status][1]}</span>`:'<span class="chip">No programme</span>';
 
-/* v182 · EOT ↔ programme: link EOTs to delayed activities, show original + revised completion on the Gantt, claim EOT from a late activity */
-const msEots=mid=>S.variations.filter(v=>Array.isArray(v.activities)&&v.activities.includes(mid)&&v.status!=='Rejected');
-const pEotMarks=p=>{ let n=dayN(p.end); if(n==null) return []; return pEots(p).map(v=>{ const d=dayN(v.date_instructed); n=(d!=null?d:n)+(+v.days_granted||0); return {ref:v.ref||'EOT',days:+v.days_granted||0,at:pd(nYmd(n))}; }); };
-function voActField(pid){ const cpm=pmCpm(pid).res;
-  const ms=msOf(pid).filter(m=>msStart(m)).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||''));
-  return {k:'activities',label:'Delayed programme activities – links this EOT to the Gantt chart',type:'checks',full:1,empty:'No programme activities for this project yet (Programme tab).',
-    options:ms.map(m=>{ const c=cpm.get(m.id)||{}; return [m.id,`${m.name}${c.crit?' – CRITICAL':''} (finish ${fmtD(msFinish(m)?ymd(msFinish(m)):m.planned_finish)})`]; })}; }
-const voFieldsP=pid=>{ const F=voFields(), i=F.findIndex(f=>f.k==='days_granted'); return i<0?[...F,voActField(pid)]:[...F.slice(0,i+1),voActField(pid),...F.slice(i+1)]; };
-function pmClaimEot(mid){ const m=byId('milestones',mid); if(!m) return; const pid=m.project_id, c=pmCpm(pid).res.get(m.id)||{}, t=today0(), fm=msFinish(m), sm=msStart(m)||fm, pg=msPg(m);
-  if(!fm){ toast('This activity has no finish date.'); return; }
-  const rem=pg>=100?0:Math.max(1,Math.ceil((dDiff(fm,sm)+1)*(1-pg/100))), nf=pg>=100?(pd(m.actual_finish)||fm):addD(t>fm?t:fm,t>fm?rem:0), delay=Math.max(0,dDiff(nf,fm));
-  const claim=c.crit?delay:Math.max(0,delay-(+c.float||0)), n=S.variations.filter(v=>v.project_id===pid&&/^EOT/i.test(v.ref||'')).length+1;
-  formDrawer('Claim extension of time',voFieldsP(pid),{type:'Extension of time',status:'Submitted',date_submitted:today(),date_instructed:today(),ref:'EOT-'+String(n).padStart(2,'0'),
-    description:`Delay to "${m.name}" – planned finish ${fmtD(ymd(fm))}, forecast finish ${fmtD(ymd(nf))} (${delay} day${delay===1?'':'s'} late)${c.crit?'. The activity is on the critical path, so the completion date is delayed.':c.float>0?`. Float ${c.float} days – only delay beyond the float affects completion.`:''}`,
-    days_claimed:claim, activities:[m.id], notes:'State the cause (late instruction, variation, weather, site access, late payment…) and attach the notices sent to the Employer / Consultant.'},
-    async v=>{ await put('variations',null,{...v,project_id:pid}); logAct(`${v.ref} EOT claim recorded – ${projName(pid)}`); toast('EOT claim saved – see Variations & EOT.'); },{sub:'Programme → Variations & EOT · '+projName(pid)}); }
 function pmGantt(pid, opt={}){
   const ms=msOf(pid).filter(m=>msStart(m)).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')||(a.name||'').localeCompare(b.name||''));
   if(!ms.length) return '<div class="empty">No activities yet. Add the first activity – NEXUS draws the Gantt chart automatically.</div>';
   const cpm=pmCpm(pid).res, t=today0();
-  const dates=ms.flatMap(m=>[msStart(m),msFinish(m),pd(m.baseline_start),pd(m.baseline_finish),pd(m.actual_start)]).filter(Boolean).concat(opt.fc?[opt.fc]:[],opt.contract?[opt.contract]:[],opt.orig?[opt.orig]:[]);
+  const dates=ms.flatMap(m=>[msStart(m),msFinish(m),pd(m.baseline_start),pd(m.baseline_finish),pd(m.actual_start)]).filter(Boolean).concat(opt.fc?[opt.fc]:[]);
   let s=addD(new Date(Math.min(...dates.map(d=>d.getTime()))),-3), e=addD(new Date(Math.max(...dates.map(d=>d.getTime()))),6);
-  const D=Math.max(14,dDiff(e,s)), ppd=D<=45?22:D<=120?9:D<=300?4.2:D<=700?2.2:1.2, NARROW=(window.innerWidth||1200)<640, LW=NARROW?140:240, RH=30, TOP=44, W=Math.round(LW+D*ppd+(opt.fc?90:20)), H=TOP+ms.length*RH+(opt.orig&&(opt.eots||[]).length?76:58);
+  const D=Math.max(14,dDiff(e,s)), ppd=D<=45?22:D<=120?9:D<=300?4.2:D<=700?2.2:1.2, NARROW=(window.innerWidth||1200)<640, LW=NARROW?140:240, RH=30, TOP=44, W=Math.round(LW+D*ppd+20), H=TOP+ms.length*RH+58;
   const X=d=>LW+dDiff(d,s)*ppd, row=new Map(ms.map((m,i)=>[m.id,i])), Y=i=>TOP+i*RH;
   let g='';
   // month bands + labels
@@ -4466,7 +4450,7 @@ function pmGantt(pid, opt={}){
   ms.forEach((m,i)=>{ const y=Y(i), c=cpm.get(m.id)||{}, pg=msPg(m), crit=c.crit, sm=msStart(m), fm=msFinish(m), lateNow=pg<100&&fm<t, mile=m.kind==='milestone';
     const col=pg>=100?'var(--good)':crit?'#C0392B':'#1F5FA8', soft=pg>=100?'var(--good-soft)':crit?'#F5C6C1':'#CFE2F6';
     if(i%2) g+=`<rect x="0" y="${y}" width="${W}" height="${RH}" fill="var(--line)" opacity=".18"/>`;
-    g+=`<g data-editms="${esc(m.id)}" style="cursor:pointer"><title>${esc(m.name)}\n${fmtD(m.planned_start)} → ${fmtD(fm)} · ${pg}% done${c.float!=null?`\nFloat: ${c.float} days${crit?' – CRITICAL':''}`:''}${m.baseline_finish?`\nBaseline finish: ${fmtD(m.baseline_finish)}`:''}${m.resp?`\nResponsible: ${m.resp}`:''}${msEots(m.id).map(v=>`\nEOT link: ${v.ref} – ${v.status}${+v.days_granted?`, ${v.days_granted} d granted`:+v.days_claimed?`, ${v.days_claimed} d claimed`:''}`).join('')}</title>
+    g+=`<g data-editms="${esc(m.id)}" style="cursor:pointer"><title>${esc(m.name)}\n${fmtD(m.planned_start)} → ${fmtD(fm)} · ${pg}% done${c.float!=null?`\nFloat: ${c.float} days${crit?' – CRITICAL':''}`:''}${m.baseline_finish?`\nBaseline finish: ${fmtD(m.baseline_finish)}`:''}${m.resp?`\nResponsible: ${m.resp}`:''}</title>
       <rect x="0" y="${y}" width="${W}" height="${RH}" fill="transparent"/>
       <text x="8" y="${y+19}" font-size="12" fill="${lateNow?'#C0392B':'var(--ink)'}" font-weight="${crit?700:500}">${esc((mile?'◆ ':'')+(m.name.length>(NARROW?16:30)?m.name.slice(0,NARROW?15:29)+'…':m.name))}</text>
       <text x="${LW-8}" y="${y+19}" font-size="10.5" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${mile?'':pg+'%'}</text>`;
@@ -4476,8 +4460,6 @@ function pmGantt(pid, opt={}){
       g+=`<rect x="${x}" y="${y+6}" width="${w}" height="15" rx="4" fill="${soft}" stroke="${lateNow?'#C0392B':col}" stroke-width="${lateNow?2:1}"/><rect x="${x}" y="${y+6}" width="${w*pg/100}" height="15" rx="4" fill="${col}"/>`;
       if(c.float>0&&pg<100&&ppd>=2) g+=`<line x1="${x+w}" x2="${x+w+c.float*ppd}" y1="${y+13.5}" y2="${y+13.5}" stroke="${col}" stroke-dasharray="2 3" opacity=".6"/>`;
       if(w>70) g+=`<text x="${x+6}" y="${y+17.5}" font-size="10" fill="${pg>45?'#fff':'var(--ink)'}">${esc(m.resp?m.resp.slice(0,Math.floor(w/7)):'')}</text>`; }
-    const ev=msEots(m.id); if(ev.length){ const ex=(mile?X(sm)+ppd/2+12:X(sm)+Math.max(4,(dDiff(fm,sm)+1)*ppd)+4), lb=ev.map(v=>v.ref).join(', ').slice(0,22), ew=lb.length*6+14;
-      g+=`<rect x="${ex}" y="${y+6}" width="${ew}" height="15" rx="7.5" fill="#F2A900"/><text x="${ex+ew/2}" y="${y+17}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3A2A00">${esc(lb)}</text>`; }
     g+='</g>'; });
   // dependency arrows
   ms.forEach(m=>msPreds(m).forEach(pid2=>{ const p=ms.find(x=>x.id===pid2); if(!p) return; const i1=row.get(p.id), i2=row.get(m.id);
@@ -4486,12 +4468,7 @@ function pmGantt(pid, opt={}){
   // today + forecast
   if(t>=s&&t<=e){ const x=X(t)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4 3"/><rect x="${x-18}" y="${H-17}" width="36" height="14" rx="3" fill="#C0392B"/><text x="${x}" y="${H-6.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Today</text>`; }
   if(opt.fc&&opt.fc>=s&&opt.fc<=e){ const x=X(opt.fc)+ppd/2; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6 3"/><text x="${x+4}" y="${H-24}" font-size="10" fill="#7B1FA2" font-weight="700">Forecast finish</text>`; }
-  const eots=(opt.eots||[]).filter(x=>x.at), hasE=eots.length&&opt.orig&&opt.contract&&dDiff(opt.contract,opt.orig)!==0;
-  if(hasE&&opt.orig>=s&&opt.orig<=e){ const x0=X(opt.orig)+ppd, x1=X(opt.contract)+ppd;
-    g+=`<rect x="${Math.min(x0,x1)}" y="${TOP-8}" width="${Math.abs(x1-x0)}" height="${H-TOP+8}" fill="var(--good)" opacity=".07"/>`;
-    g+=`<line x1="${x0}" x2="${x0}" y1="${TOP-8}" y2="${H}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/><rect x="${x0-112}" y="${H-70}" width="110" height="14" rx="3" fill="#5B6B7F"/><text x="${x0-57}" y="${H-59.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Original completion</text><title>Original contract completion ${fmtD(ymd(opt.orig))}</title>`;
-    eots.forEach((v,i)=>{ if(v.at<s||v.at>e) return; const x=X(v.at)+ppd; g+=`<g><title>${esc(v.ref)}: +${v.days} days → ${fmtD(ymd(v.at))}</title><path d="M${x} ${TOP-8} l0 ${14+i%2*14}" stroke="#B07A00" stroke-width="1.5"/><rect x="${x+2}" y="${TOP-8+i%2*14}" width="${(v.ref.length+String(v.days).length+3)*6+6}" height="13" rx="3" fill="#F2A900"/><text x="${x+5}" y="${TOP+2+i%2*14}" font-size="9.5" font-weight="700" fill="#3A2A00">${esc(v.ref)} +${v.days}d</text></g>`; }); }
-  if(opt.contract&&opt.contract>=s&&opt.contract<=e){ const x=X(opt.contract)+ppd, lb=hasE?'Revised completion (EOT)':'Contract completion', lw=lb.length*5.6+12; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="var(--good)" stroke-width="2"/><rect x="${x-lw-2}" y="${H-52}" width="${lw}" height="14" rx="3" fill="var(--good)"/><text x="${x-lw/2-2}" y="${H-41.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">${lb}</text><title>${esc(lb)} ${fmtD(ymd(opt.contract))}</title>`; }
+  if(opt.contract&&opt.contract>=s&&opt.contract<=e){ const x=X(opt.contract)+ppd; g+=`<line x1="${x}" x2="${x}" y1="${TOP-8}" y2="${H}" stroke="var(--good)" stroke-width="2"/><rect x="${x-80}" y="${H-52}" width="78" height="14" rx="3" fill="var(--good)"/><text x="${x-41}" y="${H-41.5}" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="700">Contract end</text>`; }
   return `<div class="pm-gantt" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gantt chart" style="display:block;font-family:inherit">
     <defs><marker id="pmArr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--muted)"/></marker></defs>
     <rect x="0" y="0" width="${LW}" height="${H}" fill="var(--panel)"/>${g}<line x1="${LW}" x2="${LW}" y1="0" y2="${H}" stroke="var(--line)"/></svg></div>
@@ -4526,14 +4503,14 @@ function pmProgrammeTab(p){
     ${pr?`<button class="btn sm" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
     ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
-  ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract,orig:p.end?pd(p.end):null,eots:pEotMarks(p)})}</div>${pEots(p).length?`<div class="small muted" style="padding:2px 10px 8px">Grey dashed line = original contract completion · green = revised completion after approved EOTs · amber tags = EOTs (linked activities show the EOT next to their bar). ${esc(pEotTrail(p))}</div>`:''}</div>`:''}
+  ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
   ${view==='table'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Activity</th><th>Planned</th><th class="r hide-m">Weight</th><th style="min-width:130px">Progress</th><th class="r">Float</th><th class="hide-m">vs baseline</th><th>Status</th></tr></thead><tbody>
       ${ms.map(m=>{const pl=planned(m,new Date())*100, pg=msPg(m), late=pg<100&&msFinish(m)&&msFinish(m)<t, behind=pg+10<pl, c=cpm.get(m.id)||{}, sl=m.baseline_finish?dDiff(msFinish(m),pd(m.baseline_finish)):null;
-        return `<tr class="click" data-editms="${esc(m.id)}"><td><div class="ttl2">${m.kind==='milestone'?'◆ ':''}${esc(m.name)}</div><div class="sub">${msPreds(m).length?'after '+msPreds(m).map(id=>esc((byId('milestones',id)||{}).name||'?')).join(', '):''}${m.resp?(msPreds(m).length?' · ':'')+esc(m.resp):''}${msEots(m.id).map(v=>` <span class="chip amb" title="Linked EOT">${esc(v.ref)}</span>`).join('')}</div></td><td class="small">${fmtD(m.planned_start)}${m.kind==='milestone'?'':' → '+fmtD(m.planned_finish)}</td><td class="r num hide-m">${esc(m.weight||0)}%</td>
+        return `<tr class="click" data-editms="${esc(m.id)}"><td><div class="ttl2">${m.kind==='milestone'?'◆ ':''}${esc(m.name)}</div><div class="sub">${msPreds(m).length?'after '+msPreds(m).map(id=>esc((byId('milestones',id)||{}).name||'?')).join(', '):''}${m.resp?(msPreds(m).length?' · ':'')+esc(m.resp):''}</div></td><td class="small">${fmtD(m.planned_start)}${m.kind==='milestone'?'':' → '+fmtD(m.planned_finish)}</td><td class="r num hide-m">${esc(m.weight||0)}%</td>
           <td><div class="bar"><i style="width:${pg}%;background:${late||behind?'var(--bad)':'var(--accent)'}"></i></div><span class="small num">${pg}% · plan ${pl.toFixed(0)}%</span></td>
           <td class="r num">${c.float==null?'—':c.crit?'<span class="chip bad">0 – critical</span>':c.float+' d'}</td><td class="small hide-m">${sl==null?'—':sl>0?`<span style="color:var(--bad)">${sl} d late</span>`:sl<0?`${-sl} d early`:'on baseline'}</td>
-          <td>${pg>=100?'<span class="chip good">Done</span>':late?'<span class="chip bad">Late</span>':behind?'<span class="chip amb">Behind</span>':pg>0?'<span class="chip blue">In progress</span>':'<span class="chip">Not started</span>'}${(late||behind)&&canWrite?` <button class="btn sm" data-act="pmClaimEot" data-id="${esc(m.id)}" title="Record an extension of time claim for this delay">Claim EOT</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No activities yet.</td></tr>'}
+          <td>${pg>=100?'<span class="chip good">Done</span>':late?'<span class="chip bad">Late</span>':behind?'<span class="chip amb">Behind</span>':pg>0?'<span class="chip blue">In progress</span>':'<span class="chip">Not started</span>'}</td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">No activities yet.</td></tr>'}
       </tbody></table></div></div>`:''}
   ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2><span class="sub">planned vs actual progress</span></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
   <div class="banner small"><div><b>How it works:</b> add activities with dates and link them with <i>Starts after</i>. When an activity is moved or delayed, every activity after it moves automatically. The <b style="color:#C0392B">red critical path</b> shows the activities that decide the completion date. Site reports can update progress. An administrator sets the <b>baseline</b> (the approved programme) to see slippage.</div></div>`;
@@ -9064,7 +9041,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.tmine!==undefined){ UI.tmine=el.dataset.tmine==='1'; renderView(true); return; }
   if(el.dataset.edittask){ const t=byId('tasks',el.dataset.edittask); if(!t) return; formDrawer('Task',TASK_FIELDS.map(f=>f.k==='assignee'?{...f,options:staffOpts()}:f.k==='project_id'?{...f,options:projOpts()}:f),t,async v=>{ const re=v.assignee&&v.assignee!==t.assignee; await patch('tasks',t.id,{...v,...(re?{assigned_at:new Date().toISOString(),assigned_by:me.name||''}:{})}); logAct(`Task updated: ${v.title||t.title}`); },{onDelete:async()=>{ await remove('tasks',t.id); logAct(`Deleted task: ${t.title}`); }}); return; }
   if(el.dataset.editms){ const m=byId('milestones',el.dataset.editms); if(!m) return; formDrawer('Programme activity',msFields(m.project_id,m.id),m,async v=>{ await pmSaveActivity(m.project_id,m.id,v); },{sub:'Programme · '+projName(m.project_id),onDelete:async()=>{ await remove('milestones',m.id); for(const o of msOf(m.project_id).filter(x=>msPreds(x).includes(m.id))) await patch('milestones',o.id,{preds:msPreds(o).filter(x=>x!==m.id)}); logAct(`Deleted programme activity – ${projName(m.project_id)}`); }}); return; }
-  if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFieldsP((byId('variations',el.dataset.editvo)||{}).project_id),'Variations & EOT'); return; }
+  if(el.dataset.editvo){ recEdit('variations',el.dataset.editvo,'Variation / claim',voFields(),'Variations & EOT'); return; }
   if(el.dataset.editrisk){ recEdit('risks',el.dataset.editrisk,'Risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),'Risks & issues'); return; }
   if(el.dataset.editsnag){ recEdit('snags',el.dataset.editsnag,'Snag',SNAG_FIELDS,'Snags & close-out'); return; }
   if(el.dataset.editplant){ const x=byId('plant',el.dataset.editplant); formDrawer('Plant & equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),x,async v=>{ await patch('plant',x.id,v); logAct(`Updated plant: ${v.name}`); },{sub:'Plant & equipment',onDelete:async()=>{ await remove('plant',x.id); logAct(`Removed plant: ${x.name}`); }}); return; }
@@ -9207,8 +9184,7 @@ document.addEventListener('click', async e=>{
     case 'pmProject': oxEnsureCss(); oxjOpen(routeArg); break;
     case 'pmTpl': pmiTemplate(); break;
     case 'pmExportAll': pmExcel(S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')&&msOf(p.id).length).map(p=>p.id),'NEXUS-programme-report'); break;
-    case 'pmClaimEot': pmClaimEot(el.dataset.id); break;
-    case 'addVo': formDrawer('Record instruction / claim',voFieldsP(routeArg),{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
+    case 'addVo': formDrawer('Record instruction / claim',voFields(),{type:'Variation',status:'Instructed',date_instructed:today(),ref:'VO-'+String(S.variations.filter(v=>v.project_id===routeArg).length+1).padStart(2,'0')},async v=>{ await put('variations',null,{...v,project_id:routeArg}); logAct(`${v.ref} recorded – ${projName(routeArg)}`); },{sub:'Variations & EOT'}); break;
     case 'addRisk': formDrawer('Add risk or issue',RISK_FIELDS.map(f=>f.k==='owner'?{...f,options:staffOpts()}:f),{kind:'Risk',status:'Open'},async v=>{ await put('risks',null,{...v,project_id:routeArg}); logAct(`Risk logged: ${v.title} – ${projName(routeArg)}`); },{sub:'Risks & issues'}); break;
     case 'addSnag': formDrawer('Add snag',SNAG_FIELDS,{status:'Open'},async v=>{ await put('snags',null,{...v,project_id:routeArg,found:today()}); },{sub:'Snags & close-out'}); break;
     case 'addPlant': formDrawer('Add plant or equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),{ownership:'Owned',status:'Working'},async v=>{ await put('plant',null,v); logAct(`Plant added: ${v.name}`); },{sub:'Plant & equipment'}); break;
