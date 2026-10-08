@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="470123d31db2">
+<meta name="nexus-build" content="c65f9044256e">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3116,12 +3116,12 @@ function acNew(vt,preset){
   const d=today(), B=acLed().find(l=>l.group==='Bank Accounts'), C=acLed().find(l=>l.group==='Cash-in-Hand');
   const tpl={Payment:[['Dr',''],['Cr',B&&B.id]],Receipt:[['Dr',B&&B.id],['Cr','']],Contra:[['Dr',B&&B.id],['Cr',C&&C.id]],Journal:[['Dr',''],['Cr','']],
     Sales:[['Dr',''],['Cr','L_rev'],['Cr','L_vatout']],Purchase:[['Dr','L_mat'],['Dr','L_vatin'],['Cr','']],'Credit Note':[['Dr','L_rev'],['Cr','']],'Debit Note':[['Dr',''],['Cr','L_mat']]}[vt]||[['Dr',''],['Cr','']];
-  ACV={id:null,vtype:vt,date:d,no:acNextNo(vt,d),no_auto:acNextNo(vt,d),ref:'',narr:'',project_id:'',lines:tpl.map(([dc,l])=>({dc,l:l&&acL(l)?l:'',amt:'',cc:''})),...(preset||{})};
+  ACV={id:null,vtype:vt,date:(preset&&preset.date)||d,no:acNextNo(vt,(preset&&preset.date)||d),no_auto:acNextNo(vt,(preset&&preset.date)||d),ref:'',narr:'',project_id:'',lines:tpl.map(([dc,l])=>({dc,l:l&&acL(l)?l:'',amt:'',cc:''})),...(preset||{})};
   acVOpen();
 }
 function acEdit(id){ const v=(S.vouchers||[]).find(x=>x.id===id); if(!v) return; ACV=JSON.parse(JSON.stringify(v)); ACV.lines=(ACV.lines||[]).map(x=>({...x,amt:x.amt})); acVOpen(); }
 function acLocked(d){ const lk=(acSet()||{}).locked_until; return !!(lk&&d&&d<=lk); }
-function acVOpen(){ let w=document.getElementById('acvModal'); if(!w){ w=document.createElement('div'); w.id='acvModal'; w.className='acm'; document.body.append(w); w.addEventListener('click',acVClick); w.addEventListener('input',acVInput); w.addEventListener('change',acVInput); w.addEventListener('keydown',acVKey); } acVRender(); setTimeout(()=>{ const i=w.querySelector('[data-vl="0"][data-k="l"]'); i&&ACV&&!ACV.id&&i.focus(); },50); }
+function acVOpen(){ if(ACV&&!ACV.mode) acSimpleInit(); let w=document.getElementById('acvModal'); if(!w){ w=document.createElement('div'); w.id='acvModal'; w.className='acm'; document.body.append(w); w.addEventListener('click',acVClick); w.addEventListener('input',acVInput); w.addEventListener('change',acVInput); w.addEventListener('keydown',acVKey); } acVRender(); setTimeout(()=>{ const i=w.querySelector(ACV&&ACV.mode==='simple'?'[data-vs="a"]':'[data-vl="0"][data-k="l"]'); i&&ACV&&!ACV.id&&i.focus(); },50); }
 function acVClose(){ const w=document.getElementById('acvModal'); if(w) w.remove(); ACV=null; }
 function acTot(){ let dr=0,cr=0; for(const x of ACV.lines) if(+x.amt){ if(x.dc==='Dr') dr+=+x.amt; else cr+=+x.amt; } return {dr:acR(dr),cr:acR(cr),diff:acR(dr-cr)}; }
 function acVRender(){
@@ -3134,9 +3134,9 @@ function acVRender(){
     <button class="iconbtn" data-vx="close" aria-label="Close">✕</button></div>
   <div class="acm-meta"><label>No. <input class="inp mono" data-vk="no" value="${esc(ACV.no||'')}"></label><label>Date <input type="date" class="inp" data-vk="date" value="${esc(ACV.date||'')}"></label>
     <label>Reference <input class="inp" data-vk="ref" value="${esc(ACV.ref||'')}" placeholder="invoice / cheque / IPC no."></label>
-    <label>Project (cost centre) <select class="inp" data-vk="project_id"><option value="">— Office / none —</option>${pj.map(p=>`<option value="${esc(p.id)}" ${ACV.project_id===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
+    <label>Project <select class="inp" data-vk="project_id"><option value="">— Office / none —</option>${pj.map(p=>`<option value="${esc(p.id)}" ${ACV.project_id===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
   ${ACV.cancelled?'<div class="banner warn"><div>This voucher is <b>cancelled</b> – it has no effect on the books.</div></div>':acLocked(ACV.date)?'<div class="banner warn"><div>This date is in a <b>locked period</b> (Settings). Unlock the period to change it.</div></div>':''}
-  <div class="tbl-wrap"><table class="ac-t acm-lines"><thead><tr><th style="width:62px">Dr/Cr</th><th>Particulars (ledger)</th><th style="width:150px">Cost centre</th><th class="r" style="width:150px">Debit</th><th class="r" style="width:150px">Credit</th><th style="width:32px"></th></tr></thead><tbody>
+  ${ACV.mode==='simple'?acSimpleHtml():`${acSimpleFit(ACV)||!ACV.lines.some(x=>+x.amt)?'<div class="acs-sw" style="margin:0 0 6px"><button class="btn sm ghost" data-vx="mode" data-v="simple">← Back to simple entry</button></div>':''}<div class="tbl-wrap"><table class="ac-t acm-lines"><thead><tr><th style="width:62px">Dr/Cr</th><th>Particulars (ledger)</th><th style="width:150px">Cost centre</th><th class="r" style="width:150px">Debit</th><th class="r" style="width:150px">Credit</th><th style="width:32px"></th></tr></thead><tbody>
   ${ACV.lines.map((x,i)=>{ const l=acL(x.l), pl=l&&acIsPL(l.group), bal=l?acBalTo(l.id,ACV.date||today()):null; return `<tr>
     <td><select class="inp" data-vl="${i}" data-k="dc"><option ${x.dc==='Dr'?'selected':''}>Dr</option><option ${x.dc==='Cr'?'selected':''}>Cr</option></select></td>
     <td><input class="inp" list="acLedList" data-vl="${i}" data-k="l" value="${esc(l?l.name:'')}" placeholder="Type to search ledger…">${l?`<div class="small muted">${esc(l.group)}${acIsPL(l.group)?'':` · Cur bal: ${acFmt(bal)} ${acDC(bal)}`}</div>`:''}</td>
@@ -3148,26 +3148,33 @@ function acVRender(){
     ${['Sales','Purchase','Credit Note','Debit Note'].includes(ACV.vtype)?' <button class="btn sm" data-vx="vat" title="Work out VAT at 18% of the income / expense lines">VAT 18%</button>':''}
     <button class="btn sm ghost" data-vx="newled">＋ New ledger</button></td>
     <th class="r num">${acFmt(T.dr)}</th><th class="r num">${acFmt(T.cr)}</th><th></th></tr>
-    ${T.diff?`<tr><td colspan="6" class="r" style="color:var(--bad)"><b>Difference ${acFmt(T.diff)} ${T.diff>0?'(more debit)':'(more credit)'}</b> – debits must equal credits</td></tr>`:''}</tfoot></table></div>
-  <datalist id="acLedList">${opts.map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist>
+    ${T.diff?`<tr><td colspan="6" class="r" style="color:var(--bad)"><b>Difference ${acFmt(T.diff)} ${T.diff>0?'(more debit)':'(more credit)'}</b> – debits must equal credits</td></tr>`:''}</tfoot></table></div>`}
+  <datalist id="acLedList">${opts.map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist><datalist id="acLedCash">${opts.filter(l=>acIsCash(l.id)).map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist>
   <div id="acmNewLed" hidden class="acm-newled"><input class="inp" placeholder="New ledger name" data-nl="name"><select class="inp" data-nl="group">${AC_GROUPS.filter(g=>g[0]!=='Profit & Loss A/c').map(g=>`<option ${g[0]==='Sundry Creditors'?'selected':''}>${g[0]}</option>`).join('')}</select><button class="btn sm pri" data-vx="mkled">Create</button></div>
   <label class="acm-narr">Narration <textarea class="inp" rows="2" data-vk="narr" placeholder="What was this for? (shown on the ledger statement)">${esc(ACV.narr||'')}</textarea></label>
   ${acVStamp()}<div class="acm-ft">${ACV.id&&!ACV.cancelled&&!acLocked(ACV.date)?'<button class="btn danger" data-vx="cancel">Cancel voucher</button>':''}${ACV.id&&isAdmin&&!acLocked(ACV.date)?' <button class="btn ghost" data-vx="delete">Delete</button>':''}${ACV.id?' <button class="btn" data-vx="print">Print</button>':''}<div class="sp"></div>
     <span class="small muted">Ctrl+Enter = accept · Esc = close</span><button class="btn" data-vx="close">Close</button>${ro?'':acVBtns()}</div></div>`;
 }
 function acVInput(e){ const t=e.target; if(!ACV) return;
+  if(t.dataset.vs){ const k=t.dataset.vs, s=ACV.s||(ACV.s={});
+    if(k==='vat'){ s.vat=t.checked; acSimpleApply(); acVR(); return; }
+    if(k==='amt'){ s.amt=t.value.replace(/[^0-9.\-]/g,''); acSimpleApply(); if(e.type==='change') acVR(); return; }
+    const m=acLed().find(l=>l.name===t.value)||acLed().find(l=>l.name.toLowerCase()===t.value.trim().toLowerCase()); const prev=s[k]; s[k]=m?m.id:''; acSimpleApply();
+    if(m&&prev!==m.id&&(e.type==='change'||e.inputType==='insertReplacementText'||!e.inputType)) acVR(()=>{ const n=document.querySelector(k==='a'?'#acvModal [data-vs="b"]':'#acvModal [data-vs="amt"]'); n&&n.focus(); }); return; }
   if(t.dataset.vk){ ACV[t.dataset.vk]=t.value; if(t.dataset.vk==='date'&&!ACV.id&&e.type==='change'&&ACV.no===ACV.no_auto){ ACV.no=ACV.no_auto=acNextNo(ACV.vtype,t.value); acVR(); } return; }
   if(t.dataset.vl!=null){ const x=ACV.lines[+t.dataset.vl], k=t.dataset.k; if(!x) return;
     if(k==='l'){ const m=acLed().find(l=>l.name===t.value)||acLed().find(l=>l.name.toLowerCase()===t.value.trim().toLowerCase()); if(m){ const chg=x.l!==m.id; x.l=m.id; if(chg&&(e.type==='change'||e.inputType==='insertReplacementText'||!e.inputType)){ acAutoAmt(+t.dataset.vl); const k=t.dataset.vl; acVR(()=>{ const n=document.querySelector(`#acvModal [data-vl="${k}"][data-k="amt"]`); n&&n.focus(); }); } } else x.l=''; return; }
     if(k==='amt'){ x.amt=t.value.replace(/[^0-9.\-]/g,''); if(e.type==='change') acVR(); return; }
     x[k]=t.value; if(k==='dc') acVR(); }
 }
-let ACV_T=null; function acVR(after){ clearTimeout(ACV_T); ACV_T=setTimeout(()=>{ const a=document.activeElement, sel=a&&a.closest&&a.closest('#acvModal')?(a.dataset.vl!=null?`[data-vl="${a.dataset.vl}"][data-k="${a.dataset.k}"]`:a.dataset.vk?`[data-vk="${a.dataset.vk}"]`:''):''; acVRender(); if(after) after(); else if(sel){ const n=document.querySelector('#acvModal '+sel); n&&n.focus(); } },0); }
+let ACV_T=null; function acVR(after){ clearTimeout(ACV_T); ACV_T=setTimeout(()=>{ const a=document.activeElement, sel=a&&a.closest&&a.closest('#acvModal')?(a.dataset.vs?`[data-vs="${a.dataset.vs}"]`:a.dataset.vl!=null?`[data-vl="${a.dataset.vl}"][data-k="${a.dataset.k}"]`:a.dataset.vk?`[data-vk="${a.dataset.vk}"]`:''):''; acVRender(); if(after) after(); else if(sel){ const n=document.querySelector('#acvModal '+sel); n&&n.focus(); } },0); }
 function acAutoAmt(i){ const x=ACV.lines[i]; if(!x||+x.amt) return; const T=acTot(); if(x.dc==='Dr'&&T.diff<0) x.amt=String(-T.diff); if(x.dc==='Cr'&&T.diff>0) x.amt=String(T.diff); }
 function acVKey(e){ if(e.key==='Escape'){ e.preventDefault(); acVClose(); } if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); acVSave(); } }
 async function acVClick(e){
   const b=e.target.closest('[data-vx]'); if(e.target.id==='acvModal'){ return; } if(!b||!ACV) return; const a=b.dataset.vx;
   if(a==='close') return acVClose();
+  if(a==='mode'){ if(b.dataset.v==='simple'){ const f=acSimpleFit(ACV); if(f||!ACV.lines.some(x=>+x.amt)){ ACV.mode='simple'; ACV.s=f||{}; acSimpleApply(); } else return toast('This entry has more than two accounts – keep detailed entry.'); } else ACV.mode='detail'; acVRender(); return; }
+  if(a==='vt'&&ACV.mode==='simple'&&!ACV.id){ const amt=(ACV.s||{}).amt, keep={narr:ACV.narr,ref:ACV.ref,project_id:ACV.project_id,date:ACV.date}; acNew(b.dataset.v,keep); if(amt&&ACV){ ACV.s.amt=amt; acSimpleApply(); acVRender(); } return; }
   if(a==='vt'){ const keep=ACV.lines.some(x=>+x.amt); if(keep){ ACV.vtype=b.dataset.v; ACV.no=ACV.no_auto=acNextNo(ACV.vtype,ACV.date); acVRender(); } else acNew(b.dataset.v); return; }
   if(a==='add'){ const T=acTot(); ACV.lines.push({dc:T.diff>0?'Cr':'Dr',l:'',amt:T.diff?String(Math.abs(T.diff)):'',cc:''}); acVRender(); const i=document.querySelector(`#acvModal [data-vl="${ACV.lines.length-1}"][data-k="l"]`); i&&i.focus(); return; }
   if(a==='del'){ ACV.lines.splice(+b.dataset.v,1); acVRender(); return; }
@@ -3180,7 +3187,7 @@ async function acVClick(e){
   if(a==='newled'){ const p=document.getElementById('acmNewLed'); p.hidden=!p.hidden; if(!p.hidden) p.querySelector('[data-nl="name"]').focus(); return; }
   if(a==='mkled'){ const p=document.getElementById('acmNewLed'), nm=p.querySelector('[data-nl="name"]').value.trim(), g=p.querySelector('[data-nl="group"]').value; if(!nm) return;
     if(acLed().some(l=>l.name.toLowerCase()===nm.toLowerCase())){ toast('That ledger already exists.'); return; }
-    const id=await put('ledgers',null,{name:nm,group:g,op:0,op_dc:acNat(g)==='L'?'Cr':'Dr'}); if(id){ logAct(`Ledger created – ${nm}`); const empty=ACV.lines.find(x=>!x.l); if(empty) empty.l=id; toast('Ledger created.'); setTimeout(acVRender,400); } return; }
+    const id=await put('ledgers',null,{name:nm,group:g,op:0,op_dc:acNat(g)==='L'?'Cr':'Dr'}); if(id){ logAct(`Ledger created – ${nm}`); if(ACV.mode==='simple'){ const s=ACV.s||(ACV.s={}); if(!s.b) s.b=id; else if(!s.a) s.a=id; acSimpleApply(); } else { const empty=ACV.lines.find(x=>!x.l); if(empty) empty.l=id; } toast('Ledger created.'); setTimeout(acVRender,400); } return; }
   if(a==='save') return acVSave();
   if(['draft','submit','post','approve','reject','todraft'].includes(a)) return acVFlow(a);
   if(a==='print') return acPrintV(ACV);
@@ -3590,7 +3597,7 @@ document.addEventListener('keydown',e=>{
 .ac-vbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px}.ac-vbtns .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}.ac-vbtns .btn span{font-size:11px;opacity:.7;font-family:'IBM Plex Mono',monospace}
 .ac-t{width:100%;border-collapse:collapse}.ac-t th,.ac-t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}.ac-t td.r,.ac-t th.r{text-align:right}.ac-t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ac-gh td{font-weight:700;background:color-mix(in srgb,var(--line) 35%,transparent)}.ac-sec td{font-weight:800;letter-spacing:.05em;color:var(--accent,#F2A900);padding-top:14px}.ac-in{padding-left:24px!important}
-.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-backbar{margin:0 0 10px}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
+.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.acs-help{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:6px;margin:4px 0 12px;font-size:13.5px}.acs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}.acs-f{display:flex;flex-direction:column;gap:4px;font-size:13px}.acs-f>span{font-weight:600}.acs-f .inp{width:100%;font-size:15px;padding:9px 10px}.acs-chk{display:flex;align-items:center;gap:8px;padding:9px 0;font-size:14px}.acs-chk input{width:18px;height:18px}.acs-books{margin:14px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}.acs-sw{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px}.ac-backbar{margin:0 0 10px}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
 .ac-ln{white-space:nowrap}.ac-filt{flex-wrap:wrap;gap:8px}.ac-filt label{display:flex;align-items:center;gap:6px}.ac-wide th,.ac-wide td{white-space:nowrap}
 .ac-replinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.ac-rl{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}.ac-rl:hover{border-color:var(--accent,#F2A900)}.ac-rl small{opacity:.7}
 .ac-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
@@ -4109,6 +4116,40 @@ function acTB6Html(from,to){ const rows=[]; let T=[0,0,0,0,0,0];
     ${od?`<tr><td><i>Difference in opening balances</i></td><td class="r num">${od<0?c(od):''}</td><td class="r num">${od>0?c(od):''}</td><td></td><td></td><td class="r num">${od<0?c(od):''}</td><td class="r num">${od>0?c(od):''}</td></tr>`:''}</tbody>
     <tfoot><tr class="ac-key"><th>Grand total</th>${T.map(v=>`<th class="r num">${acFmt(v)}</th>`).join('')}</tr></tfoot></table></div>
     <div class="small ${ok?'muted':''}" style="padding:6px 14px;${ok?'':'color:var(--bad)'}">${ok?'✓ Debits equal credits in every column.':'Debits and credits do not agree – check opening balances.'} Only posted vouchers are included${(S.vouchers||[]).some(v=>!v.cancelled&&v.status&&v.status!=='posted')?' (drafts / unapproved vouchers are left out)':''}.</div>`; }
+/* ===================== v200 · Simple voucher entry (plain-English form per voucher type; Dr/Cr grid stays as "Detailed entry") ===================== */
+const AC_SIMPLE={
+  Payment:{help:'Money <b>paid out</b> of a bank or cash account – to a supplier, a worker, or for an expense.',a:['Paid from (bank / cash)','cash','Cr'],b:['Paid to / for','any','Dr'],bx:'Supplier, salaries, fuel, rent…'},
+  Receipt:{help:'Money <b>received</b> into a bank or cash account – from a client or any other source.',a:['Received into (bank / cash)','cash','Dr'],b:['Received from / for','any','Cr'],bx:'Client, loan, other income…'},
+  Contra:{help:'Moving money between <b>your own</b> bank and cash accounts – deposit, withdrawal or bank transfer.',a:['From account','cash','Cr'],b:['To account','cash','Dr']},
+  Journal:{help:'An <b>adjustment with no money movement</b> – e.g. depreciation, accruals, corrections, transfers between accounts.',a:['Account to debit','any','Dr'],b:['Account to credit','any','Cr'],ax:'Expense or asset that increases',bx:'Income, liability or asset that decreases'},
+  Sales:{help:'An <b>invoice to a client</b> (sale on credit, e.g. an IPC). When the client pays, record a Receipt.',a:['Client (customer)','any','Dr',1],b:['Income account','any','Cr'],vat:['L_vatout','Cr'],ax:'Client account'},
+  Purchase:{help:'A <b>supplier bill / tax invoice</b> (bought on credit). When you pay it, record a Payment.',a:['Supplier','any','Cr',1],b:['Expense or item bought','any','Dr'],vat:['L_vatin','Dr'],ax:'Supplier account'},
+  'Credit Note':{help:'<b>Reduce a client invoice</b> – return, discount or overcharge.',a:['Client (customer)','any','Cr',1],b:['Income account to reduce','any','Dr'],vat:['L_vatout','Dr']},
+  'Debit Note':{help:'<b>Reduce a supplier bill</b> – goods returned or overcharge.',a:['Supplier','any','Dr',1],b:['Expense account to reduce','any','Cr'],vat:['L_vatin','Cr']}};
+const acSp=()=>AC_SIMPLE[ACV&&ACV.vtype]||AC_SIMPLE.Journal;
+/* build the Dr/Cr lines from the simple form */
+function acSimpleApply(){ if(!ACV||ACV.mode!=='simple') return; const sp=acSp(), s=ACV.s||(ACV.s={}), net=acR(+String(s.amt||'').replace(/[^0-9.\-]/g,'')||0), vat=sp.vat&&s.vat&&acL(sp.vat[0])?acR(net*0.18):0;
+  const L=[{dc:sp.a[2],l:s.a||'',amt:net?String(acR(net+vat)):'',cc:''},{dc:sp.b[2],l:s.b||'',amt:net?String(net):'',cc:''}]; if(vat) L.push({dc:sp.vat[1],l:sp.vat[0],amt:String(vat),cc:''}); ACV.lines=[...L.filter(x=>x.dc==='Dr'),...L.filter(x=>x.dc==='Cr')]; }
+/* can this voucher be shown in the simple form? → fills ACV.s */
+function acSimpleFit(v){ const sp=AC_SIMPLE[v.vtype]; if(!sp) return null; const L=(v.lines||[]).filter(x=>x.l||+x.amt); if(L.some(x=>x.cc||x.bd)) return null;
+  const vl=sp.vat?L.find(x=>x.l===sp.vat[0]&&x.dc===sp.vat[1]):null, rest=L.filter(x=>x!==vl); if(rest.length!==2) return null;
+  const a=rest.find(x=>x.dc===sp.a[2]), b=rest.find(x=>x!==a&&x.dc===sp.b[2]); if(!a||!b) return null;
+  if(acR(+a.amt)!==acR(+b.amt+(vl?+vl.amt:0))) return null; if(sp.a[1]==='cash'&&a.l&&!acIsCash(a.l)) return null; if(sp.b[1]==='cash'&&b.l&&!acIsCash(b.l)) return null;
+  return {a:a.l,b:b.l,amt:String(+b.amt||''),vat:!!vl}; }
+function acSimpleInit(){ if(!ACV) return; const sp=AC_SIMPLE[ACV.vtype]; if(sp&&!(ACV.lines||[]).some(x=>+x.amt)&&!(ACV.lines||[]).some(x=>x.cc||x.bd)){ const vl=sp.vat&&sp.vat[0], pick=dc=>((ACV.lines||[]).find(x=>x.dc===dc&&x.l&&x.l!==vl)||{}).l||'';
+    ACV.mode='simple'; ACV.s={a:pick(sp.a[2]),b:pick(sp.b[2]),amt:'',vat:!!(sp.vat&&acL(sp.vat[0]))}; if(sp.a[1]==='cash'&&ACV.s.a&&!acIsCash(ACV.s.a)) ACV.s.a=''; acSimpleApply(); return; }
+  const f=acSimpleFit(ACV); if(f){ ACV.mode='simple'; ACV.s=f; if(!ACV.id&&AC_SIMPLE[ACV.vtype].vat&&acL(AC_SIMPLE[ACV.vtype].vat[0])&&!(ACV.lines||[]).some(x=>+x.amt)) ACV.s.vat=true; } else ACV.mode='detail'; }
+function acSimpleHtml(){ const sp=acSp(), s=ACV.s||{}, net=acR(+String(s.amt||'').replace(/[^0-9.\-]/g,'')||0), vat=sp.vat&&s.vat&&acL(sp.vat[0])?acR(net*0.18):0;
+  const fld=(k,[lbl,kind],ex)=>{ const l=acL(s[k]), bal=l?acBalTo(l.id,ACV.date||today()):0;
+    return `<label class="acs-f"><span>${lbl}</span><input class="inp" list="${kind==='cash'?'acLedCash':'acLedList'}" data-vs="${k}" value="${esc(l?l.name:'')}" placeholder="${esc(ex||'Type to search…')}" autocomplete="off">
+      <small class="muted">${l?`${esc(l.group)}${acIsPL(l.group)?'':` · balance ${acFmt(bal)} ${acDC(bal)}`}`:kind==='cash'?'Bank and cash accounts':'&nbsp;'}</small></label>`; };
+  const T=acTot(), lines=ACV.lines.filter(x=>x.l&&+x.amt);
+  return `<div class="acs-help">${sp.help}</div>
+  <div class="acs-grid">${fld('a',sp.a,sp.ax)}${fld('b',sp.b,sp.bx)}
+    <label class="acs-f"><span>Amount (TZS)${sp.vat?' – before VAT':''}</span><input class="inp num" inputmode="decimal" data-vs="amt" value="${esc(s.amt||'')}" placeholder="0.00"><small class="muted">${net?acFmt(net):'&nbsp;'}</small></label>
+    ${sp.vat?`<div class="acs-f"><span>VAT</span><label class="acs-chk"><input type="checkbox" data-vs="vat" ${s.vat?'checked':''} ${acL(sp.vat[0])?'':'disabled'}> Add VAT 18%${vat?` = <b>${acFmt(vat)}</b>`:''}</label><small class="muted">${net?`Total: <b>${acFmt(acR(net+vat))}</b>`:'&nbsp;'}</small></div>`:''}</div>
+  <div class="acs-books"><span class="muted">In the books:</span> ${lines.length?lines.map(x=>`<span class="chip ${x.dc==='Dr'?'blue':''}">${x.dc==='Dr'?'Debit':'Credit'} ${esc(acLN(x.l))} ${acFmt(x.amt)}</span>`).join(' '):'<span class="muted">choose the accounts and amount</span>'}${T.diff?` <span style="color:var(--bad)">not balanced</span>`:''}</div>
+  <div class="acs-sw"><button class="btn sm ghost" data-vx="mode" data-v="detail">Several accounts in one entry? Use detailed entry (Debit / Credit lines) →</button> <button class="btn sm ghost" data-vx="newled">＋ New ledger</button></div>`; }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
