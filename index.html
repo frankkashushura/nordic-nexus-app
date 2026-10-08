@@ -2847,7 +2847,18 @@ function pageFinanceQuick(){
 async function aiFinance(){
   const rows=finRows().map(f=>({date:f.date,type:f.type,category:f.category,amount:+f.amount,project:f.project_id?projName(f.project_id):'Office',party:f.party,ref:f.ref,method:f.method}));
   const budgets=S.projects.filter(p=>p.budget||p.contract_sum).map(p=>({project:p.name,budget:p.budget,contract_sum:p.contract_sum,progress:p.progress}));
-  const r=await ai('fin',()=>sample.json(`You are the internal auditor of a Tanzanian construction company. Review this ledger for risks and losses: duplicate or near-duplicate payments, payments split to avoid approval, spending above budget relative to progress, unusual amounts for the category, heavy cash use, missing references, income gaps / unpaid certificates, statutory payments (TRA, NSSF, WCF, SDL) that look late, and cash-flow pressure. Be specific: name the records (date, party, amount). If data is thin, say so. Amounts are TZS.\nLEDGER:${JSON.stringify(rows)}\nPROJECT BUDGETS:${JSON.stringify(budgets)}\nReply with only JSON: {"level":"Low"|"Medium"|"High","findings":[{"severity":"High"|"Medium"|"Low","title":"...","detail":"..."}],"actions":["control to put in place"]}`,{modelTier:'complex'}));
+  // v192: the books (Accounts) – yearly results, month-by-month for the last 12 months with entries, balances owed and statutory balances
+  let books=null; try{ const st=typeof acSet==='function'?acSet():null; if(st&&st.books_from){ const t=today(), R=x=>Math.round(+x||0);
+    const years=[]; for(let y=acFyStart(st.books_from); y<=acFyStart(t); y=acDay(acFyEnd(y),1)){ const e=acFyEnd(y)>t?t:acFyEnd(y), d=acPLData(y,e); years.push({period:`${y} to ${e}`,revenue:R(d.rev),cost_of_sales:R(d.cos),gross_profit:R(d.gp),overheads:R(d.oe),profit_before_tax:R(d.pbt),tax:R(d.tx)}); }
+    const grp=(g,to)=>R(acLed().filter(l=>l.group===g).reduce((a,l)=>a+acBalTo(l.id,to),0));
+    const months=[]; for(let i=11;i>=0;i--){ const d=new Date(t.slice(0,7)+'-01T00:00:00'); d.setMonth(d.getMonth()-i); const m=ymd(d).slice(0,7), e=acDay(acDay(m+'-28',4).slice(0,7)+'-01',-1), x=acPLData(m+'-01',e); if(x.rev||x.cos||x.oe) months.push({month:m,revenue:R(x.rev),cost_of_sales:R(x.cos),overheads:R(x.oe)}); }
+    books={books_from:st.books_from,locked_until:st.locked_until||'none',note:'Years before NEXUS went live were loaded from the AUDITED financial statements as summary journals (one per year; 2025 as 12 month-end summaries). They are correct audited figures, not individual transactions – do not flag them as unusual entries, missing parties or misclassification.',
+      results_by_year:years,last_12_months:months,
+      balances_today:{receivables_clients_owe:grp('Sundry Debtors',t),payables_owed_to_suppliers:-grp('Sundry Creditors',t),bank_and_cash:R(acLed().filter(l=>AC_CASH.includes(l.group)).reduce((a,l)=>a+acBalTo(l.id,t),0)),
+        statutory_and_vat_payable:acLed().filter(l=>l.group==='Duties & Taxes').map(l=>({ledger:l.name,balance:-R(acBalTo(l.id,t))})).filter(x=>x.balance),
+        loans_and_overdraft:acLed().filter(l=>/loan|overdraft/i.test(l.name)&&!acIsPL(l.group)).map(l=>({ledger:l.name,balance:-R(acBalTo(l.id,t))}))},
+      unpaid_certificates:(S.certificates||[]).filter(c=>c.status==='Certified'&&!c.example).map(c=>({no:c.no,project:projName(c.project_id),amount:+c.amount||0,certified:c.certified||''}))}; } }catch(e){ console.warn(e); }
+  const r=await ai('fin',()=>sample.json(`You are the internal auditor of a Tanzanian construction company. Review this ledger for risks and losses: duplicate or near-duplicate payments, payments split to avoid approval, spending above budget relative to progress, unusual amounts for the category, heavy cash use, missing references, income gaps / unpaid certificates, statutory payments (TRA, NSSF, WCF, SDL) that look late, and cash-flow pressure. Be specific: name the records (date, party, amount). If data is thin, say so. Amounts are TZS.\nCASH TRANSACTIONS (payments and receipts recorded in NEXUS):${JSON.stringify(rows)}\nBOOKS OF ACCOUNTS SUMMARY:${JSON.stringify(books)}\nPROJECT BUDGETS:${JSON.stringify(budgets)}\nUse the books summary for profitability, cost trends, working capital (receivables, payables, overdraft) and statutory balances; use the cash transactions for payment-level risks. Do not treat the audited summary journals as suspicious.\nReply with only JSON: {"level":"Low"|"Medium"|"High","findings":[{"severity":"High"|"Medium"|"Low","title":"...","detail":"..."}],"actions":["control to put in place"]}`,{modelTier:'complex'}));
   if(r){ UI.finRisk={...r,at:'Checked '+fmtDT(new Date())}; logAct('Ran AI finance risk check: '+(r.level||'done')); }
 }
 
@@ -2985,9 +2996,13 @@ async function acSyncFin(){
 }
 /* cash rows for the rest of NEXUS (dashboards, project cost): quick entries + vouchers entered directly in Accounts */
 function finRows(){ const out=[...(S.finance||[])];
-  for(const v of acVch()){ if(v.src&&String(v.src).startsWith('fin:')) continue; const L=v.lines||[]; const cash=L.filter(x=>acIsCash(x.l)); if(!cash.length||cash.length===L.length) continue;
-    const net=acR(cash.reduce((a,x)=>a+(x.dc==='Cr'?-1:1)*(+x.amt||0),0)); if(!net) continue; const oth=L.find(x=>!acIsCash(x.l));
-    out.push({id:'v_'+v.id,date:v.date,type:net>0?'Income':'Expense',category:oth?acLN(oth.l):v.vtype,amount:Math.abs(net),project_id:(oth&&oth.cc)||v.project_id||'',party:v.party_name||'',ref:v.no,method:acLN(cash[0].l),pr_id:v.pr_id,po_id:v.po_id,from_vch:v.id}); }
+  for(const v of acVch()){ if(v.src&&String(v.src).startsWith('fin:')) continue;
+    if(v.vtype==='Journal'||/^hist_/.test(v.id||'')||v.by==='NEXUS import') continue;   // audited summary / adjustment journals are not cash transactions
+    const L=v.lines||[]; const cash=L.filter(x=>acIsCash(x.l)); if(!cash.length||cash.length===L.length) continue;
+    const net=acR(cash.reduce((a,x)=>a+(x.dc==='Cr'?-1:1)*(+x.amt||0),0)); if(!net) continue;
+    const oths=L.filter(x=>!acIsCash(x.l)&&x.dc===(net>0?'Cr':'Dr')).sort((p,q)=>(+q.amt||0)-(+p.amt||0)), oth=oths[0]||L.find(x=>!acIsCash(x.l));
+    const pty=v.party_name||((L.find(x=>['Sundry Debtors','Sundry Creditors'].includes((acL(x.l)||{}).group))||{}).l?acLN(L.find(x=>['Sundry Debtors','Sundry Creditors'].includes((acL(x.l)||{}).group)).l):'');
+    out.push({id:'v_'+v.id,date:v.date,type:net>0?'Income':'Expense',category:oth?acLN(oth.l):v.vtype,amount:Math.abs(net),project_id:(oth&&oth.cc)||v.project_id||'',party:pty,ref:v.no,method:acLN(cash[0].l),pr_id:v.pr_id,po_id:v.po_id,from_vch:v.id}); }
   return out; }
 
 /* ===================== PAGE ===================== */
