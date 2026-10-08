@@ -3500,6 +3500,7 @@ document.addEventListener('click',async e=>{
   if(a==='lock'){ if(!isAdmin) return; const st=acSet()||{}; formDrawer('Lock period',[{k:'locked_until',label:'Lock all entries up to and including',type:'date',help:'Leave empty to unlock everything.'}],st,async x=>{ await patch('acset','main',{locked_until:x.locked_until||''}); logAct(`Accounts locked up to ${x.locked_until||'(nothing)'}`); },{sub:'Accounts · settings',saveLabel:'Save'}); return; }
   if(a==='xls'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t;
     if(r==='tb') return acTBXlsx(to);
+    if(r==='ledger') return acLedgerXlsx(f.l||(acLed()[0]||{}).id,from,to);
     const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Day Book':'Ledgers'])[1];
     return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`); }
   if(a==='pdf'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t; const nm=(AC_REPS.find(x=>x[0]===r)||[0,r])[1]; return acPdf(nm,acRepHtml(r,from,to),r==='cfm'?'landscape':'portrait'); }
@@ -3606,12 +3607,12 @@ function acAudData(fs,fe){
 /* ---------- tiny styled-XLSX writer (OOXML) ---------- */
 function acXW(){
   const fonts=['<font><sz val="11"/><name val="Calibri"/></font>'], borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'], xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'], fk=new Map(), bk=new Map(), xk=new Map();
-  const NF={n0:164,n2:165,pct:166,t2:167,int:1}, fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], flk=new Map();
+  const NF={n0:164,n2:165,pct:166,t2:167,dt:168,int:1}, fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], flk=new Map();
   const fill=c=>{ if(!c) return 0; if(!flk.has(c)){ flk.set(c,fills.length); fills.push(`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/><bgColor indexed="64"/></patternFill></fill>`); } return flk.get(c); };
   const font=s=>{ const k=[s.b?1:0,s.i?1:0,s.u?1:0,s.sz||10,s.fn||'Book Antiqua'].join('|'); if(!fk.has(k)){ fk.set(k,fonts.length); fonts.push(`<font>${s.b?'<b/>':''}${s.i?'<i/>':''}${s.u?'<u/>':''}<sz val="${s.sz||10}"/><name val="${s.fn||'Book Antiqua'}"/></font>`); } return fk.get(k); };
   const border=bd=>{ bd=bd||{}; const k=['l','r','t','b'].map(x=>bd[x]||'').join('|'); if(k==='|||') return 0; if(!bk.has(k)){ bk.set(k,borders.length); const e=(n,v)=>v?`<${n} style="${v}"><color auto="1"/></${n}>`:`<${n}/>`; borders.push(`<border>${e('left',bd.l)}${e('right',bd.r)}${e('top',bd.t)}${e('bottom',bd.b)}<diagonal/></border>`); } return bk.get(k); };
   const xf=s=>{ s=s||{}; const f=font(s), b=border(s.bd), n=s.nf?NF[s.nf]:0, fi=fill(s.fill), al=s.al||'', w=s.wrap?1:0, ind=s.ind||0, k=[f,b,n,al,w,fi,ind].join('|'); if(!xk.has(k)){ xk.set(k,xfs.length); xfs.push(`<xf numFmtId="${n}" fontId="${f}" fillId="${fi}" borderId="${b}" xfId="0"${n?' applyNumberFormat="1"':''} applyFont="1"${fi?' applyFill="1"':''}${b?' applyBorder="1"':''}${al||w||ind?` applyAlignment="1"><alignment${al?` horizontal="${al}"`:''}${ind?` indent="${ind}"`:''}${w?' wrapText="1" vertical="top"':''}/></xf>`:'/>'}`); } return xk.get(k); };
-  const styles=()=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="4"><numFmt numFmtId="166" formatCode="0.0%"/><numFmt numFmtId="167" formatCode="_-* #,##0.00_-;\\-* #,##0.00_-;_-* &quot;-&quot;??_-;_-@_-"/><numFmt numFmtId="164" formatCode="_(* #,##0_);_(* \\(#,##0\\);_(* &quot;-&quot;??_);_(@_)"/><numFmt numFmtId="165" formatCode="_(* #,##0.00_);_(* \\(#,##0.00\\);_(* &quot;-&quot;??_);_(@_)"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="${borders.length}">${borders.join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const styles=()=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="5"><numFmt numFmtId="168" formatCode="dd\\/mm\\/yyyy"/><numFmt numFmtId="166" formatCode="0.0%"/><numFmt numFmtId="167" formatCode="_-* #,##0.00_-;\\-* #,##0.00_-;_-* &quot;-&quot;??_-;_-@_-"/><numFmt numFmtId="164" formatCode="_(* #,##0_);_(* \\(#,##0\\);_(* &quot;-&quot;??_);_(@_)"/><numFmt numFmtId="165" formatCode="_(* #,##0.00_);_(* \\(#,##0.00\\);_(* &quot;-&quot;??_);_(@_)"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="${borders.length}">${borders.join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   return {xf,styles};
 }
 function acSheet(W){
@@ -3874,6 +3875,36 @@ async function acAuditPdf(){
   table.xs tr{page-break-inside:avoid}@media screen{body{background:#888}.pg{background:#fff;width:190mm;margin:10px auto;padding:8mm;box-shadow:0 1px 4px #0006}.pg.land{width:277mm}}
   </style></head><body>${acc.map(pg).join('')}${tb.map(pg).join('')}${tax.map(pg).join('')}${vat.map(pg).join('')}</body></html>`);
   w.document.close(); logAct(`Annual accounts ${Y} – PDF (audit format)`); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },800);
+}
+
+/* ---------- Ledger book in the Tally.ERP 9 layout (SINGLE LEDGER sample): Date · Particulars · Vch Type · Vch No. · Debit · Credit ---------- */
+const acXDate=d=>Math.round((Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))-Date.UTC(1899,11,30))/864e5);
+function acLedgerSheet(W,id,from,to){ const R=acLedgerRows(id,from,to); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
+  const F9={fn:'Arial',sz:9}, F10={fn:'Arial',sz:10}, N={fn:'Arial',sz:10,b:1,nf:'t2',al:'right'}, fmtL=d=>{ const x=new Date(d+'T00:00:00'); return `${x.getDate()}-${x.toLocaleDateString('en-GB',{month:'long'})}-${x.getFullYear()}`; };
+  let r=1; const hd=(t,s={})=>{ A.set(r,0,t,{...F10,...s}); A.merge(r,0,2); r++; };
+  hd(co.name||'Nordic Construction Company Limited',{sz:12,b:1}); hd(co.pobox||co.address||''); hd('Tanzania'); hd(`TIN: ${st.company_tin||''}`); hd(`VRN: ${st.company_vrn||''}`);
+  A.set(r,0,`${l.name} Book`,{fn:'Arial',sz:12,b:1,bd:{t:'thin'}}); A.set(r,1,'',{bd:{t:'thin'}}); A.set(r,2,'',{bd:{t:'thin'}}); A.merge(r,0,2); A.ht(r,15.75); r++;
+  hd([l.bank,l.acc_no?'A/c '+l.acc_no:'',l.tin?'TIN '+l.tin:'',l.phone||''].filter(Boolean).join(' · ')||l.group); r++; hd(`${fmtL(from)} to ${fmtL(to)}`);
+  const hb={bd:{t:'thin',b:'thin'}};
+  A.set(r,0,'Date',{...F9,al:'right',...hb}); A.set(r,1,'Particulars',{...F9,b:1,al:'left',...hb}); A.set(r,2,'',hb); A.merge(r,1,2); A.set(r,3,'Vch Type',{...F9,...hb}); A.set(r,4,'Vch No.',{...F9,al:'right',...hb});
+  A.set(r,5,'Debit',{...F9,b:1,al:'right',...hb}); A.set(r,6,'Credit',{...F9,b:1,al:'right',...hb}); r++;
+  const r0=r, ob=acR(R.ob); A.set(r,0,acXDate(from),{...F10,nf:'dt',al:'right'}); A.set(r,1,ob<0?'Cr':'Dr',F10); A.set(r,2,'Opening Balance',{...F10,b:1,al:'left'});
+  if(ob>0) A.set(r,5,ob,N); if(ob<0) A.set(r,6,-ob,N); r++;
+  for(const x of R.rows){ const parts=x.part.split(', '), part=parts.length>1?'(as per details)':x.part, narr=String(x.v.narr||'').replace(/\s+/g,' ').trim();
+    A.set(r,0,acXDate(x.d),{...F10,nf:'dt',al:'right'}); A.set(r,2,narr?`${part} – ${narr.length>160?narr.slice(0,157)+'…':narr}`:part,F10);
+    A.set(r,3,x.v.vtype||'',{...F9,b:1}); A.set(r,4,x.v.no||'',{...F9,b:1,al:'right'}); if(x.dr) A.set(r,5,x.dr,N); if(x.cr) A.set(r,6,x.cr,N); r++; }
+  const r1=r-1; r++; let dr=(ob>0?ob:0)+R.rows.reduce((a,x)=>a+x.dr,0), cr=(ob<0?-ob:0)+R.rows.reduce((a,x)=>a+x.cr,0); dr=acR(dr); cr=acR(cr);
+  const tr=r; A.set(r,5,{f:`SUM(F${r0}:F${r1})`,v:dr},{...N,bd:{t:'thin'}}); A.set(r,6,{f:`SUM(G${r0}:G${r1})`,v:cr},{...N,bd:{t:'thin'}}); r++;
+  const cb=acR(R.cb); A.set(r,1,cb<0?'Cr':'Dr',F10); A.set(r,2,'Closing Balance',{...F10,b:1,al:'left'});
+  if(cb>0) A.set(r,6,{f:`F${tr}-G${tr}`,v:cb},N); if(cb<0) A.set(r,5,{f:`G${tr}-F${tr}`,v:-cb},N); r++;
+  const gt=acR(Math.max(dr,cr)); A.set(r,5,{f:`SUM(F${tr}:F${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}}); A.set(r,6,{f:`SUM(G${tr}:G${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}});
+  return {A,xml:A.xml([10.1,3.4,62.7,10,11,15.6,16]),name:l.name}; }
+async function acLedgerXlsx(id,from,to){
+  try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const W=acXW(), S=acLedgerSheet(W,id,from,to); if(!S) return toast('Choose a ledger.');
+  const data=acWbZip(W,[[String(S.name).replace(/[\\\/?*\[\]:]/g,' ').slice(0,31),S.xml]]);
+  try{ await downloads.save({filename:`${String(S.name).replace(/[^\w]+/g,'_')}_${from}_${to}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Ledger book ${S.name} ${from} – ${to} – Excel`); }
+  catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
 }
 /* ===================== ACCOUNTS v189 · Accrual posting: IPCs → client accounts, supplier tax invoices → supplier accounts =====================
    From acset.accrual_from (Settings): a Certified IPC becomes a Sales voucher (Dr client, Dr retention receivable, Dr advance recovered,
