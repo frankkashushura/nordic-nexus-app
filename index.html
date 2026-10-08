@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="cfc83d594029">
+<meta name="nexus-build" content="470123d31db2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3491,7 +3491,7 @@ function acAnnual(){
   <p class="small muted" style="padding:2px 4px">Click any ledger name to open its ledger sheet with every entry. The audit-format Excel / PDF still include the notes for the auditor.</p>`;
 }
 function acNotesHtml(fs,fe){ let n=0; return AC_GROUPS.map(([g])=>{ const ls=acLed().filter(l=>l.group===g&&l.id!=='L_pl'); const items=ls.map(l=>({l,v:acIsPL(g)?acSum(l.id,fs,fe):acBalTo(l.id,fe)})).filter(x=>x.v); if(!items.length) return '';
-  const sign=acNat(g)==='A'||acNat(g)==='E'?1:-1; n++; return `<h3 style="margin:12px 14px 4px">Note ${n} – ${esc(g)}</h3><div class="tbl-wrap"><table class="ac-t"><tbody>${items.map(x=>`<tr><td class="ac-in">${esc(x.l.name)}</td><td class="r num">${acSign(x.v*sign)}</td></tr>`).join('')}</tbody><tfoot><tr><th>Total</th><th class="r num">${acSign(items.reduce((a,x)=>a+x.v,0)*sign)}</th></tr></tfoot></table></div>`; }).join('')||'<div class="empty">No balances.</div>'; }
+  const sign=acNat(g)==='A'||acNat(g)==='E'?1:-1; n++; return `<h3 style="margin:12px 14px 4px">Note ${n} – ${esc(g)}</h3><div class="tbl-wrap"><table class="ac-t"><tbody>${items.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}" data-f="${fs}" data-t="${fe}"><td class="ac-in ac-lk">${esc(x.l.name)}</td><td class="r num">${acSign(x.v*sign)}</td></tr>`).join('')}</tbody><tfoot><tr><th>Total</th><th class="r num">${acSign(items.reduce((a,x)=>a+x.v,0)*sign)}</th></tr></tfoot></table></div>`; }).join('')||'<div class="empty">No balances.</div>'; }
 
 /* ===================== SETTINGS ===================== */
 function acSettings(){ const st=acSet()||{};
@@ -3514,9 +3514,22 @@ function acSettings(){ const st=acSet()||{};
 /* ===================== EXPORT (Excel / PDF) ===================== */
 function acTableAoA(html){ const d=document.createElement('div'); d.innerHTML=html; const out=[]; d.querySelectorAll('h2,h3,table').forEach(el=>{ if(el.tagName!=='TABLE'){ out.push([el.textContent.trim()]); return; }
   el.querySelectorAll('tr').forEach(tr=>{ out.push([...tr.children].map(c=>{ const inp=c.querySelector('input'); const t=(inp?inp.value:c.innerText||c.textContent||'').trim(); const n=t.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); return /^-?\d+(\.\d+)?$/.test(n)&&c.classList.contains('r')?+n:t==='–'?'':t; })); }); out.push([]); }); return out; }
-async function acXls(sheets,name){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const wb=XLSX.utils.book_new(); for(const [sn,html] of sheets){ const ws=XLSX.utils.aoa_to_sheet([[company().name||'Nordic Construction Co. Ltd'],...acTableAoA(html)]); ws['!cols']=[{wch:48},{wch:18},{wch:18},{wch:18},{wch:18},{wch:18}]; XLSX.utils.book_append_sheet(wb,ws,sn.slice(0,31)); }
-  try{ await downloads.save({filename:name,data:new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'}))}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
+async function acXls(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  /* v199: native workbook; ledger names (and period figures) link to a SINGLE LEDGER sheet for that ledger & year, which links back */
+  const W=acXW(), clean=n=>String(n).replace(/[\\\/?*\[\]:']/g,' ').slice(0,31), names=sheets.map(s=>clean(s[0])), LB=acLB(names), out=[], to0=dt||today(), fr0=df||acFyStart(to0);
+  const LS={fn:'Arial',sz:10,u:1,col:'0563C1'};
+  sheets.forEach(([,html],si)=>{ const sn=names[si], A=acSheet(W); let r=1; A.set(r,0,company().name||'Nordic Construction Co. Ltd',{fn:'Arial',sz:12,b:1}); r+=2;
+    const d=document.createElement('div'); d.innerHTML=html;
+    d.querySelectorAll('h2,h3,.sub,table').forEach(el=>{ if(el.tagName!=='TABLE'){ if(el.closest('table')) return; const t=el.textContent.trim(); if(t){ A.set(r,0,t,{fn:'Arial',sz:el.tagName==='H2'?12:10,b:el.tagName!=='DIV'?1:0,i:el.tagName==='DIV'?1:0}); r++; } return; }
+      el.querySelectorAll('tr').forEach(tr=>{ const head=!!tr.closest('thead'), cl=tr.className||'', bold=head||/ac-gh|ac-tot|ac-key|ac-sec/.test(cl), bd=/ac-key/.test(cl)?{t:'thin',b:'double'}:/ac-tot/.test(cl)?{t:'thin'}:head?{b:'thin'}:{}, fill=/ac-sec/.test(cl)?'D9E1F2':/ac-gh/.test(cl)?'F2F4F7':'';
+        const lid=tr.dataset.ac==='ledgerRep'?tr.dataset.v:'', f1=tr.dataset.f||(tr.querySelector('[data-f]')||{dataset:{}}).dataset.f, t1=tr.dataset.t||(tr.querySelector('[data-t]')||{dataset:{}}).dataset.t;
+        let c=0; [...tr.children].forEach((td,ci)=>{ const inp=td.querySelector('input'); const t=(inp?inp.value:td.innerText||td.textContent||'').replace(/\s+\n/g,'\n').trim(); const n=t.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); const num=/^-?\d+(\.\d+)?$/.test(n)&&(td.classList.contains('r')||td.classList.contains('num'));
+          const st={fn:'Arial',sz:10,b:bold?1:0,bd,fill,...(num?{nf:'n2',al:'right'}:{}),...(td.classList.contains('ac-in')?{ind:1}:{})};
+          if(lid&&(ci===0||td.dataset.f)){ const f=td.dataset.f||f1||fr0, tt=td.dataset.t||t1||to0, loc=LB.loc(lid,f,tt,{loc:`'${sn}'!A${r}`,label:sn}); A.link(r,c,loc,'Open the ledger'); if(ci===0) Object.assign(st,LS); }
+          A.set(r,c,num?+n:t==='–'?'':t,st); const span=+td.getAttribute('colspan')||1; if(span>1) A.merge(r,c,c+span-1); c+=span; }); r++; }); r++; });
+    out.push([sn,A.xml([48,18,18,18,18,18,18,18])]); });
+  const data=acWbZip(W,[...out,...acLBSheets(W,LB)]);
+  try{ await downloads.save({filename:name,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
 function acPdf(title,html,orient){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; } const c=company(), st=acSet()||{};
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4 ${orient||'portrait'};margin:14mm}body{font:11px Arial,sans-serif;color:#111}
   .co{border-bottom:2px solid #0B2545;margin-bottom:8px;padding-bottom:4px}.co b{font-size:15px}.co div{color:#555}h2{font-size:14px;margin:10px 0 2px}h3{font-size:12px;margin:10px 0 4px}.sub{color:#555;font-size:10px}
@@ -3553,14 +3566,14 @@ document.addEventListener('click',async e=>{
     if(r==='tb') return acTBXlsx(to);
     if(r==='ledger') return acLedgerXlsx(f.l||(acLed()[0]||{}).id,from,to);
     const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Cash Book':'Ledgers'])[1];
-    return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`); }
+    return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`,['bs','out','brs'].includes(r)?acFyStart(to):from,to); }
   if(a==='pdf'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t; const nm=(AC_REPS.find(x=>x[0]===r)||[0,r])[1]; return acPdf(nm,acRepHtml(r,from,to),r==='cfm'?'landscape':'portrait'); }
   if(a==='annPdf') return acAuditPdf();
   if(a==='annPdfS'){ const A=acAnnualParts(); return acPdf(`Annual financial statements ${acFyLbl(A.fy)}`,`<div style="text-align:center;margin-top:120px"><h1 style="font-size:24px">${esc(company().name||'Nordic Construction Co. Ltd')}</h1><h2 style="font-size:18px">Annual financial statements</h2><div>for the year ended ${fmtD(A.fe)}</div><div class="sub" style="margin-top:20px">Statement of profit or loss · Statement of financial position · Statement of cash flows · Notes · Trial balance</div></div>`+
     A.parts.map(([,h])=>`<div class="pb">${h}</div>`).join('')+`<div class="sig"><div>Director</div><div>Director</div></div>`); }
   if(a==='annDet') return acReportDetails();
   if(a==='annXls') return acAuditXlsx();
-  if(a==='annXlsS'){ const A=acAnnualParts(); return acXls(A.parts,`Annual_accounts_${acFyLbl(A.fy).replace('/','-')}.xlsx`); }
+  if(a==='annXlsS'){ const A=acAnnualParts(); return acXls(A.parts,`Annual_accounts_${acFyLbl(A.fy).replace('/','-')}.xlsx`,A.fy,A.fe); }
 });
 document.addEventListener('change',async e=>{
   const t=e.target;
@@ -3660,14 +3673,14 @@ function acXW(){
   const fonts=['<font><sz val="11"/><name val="Calibri"/></font>'], borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'], xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'], fk=new Map(), bk=new Map(), xk=new Map();
   const NF={n0:164,n2:165,pct:166,t2:167,dt:168,int:1}, fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], flk=new Map();
   const fill=c=>{ if(!c) return 0; if(!flk.has(c)){ flk.set(c,fills.length); fills.push(`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/><bgColor indexed="64"/></patternFill></fill>`); } return flk.get(c); };
-  const font=s=>{ const k=[s.b?1:0,s.i?1:0,s.u?1:0,s.sz||10,s.fn||'Book Antiqua'].join('|'); if(!fk.has(k)){ fk.set(k,fonts.length); fonts.push(`<font>${s.b?'<b/>':''}${s.i?'<i/>':''}${s.u?'<u/>':''}<sz val="${s.sz||10}"/><name val="${s.fn||'Book Antiqua'}"/></font>`); } return fk.get(k); };
+  const font=s=>{ const k=[s.b?1:0,s.i?1:0,s.u?1:0,s.sz||10,s.fn||'Book Antiqua',s.col||''].join('|'); if(!fk.has(k)){ fk.set(k,fonts.length); fonts.push(`<font>${s.b?'<b/>':''}${s.i?'<i/>':''}${s.u?'<u/>':''}<sz val="${s.sz||10}"/>${s.col?`<color rgb="FF${s.col}"/>`:''}<name val="${s.fn||'Book Antiqua'}"/></font>`); } return fk.get(k); };
   const border=bd=>{ bd=bd||{}; const k=['l','r','t','b'].map(x=>bd[x]||'').join('|'); if(k==='|||') return 0; if(!bk.has(k)){ bk.set(k,borders.length); const e=(n,v)=>v?`<${n} style="${v}"><color auto="1"/></${n}>`:`<${n}/>`; borders.push(`<border>${e('left',bd.l)}${e('right',bd.r)}${e('top',bd.t)}${e('bottom',bd.b)}<diagonal/></border>`); } return bk.get(k); };
   const xf=s=>{ s=s||{}; const f=font(s), b=border(s.bd), n=s.nf?NF[s.nf]:0, fi=fill(s.fill), al=s.al||'', w=s.wrap?1:0, ind=s.ind||0, k=[f,b,n,al,w,fi,ind].join('|'); if(!xk.has(k)){ xk.set(k,xfs.length); xfs.push(`<xf numFmtId="${n}" fontId="${f}" fillId="${fi}" borderId="${b}" xfId="0"${n?' applyNumberFormat="1"':''} applyFont="1"${fi?' applyFill="1"':''}${b?' applyBorder="1"':''}${al||w||ind?` applyAlignment="1"><alignment${al?` horizontal="${al}"`:''}${ind?` indent="${ind}"`:''}${w?' wrapText="1" vertical="top"':''}/></xf>`:'/>'}`); } return xk.get(k); };
   const styles=()=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="5"><numFmt numFmtId="168" formatCode="dd\\/mm\\/yyyy"/><numFmt numFmtId="166" formatCode="0.0%"/><numFmt numFmtId="167" formatCode="_-* #,##0.00_-;\\-* #,##0.00_-;_-* &quot;-&quot;??_-;_-@_-"/><numFmt numFmtId="164" formatCode="_(* #,##0_);_(* \\(#,##0\\);_(* &quot;-&quot;??_);_(@_)"/><numFmt numFmtId="165" formatCode="_(* #,##0.00_);_(* \\(#,##0.00\\);_(* &quot;-&quot;??_);_(@_)"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="${borders.length}">${borders.join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   return {xf,styles};
 }
 function acSheet(W){
-  const cells=new Map(), merges=[], mg=[], breaks=[], heights={}; let max=0, maxC=0;
+  const cells=new Map(), merges=[], mg=[], breaks=[], heights={}, links=[]; let max=0, maxC=0;
   const key=(r,c)=>r*100+c;
   const set=(r,c,v,s)=>{ const o=cells.get(key(r,c))||{}; cells.set(key(r,c),{v:v===undefined?o.v:v,s:{...(o.s||{}),...(s||{}),bd:{...((o.s||{}).bd||{}),...((s||{}).bd||{})}}}); max=Math.max(max,r); maxC=Math.max(maxC,c); };
   const box=(r0,r1,c0,c1,st='double')=>{ for(let r=r0;r<=r1;r++){ set(r,c0,undefined,{bd:{l:st}}); set(r,c1,undefined,{bd:{r:st}}); } for(let c=c0;c<=c1;c++){ set(r0,c,undefined,{bd:{t:st}}); set(r1,c,undefined,{bd:{b:st}}); } };
@@ -3675,7 +3688,7 @@ function acSheet(W){
   const xml=(cols,o={})=>{ const rows={}; for(const [k,cl] of cells){ const r=Math.floor(k/100), c=k%100; (rows[r]=rows[r]||[]).push([c,cl]); }
     const sd=Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}"${heights[r]?` ht="${heights[r]}" customHeight="1"`:''}>${rows[r].sort((a,b)=>a[0]-b[0]).map(([c,cl])=>{ const ref=col(c)+r, s=W.xf(cl.s); if(cl.v===undefined||cl.v===null||cl.v==='') return `<c r="${ref}" s="${s}"/>`;
       if(typeof cl.v==='number') return `<c r="${ref}" s="${s}"><v>${acR(cl.v)}</v></c>`; if(typeof cl.v==='object') return `<c r="${ref}" s="${s}"><f>${esc(cl.v.f)}</f><v>${acR(cl.v.v||0)}</v></c>`; return `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(String(cl.v))}</t></is></c>`; }).join('')}</row>`).join('');
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"${o.zoom?` zoomScale="${o.zoom}"`:''}/></sheetViews><sheetFormatPr defaultRowHeight="13.8"/><cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${o.land?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/>${breaks.length?`<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b=>`<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>`:''}</worksheet>`; };
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"${o.zoom?` zoomScale="${o.zoom}"`:''}/></sheetViews><sheetFormatPr defaultRowHeight="13.8"/><cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}${links.length?`<hyperlinks>${links.map(([ref,loc,tip])=>`<hyperlink ref="${ref}" location="${esc(loc)}"${tip?` tooltip="${esc(tip)}"`:''} display="${esc(tip||loc)}"/>`).join('')}</hyperlinks>`:''}<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${o.land?'landscape':'portrait'}" fitToWidth="1" fitToHeight="0"/>${breaks.length?`<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b=>`<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>`:''}</worksheet>`; };
   /* the same grid as HTML pages (for the PDF): fonts, borders, merges, number formats and page breaks as in the workbook */
   const html=(cols,o={})=>{ const fmt=(v,nf)=>{ if(v&&typeof v==='object') v=v.v; if(v===undefined||v===null||v==='') return ''; if(typeof v!=='number') return esc(String(v));
       if(nf==='pct') return (v*100).toFixed(1)+'%'; const d=nf==='n2'||nf==='t2'?2:0, a=Math.abs(v), t=a.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -3694,7 +3707,7 @@ function acSheet(W){
           h+=`<td${m?` colspan="${m[2]-m[1]+1}"`:''} style="${css}">${cl?fmt(cl.v,nf).replace(/\n/g,'<br>'):''}</td>`; }
         h+='</tr>'; }
       return h+'</table>'; }); };
-  return {set,box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,get max(){return max;},col};
+  return {set,link:(r,c,loc,tip)=>{ const ref=col(c)+r; if(!links.some(x=>x[0]===ref)) links.push([ref,loc,tip]); },box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,get max(){return max;},col};
 }
 
 /* ---------- the workbook ---------- */
@@ -3705,7 +3718,8 @@ async function acAuditXlsx(){
   const co=company(), coName=(co.name||'Nordic Construction Company Limited').toUpperCase(), SN=`'ACC ${Y}'!`;
   // built twice: pass 1 fixes the layout (row numbers), pass 2 writes the formulas that point to those rows
   const build=Q=>{
-  const W=acXW(), A=acSheet(W), K={};
+  const W=acXW(), A=acSheet(W), K={}, LB=acLB([`ACC ${Y}`,`TB ${Y}`,'TAX COMP','VAT ANALYSIS']), BK=r=>({loc:`'ACC ${Y}'!C${r}`,label:`ACC ${Y}`});
+  const LK=(r,l,l0)=>{ if(l&&l.id){ const loc=LB.loc(l.id,fy,fe,BK(r)); A.set(r,2,undefined,{u:1,col:'0563C1'}); A.link(r,2,loc,'Open the ledger'); A.link(r,4,loc,'Open the ledger '+Y); } if(P&&l0&&l0.id) A.link(r,5,LB.loc(l0.id,ps,pe,BK(r)),'Open the ledger '+Y0); };
   const C=2, Dn=3, E=4, F=5;   // columns: B=1 (box), C label, D note, E current, F prior
   const T=(r,v,s)=>A.set(r,C,v,s), N=(r,c,v,s)=>A.set(r,c,v,{nf:'n0',al:'right',...(s||{})});
   const head=(r,title)=>{ A.set(r,1,coName,{b:1,al:'center'}); A.merge(r,1,F); A.set(r+2,1,title,{b:1,al:'center'}); A.merge(r+2,1,F); return r+4; };
@@ -3756,13 +3770,13 @@ async function acAuditXlsx(){
   at('bCa'); r=two(r,'',...fp(c=>sumR(c,ca0,K.bStk),b1.ca,b0.ca||0),{b:1,bd:{t:'thin'}})+1;
   at('bTa'); r=two(r,'Total Assets',...fp(c=>`${c}${K.bFa}+${c}${K.bCa}`,b1.ta,b0.ta||0),{lb:1,b:1,bd:{t:'thin',b:'double'}})+1;
   T(r,'EQUITY AND LIABILITIES',{b:1}); r++; T(r,' Capital and Reserves',{b:1}); r++;
-  const eq0=r; r=two(r,'Share Capital',b1.cap,b0.cap||0); b1.res.forEach(x=>{ const o=(b0.res||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); });
+  const eq0=r; r=two(r,'Share Capital',b1.cap,b0.cap||0); b1.res.forEach(x=>{ const o=(b0.res||[]).find(y=>y.l.id===x.l.id); LK(r,x.l,o&&o.l); r=two(r,x.l.name,x.v,o?o.v:0); });
   at('bRet'); r=two(r,'Retained Earnings',...fp(c=>c==='E'?`E${Q.ceClose}`:(Q.ceClose0?`E${Q.ceClose0}`:''),b1.ret,b0.ret||0));
   at('bEq'); r=two(r,' Total Equity',...fp(c=>sumR(c,eq0,K.bRet),b1.eq,b0.eq||0),{lb:1,b:1,bd:{t:'thin'}})+1;
   T(r,'Current Liabilities',{b:1}); r++; const cl0=r; r=two(r,'Trade and Other Payables',acR(b1.pay+b1.vat),acR((b0.pay||0)+(b0.vat||0)));
   if(b1.taxP||b0.taxP) r=two(r,'Tax Payable',...fp(c=>`MAX(${c}${Q.n5cf},0)`,b1.taxP,b0.taxP||0),{},5);
   if(b1.od||b0.od){ at('bOd'); r=two(r,'Bank O/D',b1.od,b0.od||0); }
-  K.bL0=r; b1.loans.forEach(x=>{ const o=(b0.loans||[]).find(y=>y.l.id===x.l.id); r=two(r,x.l.name,x.v,o?o.v:0); }); K.bL1=r-1;
+  K.bL0=r; b1.loans.forEach(x=>{ const o=(b0.loans||[]).find(y=>y.l.id===x.l.id); LK(r,x.l,o&&o.l); r=two(r,x.l.name,x.v,o?o.v:0); }); K.bL1=r-1;
   at('bCl'); r=two(r,'',...fp(c=>sumR(c,cl0,r-1),b1.cl,b0.cl||0),{b:1,bd:{t:'thin'}})+1;
   r=two(r,'Total Equity and Liabilities',...fp(c=>`${c}${K.bEq}+${c}${K.bCl}`,b1.te,b0.te||0),{lb:1,b:1,bd:{t:'thin',b:'double'}})+2;
   T(r,'The Directors are responsible for the preparation and presentation of these financial statements.'); T(r+1,'Signed on behalf of the company by:-'); r+=6;
@@ -3799,7 +3813,7 @@ async function acAuditXlsx(){
   at('cClose'); c2('Cash and Cash Equivalents at the end of the Year','close',c=>`${c}${K.cNet}+${c}${K.cOpen}`,{lb:1,b:1,bd:{t:'thin',b:'double'}}); endPage();
   // ---- notes 4–6
   page(); r=head(r,'NOTES TO THE FINANCIAL STATEMENTS FOR THE YEAR ENDED '+acUpDate(fe)); r=yrs(r,false);
-  const lst=(a,a0,f=x=>x)=>{ const r0=r, names=[...new Set([...a,...(a0||[])].map(x=>x.l.id))]; names.forEach(id=>{ const x=a.find(y=>y.l.id===id), y=(a0||[]).find(z=>z.l.id===id); if(!(x&&x.v)&&!(y&&y.v)) return; r=two(r,f((x||y).name),x?x.v:0,y?y.v:0); }); return [r0,r-1]; };
+  const lst=(a,a0,f=x=>x)=>{ const r0=r, names=[...new Set([...a,...(a0||[])].map(x=>x.l.id))]; names.forEach(id=>{ const x=a.find(y=>y.l.id===id), y=(a0||[]).find(z=>z.l.id===id); if(!(x&&x.v)&&!(y&&y.v)) return; LK(r,x&&x.v?x.l:null,y&&y.v?y.l:null); r=two(r,f((x||y).name),x?x.v:0,y?y.v:0); }); return [r0,r-1]; };
   T(r,'4.          REVENUE',{b:1}); r+=2; T(r,' 4.1        Summary',{b:1}); r+=2; const [rv0,rv1]=lst(D.rev,P&&P.rev); r++;
   const orow=r; T(r,'4.2 OTHER OPERATING INCOME',{b:1}); r++; const [o0,o1]=lst(D.oth,P&&P.oth);
   const [oe,of]=fp(c=>sumR(c,o0,o1),D.othT,pv('othT')); N(orow,E,oe); if(P) N(orow,F,of); r++;
@@ -3807,7 +3821,7 @@ async function acAuditXlsx(){
   T(r,'4.3          PROFIT FROM OPERATING ACTIVITIES',{b:1}); T(r+1,'                      Stated after Charging/(Crediting)'); r+=3; r=two(r,"Auditors' Remuneration",D.audit,pv('audit')); r=two(r,'Depreciation',...fp(c=>`${c}${Q.n13tot}`,D.depT,pv('depT')))+2;
   T(r,'5.  INCOME TAX EXPENSES',{b:1}); r+=2; at('n5bf'); r=two(r,'Balance B/Forward',...fp(c=>c==='E'&&P&&acR(P.Lcf)===acR(D.Lbf)?`F${Q.n5cf}`:'',D.Lbf,pv('Lbf'))); at('n5tax'); r=two(r,'Tax  for the year',D.taxT,pv('taxT')); at('n5adj'); r=two(r,'Prior year Tax Adjustments',D.plAdj,pv('plAdj'));
   at('n5paid'); r=two(r,'Tax paid (provisional, withholding & prior-year)',D.taxPaid,pv('taxPaid')); at('n5cf'); r=two(r,'',...fp(c=>sumR(c,K.n5bf,K.n5paid),D.Lcf,pv('Lcf')),{b:1,bd:{t:'thin',b:'double'}})+2;
-  T(r,'6. CASH AND BANK BALANCES',{b:1}); r+=2; const c0=r; D.cashL.forEach(x=>{ if(!x.v&&!x.v0) return; T(r,x.l.name); N(r,E,x.v); if(P) N(r,F,x.v0); r++; });
+  T(r,'6. CASH AND BANK BALANCES',{b:1}); r+=2; const c0=r; D.cashL.forEach(x=>{ if(!x.v&&!x.v0) return; LK(r,x.l,x.v0?x.l:null); T(r,x.l.name); N(r,E,x.v); if(P) N(r,F,x.v0); r++; });
   at('n6tot'); r=two(r,'',...fp(c=>sumR(c,c0,r-1),acR(D.cashL.reduce((s,x)=>s+x.v,0)),acR(D.cashL.reduce((s,x)=>s+x.v0,0))),{b:1,bd:{t:'thin',b:'double'}}); endPage();
   // ---- note 7 PPE (wide)
   page(); const lastC=Dn+pc.length, LC=A.col(lastC), cl=i=>A.col(Dn+i); K.n7col=LC;
@@ -3850,12 +3864,12 @@ async function acAuditXlsx(){
     V.set(v,0,new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'long'}).toUpperCase(),{bd:{l:'thin',r:'thin'}}); row.forEach((x,j)=>{ V.set(v,j+1,x,{nf:'n0',al:'right',bd:{r:'thin'}}); tot[j]+=vv(x); }); v++; });
   V.set(v,0,'TOTAL',{b:1,bd:{t:'thin',b:'double',l:'thin',r:'thin'}}); tot.forEach((x,j)=>{ const L=V.col(j+1); V.set(v,j+1,{f:`SUM(${L}${v0}:${L}${v-1})`,v:acR(x)},{b:1,nf:'n0',al:'right',bd:{t:'thin',b:'double',r:'thin'}}); });
   const vatXml=V.xml([14,20,18,22,18,22],{land:1});
-  const tbXml=acTBSheet(W,fy,fe);
-  return {W,K,accXml,taxXml,vatXml,tbXml,A,X,V,TB:acTBSheet.last};
+  const tbXml=acTBSheet(W,fy,fe,LB,`TB ${Y}`);
+  return {W,K,accXml,taxXml,vatXml,tbXml,A,X,V,TB:acTBSheet.last,LB};
   };
   const R=build(build({}).K);
   if(acAuditXlsx.pdf) return {R,co,coName,Y,fe};
-  const data=acWbZip(R.W,[[`ACC ${Y}`,R.accXml],[`TB ${Y}`,R.tbXml],['TAX COMP',R.taxXml],['VAT ANALYSIS',R.vatXml]]);
+  const data=acWbZip(R.W,[[`ACC ${Y}`,R.accXml],[`TB ${Y}`,R.tbXml],['TAX COMP',R.taxXml],['VAT ANALYSIS',R.vatXml],...acLBSheets(R.W,R.LB)]);
   try{ await downloads.save({filename:`${(co.name||'Nordic').replace(/[^\w]+/g,'_')}_ACC_${Y}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Annual accounts ${Y} – Excel (audit format)`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
   return {D,P};
@@ -3875,7 +3889,7 @@ function acWbZip(W,sheets){
   sheets.forEach(([,x],i)=>files[`xl/worksheets/sheet${i+1}.xml`]=x); files['xl/styles.xml']=W.styles(); return oxZip(files);
 }
 /* ---------- Trial balance in the Tally.ERP 9 export layout (Particulars · Debit · Credit · Draft TB) ---------- */
-function acTBSheet(W,from,to){
+function acTBSheet(W,from,to,LB,SN){
   const co=company(), st=acSet()||{}, A=acSheet(W), F={fn:'Arial',sz:9,i:1}, nm={...F,nf:'t2',al:'right'}, YEL='FFFF00';
   const fmtL=d=>{ const x=new Date(d+'T00:00:00'); return `${x.getDate()}-${x.toLocaleDateString('en-GB',{month:'long'})}-${x.getFullYear()}`; };
   let r=2; const hd=(t,s)=>{ A.set(r,0,t,{fn:'Arial',i:1,al:'left',...s}); A.merge(r,0,3); r++; };
@@ -3888,13 +3902,13 @@ function acTBSheet(W,from,to){
   A.set(r,0,'',{...F,bd:{l:'thin'}}); A.set(r,1,'Debit',{...F,al:'center',bd:{t:'thin',b:'thin'}}); A.set(r,2,'Credit',{...F,al:'center',bd:{t:'thin',b:'thin',l:'thin'}}); A.set(r,3,'',{bd:{l:'thin',r:'thin'}}); r++;
   const L=acLed(), bal=id=>acR(acTB(id,to)), tops=[], loose=[];
   const draft=(rr,s={},v=0)=>A.set(rr,3,{f:`B${rr}-C${rr}`,v},{fn:'Arial',sz:9,i:1,nf:'n0',fill:YEL,bd:{l:'thin',r:'thin',...(s.bd||{})},b:s.b});
-  const line=(name,b)=>{ A.set(r,0,name,{...F,al:'left',ind:2}); if(b>0) A.set(r,1,b,nm); else A.set(r,1,'',nm); if(b<0) A.set(r,2,-b,nm); else A.set(r,2,'',nm); draft(r,{},b); r++; };
+  const line=(name,b,id)=>{ A.set(r,0,name,{...F,al:'left',ind:2,...(LB&&id?{u:1,col:'0563C1'}:{})}); if(LB&&id) A.link(r,0,LB.loc(id,from,to,{loc:`'${SN}'!A${r}`,label:SN}),'Open the ledger'); if(b>0) A.set(r,1,b,nm); else A.set(r,1,'',nm); if(b<0) A.set(r,2,-b,nm); else A.set(r,2,'',nm); draft(r,{},b); r++; };
   for(const [g,,p] of AC_GROUPS){ if(p) continue;
     const subs=AC_GROUPS.filter(x=>x[2]===g).map(x=>x[0]).filter(sg=>L.some(l=>l.group===sg&&bal(l.id))), own=L.filter(l=>l.group===g&&bal(l.id));
     const subB=sg=>acR(L.filter(l=>l.group===sg).reduce((s,l)=>s+bal(l.id),0));
-    if(g==='Profit & Loss A/c'){ own.forEach(l=>{ loose.push(r); line(l.name,bal(l.id)); }); continue; }
+    if(g==='Profit & Loss A/c'){ own.forEach(l=>{ loose.push(r); line(l.name,bal(l.id),l.id); }); continue; }
     if(!subs.length&&!own.length) continue;
-    const gr=r; r++; subs.forEach(sg=>line(sg,subB(sg))); own.forEach(l=>line(l.name,bal(l.id)));
+    const gr=r; r++; subs.forEach(sg=>line(sg,subB(sg))); own.forEach(l=>line(l.name,bal(l.id),l.id));
     let dr=0,cr=0; subs.forEach(sg=>{ const b=subB(sg); b>0?dr+=b:cr-=b; }); own.forEach(l=>{ const b=bal(l.id); b>0?dr+=b:cr-=b; });
     A.set(gr,0,g,{...F,b:1}); A.set(gr,1,{f:`SUM(B${gr+1}:B${r-1})`,v:acR(dr)},{...nm,b:1,bd:{t:'thin',b:'thin'}}); A.set(gr,2,{f:`SUM(C${gr+1}:C${r-1})`,v:acR(cr)},{...nm,b:1,bd:{t:'thin',b:'thin'}}); draft(gr,{b:1,bd:{t:'thin',b:'thin'}},acR(dr-cr)); tops.push(gr);
   }
@@ -3907,7 +3921,7 @@ function acTBSheet(W,from,to){
 }
 async function acTBXlsx(to){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const fs=acFyStart(to), W=acXW(), data=acWbZip(W,[['Trial Balance',acTBSheet(W,fs,to)]]);
+  const fs=acFyStart(to), W=acXW(), LB=acLB(['Trial Balance']), tb=acTBSheet(W,fs,to,LB,'Trial Balance'), data=acWbZip(W,[['Trial Balance',tb],...acLBSheets(W,LB)]);
   try{ await downloads.save({filename:`Trial_Balance_${to}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Trial balance ${to} – Excel`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
 }
@@ -3930,10 +3944,11 @@ async function acAuditPdf(){
 
 /* ---------- Ledger book in the Tally.ERP 9 layout (SINGLE LEDGER sample): Date · Particulars · Vch Type · Vch No. · Debit · Credit ---------- */
 const acXDate=d=>Math.round((Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))-Date.UTC(1899,11,30))/864e5);
-function acLedgerSheet(W,id,from,to){ const R=acLedgerRows(id,from,to); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
+function acLedgerSheet(W,id,from,to,back){ const R=acLedgerRows(id,from,to); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
   const F9={fn:'Arial',sz:9}, F10={fn:'Arial',sz:10}, N={fn:'Arial',sz:10,b:1,nf:'t2',al:'right'}, fmtL=d=>{ const x=new Date(d+'T00:00:00'); return `${x.getDate()}-${x.toLocaleDateString('en-GB',{month:'long'})}-${x.getFullYear()}`; };
   let r=1; const hd=(t,s={})=>{ A.set(r,0,t,{...F10,...s}); A.merge(r,0,2); r++; };
   hd(co.name||'Nordic Construction Company Limited',{sz:12,b:1}); hd(co.pobox||co.address||''); hd('Tanzania'); hd(`TIN: ${st.company_tin||''}`); hd(`VRN: ${st.company_vrn||''}`);
+  if(back&&back.loc){ A.set(1,4,`← Back to ${back.label||'report'}`,{fn:'Arial',sz:10,b:1,u:1,col:'0563C1',al:'right'}); A.merge(1,4,6); A.link(1,4,back.loc,'Back to '+(back.label||'report')); }
   A.set(r,0,`${l.name} Book`,{fn:'Arial',sz:12,b:1,bd:{t:'thin'}}); A.set(r,1,'',{bd:{t:'thin'}}); A.set(r,2,'',{bd:{t:'thin'}}); A.merge(r,0,2); A.ht(r,15.75); r++;
   hd([l.bank,l.acc_no?'A/c '+l.acc_no:'',l.tin?'TIN '+l.tin:'',l.phone||''].filter(Boolean).join(' · ')||l.group); r++; hd(`${fmtL(from)} to ${fmtL(to)}`);
   const hb={bd:{t:'thin',b:'thin'}};
@@ -3950,6 +3965,13 @@ function acLedgerSheet(W,id,from,to){ const R=acLedgerRows(id,from,to); if(!R) r
   if(cb>0) A.set(r,6,{f:`F${tr}-G${tr}`,v:cb},N); if(cb<0) A.set(r,5,{f:`G${tr}-F${tr}`,v:-cb},N); r++;
   const gt=acR(Math.max(dr,cr)); A.set(r,5,{f:`SUM(F${tr}:F${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}}); A.set(r,6,{f:`SUM(G${tr}:G${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}});
   return {A,xml:A.xml([10.1,3.4,62.7,10,11,15.6,16]),name:l.name}; }
+/* v199: ledger sheets linked from the exported reports (registry → one SINGLE LEDGER sheet per ledger & period, with a link back) */
+function acLB(reserved){ const m=new Map(), used=new Set((reserved||[]).map(x=>String(x).toLowerCase()));
+  return { req(id,from,to,back){ const k=id+'|'+from+'|'+to; if(!m.has(k)){ const l=acL(id); const base=String(l?l.name:id).replace(/[\\\/?*\[\]:']/g,' ').replace(/\s+/g,' ').trim(), y=to.slice(0,4);
+      const av=31-y.length-1, sh=base.length<=av?base:base.slice(0,Math.ceil(av*0.55)).trim()+'…'+base.slice(-(av-Math.ceil(av*0.55)-1)).trim(); let nm=`${sh} ${y}`.trim(), i=2; while(used.has(nm.toLowerCase())){ const suf=` ${y}~${i++}`; nm=base.slice(0,31-suf.length)+suf; } used.add(nm.toLowerCase()); m.set(k,{id,from,to,nm,back}); } return m.get(k).nm; },
+    loc(id,from,to,back){ return `'${this.req(id,from,to,back)}'!A1`; }, list:()=>[...m.values()] }; }
+function acLBSheets(W,LB){ return LB.list().map(x=>{ const S=acLedgerSheet(W,x.id,x.from,x.to,x.back); return S?[x.nm,S.xml]:null; }).filter(Boolean); }
+const AC_LINK={fn:'Arial',u:1,col:'0563C1'};
 async function acLedgerXlsx(id,from,to){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const W=acXW(), S=acLedgerSheet(W,id,from,to); if(!S) return toast('Choose a ledger.');
