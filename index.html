@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="06e5bb6b7801">
+<meta name="nexus-build" content="66282885ae18">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3285,7 +3285,7 @@ function acPLData(from,to){
 function acPLHtml(P,title){
   const D=P.map(([a,b])=>acPLData(a,b)), names=k=>{ const s=new Map(); D.forEach(d=>d[k].forEach(x=>s.set(x.l.id,x.l))); return [...s.values()]; };
   const val=(d,k,id)=>{ const x=d[k].find(y=>y.l.id===id); return x?x.v:0; };
-  const sec=(lbl,keys)=>keys.flatMap(k=>names(k)).length?`<tr class="ac-gh"><td colspan="${P.length+1}">${lbl}</td></tr>`+keys.flatMap(k=>names(k).map(l=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${P[0][0]}" data-t="${P[0][1]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map(d=>`<td class="r num">${acSign(val(d,k,l.id))}</td>`).join('')}</tr>`)).join(''):'';
+  const sec=(lbl,keys)=>keys.flatMap(k=>names(k)).length?`<tr class="ac-gh"><td colspan="${P.length+1}">${lbl}</td></tr>`+keys.flatMap(k=>names(k).map(l=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${P[0][0]}" data-t="${P[0][1]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map((d,i)=>`<td class="r num" data-f="${P[i][0]}" data-t="${P[i][1]}">${acSign(val(d,k,l.id))}</td>`).join('')}</tr>`)).join(''):'';
   const tot=(lbl,f,cls='')=>`<tr class="ac-tot ${cls}"><th>${lbl}</th>${D.map(d=>`<th class="r num">${acSign(f(d))}</th>`).join('')}</tr>`;
   return `${title===false?'':acHd('Profit & Loss account',P.map(([a,b])=>`${fmtD(a)} – ${fmtD(b)}`).join(' | '))}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Particulars</th>${P.map(([a,b])=>`<th class="r">${P.length>1?acFyLbl(acFyStart(b)):'TZS'}</th>`).join('')}</tr></thead><tbody>
     ${sec('Revenue (sales & direct income)',['sales','dinc'])}${tot('Total revenue',d=>d.rev)}
@@ -3314,7 +3314,7 @@ function acBSData(to){
 function acBSHtml(dates,title){
   const D=dates.map(acBSData), n=dates.length;
   const ids=f=>{ const m=new Map(); D.forEach(d=>f(d).forEach(x=>m.set(x.l.id,x.l))); return [...m.values()]; };
-  const row=(f,l)=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${acFyStart(dates[0])}" data-t="${dates[0]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map(d=>{ const x=f(d).find(y=>y.l.id===l.id); return `<td class="r num">${acSign(x?x.v:0)}</td>`; }).join('')}</tr>`;
+  const row=(f,l)=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${acFyStart(dates[0])}" data-t="${dates[0]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map((d,i)=>{ const x=f(d).find(y=>y.l.id===l.id); return `<td class="r num" data-f="${acFyStart(dates[i])}" data-t="${dates[i]}">${acSign(x?x.v:0)}</td>`; }).join('')}</tr>`;
   const blk=(lbl,f)=>{ const L=ids(f); return L.length?`<tr class="ac-gh"><td colspan="${n+1}">${lbl}</td></tr>`+L.map(l=>row(f,l)).join(''):''; };
   const tot=(lbl,f,c='')=>`<tr class="ac-tot ${c}"><th>${lbl}</th>${D.map(d=>`<th class="r num">${acSign(f(d))}</th>`).join('')}</tr>`;
   const CA=['Stock-in-Hand','Sundry Debtors','Loans & Advances (Asset)','Deposits (Asset)','Bank Accounts','Cash-in-Hand','Other current assets'], CL=['Sundry Creditors','Duties & Taxes','Provisions','Other current liabilities'];
@@ -3537,7 +3537,9 @@ document.addEventListener('click',async e=>{
   if(a==='open') return acEdit(v);
   if(a==='rep'){ UI.actab='rep'; UI.acrep=v; UI.acBack=null; renderView(true); return; }
   if(a==='fy'){ const t=today(), fs=acFyStart(t), p=acFyStart(acDay(fs,-1)); UI.acr={...(UI.acr||{}),from:v==='prev'?p:fs,to:v==='prev'?acDay(fs,-1):t}; renderView(true); return; }
-  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.acBack=UI.actab==='rep'&&UI.acrep==='ledger'?UI.acBack:{tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}; UI.actab='rep'; UI.acrep='ledger'; UI.acr={...(UI.acr||{}),l:v,...(b.dataset.f?{from:b.dataset.f,to:b.dataset.t}:{})}; renderView(true); window.scrollTo(0,0); return; }
+  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.acBack=UI.actab==='rep'&&UI.acrep==='ledger'?UI.acBack:{tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}; UI.actab='rep'; UI.acrep='ledger'; const cell=e.target.closest('[data-f]'), ctx=UI.actab==='led'?((UI.acled||{}).to||today()):((UI.acr||{}).to||today());
+    const pt=(cell&&cell.dataset.t)||ctx, pf=(cell&&cell.dataset.f)||(UI.actab==='rep'&&!['bs','out','brs'].includes(UI.acrep)&&(UI.acr||{}).from)||acFyStart(pt);
+    UI.acr={...(UI.acr||{}),l:v,from:pf,to:pt}; renderView(true); window.scrollTo(0,0); return; }
   if(a==='acBack'){ const k=UI.acBack; UI.acBack=null; if(!k) return; UI.actab=k.tab; UI.acrep=k.rep; UI.acr=k.acr; renderView(true); setTimeout(()=>window.scrollTo(0,k.y||0),30); return; }
   if(a==='ledNew') return acLedForm(null);
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
