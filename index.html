@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=183"></script>
+<script src="config.js?v=184"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=183"></script>
-<script src="nexus-chat.js?v=183"></script>
+<script src="nexus-sb.js?v=184"></script>
+<script src="nexus-chat.js?v=184"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -4502,6 +4502,8 @@ function pmProgrammeTab(p){
     <span class="muted small">${ms.length} activities${pr?` · weights ${pr.weight}%${pr.weight!==100?' (should be 100)':''}`:''}${base?` · baseline ${fmtD(p.baseline_at)}`:''}</span><div class="sp"></div>
     ${pr?`<button class="btn sm" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
+    ${canWrite&&ms.length?'<button class="btn sm" data-act="pmShift" title="Move every activity to a new start date, keeping the same durations and sequence">📅 Change start date</button>':''}
+    ${isAdmin&&ms.length?'<button class="btn sm danger" data-act="pmDelAll" title="Delete the whole programme of this project">🗑 Delete programme</button>':''}
     ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
   ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
@@ -4515,6 +4517,24 @@ function pmProgrammeTab(p){
   ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2><span class="sub">planned vs actual progress</span></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
   <div class="banner small"><div><b>How it works:</b> add activities with dates and link them with <i>Starts after</i>. When an activity is moved or delayed, every activity after it moves automatically. The <b style="color:#C0392B">red critical path</b> shows the activities that decide the completion date. Site reports can update progress. An administrator sets the <b>baseline</b> (the approved programme) to see slippage.</div></div>`;
 }
+/* v184 · move the whole programme to a new start date (same durations and gaps) · delete the whole programme */
+function pmShiftStart(pid){ const ms=msOf(pid).filter(m=>msStart(m)); if(!ms.length) return;
+  const cur=ymd(new Date(Math.min(...ms.map(m=>msStart(m).getTime())))), base=ms.some(m=>m.baseline_finish);
+  const F=[{k:'new_start',label:`New start date (now ${fmtD(cur)})`,type:'date',req:1,help:'Every activity moves by the same number of days – durations, gaps and links stay exactly the same. Actual start / finish dates already recorded are not changed.'}];
+  if(base&&isAdmin) F.push({k:'base',label:'Baseline',type:'select',options:[['keep','Keep baseline (show slippage)'],['move','Move baseline too']]});
+  formDrawer('Change programme start date',F,{new_start:cur,base:'keep'},async v=>{
+    const d=dDiff(pd(v.new_start),pd(cur)); if(!d){ toast('The start date is the same – nothing changed.'); return; }
+    const mv=x=>x?ymd(addD(pd(x),d)):x, both=v.base==='move'&&isAdmin;
+    for(const m of msOf(pid)){ const up={}; if(m.planned_start) up.planned_start=mv(m.planned_start); if(m.planned_finish) up.planned_finish=mv(m.planned_finish);
+      if(both){ if(m.baseline_start) up.baseline_start=mv(m.baseline_start); if(m.baseline_finish) up.baseline_finish=mv(m.baseline_finish); }
+      if(Object.keys(up).length) await patch('milestones',m.id,up); }
+    logAct(`Programme moved ${d>0?'+':''}${d} days (start ${fmtD(v.new_start)}) – ${projName(pid)}`); toast(`Programme moved ${Math.abs(d)} day${Math.abs(d)===1?'':'s'} ${d>0?'later':'earlier'} – new start ${fmtD(v.new_start)}.`);
+  },{sub:'Programme · '+projName(pid),saveLabel:'Move programme'}); }
+async function pmDeleteAll(pid){ const ms=msOf(pid); if(!ms.length||!isAdmin) return;
+  if(!await confirmBox(`Delete the WHOLE programme (Gantt chart) of ${projName(pid)} – ${ms.length} activit${ms.length===1?'y':'ies'} and the baseline? This cannot be undone. Tip: press "Excel" first to keep a copy.`,'Delete programme',true)) return;
+  let n=0; for(const m of ms){ try{ await remove('milestones',m.id); n++; }catch(e){ toast('Could not delete: '+(e?.message||e)); break; } }
+  const p=byId('projects',pid); if(p&&p.baseline_at) try{ await patch('projects',pid,{baseline_at:null,baseline_by:null}); }catch(_){}
+  logAct(`Programme deleted (${n} activities) – ${projName(pid)}`); toast(`Programme deleted – ${n} activit${n===1?'y':'ies'} removed.`); }
 async function pmSetBaseline(pid){
   const ms=msOf(pid); if(!ms.length) return;
   if(!await confirmBox(`${ms.some(m=>m.baseline_finish)?'Replace the current baseline':'Save the current programme as the baseline'} for ${projName(pid)}? Slippage is measured against it from now on.`,'Set baseline')) return;
@@ -9180,6 +9200,8 @@ document.addEventListener('click', async e=>{
     case 'addMs': formDrawer('Add programme activity',msFields(routeArg),{progress:0,kind:'activity',lag:0,weight:0},async v=>{ await pmSaveActivity(routeArg,null,v); },{sub:'Programme'}); break;
     case 'pmView': UI.pmView=el.dataset.v; renderView(true); break;
     case 'pmBaseline': await pmSetBaseline(routeArg); break;
+    case 'pmShift': pmShiftStart(routeArg); break;
+    case 'pmDelAll': await pmDeleteAll(routeArg); break;
     case 'pmExport': pmExcel([routeArg],safeId(projName(routeArg))+'-programme'); break;
     case 'pmProject': oxEnsureCss(); oxjOpen(routeArg); break;
     case 'pmTpl': pmiTemplate(); break;
