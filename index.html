@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=178"></script>
+<script src="config.js?v=179"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=178"></script>
-<script src="nexus-chat.js?v=178"></script>
+<script src="nexus-sb.js?v=179"></script>
+<script src="nexus-chat.js?v=179"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -742,7 +742,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
     <div class="pg-bg" id="pgBg" aria-hidden="true"><i></i></div>
     <header class="top">
       <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <div class="ttl"><span class="label" id="crumb">NORDIC NEXUS</span><h1 id="pageTitle">Command Centre</h1></div>
+      <div class="ttl"><span class="label" id="crumb">NORDIC NEXUS</span><h1 id="pageTitle">Executive Dashboard</h1></div>
       <div class="sp"></div>
       <button class="iconbtn" id="searchBtn" aria-label="Search NEXUS" title="Search (Ctrl + K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
       <button class="iconbtn qa-top" id="qaBtn" aria-label="Add new" title="Add new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -859,7 +859,7 @@ const PAGES = [
   {k:'deadlines', t:'Deadlines'},
   {k:'alerts', t:'Alerts & Notifications'},
   {k:'chat', t:'Chat'},
-  {k:'dash', t:'Command Centre'},
+  {k:'dash', t:'Executive Dashboard'},
   {g:'Tendering & Estimating'},
   {k:'tenders', t:'Tender Radar'},
   {k:'qs', t:'QS Studio'},
@@ -5830,7 +5830,7 @@ const HX_REPORTS=[['daily','Daily HSE report','Today: inspections, observations,
   ['training','Training report','Training matrix completion and expiring certificates'],['env','Environmental report','Monitoring records, environmental incidents and inspections'],['inspection','Inspection summary','All inspections in the period with findings'],['incident','Incident register','All incidents and near misses in the period']];
 function hxReportsTab(){ return `<div class="hx-reps">${HX_REPORTS.map(([k,t,d])=>`<div class="card hx-rep"><div class="bd"><b>${esc(t)}</b><p class="sub">${esc(d)}</p><button class="btn sm pri" data-hx="rep:${k}">Word report</button></div></div>`).join('')}</div>
   <div class="card"><div class="hd"><h2>Excel / CSV exports</h2><div class="sp"></div><span class="sub">Word reports can be saved as PDF from Word (File → Save as → PDF)</span></div><div class="bd hx-exp">${[['workers','Workers & compliance'],['matrix','Compliance matrix'],['tmatrix','Training matrix'],['docs','Documents'],['acts','Corrective actions'],['inc','Incidents'],['insp','Inspections'],['permits','Permits'],['ppe','PPE issued'],['env','Environmental'],['cons','Contractors']].map(([k,l])=>`<div><span>${esc(l)}</span><button class="btn sm" data-hx="xls:${k}">Excel</button><button class="btn sm" data-hx="csv:${k}">CSV</button></div>`).join('')}</div></div>
-  <div class="card"><div class="hd"><h2>Audit trail</h2><div class="sp"></div><span class="sub">Every change in NEXUS is logged with user and time (Command Centre → Activity)</span></div><div class="bd hx-recent">${hxRecent({}).slice(0,15).map(r=>`<div><span class="ic ${r.c}">${r.ic}</span><div><b>${esc(r.t)}</b><small>${esc(r.s)} · ${fmtDT(r.at)}</small></div></div>`).join('')||'<span class="sub">Nothing yet.</span>'}</div></div>`; }
+  <div class="card"><div class="hd"><h2>Audit trail</h2><div class="sp"></div><span class="sub">Every change in NEXUS is logged with user and time (Company & Security → Activity)</span></div><div class="bd hx-recent">${hxRecent({}).slice(0,15).map(r=>`<div><span class="ic ${r.c}">${r.ic}</span><div><b>${esc(r.t)}</b><small>${esc(r.s)} · ${fmtDT(r.at)}</small></div></div>`).join('')||'<span class="sub">Nothing yet.</span>'}</div></div>`; }
 function hxRows(k){ const F=hxF();
   if(k==='workers'||k==='matrix') return [['Name','Worker ID','Company','Trade','Project','Compliance %','Status','Site access','Outstanding'],...hxWorkers().map(w=>{ const c=hxCompOf(w); return [w.name,w.worker_no||'',hxConName(w.company),w.trade||'',projName(w.project_id),c.pct??'',HX_LVL[c.lvl][2],c.access,c.miss.map(r=>(r.st==='missing'?'Missing ':'Expired ')+r.label).join('; ')]; })];
   if(k==='tmatrix'){ const W=hxWorkers(), C=[...new Set(hL('hse_train').map(t=>t.course).concat(hxCfg().base))]; return [['Worker',...C],...W.map(w=>{ const ce=hxCerts(w); return [w.name,...C.map(c=>{ const s=hxCertState(ce,c,w.project_id); return s.st==='missing'?'':s.r?.expires?(s.st==='expired'?'EXPIRED ':'')+s.r.expires:'Valid'; })]; })]; }
@@ -6408,7 +6408,7 @@ function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clea
 // objectives, a notice board, department tasks and quick links. Administrators manage everything;
 // Head / Deputy manage their own department (mandate, objectives, notices, adding unassigned staff, removing members).
 const DEPT_DEFAULT=['Management','Technical / Projects','Quantity Surveying','Procurement','Finance & Admin','HSE','Site','ICT'];
-const DEPT_LINKS={'Management':[['dash','Command Centre'],['report','Management Report'],['tenders','Tender Radar']],'Technical / Projects':[['projects','Projects'],['pm','Programme'],['reports','Site Reports'],['plant','Plant & Equipment']],
+const DEPT_LINKS={'Management':[['dash','Executive Dashboard'],['report','Management Report'],['tenders','Tender Radar']],'Technical / Projects':[['projects','Projects'],['pm','Programme'],['reports','Site Reports'],['plant','Plant & Equipment']],
   'Quantity Surveying':[['qs','QS Studio'],['tenders','Tender Radar'],['certs','Payment Certificates']],'Procurement':[['procure','Procurement'],['plant','Plant & Equipment']],
   'Finance & Admin':[['finance','Finance'],['certs','Payment Certificates'],['records','Office Records']],'HSE':[['reports','Site Reports'],['records','Office Records']],'Site':[['reports','Site Reports'],['tasks','Tasks'],['plant','Plant & Equipment']],'ICT':[['settings','Company & Security'],['about','About NEXUS']]};
 const DEPT_OBJ_ST=['On track','At risk','Behind','Done'];
