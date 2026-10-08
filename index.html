@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=174"></script>
+<script src="config.js?v=175"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=174"></script>
-<script src="nexus-chat.js?v=174"></script>
+<script src="nexus-sb.js?v=175"></script>
+<script src="nexus-chat.js?v=175"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -1483,7 +1483,7 @@ const PROJECT_FIELDS=[
   {k:'type',label:'Work type',type:'select',options:['building','renovation','fit-out','civil','MEP','water & sewer']},
   {k:'status',label:'Status',type:'select',options:['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed']},
   {k:'contract_no',label:'Contract number'},{k:'contract_sum',label:'Contract sum (TZS)',type:'number'},{k:'budget',label:'Cost budget (TZS)',type:'number'},
-  {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date (contract)',type:'date',help:'Alerts and notifications from 60 days before'},{k:'pc_date',label:'Practical completion (handover) date',type:'date'},{k:'dlp_months',label:'Defects liability period (months)',type:'number',def:12},{k:'pg_expiry',label:'Performance guarantee expiry',type:'date',help:'Alerts and notifications from 40 days before'},{k:'pg_ref',label:'Performance guarantee no. / bank'},{k:'progress',label:'Progress %',type:'number'},
+  {k:'start',label:'Start date',type:'date'},{k:'end',label:'Completion date (contract)',type:'date',help:'The original date in the contract – approved extensions of time (Variations & EOT) are added automatically'},{k:'pc_date',label:'Practical completion (handover) date',type:'date',help:'Leave empty until the works are actually handed over'},{k:'dlp_months',label:'Defects liability period (months)',type:'number',def:12},{k:'pg_expiry',label:'Performance guarantee expiry',type:'date',help:'Alerts and notifications from 40 days before'},{k:'pg_ref',label:'Performance guarantee no. / bank'},{k:'progress',label:'Progress %',type:'number'},
   {k:'manager',label:'Project manager',type:'select',options:[]},{k:'reporter',label:'Daily site report by',type:'select',options:[],help:'Reminded at 17:00 if today\'s report is missing (else the project manager)'},{k:'notes',label:'Notes',type:'textarea'}];
 function pageProjects(){
   const st=['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed'];
@@ -1492,7 +1492,7 @@ function pageProjects(){
   <div class="grid g3">${ps.map(p=>{
     const reps=S.reports.filter(r=>r.project_id===p.id), last=reps.sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
     const spent=S.finance.filter(f=>f.project_id===p.id&&f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
-    const prog=Math.max(0,Math.min(100,+p.progress||0)), tl=p.start&&p.end?Math.max(0,Math.min(100,(new Date()-new Date(p.start))/(new Date(p.end)-new Date(p.start))*100)):null;
+    const prog=Math.max(0,Math.min(100,+p.progress||0)), tl=p.start&&p.end?Math.max(0,Math.min(100,(dayN(today())-dayN(p.start))/Math.max(1,dayN(pEnd(p))-dayN(p.start))*100)):null;
     const sc=/active|mobil/i.test(p.status)?'good':/hold/i.test(p.status)?'bad':/complet/i.test(p.status)?'':'amb';
     return `<div class="card" style="cursor:pointer" data-open="project:${esc(p.id)}"><div class="bd" style="display:flex;flex-direction:column;gap:9px">
       <div class="toolbar"><span class="chip ${sc}">${esc(p.status||'')}</span><span class="sub">${esc(p.type||'')}</span></div>
@@ -1507,7 +1507,7 @@ function pageProjects(){
 function projectDrawer(p){
   const reps=S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const tasks=S.tasks.filter(t=>t.project_id===p.id&&t.status!=='Done'), prs=S.procurement.filter(x=>x.project_id===p.id);
-  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',money()&&p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}`:''],['Performance guarantee',p.pg_expiry?`expires ${fmtD(p.pg_expiry)}${p.pg_ref?' · '+p.pg_ref:''}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
+  const kv=[['Client',p.client],['Consultant / PM',p.consultant],['Location',p.location],['Contract no.',p.contract_no],['Contract sum',money()&&p.contract_sum?tzs(p.contract_sum):''],['Dates',p.start?`${fmtD(p.start)} → ${fmtD(p.end)}${pEnd(p)&&pEnd(p)!==p.end?` (revised ${fmtD(pEnd(p))} after EOT)`:''}`:''],['Performance guarantee',p.pg_expiry?`expires ${fmtD(p.pg_expiry)}${p.pg_ref?' · '+p.pg_ref:''}`:''],['Project manager',p.manager?staffName(p.manager):''],['Notes',p.notes]].filter(x=>x[1]);
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
     <div class="card"><div class="hd"><h2>Site reports</h2><div class="sp"></div><button class="btn sm pri" data-act="newReport" data-proj="${esc(p.id)}">New report</button></div><div class="list">${reps.slice(0,6).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div><span class="sub">${(r.photos||[]).length} photos</span></div>`).join('')||'<div class="empty">No reports yet.</div>'}</div></div>
     <div class="grid g2"><div class="card"><div class="hd"><h2>Open tasks</h2></div><div class="list">${tasks.map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`).join('')||'<div class="empty">None</div>'}</div></div>
@@ -3336,8 +3336,8 @@ function recAlerts(A){ const sid=myStaffId(), pmOf=pid=>{ const p=byId('projects
 /* v96: project contract completion (60 days) and performance guarantee on the project (40 days) → administrators, the project manager (+ Finance for guarantees) */
 function projDueAlerts(A){ const sid=myStaffId(), shut=/complet|closed|cancel|lost/i;
   (S.projects||[]).forEach(p=>{ if(p.example||shut.test(p.status||'')) return; const pm=!!(sid&&p.manager===sid);
-    if(p.end&&!p.pc_date&&(isAdmin||pm)){ const d=daysLeft(dlYmd(p.end)+'T23:59'); if(d!=null&&d<=60&&d>-60){ const st=d<0?-1:d<=7?7:d<=14?14:d<=30?30:60;
-      A.push({lvl:d<=14?'bad':d<=30?'warn':'blue', kind:'Contract ending', text:`${p.name} – contract ${d<0?'completion date passed '+fmtD(p.end):d<1?'ends today':'ends in '+Math.ceil(d)+' days'}`, sub:`Completion ${fmtD(p.end)}${p.client?' · '+p.client:''} – plan handover or apply for extension of time`, go:['project',p.id], sort:d<=14?3:13, at:new Date(Date.parse(dlYmd(p.end)+'T07:00:00+03:00')-Math.max(st,0)*864e5).toISOString(), nk:'pend|'+p.id+'|'+p.end+'|'+st}); } }
+    if(p.end&&(!p.pc_date||pPcBad(p))&&(isAdmin||pm)){ const ce=pEnd(p), d=dLeft(ce); if(d!=null&&d<=60&&d>-60){ const st=d<0?-1:d<=7?7:d<=14?14:d<=30?30:60;
+      A.push({lvl:d<=14?'bad':d<=30?'warn':'blue', kind:'Contract ending', text:`${p.name} – ${ce!==p.end?'revised ':''}completion ${d<0?'date passed '+fmtD(ce)+' ('+(-d)+' days late)':d===0?'is today':'in '+d+' days'}`, sub:`Completion ${fmtD(ce)}${ce!==p.end?' (contract '+fmtD(p.end)+' + EOT)':''}${p.client?' · '+p.client:''} – plan handover or apply for extension of time`, go:['project',p.id], sort:d<=14?3:13, at:new Date(Date.parse(ce+'T07:00:00+03:00')-Math.max(st,0)*864e5).toISOString(), nk:'pend|'+p.id+'|'+ce+'|'+st}); } }
     if(p.pg_expiry&&(isAdmin||pm||isFinR())){ const d=daysLeft(dlYmd(p.pg_expiry)+'T23:59'); if(d!=null&&d<=40&&d>-30){ const st=d<0?-1:d<=7?7:d<=14?14:d<=30?30:40;
       A.push({lvl:d<=14?'bad':'warn', kind:'Performance guarantee', text:`${p.name} – performance guarantee ${d<0?'has expired':d<1?'expires today':'expires in '+Math.ceil(d)+' days'}`, sub:`${p.pg_ref?p.pg_ref+' · ':''}expires ${fmtD(p.pg_expiry)} – arrange extension with the bank`, go:['project',p.id], sort:d<=14?2:9, at:new Date(Date.parse(dlYmd(p.pg_expiry)+'T07:00:00+03:00')-Math.max(st,0)*864e5).toISOString(), nk:'ppg|'+p.id+'|'+p.pg_expiry+'|'+st}); } } }); }
 
@@ -4160,15 +4160,27 @@ function programme(pid, at=new Date()){
   const pl=ms.reduce((a,m)=>a+(+m.weight||0)*planned(m,at),0)/W*100, ac=ms.reduce((a,m)=>a+(+m.weight||0)*Math.min(100,+m.progress||0)/100,0)/W*100;
   return {planned:pl, actual:ac, weight:W, n:ms.length};
 }
+/* v175 · REVISED COMPLETION = contract completion + approved EOT days, counted in whole calendar days (no time-zone / part-day errors).
+   Used everywhere (cards, alerts, deadlines, reports). A handover (practical completion) date earlier than an approved EOT is flagged as a typing error. */
+const dayN=v=>{ const m=String(v||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?Date.UTC(+m[1],+m[2]-1,+m[3])/864e5:null; };
+const nYmd=n=>new Date(n*864e5).toISOString().slice(0,10);
+const pEots=p=>S.variations.filter(v=>v.project_id===p.id&&v.status==='Approved'&&+v.days_granted>0).sort((a,b)=>String(a.date_instructed||a.ref||'').localeCompare(String(b.date_instructed||b.ref||'')));
+const pEnd=p=>{ const n=dayN(p.end); return n==null?'':nYmd(n+pEots(p).reduce((a,v)=>a+(+v.days_granted||0),0)); };
+const dLeft=v=>{ const n=dayN(v); return n==null?null:n-dayN(today()); };
+const pPcBad=p=>!!p.pc_date&&pEots(p).some(v=>v.date_instructed&&dayN(v.date_instructed)>dayN(p.pc_date));
+const pEndState=p=>{ const e=pEnd(p); if(!e) return ''; const pc=p.pc_date&&!pPcBad(p)?p.pc_date:'';
+  if(pc){ const dd=dayN(pc)-dayN(e); return dd<=0?'handed over on time':`handed over ${dd} day${dd>1?'s':''} late`; }
+  const d=dLeft(e); return d>0?`${d} day${d>1?'s':''} left`:d===0?'due today':`${-d} day${d<-1?'s':''} late`; };
+const pEotTrail=p=>{ let n=dayN(p.end); if(n==null) return ''; return [`Contract completion ${fmtD(p.end)}`,...pEots(p).map(v=>{ n+=(+v.days_granted||0); return `+ ${v.days_granted} days (${v.ref||'EOT'}) → ${fmtD(nYmd(n))}`; })].join('\n'); };
 function projectFacts(p){
   const vos=S.variations.filter(v=>v.project_id===p.id), approved=vos.filter(v=>v.status==='Approved');
   const voVal=approved.reduce((a,v)=>a+(+v.value_approved||0),0), eot=approved.reduce((a,v)=>a+(+v.days_granted||0),0);
   const pending=vos.filter(v=>v.status==='Instructed'||v.status==='Submitted');
-  const revEnd=p.end?new Date(new Date(p.end).getTime()+eot*864e5):null;
+  const revEnd=p.end?new Date(pEnd(p)+'T00:00:00'):null;
   const risks=S.risks.filter(r=>r.project_id===p.id&&r.status!=='Closed'), high=risks.filter(r=>(+r.likelihood||0)*(+r.impact||0)>=15);
   const snags=S.snags.filter(s=>s.project_id===p.id), openSn=snags.filter(s=>s.status==='Open');
   const certs=S.certificates.filter(c=>c.project_id===p.id), certified=Math.max(0,...certs.map(c=>+c.gross||0));
-  const rel=p.pc_date?new Date(new Date(p.pc_date).setMonth(new Date(p.pc_date).getMonth()+(+p.dlp_months||12))):null;
+  const rel=p.pc_date&&!pPcBad(p)?new Date(new Date(p.pc_date).setMonth(new Date(p.pc_date).getMonth()+(+p.dlp_months||12))):null;
   return {vos,voVal,eot,pending,revEnd,risks,high,snags,openSn,certified,rel,revSum:(+p.contract_sum||0)+voVal,prog:programme(p.id)};
 }
 function sCurve(pid){
@@ -4197,7 +4209,7 @@ function pageProject(){
     body=`<div class="grid g4">
       <div class="card kpi ${gap==null?'blu':gap>=-5?'grn':'hot'}"><span class="label">Progress · actual / planned</span><span class="v num">${pr?pr.actual.toFixed(0)+'% / '+pr.planned.toFixed(0)+'%':(+p.progress||0)+'%'}</span><span class="s">${pr?(gap>=0?'Ahead':'Behind')+' by '+Math.abs(gap).toFixed(0)+' points':'Add a programme to compare with plan'}</span></div>
       ${money()?`<div class="card kpi blu"><span class="label">Revised contract sum</span><span class="v num">${F.revSum?tzsShort(F.revSum):'—'}</span><span class="s">${F.voVal?'incl. '+tzsShort(F.voVal)+' approved variations':'no approved variations'}</span></div>`:`<div class="card kpi blu"><span class="label">Variations & claims</span><span class="v num">${F.vos.length}</span><span class="s">${F.pending.length} waiting for approval</span></div>`}
-      <div class="card kpi ${F.revEnd&&daysLeft(F.revEnd)<0&&!/complet|close/i.test(p.status||'')?'hot':'amb'}"><span class="label">Completion date</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(F.revEnd):'—'}</span><span class="s">${F.eot?F.eot+' days EOT granted':'original date'}${F.revEnd?' · '+(daysLeft(F.revEnd)>=0?Math.ceil(daysLeft(F.revEnd))+' days left':Math.ceil(-daysLeft(F.revEnd))+' days late'):''}</span></div>
+      <div class="card kpi ${F.revEnd&&dLeft(pEnd(p))<0&&!(p.pc_date&&!pPcBad(p))&&!/complet|close/i.test(p.status||'')?'hot':'amb'}" title="${esc(pEotTrail(p))}"><span class="label">${F.eot?'Revised completion':'Completion date'}</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(pEnd(p)):'—'}</span><span class="s">${F.eot?`${fmtD(p.end)} + ${F.eot} days EOT`:'original date'}${F.revEnd?' · '+pEndState(p):''}</span>${pPcBad(p)?`<span class="s" style="color:var(--bad)">⚠ Handover date ${fmtD(p.pc_date)} is before the approved EOTs – correct it in Edit project</span>`:''}</div>
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
       <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
@@ -4205,7 +4217,7 @@ function pageProject(){
     <div class="grid g2">
       <div class="card"><div class="hd"><h2>Latest site reports</h2></div><div class="list">${S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div></div>`).join('')||'<div class="empty">No site reports yet.</div>'}</div></div>
       <div class="card"><div class="hd"><h2>Open tasks & purchases</h2></div><div class="list">${[...S.tasks.filter(t=>t.project_id===p.id&&t.status!=='Done').map(t=>`<div class="li"><div class="grow">${esc(t.title)}<div class="sub">Task · ${esc(staffName(t.assignee))} · due ${fmtD(t.due)}</div></div></div>`),...S.procurement.filter(x=>x.project_id===p.id&&x.status!=='Delivered').map(x=>`<div class="li"><div class="grow">${esc(x.item)}<div class="sub">Purchase · ${esc(x.status)} · ${tzs(x.est_cost)}</div></div></div>`)].join('')||'<div class="empty">Nothing open.</div>'}</div></div></div>
-    ${p.pc_date?`<div class="banner"><div><b>Close-out:</b> practical completion ${fmtD(p.pc_date)} · defects liability ${+p.dlp_months||12} months · retention release due <b>${fmtD(F.rel)}</b>.</div></div>`:''}`;
+    ${p.pc_date&&!pPcBad(p)?`<div class="banner"><div><b>Close-out:</b> practical completion ${fmtD(p.pc_date)} · defects liability ${+p.dlp_months||12} months · retention release due <b>${fmtD(F.rel)}</b>.</div></div>`:''}`;
   } else if(tab==='programme'){
     body=pmProgrammeTab(p);
   } else if(tab==='variations'){
@@ -4215,7 +4227,8 @@ ${money()?`      <div class="card kpi blu"><span class="label">Original contract
       <div class="card kpi grn"><span class="label">Approved variations</span><span class="v num">${tzsShort(F.voVal)}</span><span class="s">${F.vos.filter(v=>v.status==='Approved').length} approved</span></div>
       <div class="card kpi amb"><span class="label">Pending (not yet approved)</span><span class="v num">${tzsShort(F.pending.reduce((a,v)=>a+(+v.value_claimed||0),0))}</span><span class="s">${F.pending.length} items – chase the consultant</span></div>
 `:''}
-      <div class="card kpi blu"><span class="label">Extension of time</span><span class="v num">${F.eot} days</span><span class="s">${F.vos.reduce((a,v)=>a+(+v.days_claimed||0),0)} days claimed</span></div></div>
+      <div class="card kpi blu"><span class="label">Extension of time</span><span class="v num">${F.eot} days</span><span class="s">${F.vos.reduce((a,v)=>a+(+v.days_claimed||0),0)} days claimed${p.end&&F.eot?` · new completion ${fmtD(pEnd(p))}`:''}</span></div></div>
+    ${p.end&&F.eot?`<div class="card" style="margin-top:10px"><div class="bd small"><b>Completion date after EOT</b><div style="white-space:pre-line;margin-top:4px">${esc(pEotTrail(p))}</div></div></div>`:''}
       <div class="toolbar"><div class="sp"></div><button class="btn pri" data-act="addVo">Record instruction / claim</button></div>
       <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Description</th><th>Status</th><th class="r">Claimed</th><th class="r">Approved</th><th class="hide-m">EOT days</th><th class="hide-m">Instructed</th></tr></thead><tbody>
       ${vos.map(v=>{const age=v.status==='Instructed'?-daysLeft(v.date_instructed):null;return `<tr class="click" data-editvo="${esc(v.id)}"><td class="mono">${esc(v.ref)}</td><td><div class="ttl2">${esc(v.description)}</div><div class="sub">${esc(v.type||'')}${v.instructed_by?' · by '+esc(v.instructed_by):''}</div></td><td><span class="chip ${v.status==='Approved'?'good':v.status==='Rejected'?'bad':age>14?'bad':'amb'}">${esc(v.status)}${age>14?' '+Math.floor(age)+'d – submit':''}</span></td><td class="r num">${money()&&v.value_claimed?tzsShort(v.value_claimed):'—'}</td><td class="r num">${money()&&v.value_approved?tzsShort(v.value_approved):'—'}</td><td class="hide-m num">${v.days_claimed?(v.days_granted??'?')+' / '+v.days_claimed:'—'}</td><td class="hide-m small">${fmtD(v.date_instructed)}</td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">No variations or claims recorded.</div></td></tr>'}
@@ -4596,7 +4609,7 @@ function pmAlerts(A){
   S.milestones.forEach(m=>{ if((+m.progress||0)<100&&m.planned_finish&&daysLeft(m.planned_finish+'T23:59')<0) A.push({lvl:'warn',kind:'Activity late',text:`${m.name}`,sub:`${projName(m.project_id)} · planned finish ${fmtD(m.planned_finish)} · ${+m.progress||0}% done`,go:['project',m.project_id],sort:12}); });
   S.variations.forEach(v=>{ if(v.status==='Instructed'&&v.date_instructed&&daysLeft(v.date_instructed)<-14) A.push({lvl:'warn',kind:'Variation not submitted',text:`${v.ref} – ${v.description}`,sub:`${projName(v.project_id)} · instructed ${fmtD(v.date_instructed)}`,go:['project',v.project_id],sort:14}); });
   S.risks.forEach(r=>{ if(r.status!=='Closed'&&(+r.likelihood||0)*(+r.impact||0)>=15) A.push({lvl:'bad',kind:'High risk',text:r.title,sub:`${projName(r.project_id)} · owner ${staffName(r.owner)}`,go:['project',r.project_id],sort:6}); });
-  S.projects.forEach(p=>{ if(!p.pc_date) return; const rel=new Date(new Date(p.pc_date).setMonth(new Date(p.pc_date).getMonth()+(+p.dlp_months||12))); const d=daysLeft(rel); if(d!=null&&d<=30&&d>-60) A.push({lvl:'blue',kind:'Retention release',text:`Apply for retention release – ${p.name}`,sub:`Defects liability period ends ${fmtD(rel)}`,go:['project',p.id],sort:25}); });
+  S.projects.forEach(p=>{ if(!p.pc_date||pPcBad(p)) return; const rel=new Date(new Date(p.pc_date).setMonth(new Date(p.pc_date).getMonth()+(+p.dlp_months||12))); const d=daysLeft(rel); if(d!=null&&d<=30&&d>-60) A.push({lvl:'blue',kind:'Retention release',text:`Apply for retention release – ${p.name}`,sub:`Defects liability period ends ${fmtD(rel)}`,go:['project',p.id],sort:25}); });
   S.plant.forEach(x=>{ [['service',x.service_due],['insurance / licence',x.insurance_expiry],['safety inspection',x.inspection_due]].forEach(([k,v])=>{ const d=daysLeft(v); if(d!=null&&d<=7) A.push({lvl:d<0?'bad':'warn',kind:'Plant',text:`${x.name}: ${k} ${d<0?'overdue':'due '+fmtD(v)}`,sub:x.project_id?projName(x.project_id):'Yard',go:['route','plant'],sort:18}); }); });
 }
 /* ===================== RENDER ===================== */
@@ -6454,7 +6467,7 @@ function deadlineItems(){
     if(dlDays(dlYmd(t.site_visit))>=0) add(t.site_visit,'visit',t.title,sub,'tender:'+t.id,mine); }
   const live=pid=>{ const p=byId('projects',pid); return p&&!shut.test(p.status||''); };
   for(const m of S.milestones||[]) if(!m.example&&(+m.progress||0)<100&&live(m.project_id)) add(m.planned_finish,'activity',m.name,`${projName(m.project_id)} · ${+m.progress||0}% done`,'project:'+m.project_id,pm(m.project_id));
-  for(const p of S.projects) if(p.end&&!p.pc_date&&!shut.test(p.status||'')) add(p.end,'completion',p.name,'Contract completion','project:'+p.id,sid&&p.manager===sid);
+  for(const p of S.projects) if(p.end&&(!p.pc_date||pPcBad(p))&&!shut.test(p.status||'')) add(pEnd(p),'completion',p.name,pEnd(p)!==p.end?'Revised completion (after EOT)':'Contract completion','project:'+p.id,sid&&p.manager===sid);
   for(const p of S.projects) if(p.pg_expiry&&!shut.test(p.status||'')) add(p.pg_expiry,'pg',p.name,'Performance guarantee'+(p.pg_ref?' · '+p.pg_ref:''),'project:'+p.id,(sid&&p.manager===sid)||isFinR());
   for(const r of S.records||[]){ if(r.folder==='contracts'&&r.dlp_end&&dlDays(dlYmd(r.dlp_end))>=0) add(r.dlp_end,'dlp',r.title||'Contract','Release retention after this date','rec:'+r.id,sid&&r.owner===sid);
     else if(recIsPG(r)&&recExp(r)) add(recExp(r),'pg',r.title||'Performance guarantee',[r.project_id?projName(r.project_id):'',r.ref,r.party].filter(Boolean).join(' · '),'rec:'+r.id,(sid&&r.owner===sid)||isFinR()||pm(r.project_id));
@@ -7707,7 +7720,7 @@ async function oxpAct(a,v,b){ const s=oxpCur(), e=OXP.sel&&oxpEl(OXP.sel), T=oxp
   if(a==='picture'){ OXP.picTarget=null; return $('#oxpPic').click(); }
   if(a==='photos') return oxpSitePhotos();
   if(a==='projinfo'){ const pv=await oxDialog('Project facts table',[{label:'Project',options:projOpts('— choose —'),value:OXP.project_id||''}],'Insert'); if(!pv||!pv[0]) return; const p=byId('projects',pv[0])||{}; OXP.project_id=pv[0]; oxpPush();
-    const rows=[['Item','Details'],['Project',p.name||''],['Client',p.client||''],['Consultant',p.consultant||''],['Location',p.location||''],['Contract period',`${p.start?fmtD(p.start):'…'} – ${p.end?fmtD(p.end):'…'}`],['Progress',(p.progress!=null&&p.progress!==''?p.progress+'%':'…')]];
+    const rows=[['Item','Details'],['Project',p.name||''],['Client',p.client||''],['Consultant',p.consultant||''],['Location',p.location||''],['Contract period',`${p.start?fmtD(p.start):'…'} – ${p.end?fmtD(p.end):'…'}${pEnd(p)&&pEnd(p)!==p.end?` (revised ${fmtD(pEnd(p))} after EOT)`:''}`],['Progress',(p.progress!=null&&p.progress!==''?p.progress+'%':'…')]];
     const x={id:uid(),t:'table',x:48,y:112,w:864,h:rows.length*40,rows,fs:15}; s.els.push(x); OXP.sel=x.id; oxpStage(); return oxpChanged(); }
   if(a==='tablepick'){ document.querySelector('.ox-pop')?.remove(); const pop=document.createElement('div'); pop.className='ox-pop'; const r=b.getBoundingClientRect(); pop.style.cssText=`position:fixed;left:${r.left}px;top:${r.bottom+2}px`;
     pop.innerHTML=`<div style="font-size:12px;margin-bottom:6px" id="oxpTpL">Insert Table</div><div class="oxw-tp">${Array.from({length:64},(_,i)=>`<i data-r="${Math.floor(i/8)+1}" data-c="${i%8+1}"></i>`).join('')}</div>`; $('#oxApp').appendChild(pop);
@@ -7803,7 +7816,7 @@ async function oxpFromTemplate(k){
   const bar=(y,label,v,col)=>[{t:'text',x:60,y,w:220,h:34,fs:16,html:`<p>${esc(label)}</p>`,valign:'m'},{t:'shape',shape:'rect',x:290,y:y+4,w:560,h:26,fill:'#E4E9F0',html:''},{t:'shape',shape:'rect',x:290,y:y+4,w:Math.max(2,Math.round(560*Math.min(100,v)/100)),h:26,fill:col,html:''},{t:'text',x:856,y,w:80,h:34,fs:16,b:1,html:`<p>${v}%</p>`,valign:'m'}];
   const st=f?PM_ST[f.status]?.[1]:'';
   const slides=[S2('title',{title:T(p.name||'Project'),sub:T(`${k==='meeting'?'Site meeting':'Progress update'} · ${dstr}`)}),
-    S2('content',{title:T('Project details'),extra:[{t:'table',x:48,y:112,w:864,h:280,fs:15,rows:[['Item','Details'],['Client / Employer',p.client||''],['Consultant',p.consultant||''],['Location',p.location||''],['Contract no.',p.contract_no||''],['Contract period',`${p.start?fmtD(p.start):'…'} – ${p.end?fmtD(p.end):'…'}`],['Project manager',(byId('staff',p.manager)||{}).name||p.manager||'']]}]}),
+    S2('content',{title:T('Project details'),extra:[{t:'table',x:48,y:112,w:864,h:280,fs:15,rows:[['Item','Details'],['Client / Employer',p.client||''],['Consultant',p.consultant||''],['Location',p.location||''],['Contract no.',p.contract_no||''],['Contract period',`${p.start?fmtD(p.start):'…'} – ${p.end?fmtD(p.end):'…'}${pEnd(p)&&pEnd(p)!==p.end?` (revised ${fmtD(pEnd(p))} after EOT)`:''}`],['Project manager',(byId('staff',p.manager)||{}).name||p.manager||'']]}]}),
     S2('titleonly',{title:T('Progress'),extra:[...bar(130,'Actual progress',act,'#2E75B6'),...(pln!=null?bar(185,'Planned to date',pln,'#A5A5A5'):[]),{t:'text',x:60,y:260,w:840,h:200,fs:18,html:UL([st?`Programme status: ${st}`:'',f?.fc?`Forecast completion: ${fmtD(ymd(f.fc))}${f.slip>0?` (${f.slip} days late)`:''}`:'',f?.late?`${f.late} activities behind programme`:'',last.date?`Latest site report: ${fmtD(last.date)}${last.workforce?` · ${last.workforce} workers on site`:''}`:''])}]}),
     S2('content',{title:T('Programme – next activities'),extra:ms.length?[{t:'table',x:48,y:112,w:864,h:Math.min(380,(ms.length+1)*40),fs:14,rows:[['Activity','Start','Finish','Done'],...ms.map(m=>[m.name||'',fmtD(m.planned_start),fmtD(m.planned_finish||m.planned_start),msPg(m)+'%'])]}]:[]}),
     S2('content',{title:T('Site photos'),notes:'Photos from NEXUS site reports.',extra:photos.map((ref,i)=>({t:'img',src:ref,x:48+(i%2)*437,y:112+Math.floor(i/2)*195,w:427,h:185}))}),
