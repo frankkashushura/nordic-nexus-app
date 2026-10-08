@@ -5,10 +5,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="config.js?v=186"></script>
+<script src="config.js?v=187"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=186"></script>
-<script src="nexus-chat.js?v=186"></script>
+<script src="nexus-sb.js?v=187"></script>
+<script src="nexus-chat.js?v=187"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -2896,7 +2896,7 @@ const acMethodL=m=>/cash/i.test(m||'')?'L_cash':/mobile/i.test(m||'')?'L_mm':'L_
 
 /* ---------- helpers ---------- */
 const acSet=()=>(S.acset||[]).find(x=>x.id==='main')||null;
-const acLed=()=>(S.ledgers||[]).filter(l=>!l.deleted);
+let AC_LS=null; const acLed=()=>{ if(!AC_LS||AC_LS.s!==S.ledgers) AC_LS={s:S.ledgers,a:(S.ledgers||[]).filter(l=>!l.deleted).sort((x,y)=>String(x.name||'').localeCompare(String(y.name||'')))}; return AC_LS.a; };
 const acL=id=>(S.ledgers||[]).find(l=>l.id===id);
 const acLN=id=>{ const l=acL(id); return l?l.name:'(missing ledger)'; };
 const acVch=()=>(S.vouchers||[]).filter(v=>!v.cancelled&&!v.deleted);
