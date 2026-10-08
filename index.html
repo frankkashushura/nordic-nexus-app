@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="e6945829e469">
+<meta name="nexus-build" content="04fd0ea6b758">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -730,6 +730,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 .tile .ti{font-size:24px}
 .tile .ti svg{width:24px;height:24px}
 .pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}.pf-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}.pf-step{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card,rgba(255,255,255,.03));flex:1;min-width:150px}.pf-step b{display:block;font-size:.9rem}.pf-step small{opacity:.75}.pf-step.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.pf-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#000;font-weight:700;flex:none}.pf-ar{opacity:.5;font-size:1.3rem}.pf-tl{margin:10px 0 4px;border-left:3px solid var(--line);padding-left:12px;display:grid;gap:6px}.pf-tl>div{opacity:.75}.pf-tl .ok{opacity:1}.pf-tl .no{opacity:1;color:var(--bad)}@media(max-width:700px){.pf-ar{display:none}.pf-step{min-width:45%}}
+.tstar{background:none;border:0;padding:0 6px 0 0;font-size:17px;line-height:1;cursor:pointer;color:var(--muted);vertical-align:-1px}.tstar.on{color:#E0A100}.tstar:hover{color:#E0A100}
 </style>
 
 <div class="app" id="app">
@@ -1308,8 +1309,12 @@ function f02Result(f){
 document.addEventListener('change',e=>{ const el=e.target; if(!el||!/^[gs]\d+$/.test(el.id||'')||!el.closest('#overlay')) return; const box=document.querySelector('#f02chip'); if(!box) return;
   const gates={}; GATES.forEach((_,i)=>{ const v=document.querySelector('#g'+i)?.value; if(v) gates[i]=v; }); const scores=F02.map((_,i)=>document.querySelector('#s'+i)?.value??'');
   const r=f02Result({gates,scores}); box.innerHTML=r?`<span class="chip ${r.cls}">${esc(r.label)}${r.score!=null?' · '+r.score.toFixed(1):''}</span>`:''; });
+const tBid=t=>/preparing|submitted/i.test(t.status||'');
 function filteredTenders(){
   const q=UI.tq.toLowerCase();
+  if(UI.tscreen==='Ours'){ const now=Date.now(), past=t=>(toDate(t.deadline)||0)<now;
+    return S.tenders.filter(t=>tBid(t)&&!t.example&&(!q||[t.title,t.client,t.no,t.location,t.category].join(' ').toLowerCase().includes(q))&&(UI.tcat==='All'||t.category===UI.tcat))
+      .sort((a,b)=>(past(a)-past(b))||(/submitted/i.test(a.status||'')-/submitted/i.test(b.status||''))||((toDate(a.deadline)||0)-(toDate(b.deadline)||0))); }
   return S.tenders.filter(t=>{
     const d=daysLeft(t.deadline), open=d!=null&&d>0&&!/closed|cancel|won|lost/i.test(t.status||'');
     if(UI.tscreen==='Open' && !(open && t.screen!=='Drop')) return false;
@@ -1334,7 +1339,7 @@ function pageTenders(){
   </div>
   <div class="toolbar">
     <input class="inp search" id="tq" type="search" placeholder="Search title, client, number, place" value="${esc(UI.tq)}" aria-label="Search tenders">
-    <div class="seg" role="group" aria-label="Screen">${['Open','Pursue','Check','Drop','Closed','All'].map(s=>`<button data-tscreen="${s}" aria-pressed="${UI.tscreen===s}">${s}</button>`).join('')}</div>
+    <div class="seg" role="group" aria-label="Screen">${['Open','Ours','Pursue','Check','Drop','Closed','All'].map(s=>`<button data-tscreen="${s}" aria-pressed="${UI.tscreen===s}"${s==='Ours'?' title="Tenders we are preparing or have submitted"':''}>${s==='Ours'?`★ Our bids <span class="num">${S.tenders.filter(t=>tBid(t)&&!t.example).length}</span>`:s}</button>`).join('')}</div>
     <select class="inp" id="tcat" aria-label="Work type">${cats.map(c=>`<option ${c===UI.tcat?'selected':''}>${esc(c)}</option>`).join('')}</select>
     <div class="sp"></div>
     ${isAdmin?'<button class="btn" data-act="tFilter" title="Hide tenders that are not construction works">🧹 Relevance filter</button>':''}<button class="btn" data-act="importXlsx">Import pipeline (.xlsx)</button>
@@ -1345,10 +1350,10 @@ function pageTenders(){
   <div class="card"><div class="tbl-wrap"><table>
     <thead><tr><th>Closes</th><th>Tender</th><th class="hide-m">Location</th><th class="hide-m">Type</th><th>Screen</th><th>AI advice</th><th class="hide-m">Status</th></tr></thead>
     <tbody>${rows.map(t=>`<tr class="click" data-open="tender:${esc(t.id)}"><td>${daysChip(t.deadline)}<div class="sub mono">${fmtDT(t.deadline)}</div></td>
-      <td><div class="ttl2">${UI.trBase&&tNewAt(t)>UI.trBase?'<span class="chip blue" style="margin-right:6px">New</span>':''}${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · <span class="mono">${esc(t.no||'')}</span></div></td>
+      <td><div class="ttl2">${canWrite!==false?`<button class="tstar${tBid(t)?' on':''}" data-tstar="${esc(t.id)}" aria-pressed="${tBid(t)}" title="${/submitted/i.test(t.status||'')?'Submitted':tBid(t)?'We are preparing this bid – click to stop':'Mark: we will bid for this tender'}" aria-label="Mark as our bid">${tBid(t)?'★':'☆'}</button>`:''}${UI.trBase&&tNewAt(t)>UI.trBase?'<span class="chip blue" style="margin-right:6px">New</span>':''}${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · <span class="mono">${esc(t.no||'')}</span></div></td>
       <td class="hide-m">${esc(t.location||'')}</td><td class="hide-m">${esc(t.category||'')}</td><td>${screenChip(t.screen)}</td>
       <td>${t.ai?.verdict?`<span class="chip ${verdictCls(t.ai.verdict)}">${esc(t.ai.verdict)}</span>`:'<span class="sub">—</span>'}</td>
-      <td class="hide-m">${esc(t.status||'')}</td></tr>`).join('')||`<tr><td colspan="7"><div class="empty">No tenders match. Change the filter or import the pipeline workbook.</div></td></tr>`}</tbody></table></div></div>
+      <td class="hide-m">${/preparing/i.test(t.status||'')?'<span class="chip amb">Preparing</span>':/submitted/i.test(t.status||'')?'<span class="chip good">Submitted</span>':esc(t.status||'')}${t.owner?`<div class="sub">${esc((byId('staff',t.owner)||{}).name||t.owner)}</div>`:''}</td></tr>`).join('')||`<tr><td colspan="7"><div class="empty">${UI.tscreen==='Ours'?'No bids marked yet. Click ☆ next to a tender (or set Status = Preparing) to add it here.':'No tenders match. Change the filter or import the pipeline workbook.'}</div></td></tr>`}</tbody></table></div></div>
   <p class="sub">${rows.length} shown of ${S.tenders.length}. Deadline colours: red ≤ 3 days, amber ≤ 7 days.</p>`;
 }
 const TENDER_FIELDS = [
@@ -10218,7 +10223,7 @@ function openTender(id){ openDrawer('tender',id); }
 
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', async e=>{
-  const el=e.target.closest('[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-dlf],[data-stab],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
+  const el=e.target.closest('[data-tstar],[data-nclear],[data-nf],[data-go],[data-open],[data-act],[data-tscreen],[data-dlf],[data-stab],[data-qtab],[data-ptab],[data-ftype],[data-thm],[data-boq],[data-pr],[data-paypr],[data-mtab],[data-mrsvp],[data-medit],[data-mcancel],[data-mdel],[data-mkroom],[data-restoreproj],[data-purgeproj],[data-delrate],[data-delsup],[data-delpr],[data-delfin],[data-editfin],[data-editstaff],[data-mkstaff],[data-delstaff],[data-deptrm],[data-deptnote],[data-deptobjrm],[data-deltask],[data-editdoc],[data-edittask],[data-tmine],[data-rec],[data-rfolder],[data-recopen],[data-recdl],[data-pwtab],[data-editms],[data-editvo],[data-editrisk],[data-editsnag],[data-editplant],[data-ttab],[data-editcert],[data-certstep],[data-addit],[data-delit],[data-delbill],[data-zoom],[data-bg],[data-photos]');
   if(!el) return;
   if(el.dataset.bg!==undefined){ if(e.target===el) closeDrawer(); return; }
   if(el.dataset.zoom!==undefined){ if(el.src) lightbox(el.src); return; }
@@ -10230,6 +10235,10 @@ document.addEventListener('click', async e=>{
   if(el.dataset.open){ const [k,id]=el.dataset.open.split(/:(.+)/); if(k==='tender') openTender(id); else if(k==='project') go('project',id); else if(k==='dept') go('dept',id); else openDrawer(k,id); return; }
   if(el.dataset.stab){ UI.stab=el.dataset.stab; renderView(true); return; }
   if(el.dataset.dlf){ UI.dlf=el.dataset.dlf; renderView(true); return; }
+  if(el.dataset.tstar){ e.stopPropagation(); const t=byId('tenders',el.dataset.tstar); if(!t) return;
+    if(/submitted/i.test(t.status||'')) return toast('This bid is already submitted – change the status on the tender page if needed.');
+    if(/preparing/i.test(t.status||'')){ if(!await confirmBox(`Stop preparing "${t.title}"? It goes back to Watching.`,'Stop')) return; await patch('tenders',t.id,{status:'Watching'}); logAct(`Tender unmarked: ${t.title}`); toast('Removed from Our bids.'); return; }
+    const sid=typeof myStaffId==='function'?myStaffId():null; await patch('tenders',t.id,{status:'Preparing',...(!t.owner&&sid?{owner:sid}:{})}); logAct(`Tender marked to bid: ${t.title}`); toast(`Added to Our bids${!t.owner&&sid?' – you are the owner (deadline reminders)':''}.`); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
