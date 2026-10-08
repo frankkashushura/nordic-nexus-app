@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="66282885ae18">
+<meta name="nexus-build" content="cfc83d594029">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3243,10 +3243,10 @@ function acReports(){
   const needRange=['tb','pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs'].includes(r);
   const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
     ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
-    ${r==='ledger'&&UI.acBack?`<button class="btn sm" data-ac="acBack">← Back to ${UI.acBack.tab==='annual'?'Annual accounts':esc((AC_REPS.find(x=>x[0]===UI.acBack.rep)||[0,'report'])[1])}</button>`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
-  return `${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>`;
+  const k=r==='ledger'&&UI.acBack, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Gateway',day:'Cash Book'}[k.tab]||(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1]):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
+  return `${k?`<div class="toolbar ac-backbar">${bb}<span class="small muted">Ledger opened from ${esc(bl)}</span></div>`:''}${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>${k?`<div class="toolbar ac-backbar">${bb}</div>`:''}`;
 }
 function acRepHtml(r,from,to){
   if(r==='tb') return acTB6Html(from,to);
@@ -3577,7 +3577,7 @@ document.addEventListener('keydown',e=>{
 .ac-vbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px}.ac-vbtns .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}.ac-vbtns .btn span{font-size:11px;opacity:.7;font-family:'IBM Plex Mono',monospace}
 .ac-t{width:100%;border-collapse:collapse}.ac-t th,.ac-t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}.ac-t td.r,.ac-t th.r{text-align:right}.ac-t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ac-gh td{font-weight:700;background:color-mix(in srgb,var(--line) 35%,transparent)}.ac-sec td{font-weight:800;letter-spacing:.05em;color:var(--accent,#F2A900);padding-top:14px}.ac-in{padding-left:24px!important}
-.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
+.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-backbar{margin:0 0 10px}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
 .ac-ln{white-space:nowrap}.ac-filt{flex-wrap:wrap;gap:8px}.ac-filt label{display:flex;align-items:center;gap:6px}.ac-wide th,.ac-wide td{white-space:nowrap}
 .ac-replinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.ac-rl{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}.ac-rl:hover{border-color:var(--accent,#F2A900)}.ac-rl small{opacity:.7}
 .ac-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
