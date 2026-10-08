@@ -2693,7 +2693,7 @@ function poDrawer(o){
       ${pf&&(pf.files||[]).length?`<div style="margin-top:6px"><span class="label">Proforma file</span> ${poFileLinks(pf.files,'q'+o.chosen)}</div>`:''}
       ${TI.length?`<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Tax invoice / EFD no.</th><th>Date</th><th class="r">Amount</th><th>Files</th></tr></thead><tbody>${TI.map((x,k)=>`<tr><td>${esc(x.no||'')}</td><td class="small">${fmtD(x.date)}</td><td class="r num">${x.amount?Math.round(+x.amount).toLocaleString('en-US'):'—'}</td><td>${poFileLinks(x.files,'t'+k)}</td></tr>`).join('')}</tbody></table></div>`:''}
       ${M==='tinv'?`<div class="form" style="margin-top:10px"><div class="fld"><label for="ti_no">Tax invoice / EFD receipt no. *</label><input class="inp" id="ti_no"></div><div class="fld"><label for="ti_dt">Date</label><input class="inp" id="ti_dt" type="date" value="${today()}"></div>
-        <div class="fld"><label for="ti_a">Amount (TZS, VAT inclusive)</label><input class="inp" id="ti_a" type="number" step="any" value="${esc(Math.max(0,Math.round(tot-tiSum))||'')}"></div><div class="fld full"><label for="ti_f">Attach the tax invoice / EFD receipt *</label><input class="inp" id="ti_f" type="file" multiple accept=".pdf,image/*"></div></div>
+        <div class="fld"><label for="ti_a">Amount (TZS, VAT inclusive)</label><input class="inp" id="ti_a" type="number" step="any" value="${esc(Math.max(0,Math.round(tot-tiSum))||'')}" oninput="const v=document.getElementById('ti_v'); if(v&&!v.dataset.e) v.value=Math.round((+this.value||0)*18/118)||''"></div><div class="fld"><label for="ti_v">VAT included (TZS)</label><input class="inp" id="ti_v" type="number" step="any" value="${esc(Math.round(Math.max(0,tot-tiSum)*18/118)||'')}" oninput="this.dataset.e=1"><div class="sub">0 if the supplier is not VAT-registered</div></div><div class="fld full"><label for="ti_f">Attach the tax invoice / EFD receipt *</label><input class="inp" id="ti_f" type="file" multiple accept=".pdf,image/*"></div></div>
         <div class="toolbar"><div class="sp"></div><button class="btn" data-p5="mode:">Cancel</button><button class="btn pri" data-p5="stinv">Save tax invoice</button></div>`
       :`<div class="toolbar" style="margin-top:8px">${money()&&paid<tot-1?`<button class="btn sm pri" data-p5="pay">Record payment${adv&&paid<1?' (advance)':''}</button>`:''}${poCanInv()?'<button class="btn sm" data-p5="mode:tinv">+ Tax invoice / EFD receipt</button>':''}</div>`}
       <p class="sub" style="margin-top:6px">A proforma is only an offer: pay against it if the terms ask for an advance, then attach the supplier's tax invoice / EFD receipt for the full amount – needed for TRA and the VAT claim.</p></div></div>`; }
@@ -2762,10 +2762,10 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-p5
     drawer.mode=''; await poPatch(o.id,{quotes:Q,...(o.chosen==null&&Q.length===1?{}:{})}); logAct(`Recorded quotation from ${s} (${tzs(amt)}) for ${o.rfq_no}`); return; }
   if(a==='pf'){ e.preventDefault(); const [k,j]=arg.split(':'); const list=k[0]==='q'?(o.quotes?.[+k.slice(1)]?.files):(o.tax_invoices?.[+k.slice(1)]?.files); const f=(list||[])[+j]; if(f) pfOpen(f,false); return; }
   if(a==='stinv'){ const no=($('#ti_no')?.value||'').trim(), files=[...($('#ti_f')?.files||[])]; if(!no) return toast('Enter the tax invoice / EFD receipt number.'); if(!files.length&&!await confirmBox('No file attached. Save the tax invoice without a copy?','Save anyway')) return;
-    const x={no,date:$('#ti_dt')?.value||today(),amount:+($('#ti_a')?.value||0)||null,files:await poFiles(o,files),by:me.name||'',at:new Date().toISOString()};
+    const x={no,date:$('#ti_dt')?.value||today(),amount:+($('#ti_a')?.value||0)||null,vat:($('#ti_v')?.value??'')===''?null:+$('#ti_v').value,files:await poFiles(o,files),by:me.name||'',at:new Date().toISOString()};
     drawer.mode=''; await poPatch(o.id,{tax_invoices:[...(o.tax_invoices||[]),x]}); logAct(`Tax invoice ${no} attached to ${o.po_no} (${o.supplier})`); toast('Tax invoice saved.'); return; }
   if(a==='pay'){ if(!money()) return; const pf=poPF(o), tot=+o.amount||poTotal(o), paid=poPaid(o), adv=pf?poAdv(pf):0, pr=byId('procurement',o.pr_id), amt=paid<1&&adv?Math.round(tot*adv/100):Math.max(0,Math.round(tot-paid)), oid=o.id;
-    formDrawer(`Record payment – ${o.po_no} ${o.item||''}`,FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),
+    formDrawer(`Record payment – ${o.po_no} ${o.item||''}`,[...FIN_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Office / overheads')}:f),{k:'wht',label:'Withholding tax withheld (TZS)',type:'number',help:'Only if WHT was withheld from the supplier (e.g. services). The amount above is what was actually paid to the supplier.'}],
       {date:today(),type:'Expense',category:pr?prCat(pr):'Materials',amount:amt||'',project_id:o.project_id||'',party:o.supplier||'',ref:pf&&pf.pf_no?'Proforma '+pf.pf_no:o.po_no,method:'Bank transfer',note:`${paid<1&&adv?adv+'% advance':'Payment'} against ${pf&&pf.pf_no?'proforma '+pf.pf_no+' / ':''}${o.po_no} – ${o.item||''}`},
       async v=>{ if(+v.amount>tot-paid+1&&!await confirmBox(`This payment (${tzs(v.amount)}) is more than the balance on the order (${tzs(Math.max(0,tot-paid))}). Record it anyway?`,'Record anyway')) return false;
         await put('finance',null,{...v,po_id:oid,po_no:o.po_no,pr_id:o.pr_id||'',pr_no:o.pr_no||''}); await poPatch(oid,{paid_total:paid+(+v.amount||0),paid_at:new Date().toISOString()});
@@ -2971,7 +2971,7 @@ function acFinVch(f){
   const lines=inc?[{l:bank,dc:'Dr',amt},{l:other,dc:'Cr',amt,cc}]:[{l:other,dc:'Dr',amt,cc},{l:bank,dc:'Cr',amt}];
   const narr=[f.category,f.party?(inc?'from ':'to ')+f.party:'',f.ref?'ref '+f.ref:'',f.pr_no?f.pr_no:'',f.note||''].filter(Boolean).join(' · ');
   const o={vtype:inc?'Receipt':'Payment',date:f.date,lines,narr,ref:f.ref||'',project_id:cc,amount:amt,src:'fin:'+f.id,auto:true,party_name:f.party||''};
-  o.src_h=JSON.stringify([o.vtype,o.date,lines,narr]); return o; }
+  o.src_h=JSON.stringify([o.vtype,o.date,lines,narr]); return typeof acFinVchAccr==='function'?acFinVchAccr(f,o):o; }
 let AC_SYNCING=false;
 async function acSyncFin(){
   const st=acSet(); if(AC_SYNCING||!st||!st.auto_post||!acCan()||!acL('L_bank')) return;
@@ -2995,7 +2995,7 @@ const AC_TABS=[['gate','Gateway'],['day','Day Book'],['led','Ledgers'],['rep','R
 function pageFinance(){
   if(!money()) return `<div class="card empty">Finance is restricted to administrators and Finance users.</div>`;
   const st=acSet(), tab=UI.actab||'gate';
-  if(st&&st.auto_post) setTimeout(acSyncFin,50);
+  if(st&&(st.auto_post||st.accrual_from)) setTimeout(async()=>{ try{ if(typeof acSyncAccr==='function') await acSyncAccr(); }catch(e){ console.warn(e); } if(st.auto_post) acSyncFin(); },50);
   const tabs=`<div class="seg ac-tabs" role="tablist">${AC_TABS.map(([k,l])=>`<button data-ac="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
   if(!st&&tab!=='quick') return `${tabs}<div class="card ac-setup"><div class="bd"><h2 style="margin-top:0">Accounts – Tally-style books</h2>
     <p>Set up proper double-entry books like Tally.ERP 9: <b>groups & ledgers</b>, <b>vouchers</b> (Contra F4, Payment F5, Receipt F6, Journal F7, Sales F8, Purchase F9, Credit/Debit notes) with Debit and Credit lines,
@@ -3355,11 +3355,11 @@ function acFCData(){
   const t=today(), m0=t.slice(0,7), months=[0,1,2].map(k=>{ const d=new Date(m0+'-01T00:00:00'); d.setMonth(d.getMonth()+k); return ymd(d).slice(0,7); });
   const cashNow=acR(acLed().filter(l=>AC_CASH.includes(l.group)).reduce((a,l)=>a+acBalTo(l.id,t),0));
   const rows=[]; const add=(lbl,src,m,v)=>{ let r=rows.find(x=>x.lbl===lbl); if(!r){ r={lbl,src,m:{}}; rows.push(r); } const k=months.includes(m)?m:(m<months[0]?months[0]:null); if(k) r.m[k]=acR((r.m[k]||0)+v); };
-  (S.certificates||[]).filter(c=>c.status==='Certified'&&!c.example).forEach(c=>{ const due=certDue(c); add('IPCs certified – awaiting payment','Payment certificates',due?ymd(due).slice(0,7):months[0],+c.amount||0); });
+  (S.certificates||[]).filter(c=>c.status==='Certified'&&!c.example&&!(typeof acHasAccrV==='function'&&acHasAccrV('cert:'+c.id))).forEach(c=>{ const due=certDue(c); add('IPCs certified – awaiting payment','Payment certificates',due?ymd(due).slice(0,7):months[0],+c.amount||0); });
   (S.certificates||[]).filter(c=>c.status==='Submitted'&&!c.example).forEach(c=>{ const d=c.submitted?acDay(c.submitted,14+(+c.terms||28)):acDay(t,45); add('IPCs submitted – expected after certification','Payment certificates',d.slice(0,7),+c.amount||0); });
-  const deb=acGrpBal('Sundry Debtors',t); if(deb>0) add('Other debtors (ledger balances)','Sundry Debtors',months[0],deb);
+  const deb=acGrpBal('Sundry Debtors',t); if(deb>0) add('Client & other debtors (ledger balances)','Sundry Debtors',months[0],deb);
   const cred=-acGrpBal('Sundry Creditors',t); if(cred>0) add('Supplier & subcontractor bills due','Sundry Creditors',months[0],-cred);
-  (S.procurement||[]).filter(p=>['Approved','Ordered'].includes(p.status)&&!p.example).forEach(p=>{ const due=Math.max(0,(+p.est_cost||0)-prPaid(p)); if(due) add('Approved purchase requests not yet paid','Procurement',(p.needed_by||t).slice(0,7),-due); });
+  (S.procurement||[]).filter(p=>['Approved','Ordered'].includes(p.status)&&!p.example&&!(S.vouchers||[]).some(v=>!v.cancelled&&v.pr_id===p.id&&String(v.src||'').startsWith('poinv:'))).forEach(p=>{ const due=Math.max(0,(+p.est_cost||0)-prPaid(p)); if(due) add('Approved purchase requests not yet paid','Procurement',(p.needed_by||t).slice(0,7),-due); });
   const tax=-acGrpBal('Duties & Taxes',t); if(tax>0) add('Taxes & statutory payable (VAT, PAYE, NSSF…)','Duties & Taxes',months[0],-tax);
   const back=acDay(t.slice(0,7)+'-01',-1), b3=(()=>{ const d=new Date(t.slice(0,7)+'-01T00:00:00'); d.setMonth(d.getMonth()-3); return ymd(d); })();
   const oh=acR(acLedIn('Indirect Expenses').filter(l=>!l.is_dep&&!l.is_tax).reduce((a,l)=>a+acSum(l.id,b3,back),0)/3); if(oh>0) months.forEach(m=>add('Salaries & overheads (average of last 3 months)','Indirect Expenses',m,-oh));
@@ -3453,13 +3453,15 @@ function acSettings(){ const st=acSet()||{};
     <div><b>Books begin from</b><div>${fmtD(st.books_from)}</div></div><div><b>Financial year</b><div>${acFyM()===1?'1 January – 31 December':'1 July – 30 June'}</div></div>
     <div><b>Quick entries posted automatically</b><div>${st.auto_post?'Yes':'No'} <button class="btn sm ghost" data-ac="autoToggle">${st.auto_post?'Turn off':'Turn on'}</button></div></div>
     <div><b>Company TIN / VRN</b><div>${esc(st.company_tin||'–')} / ${esc(st.company_vrn||'–')} <button class="btn sm ghost" data-ac="setEdit">Edit</button></div></div>
+    <div><b>Accrual posting</b><div>${st.accrual_from?'IPCs and supplier tax invoices posted to client / supplier accounts from '+esc(fmtD(st.accrual_from)):'Off – cash basis (only payments and receipts are posted)'} <button class="btn sm ghost" data-ac="accrSet">Edit</button></div></div>
     <div><b>Locked period</b><div>${st.locked_until?`Entries up to <b>${fmtD(st.locked_until)}</b> are locked`:'Nothing locked'} ${isAdmin?'<button class="btn sm ghost" data-ac="lock">Change</button>':''}</div><div class="small muted">Lock a year after the audit so nobody can change those figures. Only directors can lock or unlock.</div></div>
   </div></div>
   <div class="card"><div class="hd"><h2>How the books work</h2></div><div class="bd small"><ul class="clean">
     <li><b>Groups & ledgers</b> follow Tally.ERP 9: every ledger sits under a group (Bank Accounts, Sundry Debtors, Sundry Creditors, Direct Expenses, Duties & Taxes …) that decides where it appears in the Profit & Loss account and Balance Sheet.</li>
     <li><b>Vouchers</b> are entered with Debit and Credit lines; NEXUS refuses a voucher unless debits equal credits. Payment and Receipt need a bank/cash ledger; Contra is only bank ↔ cash.</li>
     <li><b>Year end</b> needs no closing entries: income and expense ledgers start each year from zero and the profit moves to “Profit & Loss A/c” (retained earnings) automatically, like Tally. Record depreciation, accruals and closing stock with Journal vouchers.</li>
-    <li><b>Quick entries</b> (payments of purchase requests, IPC payments, the simple form) become Payment / Receipt vouchers automatically – marked “auto” in the Day Book.</li></ul></div></div>`; }
+    <li><b>Quick entries</b> (payments of purchase requests, IPC payments, the simple form) become Payment / Receipt vouchers automatically – marked “auto” in the Day Book.</li>
+    <li><b>Accrual posting</b> (when switched on): a Certified IPC is posted to the client’s account with VAT output, retention and advance recovery; a supplier tax invoice / EFD receipt to the supplier’s account with VAT input. Payments and receipts then clear those accounts, with withholding tax posted separately – so Outstandings, VAT and the annual accounts are complete.</li></ul></div></div>`; }
 
 /* ===================== EXPORT (Excel / PDF) ===================== */
 function acTableAoA(html){ const d=document.createElement('div'); d.innerHTML=html; const out=[]; d.querySelectorAll('h2,h3,table').forEach(el=>{ if(el.tagName!=='TABLE'){ out.push([el.textContent.trim()]); return; }
@@ -3491,6 +3493,7 @@ document.addEventListener('click',async e=>{
   if(a==='ledNew') return acLedForm(null);
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
   if(a==='autoToggle'){ const st=acSet(); await patch('acset','main',{auto_post:!st.auto_post}); return; }
+  if(a==='accrSet') return acAccrForm();
   if(a==='setEdit'){ const st=acSet()||{}; formDrawer('Company tax numbers',[{k:'company_tin',label:'TIN'},{k:'company_vrn',label:'VRN'}],st,async x=>{ await patch('acset','main',{company_tin:x.company_tin||'',company_vrn:x.company_vrn||''}); },{sub:'Accounts · settings'}); return; }
   if(a==='lock'){ if(!isAdmin) return; const st=acSet()||{}; formDrawer('Lock period',[{k:'locked_until',label:'Lock all entries up to and including',type:'date',help:'Leave empty to unlock everything.'}],st,async x=>{ await patch('acset','main',{locked_until:x.locked_until||''}); logAct(`Accounts locked up to ${x.locked_until||'(nothing)'}`); },{sub:'Accounts · settings',saveLabel:'Save'}); return; }
   if(a==='xls'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t;
@@ -3870,6 +3873,70 @@ async function acAuditPdf(){
   </style></head><body>${acc.map(pg).join('')}${tb.map(pg).join('')}${tax.map(pg).join('')}${vat.map(pg).join('')}</body></html>`);
   w.document.close(); logAct(`Annual accounts ${Y} – PDF (audit format)`); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },800);
 }
+/* ===================== ACCOUNTS v189 · Accrual posting: IPCs → client accounts, supplier tax invoices → supplier accounts =====================
+   From acset.accrual_from (Settings): a Certified IPC becomes a Sales voucher (Dr client, Dr retention receivable, Dr advance recovered,
+   Cr construction income, Cr VAT output); its payment becomes a Receipt that clears the client (Dr bank, Dr WHT recoverable).
+   A supplier tax invoice / EFD on an order becomes a Purchase voucher (Dr cost, Dr VAT input, Cr supplier); payments against the order
+   clear the supplier (Dr supplier, Cr bank, Cr WHT payable). Vouchers are kept in step with the source; a source that is withdrawn cancels its voucher. */
+const acAccr=()=>{ const st=acSet(); return !!(st&&st.accrual_from); };
+const acSlug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'x';
+const AC_MADE=new Set();
+const acPartyId=(name,group,prefix)=>{ const nm=String(name||'').trim(); if(!nm) return null; const lc=nm.toLowerCase(); const ex=acLed().find(l=>l.group===group&&String(l.name||'').trim().toLowerCase()===lc); if(ex) return ex.id; const id=prefix+acSlug(nm); return acL(id)||AC_MADE.has(id)?id:null; };
+async function acParty(name,group,prefix){ const id0=acPartyId(name,group,prefix); if(id0) return id0; const nm=String(name||'').trim(); if(!nm) return null; const id=prefix+acSlug(nm);
+  await put('ledgers',id,{name:nm,group,op:0,op_dc:group==='Sundry Debtors'?'Dr':'Cr',auto:true}); AC_MADE.add(id); return id; }
+async function acEnsureL(id){ if(acL(id)||AC_MADE.has(id)) return id; const d=AC_DEFAULT.find(x=>x[0]===id);
+  const def=d?{name:d[1],group:d[2]}:id==='L_taxrec'?{name:'Income tax recoverable (WHT & provisional tax)',group:'Loans & Advances (Asset)'}:null; if(!def) return null;
+  await put('ledgers',id,{...def,op:0,op_dc:acNat(def.group)==='L'?'Cr':'Dr'}); AC_MADE.add(id); return id; }
+const acAccrFrom=()=>{ const st=acSet()||{}; return [st.accrual_from||'9999',st.books_from||''].sort().pop(); };
+const acAccrOk=d=>{ const st=acSet()||{}; return !!(d&&acAccr()&&d>=acAccrFrom()&&!(st.locked_until&&d<=st.locked_until)); };
+const acCertDate=c=>c.certified||c.paid_date||c.submitted||'';
+const acCertVat=c=>c.vat!=null&&c.vat!==''?acR(+c.vat):acR((+c.amount||0)*18/118);
+const acTiVat=x=>x.vat!=null&&x.vat!==''?acR(+x.vat):acR((+x.amount||0)*18/118);
+const acPoExpL=o=>{ const pr=o.pr_id?byId('procurement',o.pr_id):null, cat=pr&&typeof prCat==='function'?prCat(pr):'Materials';
+  if(cat==='Materials'&&acL('L_matp')) return 'L_matp'; const l=AC_MAP_EXP[cat]||'L_mat'; return acL(l)?l:(acL('L_mat')?'L_mat':'L_sundry'); };
+const acHash=o=>JSON.stringify([o.vtype,o.date,o.lines,o.narr]);
+function acCertVch(c,cl,client){ const amt=acR(+c.amount||0); if(!(amt>0)) return null; const vat=acCertVat(c), ret=acR(+c.retention||0), adv=acR(+c.adv_rec||0), rev=acR(amt-vat+ret+adv), cc=c.project_id||'';
+  if(rev<=0) return null; const lines=[{l:cl,dc:'Dr',amt,cc}]; if(ret>0) lines.push({l:'L_retrec',dc:'Dr',amt:ret,cc}); if(adv>0) lines.push({l:'L_adv',dc:'Dr',amt:adv,cc});
+  lines.push({l:'L_rev',dc:'Cr',amt:rev,cc}); if(vat>0) lines.push({l:'L_vatout',dc:'Cr',amt:vat,cc});
+  const o={vtype:'Sales',date:acCertDate(c),lines,narr:`${c.no||'IPC'} certified – ${projName(c.project_id)}${ret?' · retention '+ret.toLocaleString('en-US'):''}${vat?' · VAT '+vat.toLocaleString('en-US'):''}`,ref:c.no||'',project_id:cc,amount:amt,src:'cert:'+c.id,auto:true,party_name:client,cert_id:c.id};
+  o.src_h=acHash(o); return o; }
+function acPoInvVch(o,x,i,sp){ const amt=acR(+x.amount||0); if(!(amt>0)) return null; const vat=Math.min(acTiVat(x),amt), cc=o.project_id||'', exp=acPoExpL(o);
+  const lines=[{l:exp,dc:'Dr',amt:acR(amt-vat),cc}]; if(vat>0) lines.push({l:'L_vatin',dc:'Dr',amt:vat}); lines.push({l:sp,dc:'Cr',amt});
+  const v={vtype:'Purchase',date:x.date,lines,narr:`Tax invoice ${x.no||''} – ${o.supplier} – ${o.po_no}${o.item?' '+o.item:''}`,ref:x.no||o.po_no,project_id:cc,amount:amt,src:`poinv:${o.id}:${i}`,auto:true,party_name:o.supplier,po_id:o.id,...(o.pr_id?{pr_id:o.pr_id}:{})};
+  v.src_h=acHash(v); return v; }
+/* payments / receipts (finance entries) – called from acFinVch */
+let AC_PEND=null;   // accrual vouchers wanted by the last sync (S.vouchers may not have caught up yet)
+const acAccrV=id=>AC_PEND?AC_PEND.get(id):(S.vouchers||[]).find(v=>v.id===id&&!v.cancelled);
+const acPoAccrued=po=>AC_PEND?[...AC_PEND.keys()].some(k=>k.startsWith(`poinv_${po}_`)):(S.vouchers||[]).some(v=>!v.cancelled&&v.po_id===po&&String(v.src||'').startsWith('poinv:'));
+function acFinVchAccr(f,o){ if(!o) return o; const amt=o.amount, bank=o.lines[o.vtype==='Receipt'?0:1].l, cc=o.project_id||'';
+  if(f.type==='Income'&&f.cert_id){ const sv=acAccrV('cert_'+f.cert_id); if(!sv) return o; const c=byId('certificates',f.cert_id)||{}, wht=acR(+c.wht||0);
+    o.lines=[{l:bank,dc:'Dr',amt},...(wht>0?[{l:'L_taxrec',dc:'Dr',amt:wht}]:[]),{l:sv.lines[0].l,dc:'Cr',amt:acR(amt+wht),cc}]; o.narr+=wht?` · WHT ${wht.toLocaleString('en-US')} deducted by the client`:''; }
+  else if(f.type!=='Income'&&f.po_id&&(acAccrOk(f.date)||acPoAccrued(f.po_id))){ const po=byId('po',f.po_id); const sp=po&&acPartyId(po.supplier,'Sundry Creditors','L_sp_'); if(!sp) return o; const wht=acR(+f.wht||0);
+    o.lines=[{l:sp,dc:'Dr',amt:acR(amt+wht),cc},{l:bank,dc:'Cr',amt},...(wht>0?[{l:'L_wht',dc:'Cr',amt:wht}]:[])]; o.narr+=wht?` · WHT ${wht.toLocaleString('en-US')} withheld`:''; }
+  else if(f.type==='Income'&&f.category==='Retention release'&&acAccrOk(f.date)) o.lines=o.lines.map(x=>x.dc==='Cr'?{...x,l:'L_retrec'}:x);
+  else return o;
+  o.src_h=acHash(o); return o; }
+let AC_ACC_SYNC=false;
+async function acSyncAccr(){ if(AC_ACC_SYNC||!acAccr()||!acCan()) return 0; const lk=(acSet()||{}).locked_until||''; AC_ACC_SYNC=true; let n=0; const want=new Map();
+  try{
+    for(const c of S.certificates||[]){ if(c.example||c.deleted||!['Certified','Paid'].includes(c.status)||!acAccrOk(acCertDate(c))) continue;
+      const p=byId('projects',c.project_id), client=String((p&&p.client)||('Client – '+((p&&p.name)||'unknown project'))).trim(); const cl=await acParty(client,'Sundry Debtors','L_cl_'); if(!cl) continue;
+      for(const id of ['L_rev','L_vatout',...(+c.retention?['L_retrec']:[]),...(+c.adv_rec?['L_adv']:[]),...(+c.wht?['L_taxrec']:[])]) await acEnsureL(id);
+      const o=acCertVch(c,cl,client); if(o) want.set('cert_'+c.id,o); }
+    for(const o of S.po||[]){ if(o.example||o.deleted||!o.po_no||o.status==='Cancelled'||!o.supplier) continue; const TI=(o.tax_invoices||[]).map((x,i)=>[x,i]).filter(([x])=>acAccrOk(x.date)&&+x.amount>0);
+      const pays=(S.finance||[]).filter(f=>f.po_id===o.id&&f.type!=='Income'&&!f.deleted&&acAccrOk(f.date)); if(!TI.length&&!pays.length&&!acPoAccrued(o.id)) continue;
+      const sp=await acParty(o.supplier,'Sundry Creditors','L_sp_'); if(!sp) continue; if(TI.length) await acEnsureL('L_vatin'); if(pays.some(f=>+f.wht)) await acEnsureL('L_wht');
+      for(const [x,i] of TI){ const v=acPoInvVch(o,x,i,sp); if(v) want.set(`poinv_${o.id}_${i}`,v); } }
+    for(const [id,o] of want){ const cur=(S.vouchers||[]).find(v=>v.id===id); if(cur&&(cur.manual||(!cur.cancelled&&cur.src_h===o.src_h))) continue; if(cur&&lk&&cur.date<=lk) continue;
+      await put('vouchers',id,{...o,no:cur&&cur.no||acNextNo(o.vtype,o.date,true)}); n++; }
+    for(const v of S.vouchers||[]){ if(!v.auto||v.manual||v.cancelled||want.has(v.id)||!/^(cert|poinv):/.test(v.src||'')) continue; if(lk&&v.date<=lk) continue; await patch('vouchers',v.id,{cancelled:true}); n++; }
+    AC_PEND=want;
+  } finally{ AC_ACC_SYNC=false; }
+  if(n) logAct(`Accounts: ${n} certificate / supplier-invoice voucher${n===1?'':'s'} posted`); return n; }
+const acHasAccrV=src=>(S.vouchers||[]).some(v=>!v.cancelled&&v.src===src);
+function acAccrForm(){ const st=acSet()||{};
+  formDrawer('Accrual posting (client & supplier accounts)',[{k:'accrual_from',label:'Post certificates and supplier invoices from',type:'date',help:'From this date a Certified IPC is posted to the client’s account (with VAT, retention, advance recovery and WHT) and a supplier tax invoice / EFD receipt to the supplier’s account; payments then clear those accounts. Leave empty to switch off (cash basis: only payments and receipts are posted).'}],
+    {accrual_from:st.accrual_from||today()},async x=>{ await patch('acset','main',{accrual_from:x.accrual_from||''}); logAct(`Accrual posting ${x.accrual_from?'from '+x.accrual_from:'switched off'}`); toast(x.accrual_from?'Saved – certificates and supplier invoices will be posted from '+fmtD(x.accrual_from)+'.':'Accrual posting switched off.'); },{sub:'Accounts · settings',saveLabel:'Save'}); }
 /* ===================== CHAT (private 1-to-1; module in nexus-chat.js) ===================== */
 function pageChat(){ return window.NX_CHAT_MOUNT?'<div id="chatHost"></div>':'<div class="card empty">Chat is available in the NEXUS app (sign in online).</div>'; }
 /* ===================== MEETINGS ===================== */
@@ -4899,11 +4966,11 @@ const CERT_FIELDS=[
   {k:'project_id',label:'Project',type:'select',req:1},{k:'no',label:'IPC number',req:1,ph:'e.g. IPC 07'},
   {k:'period_end',label:'Valuation date',type:'date'},{k:'submitted',label:'Submitted to consultant',type:'date'},
   {k:'gross',label:'Gross value of work to date (TZS)',type:'number'},{k:'amount',label:'Net amount due this certificate (TZS)',type:'number',req:1},
-  {k:'retention',label:'Retention held this certificate (TZS)',type:'number'},{k:'status',label:'Status',type:'select',options:['Draft','Submitted','Certified','Paid']},
+  {k:'retention',label:'Retention held this certificate (TZS)',type:'number'},{k:'vat',label:'VAT included in the net amount (TZS)',type:'number',help:'Leave empty for 18% (amount × 18/118). Enter 0 if the certificate has no VAT.'},{k:'adv_rec',label:'Advance payment recovered this certificate (TZS)',type:'number'},{k:'status',label:'Status',type:'select',options:['Draft','Submitted','Certified','Paid']},
   {k:'certified',label:'Date certified',type:'date'},{k:'terms',label:'Payment period (days after certification)',type:'number',def:28},
-  {k:'paid_date',label:'Date paid',type:'date'},{k:'paid_amount',label:'Amount received (TZS)',type:'number'},{k:'notes',label:'Notes',type:'textarea'}];
+  {k:'paid_date',label:'Date paid',type:'date'},{k:'paid_amount',label:'Amount received (TZS)',type:'number'},{k:'wht',label:'Withholding tax deducted by the client (TZS)',type:'number',help:'Shown on the client’s payment advice / WHT certificate. Posted to income tax recoverable.'},{k:'notes',label:'Notes',type:'textarea'}];
 /* QS: no Paid status, no payment fields (Finance / MD record payment) */
-const certFields=c=>CERT_FIELDS.filter(f=>money()||!['paid_date','paid_amount'].includes(f.k)).map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f.k==='status'&&!money()?{...f,options:c&&c.status==='Paid'?['Paid']:['Draft','Submitted','Certified']}:f);
+const certFields=c=>CERT_FIELDS.filter(f=>money()||!['paid_date','paid_amount','wht'].includes(f.k)).map(f=>f.k==='project_id'?{...f,options:projOpts('— choose project —')}:f.k==='status'&&!money()?{...f,options:c&&c.status==='Paid'?['Paid']:['Draft','Submitted','Certified']}:f);
 function certDue(c){ const b=toDate(c.certified); if(!b) return null; const d=new Date(b); d.setDate(d.getDate()+(+c.terms||28)); return d; }
 function certState(c){
   if(c.status==='Paid') return {cls:'good',label:'Paid'};
@@ -4913,7 +4980,7 @@ function certState(c){
   return {cls:'',label:c.status||'Draft'};
 }
 // v84: a certificate marked Paid records the receipt in Finance once (linked by cert_id; Finance can still edit it)
-async function certToFinance(c){ if(!money()||!c||(S.finance||[]).some(f=>f.cert_id===c.id)) return false; const amt=+c.paid_amount||+c.amount||0; if(!amt) return false;
+async function certToFinance(c){ if(!money()||!c||(S.finance||[]).some(f=>f.cert_id===c.id)) return false; const amt=+c.paid_amount||Math.max(0,(+c.amount||0)-(+c.wht||0)); if(!amt) return false;
   const p=byId('projects',c.project_id);
   return !!(await put('finance',null,{date:c.paid_date||today(),type:'Income',category:'Payment certificate (IPC)',amount:amt,project_id:c.project_id||'',party:p?.client||'',ref:c.no||'',method:'Bank transfer',note:`Received for ${c.no||'certificate'} (recorded automatically when marked Paid)`,cert_id:c.id})); }
 function pageCerts(){
@@ -5057,7 +5124,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-p5
     if(!(c.due>0)&&!await confirmBox(`The amount due is ${tzs(c.total)} – submit anyway?`,'Submit')) return;
     if(!await confirmBox(`Submit Valuation No. ${v.no} and create IPC ${v.no} for ${tzs(c.total)} (incl. VAT)? The valuation is then locked.`,'Submit & create IPC')) return;
     const prevRet=valPrev(vv)?valCalc(valPrev(vv)).ret:0;
-    const cid=await put('certificates',null,{project_id:v.project_id,no:`IPC ${String(v.no).padStart(2,'0')}`,period_end:vv.date,submitted:today(),gross:Math.round(c.gross),amount:Math.round(c.total),retention:Math.round(c.ret-prevRet),status:'Submitted',terms:28,val_id:v.id,
+    const cid=await put('certificates',null,{project_id:v.project_id,no:`IPC ${String(v.no).padStart(2,'0')}`,period_end:vv.date,submitted:today(),gross:Math.round(c.gross),amount:Math.round(c.total),retention:Math.round(c.ret-prevRet),vat:Math.round(c.vat),adv_rec:Math.round((+vv.adv_to_date||0)-(valPrev(vv)?+valPrev(vv).adv_to_date||0:0)),status:'Submitted',terms:28,val_id:v.id,
       notes:`From Valuation No. ${v.no}: amount due ${Math.round(c.due).toLocaleString('en-US')} + VAT ${Math.round(c.vat).toLocaleString('en-US')}. Retention to date ${Math.round(c.ret).toLocaleString('en-US')}.`});
     if(!cid) return; await patch('valuations',v.id,{...up,status:'Submitted',cert_id:cid,prev_net:c.prevNet,submitted_at:new Date().toISOString(),submitted_by:me.name||''});
     logAct(`Submitted Valuation No. ${v.no} (${projName(v.project_id)}) – IPC ${tzs(c.total)}`); toast('Submitted – IPC created in Payment Certificates.'); return; }
@@ -10108,7 +10175,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.ttab){ UI.ttab=el.dataset.ttab; renderView(true); return; }
   if((el.dataset.deptrm||el.dataset.deptnote||el.dataset.deptobjrm!==undefined)&&await deptClick(el)) return;
   if(el.dataset.editcert){ const c=byId('certificates',el.dataset.editcert); formDrawer('Payment certificate',certFields(c),c,async v=>{ await patch('certificates',c.id,v); logAct(`Updated ${v.no} (${projName(v.project_id)}) – ${v.status}`); if(v.status==='Paid'&&c.status!=='Paid'&&await certToFinance({...c,...v,paid_date:v.paid_date||today()})) toast('Receipt recorded in Finance.'); },{sub:'Payment certificates',delOk:money(),delLabel:'Remove',delMsg:`Remove payment certificate ${c.no||''} (${projName(c.project_id)})? It is removed from Payment Certificates only – entries in the Finance ledger are not changed.`,onDelete:async()=>{ if(!await remove('certificates',c.id)) return false; logAct(`Removed payment certificate ${c.no||''} (${projName(c.project_id)})`); }}); return; }
-  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); if(!c||(st==='Paid'&&!money())) return; const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||c.amount; } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); const fin=st==='Paid'?await certToFinance({...c,...up}):false; toast(`${c.no} marked ${st.toLowerCase()}${fin?' – receipt recorded in Finance':''}. Open it to adjust dates or amount.`); return; }
+  if(el.dataset.certstep){ const [id,st]=el.dataset.certstep.split(':'); const c=byId('certificates',id); if(!c||(st==='Paid'&&!money())) return; const up={status:st}; if(st==='Certified') up.certified=today(); if(st==='Paid'){ up.paid_date=today(); up.paid_amount=c.paid_amount||Math.max(0,(+c.amount||0)-(+c.wht||0)); } await patch('certificates',id,up); logAct(`${c.no} (${projName(c.project_id)}) marked ${st.toLowerCase()}`); const fin=st==='Paid'?await certToFinance({...c,...up}):false; toast(`${c.no} marked ${st.toLowerCase()}${fin?' – receipt recorded in Finance':''}. Open it to adjust dates or amount.`); return; }
   if(el.dataset.qtab){ UI.qtab=el.dataset.qtab; renderView(true); return; }
   if(el.dataset.ptab){ UI.ptab=el.dataset.ptab; renderView(true); return; }
   if(el.dataset.ftype){ UI.ftype=el.dataset.ftype; renderView(true); return; }
