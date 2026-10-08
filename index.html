@@ -3433,14 +3433,16 @@ function acBRSHtml(id,to){ const l=acL(id); if(!l) return '<div class="empty">Cr
     <td><input type="date" class="inp" value="${esc(ln.bd||'')}" data-acbd="${esc(p.v.id)}:${p.i}" ${acLocked(p.d)?'disabled':''}></td></tr>`; }).join('')||'<tr><td colspan="6" class="empty">No bank entries.</td></tr>'}</tbody></table></div>`; }
 
 /* ===================== ANNUAL ACCOUNTS ===================== */
+/* default year for Annual accounts: the last finished financial year (the current one is not complete yet) */
+const acAnnDefFy=()=>{ const cur=acFyStart(today()), st=acSet()||{}, last=acFyStart(acDay(cur,-1)); return st.books_from&&last<acFyStart(st.books_from)?cur:last; };
 function acAnnual(){
-  const st=acSet()||{}, fy=UI.acfy||acFyStart(today()), prev=acFyStart(acDay(fy,-1)), fe=acFyEnd(fy), pe=acDay(fy,-1);
+  const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), prev=acFyStart(acDay(fy,-1)), fe=acFyEnd(fy)>today()?today():acFyEnd(fy), pe=acDay(fy,-1);
   const yrs=[]; for(let d=acFyStart(today()); d>=acFyStart(st.books_from||today()); d=acFyStart(acDay(d,-1))) yrs.push(d);
   const hasPrev=st.books_from&&prev>=acFyStart(st.books_from);
   const P=hasPrev?[[fy,fe],[prev,pe]]:[[fy,fe]], B=hasPrev?[fe,pe]:[fe];
   return `<div class="toolbar"><label class="small">Financial year <select class="inp" data-acf="acfy">${yrs.map(y=>`<option value="${y}" ${y===fy?'selected':''}>${acFyLbl(y)} (${fmtD(y)} – ${fmtD(acFyEnd(y))})</option>`).join('')}</select></label><div class="sp"></div>
     <button class="btn sm" data-ac="annDet">✎ Report details</button><button class="btn sm" data-ac="annXlsS">Simple Excel</button><button class="btn sm" data-ac="annXls">⬇ Excel (audit format)</button><button class="btn sm" data-ac="annPdfS">Simple PDF</button><button class="btn pri sm" data-ac="annPdf">⬇ PDF (audit format)</button></div>
-  <div class="banner"><div>Annual financial statements for the year ended <b>${fmtD(fe)}</b>${hasPrev?` with comparative figures for ${acFyLbl(prev)}`:''}: statement of profit or loss, statement of financial position, statement of cash flows, notes (schedules) and trial balance. Hand the PDF / Excel to the auditor.${fe>today()?' <b>The year is not finished – figures are to date.</b>':''}</div></div>
+  <div class="banner"><div>Annual financial statements ${acFyEnd(fy)>today()?`for the period <b>${fmtD(fy)} – ${fmtD(fe)}</b> (year to date)`:`for the year ended <b>${fmtD(fe)}</b>`}${hasPrev?` with comparative figures for ${acFyLbl(prev)}`:''}: statement of profit or loss, statement of financial position, statement of cash flows, notes (schedules) and trial balance. Hand the PDF / Excel to the auditor.${acFyEnd(fy)>today()?` <b>This year is not finished yet – figures are up to today (${fmtD(fe)}); the year ends ${fmtD(acFyEnd(fy))}.</b>`:''}</div></div>
   <div class="card">${acPLHtml(P)}</div><div class="card">${acBSHtml(B)}</div><div class="card">${acCFHtml(P)}</div>
   <div class="card">${acHd('Notes – schedules',`ledger balances that make up each line · as at ${fmtD(fe)}`)}${acNotesHtml(fy,fe)}</div>`;
 }
@@ -3476,7 +3478,7 @@ function acPdf(title,html,orient){ const w=window.open('','_blank'); if(!w){ toa
   .hd{margin-top:6px}.banner,.btn,button,input{display:none!important}.muted{color:#666}.card{page-break-after:auto}.pb{page-break-before:always}.sig{display:flex;justify-content:space-between;margin-top:50px}.sig div{border-top:1px solid #333;width:40%;text-align:center;padding-top:3px}</style></head><body>
   <div class="co"><b>${esc(c.name||'Nordic Construction Co. Ltd')}</b><div>${esc(c.address||'')}${st.company_tin?' · TIN '+esc(st.company_tin):''}${st.company_vrn?' · VRN '+esc(st.company_vrn):''} · All amounts in Tanzanian Shillings (TZS)</div></div>${html}
   <div class="sub" style="margin-top:12px">Printed from NORDIC NEXUS on ${fmtD(today())}</div></body></html>`); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },600); }
-function acAnnualParts(){ const st=acSet()||{}, fy=UI.acfy||acFyStart(today()), prev=acFyStart(acDay(fy,-1)), fe=acFyEnd(fy), pe=acDay(fy,-1), hasPrev=st.books_from&&prev>=acFyStart(st.books_from);
+function acAnnualParts(){ const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), prev=acFyStart(acDay(fy,-1)), fe=acFyEnd(fy)>today()?today():acFyEnd(fy), pe=acDay(fy,-1), hasPrev=st.books_from&&prev>=acFyStart(st.books_from);
   const P=hasPrev?[[fy,fe],[prev,pe]]:[[fy,fe]], B=hasPrev?[fe,pe]:[fe];
   return {fy,fe,parts:[['Profit and loss',acPLHtml(P)],['Financial position',acBSHtml(B)],['Cash flows',acCFHtml(P)],['Notes',acHd('Notes – schedules','as at '+fmtD(fe))+acNotesHtml(fy,fe)],['Trial balance',acTBHtml(fe)]]}; }
 
@@ -3646,7 +3648,7 @@ function acSheet(W){
 /* ---------- the workbook ---------- */
 async function acAuditXlsx(){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const st=acSet()||{}, fy=UI.acfy||acFyStart(today()), fe=acFyEnd(fy), ps=acFyStart(acDay(fy,-1)), pe=acDay(fy,-1), hasPrev=st.books_from&&ps>=acFyStart(st.books_from);
+  const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), fe=acFyEnd(fy), ps=acFyStart(acDay(fy,-1)), pe=acDay(fy,-1), hasPrev=st.books_from&&ps>=acFyStart(st.books_from);
   const D=acAudData(fy,fe), P=hasPrev?acAudData(ps,pe):null, Y=fe.slice(0,4), Y0=pe.slice(0,4);
   const co=company(), coName=(co.name||'Nordic Construction Company Limited').toUpperCase(), SN=`'ACC ${Y}'!`;
   // built twice: pass 1 fixes the layout (row numbers), pass 2 writes the formulas that point to those rows
@@ -3806,7 +3808,7 @@ async function acAuditXlsx(){
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
   return {D,P};
 }
-function acReportDetails(){ const st=acSet()||{}, fy=UI.acfy||acFyStart(today()), Y=acFyEnd(fy).slice(0,4);
+function acReportDetails(){ const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), Y=acFyEnd(fy).slice(0,4);
   formDrawer('Annual report details',[{k:'activity',label:'Principal activities',full:1},{k:'directors',label:'Directors (one per line)',type:'textarea',full:1},
     {k:'auditor',label:'Auditor (name and address, one line each)',type:'textarea',full:1},{k:'fs_date',label:`Date the ${Y} statements are signed`,ph:'e.g. 27th March 2026'}],
     {activity:st.activity||'The Company is dealing with Civil and Building construction business',directors:st.directors||'',auditor:st.auditor||'',fs_date:(st.fs_dates||{})[Y]||''},
