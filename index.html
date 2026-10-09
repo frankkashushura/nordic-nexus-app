@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="77784370b4ed">
+<meta name="nexus-build" content="5ce5df10513b">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3077,14 +3077,14 @@ function acDayBook(){
     <td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Dr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td><td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Cr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td>${acCanDel()?`<td class="c">${!v.auto&&!acLocked(v.date)?`<button class="btn sm ghost ac-del" data-ac="vDel" data-v="${esc(v.id)}" title="Delete this voucher">🗑</button>`:''}</td>`:''}</tr>`).join('')||'<tr><td colspan="7" class="empty">No vouchers in this period.</td></tr>'}
   </tbody><tfoot><tr><th colspan="4">${rows.length} voucher${rows.length===1?'':'s'}${rows.some(v=>!v.cancelled&&acVSt(v)!=='posted')?' <span class="small muted">· totals = posted only</span>':''}</th><th class="r num">${acFmt(tot)}</th><th class="r num">${acFmt(tot)}</th></tr></tfoot></table></div></div>`;
 }
-function acRange(key,from,to){ return `<label class="small">From <input type="date" class="inp" value="${esc(from)}" data-acf="${key}.from"></label><label class="small">To <input type="date" class="inp" value="${esc(to)}" data-acf="${key}.to"></label>`; }
+function acRange(key,from,to){ return `<label class="small">From <input type="date" class="inp" value="${esc(from)}" data-acf="${key}.from"></label><label class="small">To <input type="date" class="inp" value="${esc(to)}" data-acf="${key}.to"></label>${acYrChips(key,from,to)}`; }
 
 /* ---------- Ledgers (masters) ---------- */
 function acLedgers(){
   const t=(UI.acled||{}).to||today(), q=((UI.acled||{}).q||'').toLowerCase();
   const by={}; for(const l of acLed()){ if(q&&!l.name.toLowerCase().includes(q)&&!l.group.toLowerCase().includes(q)) continue; (by[l.group]=by[l.group]||[]).push(l); }
   const order=AC_GROUPS.map(g=>g[0]).filter(g=>by[g]);
-  return `<div class="toolbar"><input class="inp" placeholder="Search ledgers" value="${esc((UI.acled||{}).q||'')}" data-acf="acled.q" style="max-width:240px"><label class="small">Balances as at <input type="date" class="inp" value="${esc(t)}" data-acf="acled.to"></label><div class="sp"></div>
+  return `<div class="toolbar"><input class="inp" placeholder="Search ledgers" value="${esc((UI.acled||{}).q||'')}" data-acf="acled.q" style="max-width:240px"><label class="small">Balances as at <input type="date" class="inp" value="${esc(t)}" data-acf="acled.to"></label>${acYrChips('acled',null,t)}<div class="sp"></div>
     <button class="btn sm" data-ac="xls" data-v="led">Excel</button><button class="btn pri sm" data-ac="ledNew">＋ Ledger</button></div>
   <div class="card"><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Ledger</th><th>Under (group)</th><th class="r">Opening</th><th class="r">Closing balance</th><th></th></tr></thead><tbody>
   ${order.map(g=>`<tr class="ac-gh"><td colspan="5">${esc(g)} <span class="muted small">· ${esc(acRoot(g)!==g?acRoot(g):AC_G[g]&&AC_G[g].t==='A'?'Asset':AC_G[g]&&AC_G[g].t==='L'?'Liability / capital':AC_G[g]&&AC_G[g].t==='I'?'Income':'Expense')}</span></td></tr>`+
@@ -3253,8 +3253,7 @@ function acReports(){
   const from=f.from||fs, to=f.to||t;
   const sel=`<div class="seg ac-rsel">${AC_REPS.map(([k,l])=>`<button data-ac="rep" data-v="${k}" aria-pressed="${r===k}">${l}</button>`).join('')}</div>`;
   const needRange=['tb','pl','plx','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs','bsx','ppe'].includes(r);
-  const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
-    ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
+  const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>${acYrChips('acr',null,to)}`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
     ${r==='ledger'&&acIsItemL(f.l||'')?`<select class="inp" data-acf="acr.it" title="Sub-ledger"><option value="">All items (whole ledger)</option>${acItemsOf(f.l).map(n=>`<option ${f.it===n?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
@@ -4557,6 +4556,16 @@ document.addEventListener('click',async e=>{ const b=e.target.closest('[data-ac=
   const v=(S.vouchers||[]).find(x=>x.id===b.dataset.v); if(!v) return; if(acLocked(v.date)) return toast('This period is locked.');
   if(!await confirmBox(`Delete voucher ${v.no||''} (${v.vtype}, ${fmtD(v.date)}, ${tzs(v.amount||0)}) permanently? It is removed from the Cash Book and the ledgers. The audit trail keeps a record.`,'Delete',true)) return;
   if(await remove('vouchers',v.id)){ logAct(`Voucher deleted – ${v.vtype} ${v.no||''} ${tzs(v.amount||0)}`); toast(`Voucher ${v.no||''} deleted.`); } },true);
+/* v215: one-click year shortcuts next to every date filter (Cash Book, Ledgers, Reports).
+   Period filters → the whole financial year (to today for the current year); "as at" filters → the year-end date. */
+function acYrChips(key,from,to){ const st=acSet()||{}, cur=acFyStart(today()), first=acFyStart(st.books_from||today()), ys=[]; for(let d=cur; d>=first&&ys.length<6; d=acFyStart(acDay(d,-1))) ys.push(d);
+  const asAt=from==null, chip=(lbl,f,t,on,tip)=>`<button class="ac-yr${on?' on':''}" data-ac="acYr" data-k="${key}" data-f="${f}" data-t="${t}" title="${tip}">${lbl}</button>`;
+  const end=y=>{ const e=acFyEnd(y); return e>today()?today():e; };
+  let h=ys.map(y=>{ const e=end(y), lbl=acFyLbl(y); return asAt?chip(lbl,'',e,to===e,y===cur?'Today':'As at '+fmtD(e)):chip(lbl,y,e,from===y&&to===e,`${fmtD(y)} – ${fmtD(e)}`); }).join('');
+  if(!asAt){ const t=today(), m0=t.slice(0,8)+'01', pm=acDay(m0,-1), p0=pm.slice(0,8)+'01'; h+=chip('This month',m0,t,from===m0&&to===t,'1st of this month – today')+chip('Last month',p0,pm,from===p0&&to===pm,`${fmtD(p0)} – ${fmtD(pm)}`); }
+  return `<span class="ac-yrs">${h}</span>`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-ac="acYr"]'); if(!b) return; e.stopPropagation(); const k=b.dataset.k, o={...(UI[k]||{}),to:b.dataset.t}; if(b.dataset.f) o.from=b.dataset.f; UI[k]=o; renderView(true); },true);
+document.head.insertAdjacentHTML('beforeend',`<style>.ac-yrs{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}.ac-yr{border:1px solid var(--line,#C9CED6);background:transparent;color:inherit;border-radius:999px;padding:4px 11px;font:600 12px inherit;cursor:pointer;line-height:1.3}.ac-yr:hover{border-color:var(--acc,#F5B700)}.ac-yr.on{background:var(--acc,#F5B700);border-color:var(--acc,#F5B700);color:#000}</style>`);
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
