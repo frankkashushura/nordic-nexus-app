@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="163edd7d2487">
+<meta name="nexus-build" content="a8449b384a30">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3252,19 +3252,21 @@ function acReports(){
   const r=UI.acrep||'tb', f=UI.acr||{}, t=today(), fs=acFyStart(t);
   const from=f.from||fs, to=f.to||t;
   const sel=`<div class="seg ac-rsel">${AC_REPS.map(([k,l])=>`<button data-ac="rep" data-v="${k}" aria-pressed="${r===k}">${l}</button>`).join('')}</div>`;
-  const needRange=['tb','pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs'].includes(r);
+  const needRange=['tb','pl','cf','cfm','ledger','cc','vat'].includes(r), asAt=['bs','out','brs','bsx','ppe'].includes(r);
   const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
     ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
     ${r==='ledger'&&acIsItemL(f.l||'')?`<select class="inp" data-acf="acr.it" title="Sub-ledger"><option value="">All items (whole ledger)</option>${acItemsOf(f.l).map(n=>`<option ${f.it===n?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
-  const k=r==='ledger'&&UI.acBack, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Dashboard',day:'Cash Book'}[k.tab]||(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1]):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
-  return `${k?`<div class="toolbar ac-backbar">${bb}<span class="small muted">Ledger opened from ${esc(bl)}</span></div>`:''}${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>${k?`<div class="toolbar ac-backbar">${bb}</div>`:''}`;
+  const stk=UI.acBk||[], k=['ledger','bsx','ppe'].includes(r)&&stk.length?stk[stk.length-1]:null, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Dashboard',day:'Cash Book'}[k.tab]||(k.rep==='bsx'?((AC_BSK[(k.acr||{}).bsk]||{}).t||'detail'):k.rep==='ppe'?'Note 7 – PPE':(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1])):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
+  return `${k?`<div class="toolbar ac-backbar">${bb}<span class="small muted"> Opened from ${esc(bl)}</span></div>`:''}${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>${k?`<div class="toolbar ac-backbar">${bb}</div>`:''}`;
 }
 function acRepHtml(r,from,to){
   if(r==='tb') return acTB6Html(from,to);
   if(r==='pl') return acPLHtml([[from,to]]);
   if(r==='bs') return acBSHtml([to]);
+  if(r==='bsx') return (UI.acr||{}).bsk==='ppe'?acPPEHtml(to):acBSXHtml((UI.acr||{}).bsk,to);
+  if(r==='ppe') return acPPEHtml(to);
   if(r==='cf') return acCFHtml([[from,to]]);
   if(r==='cfm') return acCFMHtml(from,to);
   if(r==='fc') return acFCHtml();
@@ -3324,7 +3326,7 @@ function acBSData(to){
   const ta=acR(S_(fa)+S_(inv)+SS(ca)+S_(misc)), eq=acR(S_(cap)+ret+cur), tl=acR(S_(loans)+SS(cl)+S_(susp)), od=acOpDiff();
   return {fa,inv,ca,misc,cap,loans,cl,susp,ret,cur,ta,eq,tl,od,te:acR(eq+tl+od)};
 }
-function acBSHtml(dates,title){
+function acBSHtmlTally(dates,title){
   const D=dates.map(acBSData), n=dates.length;
   const ids=f=>{ const m=new Map(); D.forEach(d=>f(d).forEach(x=>m.set(x.l.id,x.l))); return [...m.values()]; };
   const row=(f,l)=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(l.id)}" data-f="${acFyStart(dates[0])}" data-t="${dates[0]}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l.name)}</td>${D.map((d,i)=>{ const x=f(d).find(y=>y.l.id===l.id); return `<td class="r num" data-f="${acFyStart(dates[i])}" data-t="${dates[i]}">${acSign(x?x.v:0)}</td>`; }).join('')}</tr>`;
@@ -3564,12 +3566,15 @@ document.addEventListener('click',async e=>{
   if(a==='setup') return acSetup();
   if(a==='new') return acNew(v);
   if(a==='open') return acEdit(v);
-  if(a==='rep'){ UI.actab='rep'; UI.acrep=v; UI.acBack=null; renderView(true); return; }
+  if(a==='rep'){ const from=UI.actab==='rep'&&UI.acrep==='bs'&&v==='pl'; if(!from) UI.acBk=[]; else (UI.acBk=UI.acBk||[]).push({tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY});
+    if(from){ const t=(UI.acr||{}).to||today(); UI.acr={...(UI.acr||{}),from:acFyStart(t),to:t}; } UI.actab='rep'; UI.acrep=v; renderView(true); return; }
+  if(a==='bsx'){ e.stopPropagation(); const cell=e.target.closest('[data-t]'); (UI.acBk=UI.acBk||[]).push({tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY});
+    let to=(cell&&cell.dataset.t)||(UI.actab==='annual'&&UI.acfy?acFyEnd(UI.acfy):'')||(UI.acr||{}).to||today(); if(to>today()) to=today(); UI.actab='rep'; UI.acrep=v==='ppe'?'ppe':'bsx'; UI.acr={...(UI.acr||{}),bsk:v,to}; renderView(true); window.scrollTo(0,0); return; }
   if(a==='fy'){ const t=today(), fs=acFyStart(t), p=acFyStart(acDay(fs,-1)); UI.acr={...(UI.acr||{}),from:v==='prev'?p:fs,to:v==='prev'?acDay(fs,-1):t}; renderView(true); return; }
-  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.acBack=UI.actab==='rep'&&UI.acrep==='ledger'?UI.acBack:{tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}; UI.actab='rep'; UI.acrep='ledger'; const cell=e.target.closest('[data-f]'), ctx=UI.actab==='led'?((UI.acled||{}).to||today()):((UI.acr||{}).to||today());
-    const pt=(cell&&cell.dataset.t)||ctx, pf=(cell&&cell.dataset.f)||(UI.actab==='rep'&&!['bs','out','brs'].includes(UI.acrep)&&(UI.acr||{}).from)||acFyStart(pt);
+  if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; if(!(UI.actab==='rep'&&UI.acrep==='ledger')) (UI.acBk=UI.acBk||[]).push({tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}); const cell=e.target.closest('[data-f]'), ctx=UI.actab==='led'?((UI.acled||{}).to||today()):((UI.acr||{}).to||today()), prevRep=UI.acrep, wasRep=UI.actab==='rep'; UI.actab='rep'; UI.acrep='ledger';
+    const pt=(cell&&cell.dataset.t)||ctx, pf=(cell&&cell.dataset.f)||(wasRep&&!['bs','out','brs','bsx','ppe'].includes(prevRep)&&(UI.acr||{}).from)||acFyStart(pt);
     UI.acr={...(UI.acr||{}),l:v,from:pf,to:pt,it:''}; renderView(true); window.scrollTo(0,0); return; }
-  if(a==='acBack'){ const k=UI.acBack; UI.acBack=null; if(!k) return; UI.actab=k.tab; UI.acrep=k.rep; UI.acr=k.acr; renderView(true); setTimeout(()=>window.scrollTo(0,k.y||0),30); return; }
+  if(a==='acBack'){ const k=(UI.acBk||[]).pop(); if(!k) return; UI.actab=k.tab; UI.acrep=k.rep; UI.acr=k.acr; renderView(true); setTimeout(()=>window.scrollTo(0,k.y||0),30); return; }
   if(a==='ledNew') return acLedForm(null);
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
   if(a==='autoToggle'){ const st=acSet(); await patch('acset','main',{auto_post:!st.auto_post}); return; }
@@ -3688,7 +3693,7 @@ function acAudData(fs,fe){
   const cols=cls.map(c=>({id:c.id,name:c.name})); if(ad.some(a=>pair.get(a.id)==='_other')) cols.push({id:'_other',name:'Other'});
   const ppe=cols.map(c=>{ const cl=cls.find(x=>x.id===c.id), ads=ad.filter(a=>pair.get(a.id)===c.id);
     const cb=cl?bal(cl,pre):0, cm=cl?mv(cl,1):{inc:0,dec:0}, db=-ads.reduce((s,a)=>s+balA(a,pre),0), dm=ads.reduce((o,a)=>{ const m=mvA(a,-1); return {inc:o.inc+m.inc,dec:o.dec+m.dec}; },{inc:0,dec:0});
-    const ct=acR(cb+cm.inc-cm.dec), dt=acR(db+dm.inc-dm.dec); return {name:c.name,rate:cl&&cl.dep_rate!=null&&cl.dep_rate!==''?+cl.dep_rate:null,cb,add:cm.inc,disp:cm.dec,ct,db,ddisp:dm.dec,chg:dm.inc,dt,nbv:acR(ct-dt),nbv0:acR(cb-db)}; }).filter(x=>[x.cb,x.add,x.disp,x.db,x.chg,x.ddisp].some(v=>Math.abs(v)>0.004));
+    const ct=acR(cb+cm.inc-cm.dec), dt=acR(db+dm.inc-dm.dec); return {id:c.id,name:c.name,rate:cl&&cl.dep_rate!=null&&cl.dep_rate!==''?+cl.dep_rate:null,cb,add:cm.inc,disp:cm.dec,ct,db,ddisp:dm.dec,chg:dm.inc,dt,nbv:acR(ct-dt),nbv0:acR(cb-db)}; }).filter(x=>[x.cb,x.add,x.disp,x.db,x.chg,x.ddisp].some(v=>Math.abs(v)>0.004));
   const list=(a,f)=>a.map(l=>({l,name:acDisp(l),v:acR(f(l))}));
   return {fs,fe,rev:list(rev,l=>-per(l)),oth:list(oth,l=>-per(l)),revT,othT,stockL:stock,openStock,closeStock,purch:list(purch,per),purchT,stockAdj,dir:list(dir,per),dirT,cos,
     cat,exp:list(exp,per).flatMap(x=>{ const c=acFsCat(x.l); if(!x.l.itemised) return [{...x,c}]; const m=new Map(); acPost(x.l.id).forEach(p=>{ if(p.d<fs||p.d>fe) return; const k=p.it||'Other'; m.set(k,acR((m.get(k)||0)+p.s)); }); return [...m.entries()].map(([it,v])=>({l:x.l,name:it,v,c,k:x.l.id+'|'+it.toLowerCase()})); }),dep:list(dep,per),depT,taxT,gp,opex,pbt,pat,B:B1,B0,plAdj,Lbf,Lcf,taxPaid,cf,ppe,
@@ -4271,6 +4276,56 @@ async function acPinResets(){ if(!isAdmin) return; let rows=[]; try{ const s=awa
 async function acPinReset(id){ if(!isAdmin||!id) return; if(!await confirmBox('Reset this PIN? The user will set a new one the next time they open Finance.','Reset',true)) return;
   if(await remove('finpin',id)){ logAct('Finance PIN reset by a director'); toast('PIN reset.'); if(id===me.id){ AC_PIN.doc=null; AC_PIN.ok=false; } closeDrawer(); renderView(true); } }
 document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=e.target; if(!t||!t.classList||!t.classList.contains('ac-pin-in')) return; e.preventDefault(); if(t.id==='acPinIn') acPinGo(); else if(t.id==='acPin1'){ const n=document.getElementById('acPin2'); n&&n.focus(); } else acPinSet(); });
+/* ===================== v207 · Balance Sheet in the audited (NORDIC ACC) layout =====================
+   One line per statement caption with its note number, as in the audited statement of financial position.
+   Each caption opens what it is made of: PPE → Note 7 schedule; the others → their ledgers (then the ledger sheet). */
+const AC_BSK={
+  recv:{t:'Trade and other receivables',s:1,p:l=>['Sundry Debtors','Loans & Advances (Asset)','Deposits (Asset)','Current Assets','Misc. Expenses (Asset)'].includes(l.group)&&!acIsTaxL(l)},
+  cash:{t:'Cash and bank balances',n:6,s:1,p:l=>AC_CASH.includes(l.group)},
+  tax:{t:'Tax recovery / tax payable',n:5,s:1,p:l=>acIsTaxL(l)},
+  stk:{t:'Stock / work in progress',n:8,s:1,p:l=>l.group==='Stock-in-Hand'},
+  cap:{t:'Share capital',s:-1,p:l=>l.group==='Capital Account'},
+  pay:{t:'Trade and other payables',s:-1,p:l=>(['Sundry Creditors','Provisions','Current Liabilities','Suspense A/c'].includes(l.group)&&!acIsTaxL(l)&&!acIsODL(l)&&!acIsLoanL(l))||(l.group==='Duties & Taxes'&&!acIsTaxL(l))},
+  od:{t:'Bank overdraft',s:-1,p:l=>!AC_CASH.includes(l.group)&&acIsODL(l)},
+  fa:{t:'Property, plant & equipment – ledgers',n:7,s:1,p:l=>l.group==='Fixed Assets'}};
+function acBSHtml(dates,title){
+  const D=dates.map(d=>acAudData(acFyStart(d),d).B), n=dates.length;
+  const cell=(v,d)=>`<td class="r num">${acSign(v||0)}</td>`;
+  const row=(lbl,f,key,note,cls='')=>{ /* value cells carry their date */ const vs=D.map(f); if(!cls&&vs.every(v=>!acR(v||0))) return '';
+    return `<tr class="${key?'click':''} ${cls}" ${key?`data-ac="bsx" data-v="${key}"`:''} title="${key?'Show what makes up this figure':''}"><td class="${cls?'':'ac-in'} ${key?'ac-lk':''}">${lbl}</td><td class="c small muted">${note||''}</td>${vs.map((v,i)=>`<td class="r num" data-t="${dates[i]}">${acSign(v||0)}</td>`).join('')}</tr>`; };
+  const tot=(lbl,f,c='ac-tot')=>`<tr class="${c}"><th>${lbl}</th><th></th>${D.map(d=>`<th class="r num">${acSign(f(d))}</th>`).join('')}</tr>`;
+  const sec=t=>`<tr class="ac-gh"><td colspan="${n+2}">${t}</td></tr>`;
+  const resIds=[...new Set(D.flatMap(b=>b.res.map(x=>x.l.id)))], loanIds=[...new Set(D.flatMap(b=>b.loans.map(x=>x.l.id)))];
+  const lrow=(id,k)=>{ const l=acL(id), vs=D.map(b=>(b[k].find(x=>x.l.id===id)||{}).v||0); if(vs.every(v=>!acR(v))) return '';
+    return `<tr class="click" data-ac="ledgerRep" data-v="${esc(id)}" title="Open the ledger"><td class="ac-in ac-lk">${esc(l?l.name:id)}</td><td></td>${vs.map((v,i)=>`<td class="r num" data-f="${acFyStart(dates[i])}" data-t="${dates[i]}">${acSign(v)}</td>`).join('')}</tr>`; };
+  const okAll=D.every(b=>Math.abs(b.ta-b.te)<0.01);
+  return `${title===false?'':acHd('Statement of financial position',dates.map(d=>'as at '+fmtD(d)).join(' | '))}<div class="tbl-wrap"><table class="ac-t ac-bs"><thead><tr><th>Particulars</th><th class="c" style="width:56px">Note</th>${dates.map(d=>`<th class="r">${fmtD(d)}</th>`).join('')}</tr></thead><tbody>
+    <tr class="ac-sec"><td colspan="${n+2}">ASSETS</td></tr>
+    ${sec('Non-current assets')}${row('Property, plant & equipment',b=>b.fa,'ppe',7)}${tot('Total non-current assets',b=>b.fa)}
+    ${sec('Current assets')}${row('Trade and other receivables',b=>b.recv,'recv')}${row('Cash and bank balances',b=>b.cash,'cash',6)}${row('Tax recovery',b=>b.taxA,'tax',5)}${row('Stock / work in progress',b=>b.stk,'stk',8)}
+    ${tot('Total current assets',b=>b.ca)}${tot('TOTAL ASSETS',b=>b.ta,'ac-tot ac-key')}
+    <tr class="ac-sec"><td colspan="${n+2}">EQUITY AND LIABILITIES</td></tr>
+    ${sec('Capital and reserves')}${row('Share capital',b=>b.cap,'cap')}${resIds.map(id=>lrow(id,'res')).join('')}
+    <tr class="click" data-ac="rep" data-v="pl" title="Open the Profit & Loss"><td class="ac-in ac-lk">Retained earnings</td><td></td>${D.map(b=>cell(b.ret)).join('')}</tr>
+    ${tot('Total equity',b=>b.eq)}
+    ${sec('Current liabilities')}${row('Trade and other payables',b=>acR(b.pay+b.vat),'pay')}${row('Tax payable',b=>b.taxP,'tax',5)}${row('Bank overdraft',b=>b.od,'od')}${loanIds.map(id=>lrow(id,'loans')).join('')}
+    ${tot('Total liabilities',b=>b.cl)}${tot('TOTAL EQUITY AND LIABILITIES',b=>b.te,'ac-tot ac-key')}
+  </tbody></table></div>${okAll?'':'<div class="banner warn"><div>The balance sheet does not balance – check the opening balances.</div></div>'}
+  <p class="small muted" style="padding:0 14px 10px">Same layout as the audited statement of financial position. Click a line to see the ledgers (or the Note 7 schedule) behind it.</p>`; }
+/* what makes up a caption: its ledgers at the date */
+function acBSXHtml(key,to){ const k=AC_BSK[key]; if(!k) return '<div class="empty">Choose a line on the Balance Sheet.</div>';
+  const L=acLed().filter(k.p).map(l=>({l,v:acR(acBalTo(l.id,to)*k.s)})).filter(x=>x.v).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)), t=acR(L.reduce((s,x)=>s+x.v,0));
+  return `${acHd(esc(k.t)+(k.n?` – Note ${k.n}`:''),`as at ${fmtD(to)} · ledgers that make up this Balance Sheet line`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Ledger</th><th>Group</th><th class="r">Balance</th></tr></thead><tbody>
+    ${L.map(x=>`<tr class="click" data-ac="ledgerRep" data-v="${esc(x.l.id)}" data-f="${acFyStart(to)}" data-t="${to}"><td class="ac-lk">${esc(x.l.name)}</td><td class="small muted">${esc(x.l.group)}</td><td class="r num">${acSign(x.v)}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">No balances.</td></tr>'}
+  </tbody><tfoot><tr class="ac-tot"><th colspan="2">Total</th><th class="r num">${acSign(t)}</th></tr></tfoot></table></div>
+  ${key==='cash'?'<p class="small muted" style="padding:0 14px 10px">Bank accounts that are overdrawn are shown on the Balance Sheet under Bank overdraft.</p>':''}`; }
+/* Note 7 – property, plant & equipment schedule */
+function acPPEHtml(to){ const fs=acFyStart(to), P=acAudData(fs,to).ppe; const c=v=>acSign(v||0), T=k=>acR(P.reduce((s,x)=>s+(+x[k]||0),0));
+  const cols=[['cb','Cost b/f'],['add','Additions'],['disp','Disposals'],['ct','Cost c/f'],['db','Dep. b/f'],['chg','Charge for the year'],['ddisp','Dep. on disposals'],['dt','Accum. dep. c/f'],['nbv','Net book value']];
+  return `${acHd('Property, plant & equipment – Note 7',`${fmtD(fs)} – ${fmtD(to)} · cost, depreciation and net book value by class`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Class</th><th class="r">Rate</th>${cols.map(([,h])=>`<th class="r">${h}</th>`).join('')}</tr></thead><tbody>
+    ${P.map(x=>`<tr ${x.id&&x.id!=='_other'?`class="click" data-ac="ledgerRep" data-v="${esc(x.id)}" data-f="${fs}" data-t="${to}"`:''}><td class="ac-lk">${esc(x.name)}</td><td class="r small">${x.rate==null?'':Math.round(x.rate*1000)/10+'%'}</td>${cols.map(([k])=>`<td class="r num" ${k==='nbv'?'style="font-weight:700"':''}>${c(x[k])}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${cols.length+2}" class="empty">No fixed assets.</td></tr>`}
+  </tbody><tfoot><tr class="ac-tot"><th>Total</th><th></th>${cols.map(([k])=>`<th class="r num">${c(T(k))}</th>`).join('')}</tr></tfoot></table></div>
+  <div class="toolbar" style="padding:6px 14px 10px"><button class="btn sm ghost" data-ac="bsx" data-v="fa">Show the fixed-asset ledgers</button><span class="small muted">Net book value = cost c/f − accumulated depreciation c/f · this total is the Property, plant & equipment line on the Balance Sheet.</span></div>`; }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
