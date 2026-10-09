@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="54e3b28f0710">
+<meta name="nexus-build" content="5c2aa5ffc8c6">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -19337,25 +19337,25 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
    7) Bid speed – days per bid and bids per month. */
 
 const BS_LIB=[
-  {k:'crb_b',t:'CRB registration certificate – Building',f:'legal',kw:['crb','building'],all:1},
-  {k:'crb_c',t:'CRB registration certificate – Civil works',f:'legal',kw:['crb','civil'],all:1},
+  {k:'crb_b',exp:1,t:'CRB registration certificate – Building',f:'legal',kw:['crb','building'],all:1},
+  {k:'crb_c',exp:1,t:'CRB registration certificate – Civil works',f:'legal',kw:['crb','civil'],all:1},
   {k:'inc',t:'Certificate of incorporation',f:'legal',kw:['incorporation']},
   {k:'memart',t:'Memorandum & Articles of Association',f:'legal',kw:['memorandum','articles of association']},
-  {k:'lic',t:'Business licence',f:'legal',kw:['business licen']},
+  {k:'lic',exp:1,t:'Business licence',f:'legal',kw:['business licen']},
   {k:'tin',t:'TIN certificate',f:'legal',kw:['tin certificate','taxpayer identification',' tin']},
   {k:'vat',t:'VAT (VRN) certificate',f:'legal',kw:['vat','vrn']},
-  {k:'tax',t:'Tax clearance certificate',f:'legal',kw:['tax clearance']},
-  {k:'nssf',t:'NSSF compliance certificate',f:'legal',kw:['nssf']},
-  {k:'wcf',t:'WCF compliance certificate',f:'legal',kw:['wcf','workers compensation']},
-  {k:'osha',t:'OSHA compliance certificate',f:'legal',kw:['osha']},
-  {k:'insur',t:'Insurance (CAR / third party)',f:'legal',kw:['insurance']},
+  {k:'tax',exp:1,t:'Tax clearance certificate',f:'legal',kw:['tax clearance']},
+  {k:'nssf',exp:1,t:'NSSF compliance certificate',f:'legal',kw:['nssf']},
+  {k:'wcf',exp:1,t:'WCF compliance certificate',f:'legal',kw:['wcf','workers compensation']},
+  {k:'osha',exp:1,t:'OSHA compliance certificate',f:'legal',kw:['osha']},
+  {k:'insur',exp:1,t:'Insurance (CAR / third party)',f:'legal',kw:['insurance']},
   {k:'audit',t:'Audited financial statements (last 3 years)',f:'finance',kw:['audited','financial statement']},
   {k:'bank',t:'Bank reference / credit line letter',f:'finance',kw:['bank reference','credit line','credit facility','line of credit']},
   {k:'profile',t:'Company profile',f:'policies',kw:['company profile']},
   {k:'poa_std',t:'Standing power of attorney',f:'legal',kw:['power of attorney']},
   {k:'cvs',t:'Key staff CVs & certificates',f:'hr',kw:[' cv','cvs','curriculum vitae']},
   {k:'plantev',t:'Plant ownership evidence (cards, log books, hire agreements)',f:'legal',kw:['log book','logbook','registration card','hire agreement']},
-  {k:'comp',t:'Completion certificates of similar works',f:'contracts',kw:['completion certificate','taking over','taking-over','handover certificate']}];
+  {k:'comp',t:'Completion certificates / award letters of similar works',f:'contracts',kw:['completion certificate','taking over','taking-over','handover certificate','award letter','letter of award','letter of acceptance'],multi:1}];
 const BS_FORMS={fot:'Form of Tender',bsd:'Bid-Securing Declaration',poa:'Power of Attorney (this tender)',staff:'Schedule of Key Personnel',plant:'Schedule of Plant & Equipment',exp:'Schedule of Similar Works',lit:'Litigation History Declaration',cover:'Bid Covering Letter',ms:'Method Statement',wp:'Work Programme'};
 const BS_CATS=[['form','Bid forms'],['boq','Bill of Quantities'],['doc','Company documents'],['tech','Technical proposal'],['sec','Securities'],['other','Other requirements']];
 const BS_ST=[['todo','To do'],['doing','In progress'],['ready','Ready'],['na','Not required']];
@@ -19400,22 +19400,29 @@ const bsMoneyWords=n=>`${bsWords(n)} Tanzanian Shillings Only`;
 function bsBoq(tid,b){ b=b||bsBid(tid); return (b&&b.boq_id&&byId('boqs',b.boq_id))||[...S.boqs].filter(x=>x.tender_id===tid).sort((x,y)=>String(y.updated_at||'').localeCompare(String(x.updated_at||'')))[0]||null; }
 
 /* ---------- company bid library (Office Records) ---------- */
-function bsLibRec(k){ const L=BS_LIB.find(x=>x.k===k); if(!L) return null;
+// project document library files (Projects › Documents) count as company documents too
+function bsPfRecs(){ return (S.projfiles||[]).filter(f=>!f.deleted&&f.path).map(f=>({id:'pf:'+f.id,_pf:1,title:f.name+(f.project_id?' · '+projName(f.project_id):''),folder:'projfile',tags:f.note||'',updated_at:f.at,files:[{path:f.path,name:f.name,_pf:1}]})); }
+function bsLibMatches(k){ const L=BS_LIB.find(x=>x.k===k); if(!L) return [];
   const vis=S.records.filter(r=>r.folder!=='letters'&&recLvlOk(r.level||'all'));
   const tagged=vis.filter(r=>bsTags(r).includes('bid:'+k));
-  const pick=a=>a.sort((x,y)=>String(recExp(y)||'9999').localeCompare(String(recExp(x)||'9999'))||String(y.updated_at||'').localeCompare(String(x.updated_at||'')))[0]||null;
-  if(tagged.length) return pick(tagged);
-  const hay=r=>(' '+[r.title,r.kind,r.tags,r.ref].join(' ')+' ').toLowerCase();
-  const m=vis.filter(r=>{ const h=hay(r); return L.all?L.kw.every(w=>h.includes(w)):L.kw.some(w=>h.includes(w)); });
-  return pick(m); }
+  const sort=a=>a.sort((x,y)=>(!!recFile(y)-!!recFile(x))||String(recExp(y)||'9999').localeCompare(String(recExp(x)||'9999'))||String(y.updated_at||'').localeCompare(String(x.updated_at||'')));
+  if(tagged.length) return sort(tagged);
+  const hay=r=>(' '+[r.title,r.kind,r.tags,r.ref].join(' ')+' ').toLowerCase().replace(/[_\-–]+/g,' ');
+  const hit=r=>{ const h=hay(r); return L.all?L.kw.every(w=>h.includes(w)):L.kw.some(w=>h.includes(w)); };
+  const rec=sort(vis.filter(hit)), pf=sort(bsPfRecs().filter(hit));
+  return L.multi?[...rec,...pf]:(rec.filter(r=>recFile(r)).length?rec:[...rec,...pf]); }
+function bsLibRec(k){ return bsLibMatches(k)[0]||null; }
 function bsLibState(k,deadline){ const r=bsLibRec(k);
   if(!r) return {r:null,cls:'bad',text:'not in library',ok:false};
   const f=recFile(r), e=recExp(r);
   if(!f) return {r,cls:'amb',text:'no file attached',ok:false};
+  const L=BS_LIB.find(x=>x.k===k), n=L&&L.multi?bsLibMatches(k).filter(x=>recFile(x)).length:0, from=r._pf?' (project files)':'';
+  if(n>1) return {r,cls:'good',text:n+' documents on file',ok:true};
   if(e){ const dl=toDate(deadline)||new Date(), ex=new Date(e+'T23:59');
     if(ex<dl) return {r,cls:'bad',text:'expires '+fmtD(e)+(deadline?' – before the deadline':''),ok:false};
     if((ex-dl)/864e5<30) return {r,cls:'amb',text:'valid to '+fmtD(e)+' (renew soon)',ok:true}; return {r,cls:'good',text:'valid to '+fmtD(e),ok:true}; }
-  return {r,cls:'good',text:'on file',ok:true}; }
+  if(L&&L.exp) return {r,cls:'amb',text:'on file'+from+' – expiry date not recorded',ok:true};
+  return {r,cls:'good',text:'on file'+from,ok:true}; }
 
 /* ---------- bid record ---------- */
 function bsStdItems(t){ return BS_STD.map(([name,cat,ln,ck])=>({id:uid(),name,cat,...ln,ck,status:'todo',owner:'',src:'std'})).concat(t&&t.site_visit?[{id:uid(),name:'Site visit / pre-bid meeting'+(t.site_visit?' – '+t.site_visit:''),cat:'other',ck:'visit',status:'todo',owner:'',src:'std'}]:[]); }
@@ -19610,10 +19617,10 @@ function bsFormBody(k,t,b){ const c=company(), f=b.facts||{}, B=bsBoq(t.id,b), T
   if(k==='plant'){ const L=S.plant.filter(p=>p.status!=='Written off').slice(0,40);
     return `${bsHead(t,'SCHEDULE OF PLANT & EQUIPMENT')}${oxP('Equipment available for the execution of the works (owned or under hire agreement – evidence attached).',{before:120})}
       ${oxTbl([['No.','Item','Category','Reg. / serial no.','Ownership','Condition','Location'],...(L.length?L.map((p,i)=>[String(i+1),p.name||'',p.category||'',p.reg_no||'',p.ownership||'',p.status||'',p.project_id?projName(p.project_id):'Yard']):[['1','','','','','','']])],{widths:[600,2400,1500,1500,1100,1200,1500],shade:true})}${bsSign(f,c)}`; }
-  if(k==='exp'){ const W=[...(S.wins||[])].sort((a,b)=>String(b.awarded||b.start||'').localeCompare(String(a.awarded||a.start||''))).slice(0,12);
+  if(k==='exp'){ const W0=(S.wins||[]).length?S.wins:S.projects.map(p=>({title:p.name,client:p.client,sum:p.contract_sum,awarded:p.start||p.created_at,status:p.status})); const W=[...W0].sort((a,b)=>String(b.awarded||b.start||'').localeCompare(String(a.awarded||a.start||''))).slice(0,12);
     return `${bsHead(t,'SCHEDULE OF SIMILAR WORKS')}${oxP('Works of a similar nature and complexity executed or in progress (completion certificates attached).',{before:120})}
       ${oxTbl([['No.','Name of works','Client','Contract sum (TZS)','Year','Status'],...(W.length?W.map((w,i)=>[String(i+1),w.title||'',w.client||'',w.sum?Math.round(+w.sum).toLocaleString('en-US'):'',String(w.awarded||w.start||'').slice(0,4),w.status||'']):[['1','','','','','']])],{widths:[600,3300,2000,1700,800,1300],shade:true})}
-      ${W.length?'':oxHint('Add contracts to the Contracts won register (Tender Radar › Wins) so this schedule fills itself.')}${bsSign(f,c)}`; }
+      ${(S.wins||[]).length?'':oxHint(W.length?'Filled from NEXUS Projects – check values and keep only works similar to this tender.':'Add contracts to the Contracts won register (Tender Radar › Wins) so this schedule fills itself.')}${bsSign(f,c)}`; }
   if(k==='lit') return `${bsHead(t,'LITIGATION HISTORY DECLARATION')}${oxP('We declare the history of litigation or arbitration resulting from contracts executed by us in the last five (5) years, or currently under execution:',{before:120})}
     ${oxTbl([['Year','Award FOR or AGAINST bidder','Name of client, cause of litigation and matter in dispute','Disputed amount (TZS)'],['','','NIL',''],['','','','']],{widths:[900,2200,4900,1900],shade:true})}
     ${oxP('We further declare that the company has not been debarred or suspended by the Public Procurement Regulatory Authority or any other authority, and that the information given above is true and correct.')}${bsSign(f,c)}`;
@@ -19693,7 +19700,8 @@ function bsLibAdd(k){ const L=BS_LIB.find(x=>x.k===k), old=bsLibRec(k);
       await put('records',id,{folder:L.f,title:v.title,kind:L.f==='legal'?(/tax|tin|vat/.test(k)?'Tax / compliance':/insur/.test(k)?'Insurance':'Registration / licence'):'',ref:v.ref||'',date:v.date||'',expiry:v.expiry||'',level:L.f==='hr'?'all':'all',tags:'bid:'+k,note:'Added from Bid Studio',files:[{...up,v:1,at:bsNow(),by:me.name||''}],created_at:bsNow(),created_by:me.name||'',created_uid:me.id||''});
       window.NX_REC?.log(id,'added'); logAct(`Bid library: ${v.title}`); toast('Saved in Office Records and linked to the bid library.'); renderAll(); return true; }
     catch(e){ toast('Upload failed: '+(e.message||e)); return false; } },{sub:'Saved in Office Records › '+recFolder(L.f).t,saveLabel:'Save'}); }
-async function bsLibOpen(k){ const r=bsLibRec(k), f=r&&recFile(r); if(!f) return; try{ window.open(await window.NX_REC.url(f.path),'_blank','noopener'); }catch(e){ toast('Could not open: '+(e.message||e)); } }
+const bsFileUrl=f=>f._pf?window.NX_PF.url(f.path):window.NX_REC.url(f.path);
+async function bsLibOpen(k){ const r=bsLibRec(k), f=r&&recFile(r); if(!f) return; try{ window.open(await bsFileUrl(f),'_blank','noopener'); }catch(e){ toast('Could not open: '+(e.message||e)); } }
 
 /* ---------- bid pack (.zip) ---------- */
 async function bsPack(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return;
@@ -19707,7 +19715,9 @@ async function bsPack(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b
       try{
         if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); if(!d){ missing.push(it.name+' – not filled yet'); continue; } const r=await oxDocBytes(d); if(r) add(it.name,r.ext,r.bytes); else missing.push(it.name); continue; }
         if(it.boq){ const B=bsBoq(tid,b); if(!B){ missing.push(it.name+' – no BoQ'); continue; } add(it.name,'xlsx',boqToXlsx(B)); continue; }
-        if(it.lib){ const s=bsLibState(it.lib,t.deadline); const f=s.r&&recFile(s.r); if(!f){ missing.push(it.name+' – not in the bid library'); continue; } const u=await window.NX_REC.url(f.path); const buf=await (await fetch(u)).arrayBuffer(); add(it.name,(String(f.name||'').match(/\.([a-z0-9]{2,5})$/i)||[,'pdf'])[1],new Uint8Array(buf)); if(!s.ok) missing.push(it.name+' – '+s.text+' (included, check it)'); continue; }
+        if(it.lib){ const s=bsLibState(it.lib,t.deadline); const L=BS_LIB.find(x=>x.k===it.lib), R=(L&&L.multi?bsLibMatches(it.lib):[s.r]).filter(r=>r&&recFile(r)).slice(0,10); if(!R.length){ missing.push(it.name+' – not in the bid library'); continue; }
+          for(const r of R){ const f=recFile(r); const buf=await (await fetch(await bsFileUrl(f))).arrayBuffer(); add(it.name+(R.length>1?' – '+String(f.name||'').replace(/\.[^.]+$/,'').slice(0,50):''),(String(f.name||'').match(/\.([a-z0-9]{2,5})$/i)||[,'pdf'])[1],new Uint8Array(buf)); }
+          if(!s.ok) missing.push(it.name+' – '+s.text+' (included, check it)'); continue; }
         if((it.files||[]).length){ for(const f of it.files){ const buf=await (await fetch(f.url)).arrayBuffer(); add(it.name+((it.files.length>1)?' – '+f.name.replace(/\.[^.]+$/,''):''),(String(f.name||'').match(/\.([a-z0-9]{2,5})$/i)||[,'pdf'])[1],new Uint8Array(buf)); } continue; }
         missing.push(it.name);
       }catch(e){ missing.push(it.name+' – '+(e.message||e)); } }
