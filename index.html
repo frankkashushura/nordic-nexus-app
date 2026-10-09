@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="14a04caad2a6">
+<meta name="nexus-build" content="54e3b28f0710">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -762,7 +762,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['ledgers','vouchers','acset','paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
+const COLS = ['bids','ledgers','vouchers','acset','paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const AC_BIG={vouchers:20000,ledgers:5000,finance:10000,procurement:10000,po:10000,certificates:5000,valuations:5000,paystat:5000,tenders:5000,records:5000};
@@ -836,6 +836,7 @@ const ICON = {
   projects:'<path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/>',
   reports:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-8 7"/>',
   qs:'<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11M14 9v11"/>',
+  bid:'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12l2 2 4-4M10 17h6"/>',
   finance:'<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
   procure:'<path d="M3 3h2l2.5 12h11L21 7H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>',
   depts:'<rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="9" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-5h14v5M12 12v5"/>',
@@ -866,6 +867,7 @@ const PAGES = [
   {g:'Tendering & Estimating'},
   {k:'tenders', t:'Tender Radar'},
   {k:'qs', t:'QS Studio'},
+  {k:'bid', t:'Bid Studio'},
   {g:'Project Delivery'},
   {k:'projects', t:'Projects'},
   {k:'pm', t:'Programme Overview'},
@@ -1393,7 +1395,7 @@ function tenderDrawer(t){
       <div class="toolbar" style="margin-top:10px"><button class="btn dark" data-act="saveTender">Save tracking</button></div></div></div>
     <div class="card"><div class="hd"><h2>Tender documents</h2><div class="sp"></div>${assets?'<label class="btn sm" for="tdocFile" style="cursor:pointer">Attach PDF</label><input type="file" id="tdocFile" accept="application/pdf,image/*" multiple hidden>':''}</div>
       <div class="bd small">${docs.length?docs.map(d=>`<div><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a> <span class="sub">· ${esc(d.by||'')} · ${fmtD(d.at)}</span></div>`).join(''):`<span class="muted">No documents attached yet.${assets?'':' Attaching files needs editor access.'}</span>`}</div></div>`;
-  const foot=`${canWrite?`<button class="btn pri" data-bx="gen" data-tid="${esc(t.id)}">AI BoQ from documents</button>`:''}<button class="btn" data-act="tenderToBoq">Start BoQ for this tender</button><button class="btn" data-act="copyAlert">Copy alert message</button><div class="sp" style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delTender">Delete</button>':''}`;
+  const foot=`<button class="btn pri" data-bs="open" data-tid="${esc(t.id)}" title="Prepare the whole bid: requirements, forms, BoQ, method statement, bid pack">📋 Bid Studio</button>${canWrite?`<button class="btn" data-bx="gen" data-tid="${esc(t.id)}">AI BoQ from documents</button>`:''}<button class="btn" data-act="tenderToBoq">Start BoQ for this tender</button><button class="btn" data-act="copyAlert">Copy alert message</button><div class="sp" style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delTender">Delete</button>':''}`;
   return drawerShell(t.title, esc(t.client||'Tender'), body, foot);
 }
 function aiAdviceHtml(t){
@@ -8123,7 +8125,7 @@ document.addEventListener('input',e=>{ if(e.target.id==='supq'){ UI.supF.q=e.tar
 .sup-ai-strip{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 12px;margin:-4px 0 12px;border:1px dashed var(--line);border-radius:10px;font-size:14px}.sup-ai-src summary{cursor:pointer;margin-bottom:4px}
 @media(max-width:700px){.sup-ai-it{flex-direction:column}.sup-ai-it .sup-c{max-width:none}.sup-aibtn{flex:1}.sup-top .seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.sup-top .seg button{white-space:nowrap}.sup-t{min-width:0!important;width:100%}.sup-t tbody{display:block}.sup-t .ttl2,.sup-t .sub{white-space:normal;overflow-wrap:anywhere}.sup-c a{white-space:normal;overflow-wrap:anywhere}.sup-t thead{display:none}.sup-t tr{display:block;padding:10px 12px;border-bottom:1px solid var(--line)}.sup-t td{display:block;border:0;padding:2px 0;text-align:left}.sup-t td.r:last-child{display:none}.sup-top .inp{flex:1}}`; document.head.appendChild(s); })();
 
-const PAGE_FN={hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
+const PAGE_FN={bid:pageBid,hse:pageHSE,hr:pageHR,records:pageRecords,pm:pagePm,project:pageProject,plant:pagePlant,report:pageReport,certs:pageCerts,home:pageHome,dash:pageDash,deadlines:pageDeadlines,office:pageOffice,hub:pageHub,tenders:pageTenders,projects:pageProjects,reports:pageReports,qs:pageQs,finance:pageFinance,procure:pageProcure,staff:pageStaff,depts:pageDepts,dept:pageDept,tasks:pageTasks,meetings:pageMeetings,chat:pageChat,alerts:pageAlerts,settings:pageSettings,about:pageAbout};
 function snapshotInputs(root){ const m={}; root.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type!=='file') m[el.id]=el.value; }); const a=document.activeElement; return {m, focus:a&&root.contains(a)&&a.id?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null}; }
 function restoreInputs(root,snap,keep=true){ if(keep) for(const [id,v] of Object.entries(snap.m)){ const el=root.querySelector('#'+CSS.escape(id)); if(el&&el.type!=='file'&&el.value!==v) el.value=v; } if(snap.focus){ const el=root.querySelector('#'+CSS.escape(snap.focus.id)); if(el){ el.focus(); try{ if(snap.focus.s!=null) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(_){} } } }
 let pendingView=false;
@@ -8140,8 +8142,8 @@ function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSa
   if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq','winq','supq','hxWq','hxDq','hxAq','hxFl'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
-  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
-  $('#crumb').textContent=route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':route==='dept'?'Departments':'NORDIC NEXUS';
+  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='bid'&&routeArg?(byId('tenders',routeArg)?.title||'Bid'):route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
+  $('#crumb').textContent=route==='bid'&&routeArg?'Bid Studio · bid workspace':route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':route==='dept'?'Departments':'NORDIC NEXUS';
   const banner = !db ? `<div class="banner warn"><div><b>Working offline.</b> The NEXUS database is not connected in this view, so nothing you enter is saved.</div></div>` : '';
   const vh=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
   const vkey=route+'|'+(routeArg||'')+'|'+vh;
@@ -10018,7 +10020,7 @@ async function oxDocBytes(d){ try{ await loadScript(XLSX_URL); }catch(_){}
   if(d.type==='xlsx'){ const keep=OXS; OXS={...d,sheets:d.sheets,cur:0}; let data; try{ data=oxsToXlsx(); } finally{ OXS=keep; } return {bytes:data,ext:'xlsx'}; }
   if(d.type==='pptx') return {bytes:await oxpToPptx(d),ext:'pptx'};
   if(d.type==='form') return {bytes:oxfXlsx(d),ext:'xlsx'};
-  if(d.type==='docx'){ const host=document.createElement('div'); host.style.cssText='position:fixed;left:-9999px;top:0;width:'+(d.orient==='l'?1123:794)+'px'; host.className='oxw-page'+(d.lh?' lh':''); if(d.lh) host.style.padding='0 72px'; host.innerHTML=d.html||''; document.body.appendChild(host); await new Promise(r=>setTimeout(r,60)); try{ return {bytes:oxHtmlToDocx(host,{landscape:d.orient==='l',margin:OXW_MARG[d.margin||'Normal']||96,lh:!!d.lh}),ext:'docx'}; } finally{ host.remove(); } }
+  if(d.type==='docx'){ const host=document.createElement('div'); host.style.cssText='position:fixed;left:-9999px;top:0;color:#000;background:#fff;color-scheme:light;width:'+(d.orient==='l'?1123:794)+'px'; host.className='oxw-page'+(d.lh?' lh':''); if(d.lh) host.style.padding='0 72px'; host.innerHTML=d.html||''; document.body.appendChild(host); await new Promise(r=>setTimeout(r,60)); try{ return {bytes:oxHtmlToDocx(host,{landscape:d.orient==='l',margin:OXW_MARG[d.margin||'Normal']||96,lh:!!d.lh}),ext:'docx'}; } finally{ host.remove(); } }
   if(d.type==='eml') return {bytes:new TextEncoder().encode(await oxoEml(d)),ext:'eml'};
   return null; }
 
@@ -19320,6 +19322,447 @@ window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   else if(PAGE_FN[k]) go(k);
 };
 /* ===================== START ===================== */
+/* ===================== BID STUDIO v217 (begin) ===================== */
+/* ===================== BID STUDIO v217 · faster tender bids =====================
+   One workspace per tender (collection "bids", id = tender id):
+   1) Requirements checklist – standard Tanzanian bid list + AI reading of the tender documents (what to submit, bid
+      validity, completion period, bid security …).  Each item has an owner, a status and an action button.
+   2) Company bid library – CRB, TIN/VAT, tax clearance, audited accounts, CVs … kept ONCE in Office Records
+      (tag "bid:<key>") with expiry checks against the tender deadline.
+   3) BoQ – build from the tender documents (AI BoQ) and auto-price from the rate library.
+   4) Bid forms filled automatically on the letterhead (Form of Tender with the sum in words, bid-securing declaration,
+      power of attorney, key personnel, equipment, similar works, litigation, covering letter).
+   5) AI drafts of the method statement and work programme (Word, editable in NEXUS Word).
+   6) One-click bid pack (.zip, numbered in submission order, with an index).
+   7) Bid speed – days per bid and bids per month. */
+
+const BS_LIB=[
+  {k:'crb_b',t:'CRB registration certificate – Building',f:'legal',kw:['crb','building'],all:1},
+  {k:'crb_c',t:'CRB registration certificate – Civil works',f:'legal',kw:['crb','civil'],all:1},
+  {k:'inc',t:'Certificate of incorporation',f:'legal',kw:['incorporation']},
+  {k:'memart',t:'Memorandum & Articles of Association',f:'legal',kw:['memorandum','articles of association']},
+  {k:'lic',t:'Business licence',f:'legal',kw:['business licen']},
+  {k:'tin',t:'TIN certificate',f:'legal',kw:['tin certificate','taxpayer identification',' tin']},
+  {k:'vat',t:'VAT (VRN) certificate',f:'legal',kw:['vat','vrn']},
+  {k:'tax',t:'Tax clearance certificate',f:'legal',kw:['tax clearance']},
+  {k:'nssf',t:'NSSF compliance certificate',f:'legal',kw:['nssf']},
+  {k:'wcf',t:'WCF compliance certificate',f:'legal',kw:['wcf','workers compensation']},
+  {k:'osha',t:'OSHA compliance certificate',f:'legal',kw:['osha']},
+  {k:'insur',t:'Insurance (CAR / third party)',f:'legal',kw:['insurance']},
+  {k:'audit',t:'Audited financial statements (last 3 years)',f:'finance',kw:['audited','financial statement']},
+  {k:'bank',t:'Bank reference / credit line letter',f:'finance',kw:['bank reference','credit line','credit facility','line of credit']},
+  {k:'profile',t:'Company profile',f:'policies',kw:['company profile']},
+  {k:'poa_std',t:'Standing power of attorney',f:'legal',kw:['power of attorney']},
+  {k:'cvs',t:'Key staff CVs & certificates',f:'hr',kw:[' cv','cvs','curriculum vitae']},
+  {k:'plantev',t:'Plant ownership evidence (cards, log books, hire agreements)',f:'legal',kw:['log book','logbook','registration card','hire agreement']},
+  {k:'comp',t:'Completion certificates of similar works',f:'contracts',kw:['completion certificate','taking over','taking-over','handover certificate']}];
+const BS_FORMS={fot:'Form of Tender',bsd:'Bid-Securing Declaration',poa:'Power of Attorney (this tender)',staff:'Schedule of Key Personnel',plant:'Schedule of Plant & Equipment',exp:'Schedule of Similar Works',lit:'Litigation History Declaration',cover:'Bid Covering Letter',ms:'Method Statement',wp:'Work Programme'};
+const BS_CATS=[['form','Bid forms'],['boq','Bill of Quantities'],['doc','Company documents'],['tech','Technical proposal'],['sec','Securities'],['other','Other requirements']];
+const BS_ST=[['todo','To do'],['doing','In progress'],['ready','Ready'],['na','Not required']];
+// [name, cat, link {lib|form|boq}, tender-drawer checklist key]
+const BS_STD=[
+  ['Form of Tender (bid sum in figures and words)','form',{form:'fot'},'forms'],
+  ['Priced Bill of Quantities','boq',{boq:1},'boq'],
+  ['Bid security / Bid-Securing Declaration','sec',{form:'bsd'},'sec'],
+  ['Power of attorney for the signatory','form',{form:'poa'},'poa'],
+  ['CRB registration certificate (Building)','doc',{lib:'crb_b'},'crb'],
+  ['Tax clearance certificate','doc',{lib:'tax'},'tax'],
+  ['Business licence','doc',{lib:'lic'},'lic'],
+  ['TIN certificate','doc',{lib:'tin'},'lic'],
+  ['VAT (VRN) certificate','doc',{lib:'vat'},'lic'],
+  ['Certificate of incorporation','doc',{lib:'inc'},''],
+  ['Audited financial statements (last 3 years)','doc',{lib:'audit'},'fin'],
+  ['Schedule of key personnel','form',{form:'staff'},'staff'],
+  ['Key staff CVs & certificates','doc',{lib:'cvs'},'staff'],
+  ['Schedule of plant & equipment','form',{form:'plant'},'plant'],
+  ['Schedule of similar works','form',{form:'exp'},'exp'],
+  ['Completion certificates of similar works','doc',{lib:'comp'},'exp'],
+  ['Litigation history declaration','form',{form:'lit'},'forms'],
+  ['Method statement','tech',{form:'ms'},'ms'],
+  ['Work programme','tech',{form:'wp'},'wp'],
+  ['Company profile','doc',{lib:'profile'},''],
+  ['Bid covering letter','form',{form:'cover'},''],
+  ['Submit the bid (NeST / delivery) and save the receipt','other',{},'sub']];
+const BSB={busy:'',log:''};
+(()=>{ const st=document.createElement('style'); st.textContent='@media (max-width:700px){.bs-tbl thead{display:none}.bs-tbl tr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:8px 6px;border-bottom:1px solid var(--line,#2a3b5c)}.bs-tbl td{border:0!important;padding:2px 4px!important}.bs-tbl td:first-child{min-width:0}.bs-tbl .chip{white-space:normal}.bs-tbl td.r{grid-column:1/-1;text-align:left!important;white-space:normal!important;display:flex;flex-wrap:wrap;gap:6px}}'; document.head.appendChild(st); })();   // AI / pack progress shown on the page
+
+/* ---------- small helpers ---------- */
+const bsNow=()=>new Date().toISOString();
+const bsBid=tid=>byId('bids',tid);
+const bsTags=r=>String(r.tags||'').toLowerCase().split(/[,;\s]+/).filter(Boolean);
+const bsCan=()=>canWrite;
+function bsWords(n){ n=Math.round(+n||0); if(!n) return 'Zero';
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'], t=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const h=x=>{ let s=''; if(x>=100){ s+=a[Math.floor(x/100)]+' Hundred'; x%=100; if(x) s+=' and '; } if(x>=20){ s+=t[Math.floor(x/10)]+(x%10?'-'+a[x%10]:''); } else if(x) s+=a[x]; return s; };
+  const units=[[1e12,'Trillion'],[1e9,'Billion'],[1e6,'Million'],[1e3,'Thousand']]; let out=[], r=n;
+  for(const [v,w] of units){ if(r>=v){ out.push(h(Math.floor(r/v))+' '+w); r%=v; } } if(r) out.push(h(r)); return out.join(' '); }
+const bsMoneyWords=n=>`${bsWords(n)} Tanzanian Shillings Only`;
+function bsBoq(tid,b){ b=b||bsBid(tid); return (b&&b.boq_id&&byId('boqs',b.boq_id))||[...S.boqs].filter(x=>x.tender_id===tid).sort((x,y)=>String(y.updated_at||'').localeCompare(String(x.updated_at||'')))[0]||null; }
+
+/* ---------- company bid library (Office Records) ---------- */
+function bsLibRec(k){ const L=BS_LIB.find(x=>x.k===k); if(!L) return null;
+  const vis=S.records.filter(r=>r.folder!=='letters'&&recLvlOk(r.level||'all'));
+  const tagged=vis.filter(r=>bsTags(r).includes('bid:'+k));
+  const pick=a=>a.sort((x,y)=>String(recExp(y)||'9999').localeCompare(String(recExp(x)||'9999'))||String(y.updated_at||'').localeCompare(String(x.updated_at||'')))[0]||null;
+  if(tagged.length) return pick(tagged);
+  const hay=r=>(' '+[r.title,r.kind,r.tags,r.ref].join(' ')+' ').toLowerCase();
+  const m=vis.filter(r=>{ const h=hay(r); return L.all?L.kw.every(w=>h.includes(w)):L.kw.some(w=>h.includes(w)); });
+  return pick(m); }
+function bsLibState(k,deadline){ const r=bsLibRec(k);
+  if(!r) return {r:null,cls:'bad',text:'not in library',ok:false};
+  const f=recFile(r), e=recExp(r);
+  if(!f) return {r,cls:'amb',text:'no file attached',ok:false};
+  if(e){ const dl=toDate(deadline)||new Date(), ex=new Date(e+'T23:59');
+    if(ex<dl) return {r,cls:'bad',text:'expires '+fmtD(e)+(deadline?' – before the deadline':''),ok:false};
+    if((ex-dl)/864e5<30) return {r,cls:'amb',text:'valid to '+fmtD(e)+' (renew soon)',ok:true}; return {r,cls:'good',text:'valid to '+fmtD(e),ok:true}; }
+  return {r,cls:'good',text:'on file',ok:true}; }
+
+/* ---------- bid record ---------- */
+function bsStdItems(t){ return BS_STD.map(([name,cat,ln,ck])=>({id:uid(),name,cat,...ln,ck,status:'todo',owner:'',src:'std'})).concat(t&&t.site_visit?[{id:uid(),name:'Site visit / pre-bid meeting'+(t.site_visit?' – '+t.site_visit:''),cat:'other',ck:'visit',status:'todo',owner:'',src:'std'}]:[]); }
+async function bsStart(tid){ const t=byId('tenders',tid); if(!t) return toast('Tender not found.'); if(!bsCan()) return toast('Your login cannot start a bid.');
+  if(bsBid(tid)) return go('bid',tid);
+  const boq=bsBoq(tid,{});
+  await put('bids',tid,{tender_id:tid,title:t.title||'',started_at:bsNow(),started_by:me.name||'',owner:t.owner||myStaffId()||'',items:bsStdItems(t),facts:{deadline:t.deadline||'',bid_security:t.bid_security||'',site_visit:t.site_visit||''},boq_id:boq?boq.id:'',events:[{at:bsNow(),by:me.name||'',e:'started'}]});
+  if(!t.status||/^(Watching|New)$/i.test(t.status)) await patch('tenders',tid,{status:'Preparing'});
+  logAct(`Started bid in Bid Studio – ${t.title}`); go('bid',tid); }
+async function bsSave(tid,data,ev){ const b=bsBid(tid); if(!b) return; const d={...data}; if(ev) d.events=[...(b.events||[]),{at:bsNow(),by:me.name||'',e:ev}].slice(-60); await patch('bids',tid,d); bsSyncChecklist(tid,{...b,...d}); }
+// effective status of a requirement (auto-ready when the library / BoQ shows it is done)
+function bsEff(it,t,b){ if(it.status==='ready'||it.status==='na') return {s:it.status};
+  if(it.lib){ const st=bsLibState(it.lib,t.deadline); if(st.ok) return {s:'ready',auto:1}; }
+  if(it.boq){ const B=bsBoq(t.id,b); if(B){ const q=bqStats(B); if(q.n&&q.pct>=100) return {s:'ready',auto:1}; return {s:'doing',auto:1}; } }
+  if(it.doc_id&&byId('officedocs',it.doc_id)) return {s:it.status==='todo'?'doing':it.status,auto:it.status==='todo'};
+  if((it.files||[]).length&&it.status==='todo') return {s:'doing',auto:1};
+  return {s:it.status||'todo'}; }
+function bsProgress(t,b){ const L=(b.items||[]); const done=L.filter(it=>['ready','na'].includes(bsEff(it,t,b).s)).length; return {done,total:L.length,pct:L.length?Math.round(done/L.length*100):0}; }
+async function bsSyncChecklist(tid,b){ const t=byId('tenders',tid); if(!t||!b) return; const ck={...(t.checklist||{})}; let ch=false; const by={};
+  (b.items||[]).forEach(it=>{ if(!it.ck) return; (by[it.ck]=by[it.ck]||[]).push(['ready','na'].includes(bsEff(it,t,b).s)); });
+  for(const [k,v] of Object.entries(by)){ const ok=v.every(Boolean); if(!!ck[k]!==ok){ ck[k]=ok; ch=true; } }
+  if(t.files&&t.files.length&&!ck.doc){ ck.doc=true; ch=true; }
+  if(ch) await patch('tenders',tid,{checklist:ck}); }
+
+/* ---------- page ---------- */
+function pageBid(){
+  if(routeArg){ const t=byId('tenders',routeArg); if(!t) return '<div class="empty">This tender no longer exists. <button class="btn" data-go="bid">Back to Bid Studio</button></div>';
+    const b=bsBid(routeArg); if(!b) return `<div class="empty">No bid started for <b>${esc(t.title)}</b> yet.<br><br>${bsCan()?`<button class="btn pri" data-bs="start" data-tid="${esc(t.id)}">Start bid</button>`:''} <button class="btn" data-go="bid">Back</button></div>`;
+    return bsWork(t,b); }
+  const tab=UI.bstab||'active';
+  return `<div class="toolbar"><div class="seg">${[['active','Active bids'],['lib','Company bid library'],['speed','Bid speed']].map(([k,l])=>`<button data-bs="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div><div class="sp"></div></div>
+    ${tab==='lib'?bsLibPage():tab==='speed'?bsSpeedPage():bsActivePage()}`; }
+
+function bsActivePage(){
+  const bids=S.bids.filter(b=>byId('tenders',b.tender_id)&&!b.submitted_at).map(b=>({b,t:byId('tenders',b.tender_id)})).sort((x,y)=>String(x.t.deadline||'9').localeCompare(String(y.t.deadline||'9')));
+  const cand=S.tenders.filter(t=>!t.dup_of&&!bsBid(t.id)&&/Pursue|Check/.test(t.screen||'')&&(daysLeft(t.deadline)??-1)>0&&!/submitted|won|lost|no-?bid|cancel|closed/i.test(t.status||'')).sort((a,b)=>String(a.deadline||'').localeCompare(String(b.deadline||''))).slice(0,30);
+  const libMiss=BS_LIB.filter(L=>!bsLibState(L.k,'').ok).length;
+  return `${libMiss?`<div class="banner warn"><div><b>${libMiss} of ${BS_LIB.length} company documents</b> are missing, without a file or expired in the bid library. Add them once and every bid picks them up automatically. <button class="btn" data-bs="tab" data-v="lib">Open bid library</button></div></div>`:''}
+  <div class="card"><div class="hd"><h2>Bids in preparation</h2><div class="sp"></div><span class="chip">${bids.length}</span></div>
+  ${bids.length?`<div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Deadline</th><th>Progress</th><th class="hide-m">Bid owner</th><th class="hide-m">BoQ</th></tr></thead><tbody>${bids.map(({b,t})=>{const p=bsProgress(t,b), B=bsBoq(t.id,b), q=B?bqStats(B):null, ow=byId('staff',b.owner);
+    return `<tr class="click" data-bs="open" data-tid="${esc(t.id)}"><td><div class="ttl2">${esc(t.title)}</div><div class="sub" style="font-size:11.5px">${esc(t.client||'')}${t.no?' · '+esc(t.no):''}</div></td><td>${daysChip(t.deadline)} <span class="sub small">${t.deadline?fmtD(t.deadline):''}</span></td>
+      <td style="min-width:140px"><div class="bar"><i style="width:${p.pct}%"></i></div><div class="sub small">${p.done}/${p.total} ready · ${p.pct}%</div></td><td class="hide-m small">${esc(ow?.name||'—')}</td><td class="hide-m small">${B?`${q.pct}% priced`:'<span class="sub">not started</span>'}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="bd"><div class="empty">No bid in preparation. Start one from the list below or from a tender (button “Bid Studio”).</div></div>'}</div>
+  <div class="card"><div class="hd"><h2>Tenders you can start</h2><div class="sp"></div><span class="sub small">Pursue / Check, deadline still open</span></div>
+  ${cand.length?`<div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Screen</th><th>Deadline</th><th class="hide-m">Documents</th><th></th></tr></thead><tbody>${cand.map(t=>`<tr><td><div class="ttl2">${esc(t.title)}</div><div class="sub" style="font-size:11.5px">${esc(t.client||'')}${t.location?' · '+esc(t.location):''}</div></td><td>${screenChip(t.screen)}</td><td>${daysChip(t.deadline)}</td><td class="hide-m small">${(t.files||[]).length?`${t.files.length} file${t.files.length>1?'s':''}`:'<span class="sub">none attached</span>'}</td><td class="r">${bsCan()?`<button class="btn pri" data-bs="start" data-tid="${esc(t.id)}">Start bid</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="bd"><div class="empty">No open Pursue / Check tenders without a bid.</div></div>'}</div>`; }
+
+function bsWork(t,b){
+  const p=bsProgress(t,b), f=b.facts||{}, staffOpts=[['','— owner —'],...S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name])];
+  const sel=(opts,v,attrs)=>`<select ${attrs}>${opts.map(([k,l])=>`<option value="${esc(k)}" ${String(v||'')===String(k)?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  const ro=!bsCan();
+  const FACTS=[['bid_validity','Bid validity','e.g. 120 days'],['completion','Completion period','e.g. 9 months'],['bid_security','Bid security','e.g. Bid-Securing Declaration / TZS 20,000,000'],['site_visit','Site visit / pre-bid','date, time, place'],['submission','How to submit','e.g. NeST e-procurement'],['ld','Liquidated damages','e.g. 0.1% per day'],['signatory','Signatory (name, position)','e.g. '+(me.name||'')+', Managing Director']];
+  const groups=BS_CATS.map(([c,l])=>[c,l,(b.items||[]).map((it,i)=>[it,i]).filter(([it])=>it.cat===c)]).filter(g=>g[2].length);
+  const row=([it,i])=>{ const e=bsEff(it,t,b); return `<tr><td><div class="ttl2" style="font-size:13.5px">${esc(it.name)}${it.must===false?' <span class="chip">optional</span>':''}${it.src==='ai'?' <span class="chip" title="Found by AI in the tender documents">AI</span>':''}</div>${it.note?`<div class="sub small">${esc(it.note)}</div>`:''}${bsDetail(it,t,b)}</td>
+    <td class="hide-m">${ro?esc(byId('staff',it.owner)?.name||''):sel(staffOpts,it.owner,`data-bsc="owner" data-i="${i}" id="bso_${i}" style="max-width:150px"`)}</td>
+    <td>${ro?esc((BS_ST.find(x=>x[0]===e.s)||[])[1]||''):sel(BS_ST,e.s,`data-bsc="st" data-i="${i}" id="bss_${i}" class="bs-st-${e.s}"`)}${e.auto?'<div class="sub small">auto</div>':''}</td>
+    <td class="r" style="white-space:nowrap">${bsActions(it,i,t,b)}</td></tr>`; };
+  return `<div class="toolbar"><button class="btn" data-go="bid">← Bid Studio</button><div class="sp"></div>
+    ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button><button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
+  ${BSB.log&&BSB.tid===t.id?`<div class="banner"><div>${BSB.busy?'<span class="spin"></span> ':''}${esc(BSB.log)}</div></div>`:''}
+  <div class="card"><div class="bd" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+    <div style="flex:1;min-width:240px"><div class="ttl2" style="font-size:16px">${esc(t.title)}</div><div class="sub">${esc(t.client||'')}${t.no?' · Tender No. '+esc(t.no):''}${t.location?' · '+esc(t.location):''}</div>
+      <div class="sub small" style="margin-top:4px">Started ${fmtD(b.started_at)} by ${esc(b.started_by||'')}${b.submitted_at?` · <b>submitted ${fmtD(b.submitted_at)}</b> (${Math.max(1,Math.round((Date.parse(b.submitted_at)-Date.parse(b.started_at))/864e5))} days)`:''} · <a href="#" data-bs="tender" data-tid="${esc(t.id)}">open tender</a></div></div>
+    <div style="text-align:center"><div class="sub small">Deadline</div>${daysChip(t.deadline)}<div class="sub small">${t.deadline?fmtDT(t.deadline):'not set'}</div></div>
+    <div style="min-width:200px"><div class="sub small">${p.done} of ${p.total} requirements ready</div><div class="bar" style="margin:4px 0"><i style="width:${p.pct}%"></i></div><b>${p.pct}%</b></div>
+    <div style="min-width:170px"><div class="sub small">Bid owner</div>${ro?esc(byId('staff',b.owner)?.name||'—'):sel(staffOpts,b.owner,'data-bsc="bowner" id="bsbowner"')}</div></div></div>
+  <div class="card"><div class="hd"><h2>Key bid information</h2><div class="sp"></div><span class="sub small">${f.read_at?'Read by AI '+fmtD(f.read_at)+' – check against the documents':'Filled by “Read requirements (AI)” or type it in'}</span></div>
+    <div class="bd"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">${FACTS.map(([k,l,ph])=>`<label class="small"><span class="sub">${l}</span><input id="bsf_${k}" data-bsc="fact" data-k="${k}" value="${esc(f[k]||'')}" placeholder="${esc(ph)}" ${ro?'disabled':''} style="width:100%"></label>`).join('')}</div>
+    ${f.eligibility?`<div class="small" style="margin-top:8px"><b>Eligibility / qualification:</b> ${esc(f.eligibility)}</div>`:''}${f.evaluation?`<div class="small" style="margin-top:4px"><b>Evaluation:</b> ${esc(f.evaluation)}</div>`:''}</div></div>
+  ${groups.map(([c,l,L])=>`<div class="card"><div class="hd"><h2>${l}</h2><div class="sp"></div><span class="chip">${L.filter(([it])=>['ready','na'].includes(bsEff(it,t,b).s)).length}/${L.length}</span></div><div class="tbl-wrap"><table class="bs-tbl"><thead><tr><th>Requirement</th><th class="hide-m">Owner</th><th>Status</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div></div>`).join('')}
+  ${bsCan()?`<div class="card"><div class="bd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="bsnew" placeholder="Add a requirement, e.g. Sworn affidavit of non-blacklisting" style="flex:1;min-width:220px"><select id="bsnewcat">${BS_CATS.map(([k,l])=>`<option value="${k}" ${k==='other'?'selected':''}>${l}</option>`).join('')}</select><button class="btn" data-bs="add">Add</button></div></div>`:''}
+  <input type="file" id="bsUp" hidden multiple>`; }
+
+function bsDetail(it,t,b){
+  if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `<div class="small" style="margin-top:3px"><span class="chip ${s.cls}">${esc(s.text)}</span>${s.r?` <span class="sub">${esc(s.r.title)}</span>`:''}</div>`; }
+  if(it.boq){ const B=bsBoq(t.id,b); if(!B) return '<div class="sub small">No BoQ yet for this tender.</div>'; const q=bqStats(B), T=boqTotals(B);
+    return `<div class="small" style="margin-top:3px"><b>${esc(B.title||'BoQ')}</b> · ${q.n} items · ${q.pct}% priced${q.lib?` · ${q.lib} library`:''}${q.ai?` · ${q.ai} AI`:''}${money()||isQSr()?` · <b>${tzs(T.grand)}</b>`:''}</div>`; }
+  if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); return d?`<div class="sub small">Word: ${esc(d.title)} · ${fmtD(d.updated_at||d.created_at)}</div>`:''; }
+  if((it.files||[]).length) return `<div class="small">${it.files.map((f,j)=>`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join(' · ')}</div>`;
+  return ''; }
+function bsActions(it,i,t,b){ if(!bsCan()) return '';
+  const B=`data-i="${i}"`;
+  if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `${s.r&&recFile(s.r)?`<button class="btn" data-bs="libopen" data-k="${it.lib}">Open</button>`:''}<button class="btn" data-bs="libadd" data-k="${it.lib}">${s.r?'Replace':'Add to library'}</button>`; }
+  if(it.boq){ const X=bsBoq(t.id,b); return X?`<button class="btn" data-bs="autoprice" ${B}>⚡ Auto-price</button><button class="btn" data-bs="boqopen" data-id="${esc(X.id)}">Open BoQ</button>`:`<button class="btn pri" data-bs="boqgen" data-tid="${esc(t.id)}">🤖 Build BoQ from documents</button><button class="btn" data-bs="boqnew" data-tid="${esc(t.id)}">Empty BoQ</button>`; }
+  if(it.form){ const has=it.doc_id&&byId('officedocs',it.doc_id), ai=it.form==='ms'||it.form==='wp';
+    return `${has?`<button class="btn" data-bs="docopen" ${B}>Open</button>`:''}<button class="btn ${has?'':'pri'}" data-bs="gen" ${B} ${BSB.busy?'disabled':''}>${ai?(has?'Redraft (AI)':'🤖 Draft with AI'):(has?'Refill':'Fill form')}</button>`; }
+  return `<button class="btn" data-bs="up" ${B}>📎 Attach</button>${it.src==='man'||it.src==='ai'?`<button class="btn" data-bs="del" ${B} title="Remove this requirement">✕</button>`:''}`; }
+
+/* ---------- library page ---------- */
+function bsLibPage(){
+  return `<div class="card"><div class="hd"><h2>Company bid library</h2><div class="sp"></div><span class="sub small">Kept in Office Records – add once, every bid uses it</span></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Document</th><th>Record in Office Records</th><th>Status today</th><th></th></tr></thead><tbody>
+  ${BS_LIB.map(L=>{ const s=bsLibState(L.k,''); return `<tr><td><div class="ttl2" style="font-size:13.5px">${esc(L.t)}</div><div class="sub small">${esc(recFolder(L.f).t)}</div></td><td class="small">${s.r?`${esc(s.r.title)}${recFile(s.r)?` · <span class="sub">${esc(recFile(s.r).name||'')}</span>`:''}`:'<span class="sub">—</span>'}</td><td><span class="chip ${s.cls}">${esc(s.text)}</span></td>
+    <td class="r" style="white-space:nowrap">${s.r&&recFile(s.r)?`<button class="btn" data-bs="libopen" data-k="${L.k}">Open</button>`:''}${bsCan()?`<button class="btn" data-bs="liblink" data-k="${L.k}">Link record</button><button class="btn ${s.r?'':'pri'}" data-bs="libadd" data-k="${L.k}">${s.r?'Upload new':'Upload'}</button>`:''}</td></tr>`; }).join('')}</tbody></table></div>
+  <div class="bd sub small">Tip: NEXUS also finds documents you already have in Office Records by their title (e.g. “Tax clearance certificate 2026”). Use <b>Link record</b> to choose exactly which record is used.</div></div>`; }
+
+/* ---------- bid speed ---------- */
+function bsSpeedPage(){
+  const all=S.bids.filter(b=>byId('tenders',b.tender_id)), sub=all.filter(b=>b.submitted_at);
+  const days=sub.map(b=>Math.max(1,(Date.parse(b.submitted_at)-Date.parse(b.started_at))/864e5)).filter(x=>isFinite(x));
+  const avg=days.length?days.reduce((a,x)=>a+x,0)/days.length:null;
+  const months=[]; const d0=new Date(); for(let k=5;k>=0;k--){ const d=new Date(d0.getFullYear(),d0.getMonth()-k,1); months.push([d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),d.toLocaleString('en-GB',{month:'short',year:'2-digit'})]); }
+  const subT=S.tenders.filter(t=>/submitted|won|lost/i.test(t.status||''));
+  const cnt=m=>sub.filter(b=>String(b.submitted_at).slice(0,7)===m).length, cntS=m=>all.filter(b=>String(b.started_at).slice(0,7)===m).length;
+  const mx=Math.max(1,...months.map(([m])=>Math.max(cnt(m),cntS(m))));
+  const auto=all.reduce((a,b)=>{ const t=byId('tenders',b.tender_id); (b.items||[]).forEach(it=>{ a.n++; if(it.doc_id||it.lib||it.boq) a.a++; }); return a; },{n:0,a:0});
+  return `<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:12px">
+    ${[['Bids started',all.length],['Bids submitted',sub.length],['Average days per bid',avg==null?'—':avg.toFixed(1)],['Requirements handled by NEXUS',auto.n?Math.round(auto.a/auto.n*100)+'%':'—'],['Tenders submitted (all time, Tender Radar)',subT.length]].map(([l,v])=>`<div class="card"><div class="bd"><div class="sub small">${l}</div><div style="font-size:24px;font-weight:700">${v}</div></div></div>`).join('')}</div>
+  <div class="card"><div class="hd"><h2>Bids per month</h2><div class="sp"></div><span class="sub small">started vs submitted in Bid Studio</span></div><div class="bd">
+    <div style="display:flex;gap:14px;align-items:flex-end;height:170px">${months.map(([m,l])=>`<div style="flex:1;text-align:center"><div style="display:flex;gap:4px;align-items:flex-end;justify-content:center;height:130px"><div title="Started: ${cntS(m)}" style="width:40%;background:var(--line,#D4DAE3);height:${cntS(m)/mx*100}%;border-radius:3px 3px 0 0"></div><div title="Submitted: ${cnt(m)}" style="width:40%;background:var(--pri,#185ABD);height:${cnt(m)/mx*100}%;border-radius:3px 3px 0 0"></div></div><div class="small">${l}</div><div class="sub small">${cntS(m)} / ${cnt(m)}</div></div>`).join('')}</div>
+    <div class="sub small" style="margin-top:8px">Grey = started · Blue = submitted. Measure the effect of Bid Studio by comparing the average days per bid month by month.</div></div></div>
+  ${sub.length?`<div class="card"><div class="hd"><h2>Submitted bids</h2></div><div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Started</th><th>Submitted</th><th class="r">Days</th></tr></thead><tbody>${sub.sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at))).map(b=>{const t=byId('tenders',b.tender_id); return `<tr class="click" data-bs="open" data-tid="${esc(b.tender_id)}"><td>${esc(t?.title||b.title||'')}</td><td>${fmtD(b.started_at)}</td><td>${fmtD(b.submitted_at)}</td><td class="r">${Math.max(1,Math.round((Date.parse(b.submitted_at)-Date.parse(b.started_at))/864e5))}</td></tr>`;}).join('')}</tbody></table></div></div>`:''}`; }
+
+/* ---------- AI: read the tender requirements ---------- */
+function bsSetLog(tid,msg,busy){ BSB.tid=tid; BSB.log=msg; if(busy!==undefined) BSB.busy=busy; renderView(true); }
+async function bsDocText(T){ const out=[]; for(const f of (T.files||[]).slice(0,8)){ const n=String(f.name||'').toLowerCase();
+    try{ if(/\.pdf$/.test(n)){ const buf=await (await fetch(f.url)).arrayBuffer(); const r=await bgPdfPages(buf); const tx=r.pages.join('\n'); if(tx.replace(/\s/g,'').length>200) out.push(`### FILE: ${f.name}\n${tx}`); }
+      else if(/\.docx$/.test(n)){ await loadScript(XLSX_URL); const buf=new Uint8Array(await (await fetch(f.url)).arrayBuffer()); const h=oxDocxToHtml(buf).html||''; const d=document.createElement('div'); d.innerHTML=h; out.push(`### FILE: ${f.name}\n${d.innerText}`); }
+      else if(/\.(txt|html?)$/.test(n)){ out.push(`### FILE: ${f.name}\n${(await (await fetch(f.url)).text()).replace(/<[^>]+>/g,' ')}`); } }
+    catch(e){ out.push(`### FILE: ${f.name}\n[could not read: ${e.message||e}]`); } }
+  return out.join('\n\n'); }
+// keep the parts of long tender documents that talk about what must be submitted
+function bsPick(text,max){ if(text.length<=max) return text;
+  const KW=/(instructions? to (bidders|tenderers)|bid data sheet|tender data sheet|documents? (comprising|to be submitted|required)|shall (submit|include|furnish|provide)|must (submit|include|be accompanied)|qualification|eligibility|evaluation criteria|bid security|tender security|securing declaration|validity|completion period|time for completion|intended completion|liquidated damages|site visit|pre-?bid|power of attorney|form of (bid|tender)|key personnel|equipment|similar (works|contracts|nature)|turnover|audited|tax clearance|crb|registration|litigation|method statement|work programme|programme of works|deadline for submission|submission of bids|nest)/ig;
+  const hits=[]; let m; while((m=KW.exec(text))&&hits.length<400) hits.push(m.index);
+  const spans=[]; hits.forEach(i=>{ const a=Math.max(0,i-500), b=Math.min(text.length,i+1100); const l=spans[spans.length-1]; if(l&&a<=l[1]) l[1]=Math.max(l[1],b); else spans.push([a,b]); });
+  let out=''; for(const [a,b] of spans){ if(out.length>max) break; out+=text.slice(a,b)+'\n…\n'; } return out.slice(0,max)||text.slice(0,max); }
+async function bsReadReq(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b) return;
+  if(BSB.busy) return; bsSetLog(tid,'Reading the tender documents…','req');
+  try{
+    let text=await bsDocText(t);
+    if(!text.trim()) text=[t.notice,t.scope,t.eligibility].filter(Boolean).join('\n');
+    if(!text.trim()){ bsSetLog(tid,'No readable tender documents attached (scanned PDFs cannot be read here). Attach the tender document to the tender, or type the key information below.',''); return; }
+    const picked=bsPick(text,15000), parts=picked.length>7800?[picked.slice(0,7800),picked.slice(7800,15600)]:[picked];
+    const LIBK=BS_LIB.map(L=>`${L.k}=${L.t}`).join('; '), FORMK=Object.entries(BS_FORMS).map(([k,v])=>`${k}=${v}`).join('; ');
+    let reqs=[], facts={};
+    for(let i=0;i<parts.length;i++){ bsSetLog(tid,`AI is reading the requirements (part ${i+1} of ${parts.length})…`,'req');
+      const r=await bgAI(`You prepare construction tender bids in Tanzania (PPRA / NeST rules). From this tender document extract EVERYTHING the bidder must submit or satisfy, and the key bid data.
+Tender: ${t.title} · ${t.client||''} · ${t.no||''}
+Map each requirement to ONE of: lib (company document) keys: ${LIBK}; form keys: ${FORMK}; or boq (priced bill of quantities), sec (bid security), other.
+Return JSON: {"requirements":[{"name":"short requirement as stated","cat":"form|boq|doc|tech|sec|other","lib":"key or null","form":"key or null","boq":true|false,"mandatory":true|false,"note":"quantity/years/value/format details, max 140 chars"}],
+"facts":{"bid_validity":"","completion":"","bid_security":"","site_visit":"","submission":"","ld":"","eligibility":"one sentence: CRB class, turnover, experience, staff","evaluation":"one sentence: how bids are evaluated","deadline":"YYYY-MM-DD HH:MM or empty"}}
+Use empty strings when not stated. Do not invent requirements that are not in the text.
+TEXT (part ${i+1}/${parts.length}):
+${parts[i]}`,3500);
+      if(r&&Array.isArray(r.requirements)) reqs.push(...r.requirements); if(r&&r.facts) for(const [k,v] of Object.entries(r.facts)) if(v&&!facts[k]) facts[k]=String(v).slice(0,300); }
+    // merge into the checklist
+    const items=[...(b.items||[])]; let added=0, matched=0;
+    const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+    for(const q of reqs){ if(!q||!q.name) continue; const lib=BS_LIB.some(L=>L.k===q.lib)?q.lib:null, form=BS_FORMS[q.form]?q.form:null, isB=q.boq===true||q.cat==='boq';
+      let it=items.find(x=>(lib&&x.lib===lib)||(form&&x.form===form)||(isB&&x.boq)||norm(x.name)===norm(q.name));
+      if(it){ matched++; if(q.note&&!it.note) it.note=String(q.note).slice(0,160); if(it.src==='std') it.src='ai'; if(q.mandatory===false) it.must=false; continue; }
+      const cat=['form','boq','doc','tech','sec','other'].includes(q.cat)?q.cat:(lib?'doc':form?'form':'other');
+      items.push({id:uid(),name:String(q.name).slice(0,140),cat,...(lib?{lib}:{}),...(form?{form}:{}),...(isB?{boq:1}:{}),note:String(q.note||'').slice(0,160),must:q.mandatory!==false,status:'todo',owner:'',src:'ai'}); added++; }
+    const nf={...(b.facts||{})}; for(const [k,v] of Object.entries(facts)) if(v&&!nf[k]) nf[k]=v; nf.read_at=bsNow();
+    await bsSave(tid,{items,facts:nf},'AI read requirements');
+    const tp={}; if(facts.site_visit&&!t.site_visit) tp.site_visit=facts.site_visit; if(facts.bid_security&&!t.bid_security) tp.bid_security=facts.bid_security; if(facts.eligibility&&!t.eligibility) tp.eligibility=facts.eligibility; if(Object.keys(tp).length) await patch('tenders',tid,tp);
+    bsSetLog(tid,`Done – ${reqs.length} requirements found: ${matched} already on the checklist, ${added} added. Check the key bid information against the documents.`,'');
+  }catch(e){ bsSetLog(tid,'Could not read the requirements: '+(e.message||e),''); } }
+
+/* ---------- forms (Word on the letterhead) ---------- */
+function bsSign(f,c){ return `${oxP('For and on behalf of '+(c.name||''),{b:true,before:240})}${oxP('\n\nSignature: ……………………………………………          Company stamp:',{after:40})}${oxP('Name & position: '+(f.signatory||'……………………………………………'))}${oxP('Date: '+fmtD(today()))}`; }
+function bsAddr(t){ return oxP(`The Chairperson, Tender Board\n${t.client||'[Procuring entity]'}${t.location?'\n'+t.location:''}`); }
+function bsHead(t,title){ return `${oxP(title,{style:'Title'})}${oxTbl([['Item','Details'],['Tender',t.title||'…'],['Tender No.',t.no||'…'],['Procuring entity',t.client||'…'],['Bidder',company().name]],{widths:[2600,7300],shade:true})}`; }
+function bsFormBody(k,t,b){ const c=company(), f=b.facts||{}, B=bsBoq(t.id,b), T=B?boqTotals(B):null, sum=T&&T.grand?Math.round(T.grand):0;
+  const sumTxt=sum?`TZS ${sum.toLocaleString('en-US')} (${bsMoneyWords(sum)})`:'TZS ………………………… (in words: ……………………………………………………………………)';
+  const ref=oxP([oxR('Our Ref: ',{b:true}),oxR('NCL/TND/'+new Date().getFullYear()+'/'+String(t.no||t.id||'').slice(-12))],{after:40})+oxP([oxR('Date: ',{b:true}),oxR(fmtD(today()))]);
+  if(k==='fot') return `${oxP('FORM OF TENDER',{style:'Title'})}${ref}${bsAddr(t)}${oxP('Dear Sir / Madam,',{before:160})}${oxP(`RE: ${t.no?'TENDER No. '+t.no+' – ':''}${t.title||''}`,{b:true,caps:true,border:true})}
+    ${oxP(`1. We, the undersigned, having examined the bidding documents including Addenda No. ……… for the above works, offer to execute and complete the works and remedy any defects therein in conformity with the Conditions of Contract, Specifications, Drawings and Bills of Quantities for the sum of ${sumTxt}, inclusive of VAT, or such other sum as may be ascertained in accordance with the said conditions.`)}
+    ${oxP(`2. We undertake, if our bid is accepted, to commence the works on receipt of the Engineer's order to commence and to complete the whole of the works within ${f.completion||'……………… (period)'}.`)}
+    ${oxP(`3. We agree to abide by this bid for a period of ${f.bid_validity||'……… days'} from the date fixed for submission of bids and it shall remain binding upon us and may be accepted at any time before the expiration of that period.`)}
+    ${oxP(`4. Bid security: ${f.bid_security||'Bid-Securing Declaration / bank guarantee as required by the Bid Data Sheet'}.`)}
+    ${oxP('5. Unless and until a formal contract is prepared and executed, this bid together with your written acceptance thereof shall constitute a binding contract between us. We understand that you are not bound to accept the lowest or any bid you may receive.')}
+    ${oxP(`6. We confirm that we are registered with the Contractors Registration Board as ${c.crb_building||''}${c.crb_civil?' and '+c.crb_civil:''}; TIN ${c.tin||'…………'}${c.vrn?', VRN '+c.vrn:''}.`)}
+    ${bsSign(f,c)}`;
+  if(k==='bsd') return `${oxP('BID-SECURING DECLARATION',{style:'Title'})}${ref}${bsAddr(t)}${oxP(`RE: ${t.no?'TENDER No. '+t.no+' – ':''}${t.title||''}`,{b:true,caps:true,border:true,before:160})}
+    ${oxP('We, the undersigned, declare that:')}${oxP('1. We understand that, according to your conditions, bids must be supported by a Bid-Securing Declaration.')}
+    ${oxP(`2. We accept that we will automatically be suspended from being eligible for bidding in any contract with the Procuring Entity for the period of time determined by the Public Procurement Regulatory Authority if we are in breach of our obligation(s) under the bid conditions, because we: (a) have withdrawn our bid during the period of bid validity specified by us in the Form of Tender (${f.bid_validity||'……… days'}); or (b) having been notified of the acceptance of our bid during the period of bid validity, (i) fail or refuse to execute the contract, if required, or (ii) fail or refuse to furnish the performance security in accordance with the instructions to bidders.`)}
+    ${oxP('3. We understand this Bid-Securing Declaration shall expire if we are not the successful bidder, upon the earlier of (i) our receipt of your notification of the name of the successful bidder; or (ii) twenty-eight days after the expiration of our bid.')}
+    ${f.bid_security&&!/declaration/i.test(f.bid_security)?oxHint('Note: the tender asks for: '+f.bid_security+' – attach the bank guarantee / insurance bond if a monetary security is required.'):''}${bsSign(f,c)}`;
+  if(k==='poa') return `${oxP('POWER OF ATTORNEY',{style:'Title'})}${oxP(`KNOW ALL MEN BY THESE PRESENTS that we, ${c.name||''}, a company incorporated in the United Republic of Tanzania with its registered office at ${c.address||''}, ${c.pobox||''} (hereinafter "the Company"), do hereby nominate, constitute and appoint:`,{before:160})}
+    ${oxP((f.signatory||'……………………………………………, ……………………………')+' (hereinafter "the Attorney")',{b:true,align:'center'})}
+    ${oxP(`to be the true and lawful Attorney of the Company for the purpose of signing and submitting the bid, clarifications, negotiations and the contract, and all documents connected therewith, in respect of ${t.no?'Tender No. '+t.no+' – ':''}${t.title||''} invited by ${t.client||'the Procuring Entity'}.`)}
+    ${oxP('The Company hereby agrees to ratify and confirm all acts lawfully done by the said Attorney under this Power of Attorney.')}
+    ${oxP('IN WITNESS WHEREOF the Common Seal of the Company was hereunto affixed on this ……… day of …………………… '+new Date().getFullYear()+'.',{before:120})}
+    ${oxTbl([['','Name','Signature'],['Director','',''],['Director / Secretary','',''],['Attorney (specimen signature)','','']],{widths:[3200,3700,3000]})}
+    ${oxP('BEFORE ME: ……………………………………… Commissioner for Oaths / Notary Public',{before:200})}`;
+  if(k==='staff'){ const want=/(manager|engineer|surveyor|quantity|foreman|supervisor|hse|safety|architect|technician|director)/i;
+    const L=S.staff.filter(s=>s.status!=='Left'&&want.test(s.position||'')).sort((a,b)=>(+(a.rank||99))-(+(b.rank||99))).slice(0,14);
+    const yrs=s=>s.joined?Math.max(0,Math.floor((Date.now()-Date.parse(s.joined))/31557600000))+' yrs':'';
+    return `${bsHead(t,'SCHEDULE OF KEY PERSONNEL')}${oxP('Personnel proposed for the contract. CVs and certified copies of academic and professional certificates are attached.',{before:120})}
+      ${oxTbl([['No.','Position on this contract','Name','Present position','Qualification / registration','Years with firm'],...(L.length?L.map((s,i)=>[String(i+1),s.position||'',s.name||'',s.position||'','',yrs(s)]):[['1','Project Manager','','','',''],['2','Site Engineer','','','',''],['3','Quantity Surveyor','','','',''],['4','Foreman','','','',''],['5','HSE Officer','','','','']])],{widths:[600,2200,2000,1800,2100,1000],shade:true})}
+      ${oxHint('Check the required positions, qualifications and minimum years of experience in the tender and adjust this list.')}${bsSign(f,c)}`; }
+  if(k==='plant'){ const L=S.plant.filter(p=>p.status!=='Written off').slice(0,40);
+    return `${bsHead(t,'SCHEDULE OF PLANT & EQUIPMENT')}${oxP('Equipment available for the execution of the works (owned or under hire agreement – evidence attached).',{before:120})}
+      ${oxTbl([['No.','Item','Category','Reg. / serial no.','Ownership','Condition','Location'],...(L.length?L.map((p,i)=>[String(i+1),p.name||'',p.category||'',p.reg_no||'',p.ownership||'',p.status||'',p.project_id?projName(p.project_id):'Yard']):[['1','','','','','','']])],{widths:[600,2400,1500,1500,1100,1200,1500],shade:true})}${bsSign(f,c)}`; }
+  if(k==='exp'){ const W=[...(S.wins||[])].sort((a,b)=>String(b.awarded||b.start||'').localeCompare(String(a.awarded||a.start||''))).slice(0,12);
+    return `${bsHead(t,'SCHEDULE OF SIMILAR WORKS')}${oxP('Works of a similar nature and complexity executed or in progress (completion certificates attached).',{before:120})}
+      ${oxTbl([['No.','Name of works','Client','Contract sum (TZS)','Year','Status'],...(W.length?W.map((w,i)=>[String(i+1),w.title||'',w.client||'',w.sum?Math.round(+w.sum).toLocaleString('en-US'):'',String(w.awarded||w.start||'').slice(0,4),w.status||'']):[['1','','','','','']])],{widths:[600,3300,2000,1700,800,1300],shade:true})}
+      ${W.length?'':oxHint('Add contracts to the Contracts won register (Tender Radar › Wins) so this schedule fills itself.')}${bsSign(f,c)}`; }
+  if(k==='lit') return `${bsHead(t,'LITIGATION HISTORY DECLARATION')}${oxP('We declare the history of litigation or arbitration resulting from contracts executed by us in the last five (5) years, or currently under execution:',{before:120})}
+    ${oxTbl([['Year','Award FOR or AGAINST bidder','Name of client, cause of litigation and matter in dispute','Disputed amount (TZS)'],['','','NIL',''],['','','','']],{widths:[900,2200,4900,1900],shade:true})}
+    ${oxP('We further declare that the company has not been debarred or suspended by the Public Procurement Regulatory Authority or any other authority, and that the information given above is true and correct.')}${bsSign(f,c)}`;
+  if(k==='cover'){ const L=(b.items||[]).filter(it=>it.status!=='na'&&it.ck!=='sub');
+    return `${ref}${bsAddr(t)}${oxP('Dear Sir / Madam,',{before:160})}${oxP(`RE: SUBMISSION OF BID – ${t.no?'TENDER No. '+t.no+' – ':''}${t.title||''}`,{b:true,caps:true,border:true})}
+      ${oxP(`We, ${c.name||''}, are pleased to submit our bid for the above works for the sum of ${sumTxt}.`)}
+      ${oxP(`Our bid is valid for ${f.bid_validity||'……… days'} from the bid submission deadline and we propose to complete the works within ${f.completion||'………'}.`)}
+      ${oxP('Enclosures:',{b:true,before:120})}${oxTbl([['No.','Document'],...L.map((it,i)=>[String(i+1),it.name])],{widths:[800,9100]})}
+      ${oxP('We trust that our bid will merit your favourable consideration.',{before:120})}${oxP('Yours faithfully,')}${bsSign(f,c)}`; }
+  return ''; }
+
+/* ---------- AI: method statement & programme ---------- */
+function bsBoqOutline(B,maxItems=70){ if(!B) return 'No BoQ yet.'; const out=[]; let n=0; (B.bills||[]).forEach((bl,i)=>{ out.push(`BILL ${i+1}: ${bl.name}`); (bl.items||[]).forEach(it=>{ if(n>=maxItems||oxIsHead(it)||!it.desc) return; n++; out.push(`- ${String(it.desc).slice(0,110)}${it.qty?` (${it.qty} ${it.unit||''})`:''}`); }); }); return out.join('\n'); }
+async function bsDraftAI(k,t,b){ const B=bsBoq(t.id,b), f=b.facts||{};
+  const ctx=`Tender: ${t.title}\nClient: ${t.client||''}\nLocation: ${t.location||''}\nScope: ${String(t.scope||t.notice||'').slice(0,1500)}\nCompletion period: ${f.completion||'not stated – propose a realistic one'}\nBoQ outline:\n${bsBoqOutline(B)}`;
+  if(k==='ms') return await bgAI(`${companyContext()}
+Write a tender METHOD STATEMENT for this construction contract in Tanzania. Be specific to the bills and items below, practical and professional (TBS / BS standards, OSHA Tanzania, NEMA).
+${ctx}
+Return JSON: {"intro":"2-3 sentences","sections":[{"h":"heading","paras":["…"],"steps":[["activity","method / key points"]]}],"resources":[["Resource","Description","Quantity"]],"qa":[["Check / test","Frequency","Acceptance criteria"]],"hse":[["Hazard","Risk H/M/L","Control measures"]],"env":["…"]}
+Sections must cover: site set-up & mobilisation, setting out, each major work package from the BoQ in execution order, quality control, health & safety, environment, traffic / public safety, demobilisation & handover. 6-10 sections, steps 3-8 each.`,6000);
+  return await bgAI(`Prepare a realistic construction WORK PROGRAMME (bar chart) for this contract in Tanzania.
+${ctx}
+Return JSON: {"total_weeks":n,"activities":[{"name":"…","start":week number starting at 1,"dur":weeks,"pred":"short predecessor name or empty","milestone":false}],"notes":["key assumptions"]}
+15-35 activities in execution order: mobilisation, setting out, substructure, superstructure, roofing, finishes, services, external works, testing & commissioning, handover. The programme must fit the completion period.`,4500); }
+function bsMsBody(t,b,r){ const c=company(), f=b.facts||{}, sec=Array.isArray(r?.sections)?r.sections:[];
+  let x=`${bsHead(t,'METHOD STATEMENT')}${oxP(r?.intro||'',{before:120})}`; let n=1;
+  sec.forEach(s=>{ x+=oxH(`${n++}. ${s.h||''}`); (s.paras||[]).forEach(p=>x+=oxP(String(p))); if(Array.isArray(s.steps)&&s.steps.length) x+=oxTbl([['Step','Activity','Method / key points'],...s.steps.map((st,i)=>[String(i+1),String(st[0]||''),String(st[1]||'')])],{widths:[700,2800,6400],shade:true}); });
+  if(Array.isArray(r?.resources)&&r.resources.length) x+=oxH(`${n++}. Resources`)+oxTbl([['Resource','Description','Quantity'],...r.resources.map(a=>[String(a[0]||''),String(a[1]||''),String(a[2]||'')])],{widths:[2400,5500,2000],shade:true});
+  if(Array.isArray(r?.qa)&&r.qa.length) x+=oxH(`${n++}. Quality control`)+oxTbl([['Check / test','Frequency','Acceptance criteria'],...r.qa.map(a=>[String(a[0]||''),String(a[1]||''),String(a[2]||'')])],{widths:[3400,2200,4300],shade:true});
+  if(Array.isArray(r?.hse)&&r.hse.length) x+=oxH(`${n++}. Health & safety risk assessment`)+oxTbl([['Hazard','Risk','Control measures'],...r.hse.map(a=>[String(a[0]||''),String(a[1]||''),String(a[2]||'')])],{widths:[2800,1000,6100],shade:true});
+  if(Array.isArray(r?.env)&&r.env.length){ x+=oxH(`${n++}. Environmental management`); r.env.forEach(e=>x+=oxP('• '+e)); }
+  return x+bsSign(f,c); }
+function bsWpBody(t,b,r){ const c=company(), f=b.facts||{}; const A=(Array.isArray(r?.activities)?r.activities:[]).filter(a=>a&&a.name).slice(0,40);
+  const W=Math.max(1,Math.min(156,+r?.total_weeks||Math.max(...A.map(a=>(+a.start||1)+(+a.dur||1)-1),1)));
+  const step=W<=20?1:W<=40?2:W<=80?4:Math.ceil(W/20), cols=Math.ceil(W/step), lab=step===1?'Wk':step===4?'Mth':'Wk';
+  const head=['No.','Activity','Wk','Dur',...Array.from({length:cols},(_,i)=>step===4?String(i+1):String(i*step+1))];
+  const rows=A.map((a,i)=>{ const s=Math.max(1,+a.start||1), d=Math.max(a.milestone?0:1,+a.dur||1), e=s+Math.max(d,1)-1; return [String(i+1),String(a.name)+(a.pred?` (after ${a.pred})`:''),String(s),a.milestone?'◆':String(d),...Array.from({length:cols},(_,j)=>{ const c0=j*step+1, c1=c0+step-1; return (s<=c1&&e>=c0)?(a.milestone?'◆':'██'):''; })]; });
+  const fixed=[450,3200,700,700], rest=Math.max(200,Math.floor((14300-fixed.reduce((x,y)=>x+y,0))/cols));
+  return `${oxP('WORK PROGRAMME',{style:'Title'})}${oxP(`${t.title||''}${t.no?' · Tender No. '+t.no:''} · ${t.client||''}`,{align:'center',b:true,color:'2F5E8E'})}${oxP(`Completion period: ${f.completion||W+' weeks'} · Programme: ${W} weeks · bar columns = ${step===4?'months (4 weeks)':step===1?'weeks':step+' weeks each'}`,{align:'center'})}
+    ${oxTbl([head,...rows],{widths:[...fixed,...Array(cols).fill(rest)],shade:true})}
+    ${Array.isArray(r?.notes)&&r.notes.length?oxH('Assumptions')+r.notes.map(n=>oxP('• '+n)).join(''):''}${bsSign(f,c)}`; }
+
+async function bsGen(tid,i){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b) return; const items=[...(b.items||[])], it={...items[i]}; if(!it||!it.form) return;
+  const k=it.form, ai=k==='ms'||k==='wp';
+  if(it.doc_id&&byId('officedocs',it.doc_id)&&!await confirmBox(`Create a new version of "${BS_FORMS[k]}"? The current Word document stays in NEXUS Office; the bid will use the new one.`,'Create new version')) return;
+  if(BSB.busy) return; bsSetLog(tid,ai?`AI is drafting the ${BS_FORMS[k].toLowerCase()} – about a minute…`:`Filling ${BS_FORMS[k]}…`,'gen');
+  try{ await loadScript(XLSX_URL);
+    let body, land=false;
+    if(ai){ const r=await bsDraftAI(k,t,b); if(!r) throw new Error('no answer from AI'); body=k==='ms'?bsMsBody(t,b,r):bsWpBody(t,b,r); land=k==='wp'; if(k==='wp'&&Array.isArray(r.activities)) await bsSave(tid,{programme:{weeks:r.total_weeks,activities:r.activities.slice(0,40),at:bsNow()}}); }
+    else body=bsFormBody(k,t,b);
+    const html=oxDocxToHtml(oxDocx(body,{landscape:land})).html;
+    const id=await oxStore({type:'docx',title:`${BS_FORMS[k]} – ${String(t.title||'').slice(0,70)}`,html,orient:land?'l':'p',margin:'Normal',lh:true,tpl:'bid:'+k,tender_id:tid});
+    if(!id) throw new Error('could not save the Word document');
+    const b2=bsBid(tid); const L=[...(b2.items||[])]; const j=L.findIndex(x=>x.id===it.id); if(j>=0){ L[j]={...L[j],doc_id:id,status:L[j].status==='todo'?'doing':L[j].status}; }
+    await bsSave(tid,{items:L},`${ai?'AI drafted':'filled'} ${BS_FORMS[k]}`);
+    bsSetLog(tid,`${BS_FORMS[k]} is ready in Word – check it, then set the status to Ready.${k==='fot'&&!bsBoq(tid,b2)?' (No BoQ yet: the bid sum is left blank – refill after pricing.)':''}`,'');
+    logAct(`Bid Studio: ${BS_FORMS[k]} for ${t.title}`);
+  }catch(e){ bsSetLog(tid,`Could not create ${BS_FORMS[k]}: ${e.message||e}`,''); } }
+
+/* ---------- BoQ: auto-price from the library ---------- */
+async function bsAutoPrice(tid){ const b=bsBid(tid), B=bsBoq(tid,b); if(!B) return; const reg=rtBoqRegion(B), bills=JSON.parse(JSON.stringify(B.bills||[])); let n=0, old=0, left=0;
+  bills.forEach(bl=>(bl.items||[]).forEach(it=>{ if(oxIsHead(it)) return; if(it.rate===''||it.rate==null){ const m=matchRate(it.desc,it.unit,reg); if(m){ it.rate=+m.rate; it.p=bqLibP(m); n++; if(rtCheck(m)) old++; } else if(it.qty!==''&&it.qty!=null) left++; } }));
+  if(n) await patch('boqs',B.id,{bills}); if(b&&!b.boq_id) await bsSave(tid,{boq_id:B.id});
+  toast(`${n?`Priced ${n} items from the rate library${old?` (${old} older than 6 months – check)`:''}.`:'No unpriced item matched the rate library.'}${left?` ${left} items still need a rate – opening Price (QS) for AI and market rates.`:''}`);
+  if(left){ UI.bqmode='price'; go('qs',B.id); } }
+
+/* ---------- library: link / upload ---------- */
+function bsLibLink(k){ const L=BS_LIB.find(x=>x.k===k); const vis=S.records.filter(r=>r.folder!=='letters'&&recLvlOk(r.level||'all'));
+  formDrawer('Link: '+L.t,[{k:'rec',label:'Office Records document',type:'select',full:1,options:[['','— choose —'],...vis.sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).map(r=>[r.id,`${r.title}${recExp(r)?' · to '+fmtD(recExp(r)):''}${recFile(r)?'':' (no file)'}`])]}],{rec:bsLibRec(k)?.id||''},async v=>{ if(!v.rec) return false;
+    for(const r of S.records.filter(r=>bsTags(r).includes('bid:'+k)&&r.id!==v.rec)) await patch('records',r.id,{tags:bsTags(r).filter(x=>x!=='bid:'+k).join(', ')});
+    const r=byId('records',v.rec); await patch('records',r.id,{tags:[...new Set([...bsTags(r),'bid:'+k])].join(', ')}); toast('Linked – every bid now uses this document.'); renderAll(); return true; },{sub:'Bid Studio · company bid library',saveLabel:'Link'}); }
+function bsLibAdd(k){ const L=BS_LIB.find(x=>x.k===k), old=bsLibRec(k);
+  formDrawer((old?'New version: ':'Add: ')+L.t,[{k:'title',label:'Title',req:1,full:1},{k:'ref',label:'Reference / number'},{k:'date',label:'Date issued',type:'date'},{k:'expiry',label:'Expiry date',type:'date',help:'Leave empty if it does not expire. Reminders 60, 30 and 7 days before.'},{k:'file',label:'File (PDF, Word, photo – up to 50 MB)',type:'file',full:1}],{title:L.t+(L.f==='legal'?' '+new Date().getFullYear():''),ref:old?.ref||''},async v=>{
+    const el=document.querySelector('#f_file'), file=el&&el.files&&el.files[0]; if(!file){ toast('Choose the file.'); return false; } if(file.size>50*1024*1024){ toast('The file is larger than 50 MB.'); return false; }
+    const id=uid(); try{ toast('Uploading '+file.name+' …'); const up=await window.NX_REC.upload(id,file,1);
+      for(const r of S.records.filter(r=>bsTags(r).includes('bid:'+k))) await patch('records',r.id,{tags:bsTags(r).filter(x=>x!=='bid:'+k).join(', ')});
+      await put('records',id,{folder:L.f,title:v.title,kind:L.f==='legal'?(/tax|tin|vat/.test(k)?'Tax / compliance':/insur/.test(k)?'Insurance':'Registration / licence'):'',ref:v.ref||'',date:v.date||'',expiry:v.expiry||'',level:L.f==='hr'?'all':'all',tags:'bid:'+k,note:'Added from Bid Studio',files:[{...up,v:1,at:bsNow(),by:me.name||''}],created_at:bsNow(),created_by:me.name||'',created_uid:me.id||''});
+      window.NX_REC?.log(id,'added'); logAct(`Bid library: ${v.title}`); toast('Saved in Office Records and linked to the bid library.'); renderAll(); return true; }
+    catch(e){ toast('Upload failed: '+(e.message||e)); return false; } },{sub:'Saved in Office Records › '+recFolder(L.f).t,saveLabel:'Save'}); }
+async function bsLibOpen(k){ const r=bsLibRec(k), f=r&&recFile(r); if(!f) return; try{ window.open(await window.NX_REC.url(f.path),'_blank','noopener'); }catch(e){ toast('Could not open: '+(e.message||e)); } }
+
+/* ---------- bid pack (.zip) ---------- */
+async function bsPack(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return;
+  bsSetLog(tid,'Building the bid pack…','pack');
+  try{ await loadScript(XLSX_URL);
+    const enc=new TextEncoder(), entries=[], index=[], missing=[]; let n=1; const nm=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,90);
+    const add=(name,ext,bytes)=>{ const fn=`${String(n).padStart(2,'0')} ${nm(name)}.${ext}`; entries.push({name:fn,data:bytes instanceof Uint8Array?bytes:new Uint8Array(bytes)}); index.push([String(n).padStart(2,'0'),name,fn]); n++; };
+    const order=['form','boq','sec','doc','tech','other'];
+    const L=[...(b.items||[])].filter(it=>it.status!=='na'&&it.ck!=='sub').sort((x,y)=>{ const fx=x.form==='cover'?-1:x.form==='fot'?0:1, fy=y.form==='cover'?-1:y.form==='fot'?0:1; return fx-fy||order.indexOf(x.cat)-order.indexOf(y.cat); });
+    for(const it of L){ bsSetLog(tid,`Adding ${it.name}…`,'pack');
+      try{
+        if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); if(!d){ missing.push(it.name+' – not filled yet'); continue; } const r=await oxDocBytes(d); if(r) add(it.name,r.ext,r.bytes); else missing.push(it.name); continue; }
+        if(it.boq){ const B=bsBoq(tid,b); if(!B){ missing.push(it.name+' – no BoQ'); continue; } add(it.name,'xlsx',boqToXlsx(B)); continue; }
+        if(it.lib){ const s=bsLibState(it.lib,t.deadline); const f=s.r&&recFile(s.r); if(!f){ missing.push(it.name+' – not in the bid library'); continue; } const u=await window.NX_REC.url(f.path); const buf=await (await fetch(u)).arrayBuffer(); add(it.name,(String(f.name||'').match(/\.([a-z0-9]{2,5})$/i)||[,'pdf'])[1],new Uint8Array(buf)); if(!s.ok) missing.push(it.name+' – '+s.text+' (included, check it)'); continue; }
+        if((it.files||[]).length){ for(const f of it.files){ const buf=await (await fetch(f.url)).arrayBuffer(); add(it.name+((it.files.length>1)?' – '+f.name.replace(/\.[^.]+$/,''):''),(String(f.name||'').match(/\.([a-z0-9]{2,5})$/i)||[,'pdf'])[1],new Uint8Array(buf)); } continue; }
+        missing.push(it.name);
+      }catch(e){ missing.push(it.name+' – '+(e.message||e)); } }
+    const c=company();
+    const idx=`${oxP('BID SUBMISSION',{style:'Title'})}${oxTbl([['Item','Details'],['Tender',t.title||''],['Tender No.',t.no||'…'],['Procuring entity',t.client||'…'],['Bidder',c.name],['Submission deadline',t.deadline?fmtD(t.deadline):'…'],['Prepared',fmtD(today())+' · '+(me.name||'')]],{widths:[2600,7300],shade:true})}
+      ${oxH('Contents')}${oxTbl([['No.','Document','File'],...index],{widths:[700,5200,4000],shade:true})}${missing.length?oxH('Still to be added')+missing.map(m=>oxP('• '+m)).join(''):''}`;
+    entries.unshift({name:'00 Bid index.docx',data:oxDocx(idx)});
+    const zip=window.NX_ZIP(entries); await downloads.save({filename:`Bid pack – ${nm(t.title).slice(0,60)}.zip`,data:zip});
+    await bsSave(tid,{pack_at:bsNow()},`bid pack downloaded (${index.length} documents)`);
+    bsSetLog(tid,`Bid pack downloaded – ${index.length} documents${missing.length?`; still missing or to check: ${missing.slice(0,6).join('; ')}${missing.length>6?' …':''}`:''}.`,'');
+  }catch(e){ bsSetLog(tid,'Could not build the bid pack: '+(e.message||e),''); } }
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bs]'); if(!el) return; e.preventDefault(); e.stopPropagation();
+  const a=el.dataset.bs, tid=el.dataset.tid||routeArg, i=el.dataset.i!=null?+el.dataset.i:null;
+  if(a==='tab'){ UI.bstab=el.dataset.v; if(route!=='bid') go('bid'); else renderView(true); return; }
+  if(a==='open'){ if(drawer) closeDrawer(); if(bsBid(tid)) go('bid',tid); else if(bsCan()) bsStart(tid); else go('bid',tid); return; }
+  if(a==='start') return bsStart(tid);
+  if(a==='tender') return openTender(tid);
+  if(a==='libopen') return bsLibOpen(el.dataset.k);
+  if(!bsCan()) return toast('Your login can only view bids.');
+  if(a==='liblink') return bsLibLink(el.dataset.k);
+  if(a==='libadd') return bsLibAdd(el.dataset.k);
+  const b=bsBid(tid); if(!b) return;
+  if(a==='req') return bsReadReq(tid);
+  if(a==='pack') return bsPack(tid);
+  if(a==='gen') return bsGen(tid,i);
+  if(a==='docopen'){ const id=b.items[i]?.doc_id; if(id) oxOpenDoc(id); return; }
+  if(a==='boqgen') return bgOpen(tid);
+  if(a==='boqnew'){ const T=byId('tenders',tid); const id=await put('boqs',null,{title:'BoQ – '+(T?.title||''),tender_id:tid,bills:[],vat:18,contingency:0,scope:T?.scope||'',owner:me.name||'',owner_uid:me.id||''}); if(id){ await bsSave(tid,{boq_id:id}); go('qs',id); } return; }
+  if(a==='boqopen'){ UI.bqmode='price'; go('qs',el.dataset.id); return; }
+  if(a==='autoprice') return bsAutoPrice(tid);
+  if(a==='up'){ const f=$('#bsUp'); f.dataset.i=i; f.click(); return; }
+  if(a==='del'){ if(!await confirmBox(`Remove “${b.items[i]?.name}” from this bid's checklist?`,'Remove')) return; const L=[...b.items]; L.splice(i,1); return bsSave(tid,{items:L}); }
+  if(a==='add'){ const v=$('#bsnew')?.value.trim(); if(!v) return toast('Type the requirement first.'); const cat=$('#bsnewcat')?.value||'other'; await bsSave(tid,{items:[...(b.items||[]),{id:uid(),name:v.slice(0,140),cat,status:'todo',owner:'',src:'man'}]}); $('#bsnew').value=''; return; }
+  if(a==='submit'){ const t=byId('tenders',tid), p=bsProgress(t,b);
+    if(!await confirmBox(`Mark this bid as submitted?${p.pct<100?` Only ${p.done} of ${p.total} requirements are marked ready.`:''} The tender status becomes “Submitted”.`,'Mark submitted')) return;
+    const L=(b.items||[]).map(it=>it.ck==='sub'?{...it,status:'ready'}:it);
+    await bsSave(tid,{submitted_at:bsNow(),submitted_by:me.name||'',items:L},'submitted');
+    await patch('tenders',tid,{status:'Submitted',checklist:{...(t.checklist||{}),sub:true}});
+    logAct(`Bid submitted – ${t.title}`); toast('Bid marked as submitted. Record the bid price on the tender when known.'); return; }
+},true);
+document.addEventListener('change',async e=>{ const el=e.target;
+  if(el.id==='bsUp'&&el.files?.length){ const tid=routeArg, b=bsBid(tid), i=+el.dataset.i; if(!b||!b.items[i]) return; const files=[...el.files]; el.value='';
+    try{ const add=[]; for(const f of files){ if(f.size>50*1024*1024){ toast(f.name+' is larger than 50 MB.'); continue; } toast('Uploading '+f.name+' …'); const up=await assets.upload(f); add.push({name:f.name,url:up.url,path:up.path,at:bsNow(),by:me.name||''}); }
+      const L=[...b.items]; L[i]={...L[i],files:[...(L[i].files||[]),...add]}; await bsSave(tid,{items:L},'attached '+add.length+' file(s)'); toast('Attached.'); }catch(err){ toast('Upload failed: '+(err.message||err)); } return; }
+  if(!el.dataset||!('bsc' in el.dataset)) return; if(!bsCan()) return;
+  const tid=routeArg, b=bsBid(tid); if(!b) return; const k=el.dataset.bsc;
+  if(k==='bowner') return bsSave(tid,{owner:el.value});
+  if(k==='fact') return bsSave(tid,{facts:{...(b.facts||{}),[el.dataset.k]:el.value.trim()}});
+  const i=+el.dataset.i, L=[...(b.items||[])]; if(!L[i]) return;
+  if(k==='owner'){ L[i]={...L[i],owner:el.value}; return bsSave(tid,{items:L}); }
+  if(k==='st'){ L[i]={...L[i],status:el.value,...(el.value==='ready'?{done_at:bsNow(),done_by:me.name||''}:{})}; return bsSave(tid,{items:L},`${L[i].name}: ${el.value}`); }
+},true);
+/* ===================== BID STUDIO (end) ===================== */
 (async function start(){
   try{ UI.theme=localStorage.getItem('nx_theme')||'Blueprint';  }catch(_){}
   try{ UI.photos=localStorage.getItem('nx_photos')||'On'; }catch(_){} applyPhotos();
