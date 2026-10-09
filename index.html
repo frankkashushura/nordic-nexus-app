@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="9b15fdd74d29">
+<meta name="nexus-build" content="0cb0014a9a51">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3014,7 +3014,7 @@ function finRows(){ const out=[...(S.finance||[])];
   return out; }
 
 /* ===================== PAGE ===================== */
-const AC_TABS=[['gate','Gateway'],['day','Cash Book'],['led','Ledgers'],['rep','Reports'],['annual','Annual accounts'],['quick','Quick entries'],['set','Settings']];
+const AC_TABS=[['gate','Dashboard'],['day','Cash Book'],['led','Ledgers'],['rep','Reports'],['annual','Annual accounts'],['quick','Quick entries'],['set','Settings']];
 function pageFinance(){
   if(!money()) return `<div class="card empty">Finance is restricted to administrators and Finance users.</div>`;
   const st=acSet(), tab=UI.actab||'gate';
@@ -3257,7 +3257,7 @@ function acReports(){
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
     ${r==='ledger'&&acIsItemL(f.l||'')?`<select class="inp" data-acf="acr.it" title="Sub-ledger"><option value="">All items (whole ledger)</option>${acItemsOf(f.l).map(n=>`<option ${f.it===n?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
-  const k=r==='ledger'&&UI.acBack, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Gateway',day:'Cash Book'}[k.tab]||(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1]):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
+  const k=r==='ledger'&&UI.acBack, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Dashboard',day:'Cash Book'}[k.tab]||(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1]):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
   return `${k?`<div class="toolbar ac-backbar">${bb}<span class="small muted">Ledger opened from ${esc(bl)}</span></div>`:''}${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>${k?`<div class="toolbar ac-backbar">${bb}</div>`:''}`;
 }
 function acRepHtml(r,from,to){
