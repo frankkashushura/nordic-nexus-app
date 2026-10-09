@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="0cb0014a9a51">
+<meta name="nexus-build" content="163edd7d2487">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2927,7 +2927,7 @@ const acFyM=()=>+((acSet()||{}).fy_month)||1;
 function acFyStart(d){ const m=acFyM(), y=+d.slice(0,4), mo=+d.slice(5,7); const yy=mo>=m?y:y-1; return `${yy}-${String(m).padStart(2,'0')}-01`; }
 const acFyEnd=s=>acDay(`${+s.slice(0,4)+1}${s.slice(4)}`,-1);
 const acFyLbl=s=>acFyM()===1?s.slice(0,4):`${s.slice(0,4)}/${String(+s.slice(0,4)+1).slice(2)}`;
-const acCan=()=>money();
+const acCan=()=>money()&&!(typeof acPinLocked==='function'&&acPinLocked());
 const acIsCash=id=>AC_CASH.includes((acL(id)||{}).group);
 const acOpS1=l=>l?(l.op_dc==='Cr'?-1:1)*(+l.op||0):0;
 const acOpS=l=>{ if(!l) return 0; let v=acOpS1(l); if(l.itemised) for(const x of (S.ledgers||[])) if(x.merged_into===l.id&&!x.deleted) v+=acOpS1(x); return v; };
@@ -3017,10 +3017,11 @@ function finRows(){ const out=[...(S.finance||[])];
 const AC_TABS=[['gate','Dashboard'],['day','Cash Book'],['led','Ledgers'],['rep','Reports'],['annual','Annual accounts'],['quick','Quick entries'],['set','Settings']];
 function pageFinance(){
   if(!money()) return `<div class="card empty">Finance is restricted to administrators and Finance users.</div>`;
+  { const g=typeof acPinGate==='function'?acPinGate():''; if(g) return g; }
   const st=acSet(), tab=UI.actab||'gate';
   if(st&&isAdmin) setTimeout(()=>{ try{ if(typeof acTidyNames==='function') acTidyNames(); }catch(e){ console.warn(e); } },1500);
   if(st&&(st.auto_post||st.accrual_from)) setTimeout(async()=>{ try{ if(typeof acSyncAccr==='function') await acSyncAccr(); }catch(e){ console.warn(e); } if(st.auto_post) acSyncFin(); },50);
-  const tabs=`<div class="seg ac-tabs" role="tablist">${AC_TABS.map(([k,l])=>`<button data-ac="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
+  const tabs=`<div class="seg ac-tabs" role="tablist">${AC_TABS.map(([k,l])=>`<button data-ac="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}${typeof acPinOn==='function'&&acPinOn()?'<button data-ac="pinLockNow" title="Lock Finance now" aria-label="Lock Finance">🔒</button>':''}</div>`;
   if(!st&&tab!=='quick') return `${tabs}<div class="card ac-setup"><div class="bd"><h2 style="margin-top:0">Accounts – Tally-style books</h2>
     <p>Set up proper double-entry books like Tally.ERP 9: <b>groups & ledgers</b>, <b>vouchers</b> (Contra F4, Payment F5, Receipt F6, Journal F7, Sales F8, Purchase F9, Credit/Debit notes) with Debit and Credit lines,
     and reports that build themselves – <b>Cash Book, Ledger, Trial Balance, Profit & Loss, Balance Sheet, Cash Flow</b>, cash-flow forecast, outstandings, project (cost centre) profit, VAT & statutory, bank reconciliation and the <b>annual financial statements</b> for the auditor.</p>
@@ -3121,7 +3122,7 @@ function acNew(vt,preset){
   ACV={id:null,vtype:vt,date:(preset&&preset.date)||d,no:acNextNo(vt,(preset&&preset.date)||d),no_auto:acNextNo(vt,(preset&&preset.date)||d),ref:'',narr:'',project_id:'',lines:tpl.map(([dc,l])=>({dc,l:l&&acL(l)?l:'',amt:'',cc:''})),...(preset||{})};
   acVOpen();
 }
-function acEdit(id){ const v=(S.vouchers||[]).find(x=>x.id===id); if(!v) return; ACV=JSON.parse(JSON.stringify(v)); ACV.lines=(ACV.lines||[]).map(x=>{ const mt=acMT(x.l); return mt?{...x,l:mt.merged_into,it:x.it||acItemName(mt)}:{...x,amt:x.amt}; }); acVOpen(); }
+function acEdit(id){ if(!acCan()) return; const v=(S.vouchers||[]).find(x=>x.id===id); if(!v) return; ACV=JSON.parse(JSON.stringify(v)); ACV.lines=(ACV.lines||[]).map(x=>{ const mt=acMT(x.l); return mt?{...x,l:mt.merged_into,it:x.it||acItemName(mt)}:{...x,amt:x.amt}; }); acVOpen(); }
 function acLocked(d){ const lk=(acSet()||{}).locked_until; return !!(lk&&d&&d<=lk); }
 function acVOpen(){ if(ACV&&!ACV.mode) acSimpleInit(); let w=document.getElementById('acvModal'); if(!w){ w=document.createElement('div'); w.id='acvModal'; w.className='acm'; document.body.append(w); w.addEventListener('click',acVClick); w.addEventListener('input',acVInput); w.addEventListener('change',acVInput); w.addEventListener('keydown',acVKey); } acVRender(); setTimeout(()=>{ const i=w.querySelector(ACV&&ACV.mode==='simple'?'[data-vs="a"]':'[data-vl="0"][data-k="l"]'); i&&ACV&&!ACV.id&&i.focus(); },50); }
 function acVClose(){ const w=document.getElementById('acvModal'); if(w) w.remove(); ACV=null; }
@@ -3515,6 +3516,7 @@ function acSettings(){ const st=acSet()||{};
     <div><b>Accrual posting</b><div>${st.accrual_from?'IPCs and supplier tax invoices posted to client / supplier accounts from '+esc(fmtD(st.accrual_from)):'Off – cash basis (only payments and receipts are posted)'} <button class="btn sm ghost" data-ac="accrSet">Edit</button></div></div>
     <div><b>Locked period</b><div>${st.locked_until?`Entries up to <b>${fmtD(st.locked_until)}</b> are locked`:'Nothing locked'} ${isAdmin?'<button class="btn sm ghost" data-ac="lock">Change</button>':''}</div><div class="small muted">Lock a year after the audit so nobody can change those figures. Only directors can lock or unlock.</div></div>
     <div><b>Expense ledgers</b><div>${acMergeText()} ${isAdmin?((S.ledgers||[]).some(l=>l.merged_into)?`${acMergeCand().length?'<button class="btn sm ghost" data-ac="mergeExp">Combine the rest</button> ':''}<button class="btn sm ghost" data-ac="unmergeExp">Separate again</button>`:'<button class="btn sm ghost" data-ac="mergeExp">Combine</button>'):''}</div><div class="small muted">As in the audited accounts: one ledger per expense note, with the item (Fuel, Internet fee…) kept on every entry.</div></div>
+    ${typeof acPinRow==='function'?acPinRow():''}
     <div><b>Voucher approval</b><div>${acApprText()} ${isAdmin?'<button class="btn sm ghost" data-ac="apprSet">Change</button>':''}</div><div class="small muted">Drafts and vouchers awaiting approval stay out of the ledgers. The database enforces these rules.</div></div>
     ${isAdmin||(typeof myRole==='function'&&myRole()==='finance')||money()?`<div><b>Audit trail</b><div>Every change to vouchers, ledgers and settings – who, when, before and after <button class="btn sm ghost" data-ac="audit">View</button></div></div>`:''}
   </div></div>
@@ -3574,6 +3576,14 @@ document.addEventListener('click',async e=>{
   if(a==='accrSet') return acAccrForm();
   if(a==='apprSet') return acApprForm();
   if(a==='mergeExp') return acMergeExp();
+  if(a==='pinGo') return acPinGo();
+  if(a==='pinSet') return acPinSet();
+  if(a==='pinCancel'){ AC_PIN.chg=false; return renderView(true); }
+  if(a==='pinChange'){ AC_PIN.chg=true; renderView(true); setTimeout(()=>{ const n=document.getElementById('acPin1'); n&&n.focus(); },50); return; }
+  if(a==='pinLockNow'){ AC_PIN.ok=true; acPinLock(); return; }
+  if(a==='pinToggle') return acPinToggle();
+  if(a==='pinResets') return acPinResets();
+  if(a==='pinReset') return acPinReset(v);
   if(a==='itemSel'){ UI.acr={...(UI.acr||{}),it:v||''}; renderView(true); return; }
   if(a==='unmergeExp') return acUnmergeExp();
   if(a==='audit') return acAuditView();
@@ -3607,7 +3617,7 @@ document.addEventListener('keydown',e=>{
 .ac-vbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px}.ac-vbtns .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}.ac-vbtns .btn span{font-size:11px;opacity:.7;font-family:'IBM Plex Mono',monospace}
 .ac-t{width:100%;border-collapse:collapse}.ac-t th,.ac-t td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}.ac-t td.r,.ac-t th.r{text-align:right}.ac-t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ac-gh td{font-weight:700;background:color-mix(in srgb,var(--line) 35%,transparent)}.ac-sec td{font-weight:800;letter-spacing:.05em;color:var(--accent,#F2A900);padding-top:14px}.ac-in{padding-left:24px!important}
-.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.acs-help{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:6px;margin:4px 0 12px;font-size:13.5px}.acs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}.acs-f{display:flex;flex-direction:column;gap:4px;font-size:13px}.acs-f>span{font-weight:600}.acs-f .inp{width:100%;font-size:15px;padding:9px 10px}.acs-chk{display:flex;align-items:center;gap:8px;padding:9px 0;font-size:14px}.acs-chk input{width:18px;height:18px}.acs-books{margin:14px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}.acs-sw{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px}.ac-backbar{margin:0 0 10px}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
+.ac-tot th{border-top:1px solid var(--ink,currentColor);font-weight:700}.ac-key th{border-top:2px solid currentColor;border-bottom:3px double currentColor}.ac-pin{max-width:440px;margin:40px auto;text-align:center}.ac-pin h2{margin:6px 0 8px}.ac-pin-ico{font-size:34px}.ac-pin-row{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap}.ac-pin-in{width:170px!important;max-width:170px;text-align:center;font-size:22px;letter-spacing:6px;padding:10px}.acs-help{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:6px;margin:4px 0 12px;font-size:13.5px}.acs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}.acs-f{display:flex;flex-direction:column;gap:4px;font-size:13px}.acs-f>span{font-weight:600}.acs-f .inp{width:100%;font-size:15px;padding:9px 10px}.acs-chk{display:flex;align-items:center;gap:8px;padding:9px 0;font-size:14px}.acs-chk input{width:18px;height:18px}.acs-books{margin:14px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}.acs-sw{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px}.ac-backbar{margin:0 0 10px}.ac-lk{text-decoration:underline dotted 1px;text-underline-offset:3px}tr.click:hover .ac-lk{text-decoration:underline solid}.ac-unp td{opacity:.75;font-style:italic}.acm-stamp{margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--bg2,rgba(127,127,127,.08))}.ac-cx td{opacity:.5;text-decoration:line-through}
 .ac-ln{white-space:nowrap}.ac-filt{flex-wrap:wrap;gap:8px}.ac-filt label{display:flex;align-items:center;gap:6px}.ac-wide th,.ac-wide td{white-space:nowrap}
 .ac-replinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.ac-rl{text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}.ac-rl:hover{border-color:var(--accent,#F2A900)}.ac-rl small{opacity:.7}
 .ac-set{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
@@ -4210,6 +4220,57 @@ async function acTidyNames(){ if(AC_NM_DONE||!isAdmin||!(S.ledgers||[]).length) 
 
 /* item-level balance and movement of an itemised ledger (PPE note) */
 function acItemBal(id,it,d){ let v=0; (S.ledgers||[]).forEach(x=>{ if(x.merged_into===id&&!x.deleted&&acItemName(x)===it) v+=acOpS1(x); }); acPost(id).forEach(p=>{ if(p.d<=d&&(p.it||'')===it) v+=p.s; }); return acR(v); }
+/* ===================== v206 · Finance PIN lock =====================
+   When a director turns it on (Settings), Finance & Accounts asks each Finance user / director for their own 4–6 digit PIN
+   on opening and again after 5 minutes without activity. The PIN is stored only as a PBKDF2 hash in docs(col='finpin', id=user id);
+   5 wrong attempts lock Finance for 15 minutes. Directors can reset a PIN (the user then sets a new one). */
+const AC_PIN={ok:false,doc:undefined,last:Date.now(),hid:0,chg:false};
+const acPinOn=()=>!!((acSet()||{}).pin_on);
+const acPinLocked=()=>money()&&acPinOn()&&(!AC_PIN.ok||AC_PIN.chg);
+['pointerdown','keydown','wheel','touchstart'].forEach(e=>addEventListener(e,()=>{ AC_PIN.last=Date.now(); },{passive:true,capture:true}));
+function acPinLock(){ if(!AC_PIN.ok) return; AC_PIN.ok=false; AC_PIN.chg=false; try{ acVClose(); }catch(_){} if(typeof route!=='undefined'&&route==='finance') renderView(true); }
+setInterval(()=>{ if(AC_PIN.ok&&acPinOn()&&Date.now()-AC_PIN.last>5*60e3) acPinLock(); },15e3);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) AC_PIN.hid=Date.now(); else if(AC_PIN.hid&&Date.now()-AC_PIN.hid>5*60e3) acPinLock(); });
+async function acPinLoad(){ try{ const s=await db.doc('finpin/'+me.id).get(); AC_PIN.doc=s&&s.exists?s.data():null; AC_PIN.err=''; }catch(e){ AC_PIN.doc=null; AC_PIN.err=e.message||String(e); } }
+async function acPinHash(pin,salt){ const enc=new TextEncoder(), k=await crypto.subtle.importKey('raw',enc.encode(String(pin)),'PBKDF2',false,['deriveBits']);
+  const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode((me.id||'')+':'+salt),iterations:150000,hash:'SHA-256'},k,256); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+const acPinWeak=p=>/^(\d)\1+$/.test(p)||'0123456789'.includes(p)||'9876543210'.includes(p);
+function acPinGate(){ if(!acPinLocked()) return '';
+  if(AC_PIN.doc===undefined){ acPinLoad().then(()=>{ if(route==='finance') renderView(true); }); return `<div class="card ac-pin"><div class="bd">Checking…</div></div>`; }
+  const d=AC_PIN.doc, setMode=!d||AC_PIN.chg, lk=d&&d.lock_until&&Date.parse(d.lock_until)>Date.now(), inp=(id,ph)=>`<input class="inp ac-pin-in" id="${id}" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="${ph}">`;
+  return `<div class="card ac-pin"><div class="bd"><div class="ac-pin-ico">🔒</div><h2>${setMode?(AC_PIN.chg?'Change your Finance PIN':'Set your Finance PIN'):'Finance & Accounts is locked'}</h2>
+    ${lk?`<p>Too many wrong attempts. Try again after <b>${new Date(d.lock_until).toTimeString().slice(0,5)}</b>, or ask a director to reset your PIN.</p>`:
+    setMode?`<p class="small muted">Choose 4–6 digits only you know. It is asked when you open Finance and after 5 minutes without activity. Nobody else – not even a director – can see it.</p>
+      <div class="ac-pin-row">${inp('acPin1','New PIN')}${inp('acPin2','Repeat PIN')}</div><div class="ac-pin-row"><button class="btn pri" data-ac="pinSet">Save PIN</button>${AC_PIN.chg?'<button class="btn ghost" data-ac="pinCancel">Cancel</button>':''}</div>`
+    :`<p class="small muted">Enter your Finance PIN, ${esc((me.name||'').split(' ')[0])}.</p><div class="ac-pin-row">${inp('acPinIn','PIN')}<button class="btn pri" data-ac="pinGo">Unlock</button></div><p class="small muted">Forgot your PIN? A director can reset it in Finance → Settings.</p>`}
+    ${AC_PIN.err?`<p class="small" style="color:var(--bad)">${esc(AC_PIN.err)}</p>`:''}</div></div>`; }
+async function acPinGo(){ const el=document.getElementById('acPinIn'), v=(el&&el.value||'').trim(), d=AC_PIN.doc; if(!d) return;
+  if(!/^\d{4,6}$/.test(v)) return toast('Enter your 4–6 digit PIN.');
+  if(d.lock_until&&Date.parse(d.lock_until)>Date.now()) return renderView(true);
+  if(await acPinHash(v,d.salt)===d.h){ AC_PIN.ok=true; AC_PIN.last=Date.now(); if(d.fails){ d.fails=0; patch('finpin',me.id,{fails:0}); } renderView(true); return; }
+  const f=(+d.fails||0)+1; if(f>=5){ d.fails=0; d.lock_until=new Date(Date.now()+15*60e3).toISOString(); await patch('finpin',me.id,{fails:0,lock_until:d.lock_until}); logAct('Finance PIN: 5 wrong attempts – Finance locked for 15 minutes'); }
+  else { d.fails=f; await patch('finpin',me.id,{fails:f}); toast(`Wrong PIN – ${5-f} attempt${5-f===1?'':'s'} left.`); }
+  renderView(true); setTimeout(()=>{ const n=document.getElementById('acPinIn'); n&&n.focus(); },50); }
+async function acPinSet(){ const a=(document.getElementById('acPin1')||{}).value||'', b=(document.getElementById('acPin2')||{}).value||'';
+  if(!/^\d{4,6}$/.test(a)) return toast('The PIN must be 4–6 digits.'); if(a!==b) return toast('The two PINs are not the same.'); if(acPinWeak(a)) return toast('Too easy to guess (e.g. 1111, 1234) – choose another PIN.');
+  const salt=[...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(16).padStart(2,'0')).join(''), h=await acPinHash(a,salt), now=new Date().toISOString();
+  const o={h,salt,name:me.name||'',set_at:now,fails:0,lock_until:''}; const id=await put('finpin',me.id,o); if(!id) return;
+  AC_PIN.doc=o; AC_PIN.ok=true; AC_PIN.chg=false; AC_PIN.last=Date.now(); logAct('Finance PIN set / changed'); toast('PIN saved.'); renderView(true); }
+/* Settings */
+function acPinRow(){ const on=acPinOn();
+  return `<div><b>Finance PIN</b><div>${on?'<b>On</b> – asked when Finance opens and after 5 minutes without activity':'Off'} ${isAdmin?`<button class="btn sm ghost" data-ac="pinToggle">${on?'Turn off':'Turn on'}</button>`:''}
+    ${on&&AC_PIN.doc?'<button class="btn sm ghost" data-ac="pinChange">Change my PIN</button> <button class="btn sm ghost" data-ac="pinLockNow">Lock now</button>':''} ${on&&isAdmin?'<button class="btn sm ghost" data-ac="pinResets">Reset a user\'s PIN</button>':''}</div>
+    <div class="small muted">Each Finance user and director sets their own PIN; it is stored scrambled and nobody can read it.</div></div>`; }
+async function acPinToggle(){ if(!isAdmin) return; const on=!acPinOn();
+  if(on&&!await confirmBox('Turn on the Finance PIN? Every Finance user and director will be asked to set their own PIN the next time they open Finance & Accounts – starting with you.','Turn on')) return;
+  if(!on&&!await confirmBox('Turn off the Finance PIN for everyone?','Turn off',true)) return;
+  await patch('acset','main',{pin_on:on}); logAct(`Finance PIN ${on?'turned on':'turned off'}`); AC_PIN.ok=!on?AC_PIN.ok:false; if(on) AC_PIN.doc=undefined; renderView(true); }
+async function acPinResets(){ if(!isAdmin) return; let rows=[]; try{ const s=await db.collection('finpin').limit(200).get(); rows=s.docs.map(d=>({id:d.id,...d.data()})); }catch(e){ return toast('Could not read PINs: '+(e.message||e)); }
+  openDrawer('html',null,{title:'Reset a Finance PIN',sub:'The user sets a new PIN the next time they open Finance. PINs themselves are never shown.',
+    html:`<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>User</th><th>PIN set</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.name||r.id)}${r.id===me.id?' <span class="chip">you</span>':''}${r.lock_until&&Date.parse(r.lock_until)>Date.now()?' <span class="chip bad">locked</span>':''}</td><td class="small">${fmtDT(r.set_at)}</td><td class="r"><button class="btn sm danger" data-ac="pinReset" data-v="${esc(r.id)}">Reset</button></td></tr>`).join('')||'<tr><td colspan="3" class="empty">Nobody has set a PIN yet.</td></tr>'}</tbody></table></div>`}); }
+async function acPinReset(id){ if(!isAdmin||!id) return; if(!await confirmBox('Reset this PIN? The user will set a new one the next time they open Finance.','Reset',true)) return;
+  if(await remove('finpin',id)){ logAct('Finance PIN reset by a director'); toast('PIN reset.'); if(id===me.id){ AC_PIN.doc=null; AC_PIN.ok=false; } closeDrawer(); renderView(true); } }
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=e.target; if(!t||!t.classList||!t.classList.contains('ac-pin-in')) return; e.preventDefault(); if(t.id==='acPinIn') acPinGo(); else if(t.id==='acPin1'){ const n=document.getElementById('acPin2'); n&&n.focus(); } else acPinSet(); });
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
