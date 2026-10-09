@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="0e482fac1cb4">
+<meta name="nexus-build" content="77784370b4ed">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3071,10 +3071,10 @@ function acDayBook(){
     <select class="inp" data-acf="acdb.st"><option value="">All statuses</option><option value="posted" ${sf==='posted'?'selected':''}>Posted</option><option value="open" ${sf==='open'?'selected':''}>Drafts & awaiting approval${nUnp?` (${nUnp})`:''}</option></select>
     <input class="inp" placeholder="Search ledger, narration, no." value="${esc(f.q||'')}" data-acf="acdb.q" style="max-width:220px"><div class="sp"></div>
     <button class="btn sm" data-ac="xls" data-v="day">Excel</button><button class="btn pri sm" data-ac="new" data-v="Journal">＋ Voucher</button></div>
-  <div class="card"><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Type</th><th>No.</th><th>Particulars</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>
+  <div class="card"><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Type</th><th>No.</th><th>Particulars</th><th class="r">Debit</th><th class="r">Credit</th>${acCanDel()?'<th></th>':''}</tr></thead><tbody>
   ${rows.map(v=>`<tr class="click ${v.cancelled?'ac-cx':acVSt(v)!=='posted'?'ac-unp':''}" data-ac="open" data-v="${esc(v.id)}"><td>${fmtD(v.date)}</td><td>${esc(v.vtype)}${v.auto?' <span class="chip" title="Posted automatically from a quick entry">auto</span>':''}${v.cancelled?' <span class="chip bad">cancelled</span>':acStChip(v)}</td><td class="mono small">${esc(v.no||'')}</td>
     <td>${(v.lines||[]).map(x=>`<div class="ac-ln"><span>${x.dc==='Dr'?'Dr':'&nbsp;&nbsp;&nbsp;Cr'} ${esc(acLN(x.l))}</span></div>`).join('')}${v.narr?`<div class="small muted">${esc(v.narr)}</div>`:''}</td>
-    <td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Dr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td><td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Cr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No vouchers in this period.</td></tr>'}
+    <td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Dr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td><td class="r num">${(v.lines||[]).map(x=>`<div>${x.dc==='Cr'?acFmt(x.amt):'&nbsp;'}</div>`).join('')}</td>${acCanDel()?`<td class="c">${!v.auto&&!acLocked(v.date)?`<button class="btn sm ghost ac-del" data-ac="vDel" data-v="${esc(v.id)}" title="Delete this voucher">🗑</button>`:''}</td>`:''}</tr>`).join('')||'<tr><td colspan="7" class="empty">No vouchers in this period.</td></tr>'}
   </tbody><tfoot><tr><th colspan="4">${rows.length} voucher${rows.length===1?'':'s'}${rows.some(v=>!v.cancelled&&acVSt(v)!=='posted')?' <span class="small muted">· totals = posted only</span>':''}</th><th class="r num">${acFmt(tot)}</th><th class="r num">${acFmt(tot)}</th></tr></tfoot></table></div></div>`;
 }
 function acRange(key,from,to){ return `<label class="small">From <input type="date" class="inp" value="${esc(from)}" data-acf="${key}.from"></label><label class="small">To <input type="date" class="inp" value="${esc(to)}" data-acf="${key}.to"></label>`; }
@@ -3155,7 +3155,7 @@ function acVRender(){
   <datalist id="acLedList">${opts.map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist><datalist id="acLedCash">${opts.filter(l=>acIsCash(l.id)).map(l=>`<option value="${esc(l.name)}">${esc(l.group)}</option>`).join('')}</datalist>
   <div id="acmNewLed" hidden class="acm-newled"><input class="inp" placeholder="New ledger name" data-nl="name"><select class="inp" data-nl="group">${AC_GROUPS.filter(g=>g[0]!=='Profit & Loss A/c').map(g=>`<option ${g[0]==='Sundry Creditors'?'selected':''}>${g[0]}</option>`).join('')}</select><button class="btn sm pri" data-vx="mkled">Create</button></div>
   <label class="acm-narr">Narration <textarea class="inp" rows="2" data-vk="narr" placeholder="What was this for? (shown on the ledger statement)">${esc(ACV.narr||'')}</textarea></label>
-  ${acVStamp()}<div class="acm-ft">${ACV.id&&!ACV.cancelled&&!acLocked(ACV.date)?'<button class="btn danger" data-vx="cancel">Cancel voucher</button>':''}${ACV.id&&isAdmin&&!acLocked(ACV.date)?' <button class="btn ghost" data-vx="delete">Delete</button>':''}${ACV.id?' <button class="btn" data-vx="print">Print</button>':''}<div class="sp"></div>
+  ${acVStamp()}<div class="acm-ft">${ACV.id&&!ACV.cancelled&&!acLocked(ACV.date)?'<button class="btn danger" data-vx="cancel">Cancel voucher</button>':''}${ACV.id&&acCanDel()&&!acLocked(ACV.date)?' <button class="btn ghost" data-vx="delete">Delete</button>':''}${ACV.id?' <button class="btn" data-vx="print">Print</button>':''}<div class="sp"></div>
     <span class="small muted">Ctrl+Enter = accept · Esc = close</span><button class="btn" data-vx="close">Close</button>${ro?'':acVBtns()}</div></div>`;
 }
 function acVInput(e){ const t=e.target; if(!ACV) return;
@@ -3232,7 +3232,7 @@ async function acVSave(mode){
   const msg={draft:'Saved as draft – not in the books until it is posted.',submit:'Submitted – a director will approve it.',approve:'Approved and posted.',post:`${o.vtype} ${o.no} posted.`,save:'Voucher saved.'}[mode];
   const act={draft:'Voucher draft',submit:'Voucher submitted for approval',approve:'Voucher approved & posted',post:'Voucher',save:'Voucher altered'}[mode];
   if(v.id){ await patch('vouchers',v.id,o); logAct(`${act} – ${o.vtype} ${o.no} ${tzs(o.amount)}`); toast(msg); acVClose(); }
-  else { const id=await put('vouchers',null,{...o,by:who,by_uid:me.id||'',created_at:now}); if(id){ logAct(`${act} – ${o.vtype} ${o.no} ${tzs(o.amount)}`); toast(mode==='post'?`${o.vtype} ${o.no} accepted.`:msg); const vt=v.vtype; acVClose(); if(mode==='post'&&UI.acAgain!==false) setTimeout(()=>acNew(vt),250); } }
+  else { const id=await put('vouchers',null,{...o,by:who,by_uid:me.id||'',created_at:now}); if(id){ logAct(`${act} – ${o.vtype} ${o.no} ${tzs(o.amount)}`); toast(mode==='post'?`${o.vtype} ${o.no} accepted.`:msg); acVClose(); } }
 }
 function acPrintV(v){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; } const c=company();
   const L=v.lines.filter(x=>x.l&&+x.amt);
@@ -4551,6 +4551,12 @@ table.xg tr.xw-hit td{background:#FFF4C2!important}
 .xw-tab[aria-pressed="true"]{background:#fff;color:#107C41;font-weight:700;border-bottom-color:#107C41}.xw-x{margin-left:8px;color:#888;font-weight:400}.xw-x:hover{color:#c00}
 .xw .xs-wait{color:#555}
 </style>`);
+/* v214: Finance users (not only directors) may delete a voucher from the Cash Book; auto vouchers and locked periods are protected */
+const acCanDel=()=>!!(isAdmin||(typeof myRole==='function'&&myRole()==='finance'));
+document.addEventListener('click',async e=>{ const b=e.target.closest('[data-ac="vDel"]'); if(!b) return; e.stopPropagation(); e.preventDefault(); if(!acCanDel()) return;
+  const v=(S.vouchers||[]).find(x=>x.id===b.dataset.v); if(!v) return; if(acLocked(v.date)) return toast('This period is locked.');
+  if(!await confirmBox(`Delete voucher ${v.no||''} (${v.vtype}, ${fmtD(v.date)}, ${tzs(v.amount||0)}) permanently? It is removed from the Cash Book and the ledgers. The audit trail keeps a record.`,'Delete',true)) return;
+  if(await remove('vouchers',v.id)){ logAct(`Voucher deleted – ${v.vtype} ${v.no||''} ${tzs(v.amount||0)}`); toast(`Voucher ${v.no||''} deleted.`); } },true);
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
