@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="1bbb96cc77b4">
+<meta name="nexus-build" content="99ab2b843d0e">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3017,6 +3017,7 @@ const AC_TABS=[['gate','Gateway'],['day','Cash Book'],['led','Ledgers'],['rep','
 function pageFinance(){
   if(!money()) return `<div class="card empty">Finance is restricted to administrators and Finance users.</div>`;
   const st=acSet(), tab=UI.actab||'gate';
+  if(st&&isAdmin) setTimeout(()=>{ try{ if(typeof acTidyNames==='function') acTidyNames(); }catch(e){ console.warn(e); } },1500);
   if(st&&(st.auto_post||st.accrual_from)) setTimeout(async()=>{ try{ if(typeof acSyncAccr==='function') await acSyncAccr(); }catch(e){ console.warn(e); } if(st.auto_post) acSyncFin(); },50);
   const tabs=`<div class="seg ac-tabs" role="tablist">${AC_TABS.map(([k,l])=>`<button data-ac="tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
   if(!st&&tab!=='quick') return `${tabs}<div class="card ac-setup"><div class="bd"><h2 style="margin-top:0">Accounts – Tally-style books</h2>
@@ -4184,6 +4185,15 @@ async function acUnmergeExp(){ if(!isAdmin) return; const M=(S.ledgers||[]).filt
 function acItemBreakHtml(id,from,to){ const m=new Map(); acPost(id).forEach(p=>{ if(p.d<from||p.d>to) return; const k=p.it||'(no item)'; m.set(k,acR((m.get(k)||0)+p.s)); });
   const a=[...m.entries()].filter(x=>x[1]).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])); if(!a.length) return ''; const t=acR(a.reduce((s,x)=>s+x[1],0));
   return `<h3 style="margin:14px 14px 6px">Breakdown by item</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Item</th><th class="r">Amount</th><th class="r">%</th></tr></thead><tbody>${a.map(([k,v])=>`<tr><td class="ac-in">${esc(k)}</td><td class="r num">${acSign(v)}</td><td class="r small muted">${t?Math.round(v/t*100):0}%</td></tr>`).join('')}</tbody><tfoot><tr class="ac-tot"><th>Total</th><th class="r num">${acSign(t)}</th><th></th></tr></tfoot></table></div>`; }
+/* v202: expense ledger names without the category prefix ("Administrative – Brela" → "Brela"); the category is kept in fs_line.
+   Runs once when a director opens Finance & Accounts (idempotent; skips a name that already exists). */
+let AC_NM_DONE=false;
+async function acTidyNames(){ if(AC_NM_DONE||!isAdmin||!(S.ledgers||[]).length) return; AC_NM_DONE=true;
+  const re=/^(finance|staff|operating|administrative|admin)\s*[–-]\s*/i, L=(S.ledgers||[]).filter(l=>!l.deleted&&l.group==='Indirect Expenses'&&re.test(l.name||'')); if(!L.length) return;
+  const taken=new Set((S.ledgers||[]).filter(l=>!l.deleted&&!L.includes(l)).map(l=>String(l.name||'').toLowerCase())); let n=0;
+  for(const l of L){ let nm=String(l.name).replace(re,'').trim(); if(!nm) continue; nm=nm.charAt(0).toUpperCase()+nm.slice(1); if(taken.has(nm.toLowerCase())) continue; taken.add(nm.toLowerCase());
+    await patch('ledgers',l.id,{name:nm,fs_line:l.fs_line||acFsCat(l),...(l.merged_into&&!l.item?{item:nm}:{})}); n++; }
+  if(n){ logAct(`Expense ledger names shortened (${n}) – category kept for the notes`); toast(`${n} expense ledger names shortened (e.g. “Brela”).`); } }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
