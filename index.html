@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="98e973bab6b7">
+<meta name="nexus-build" content="9b15fdd74d29">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3255,6 +3255,7 @@ function acReports(){
   const bar=`<div class="toolbar ac-filt">${needRange?acRange('acr',from,to):asAt?`<label class="small">As at <input type="date" class="inp" value="${esc(to)}" data-acf="acr.to"></label>`:''}
     ${needRange?`<button class="btn sm ghost" data-ac="fy" data-v="cur">This year</button><button class="btn sm ghost" data-ac="fy" data-v="prev">Last year</button>`:''}
     ${r==='ledger'||r==='brs'?`<select class="inp" data-acf="acr.l">${acLed().filter(l=>r!=='brs'||l.group==='Bank Accounts').sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${esc(l.id)}" ${f.l===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select>`:''}
+    ${r==='ledger'&&acIsItemL(f.l||'')?`<select class="inp" data-acf="acr.it" title="Sub-ledger"><option value="">All items (whole ledger)</option>${acItemsOf(f.l).map(n=>`<option ${f.it===n?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}
     <div class="sp"></div><button class="btn sm" data-ac="xls" data-v="${r}">Excel</button><button class="btn sm" data-ac="pdf" data-v="${r}">⬇ PDF</button></div>`;
   const k=r==='ledger'&&UI.acBack, bl=k?({annual:'Annual accounts',led:'Ledgers',gate:'Gateway',day:'Cash Book'}[k.tab]||(AC_REPS.find(x=>x[0]===k.rep)||[0,'report'])[1]):'', bb=k?`<button class="btn pri sm" data-ac="acBack">← Back to ${esc(bl)}</button>`:'';
   return `${k?`<div class="toolbar ac-backbar">${bb}<span class="small muted">Ledger opened from ${esc(bl)}</span></div>`:''}${sel}${bar}<div class="card ac-rep" id="acRep">${acRepHtml(r,from,to)}</div>${k?`<div class="toolbar ac-backbar">${bb}</div>`:''}`;
@@ -3266,7 +3267,7 @@ function acRepHtml(r,from,to){
   if(r==='cf') return acCFHtml([[from,to]]);
   if(r==='cfm') return acCFMHtml(from,to);
   if(r==='fc') return acFCHtml();
-  if(r==='ledger') return acLedgerHtml((UI.acr||{}).l||(acLed()[0]||{}).id,from,to);
+  if(r==='ledger') return acLedgerHtml((UI.acr||{}).l||(acLed()[0]||{}).id,from,to,(UI.acr||{}).it);
   if(r==='out') return acOutHtml(to);
   if(r==='cc') return acCCHtml(from,to);
   if(r==='vat') return acVATHtml(from,to);
@@ -3429,17 +3430,18 @@ function acFCHtml(){
     ${closes.some(c=>c<0)?'<div class="banner warn"><div><b>Cash shortfall expected.</b> Follow up IPC payments, agree supplier terms or arrange an overdraft before the month shown in red.</div></div>':''}`;
 }
 /* Ledger statement */
-function acLedgerRows(id,from,to){ const l=acL(id); if(!l) return null; const pl=acIsPL(l.group);
-  const ob=pl?acSum(id,acFyStart(from),acDay(from,-1)):acBalTo(id,acDay(from,-1));
-  let run=ob; const rows=acPost(id).filter(p=>p.d>=from&&p.d<=to).map(p=>{ run=acR(run+p.s); const v=p.v, ln=v.lines[p.i], other=(v.lines||[]).filter((x,j)=>j!==p.i&&x.dc!==ln.dc).map(x=>acLN(x.l));
+function acLedgerRows(id,from,to,it){ const l=acL(id); if(!l) return null; const pl=acIsPL(l.group); if(!(it&&l.itemised&&acItemsOf(id).includes(it))) it='';
+  const fs0=acFyStart(from), pre=acDay(from,-1);
+  const ob=it?(pl?acR(acPost(id).filter(p=>p.d>=fs0&&p.d<=pre&&(p.it||'')===it).reduce((a,p)=>a+p.s,0)):acItemBal(id,it,pre)):(pl?acSum(id,fs0,pre):acBalTo(id,pre));
+  let run=ob; const rows=acPost(id).filter(p=>p.d>=from&&p.d<=to&&(!it||(p.it||'')===it)).map(p=>{ run=acR(run+p.s); const v=p.v, ln=v.lines[p.i], other=(v.lines||[]).filter((x,j)=>j!==p.i&&x.dc!==ln.dc).map(x=>acLN(x.l));
     return {d:p.d,v,it:p.it||'',part:other.join(', ')||'—',dr:p.s>0?p.s:0,cr:p.s<0?-p.s:0,run}; });
-  return {l,ob,rows,cb:run}; }
-function acLedgerHtml(id,from,to){ const R=acLedgerRows(id,from,to); if(!R) return '<div class="empty">Choose a ledger.</div>';
+  return {l,ob,rows,cb:run,it}; }
+function acLedgerHtml(id,from,to,it){ const R=acLedgerRows(id,from,to,it); if(!R) return '<div class="empty">Choose a ledger.</div>';
   const dr=R.rows.reduce((a,x)=>a+x.dr,0), cr=R.rows.reduce((a,x)=>a+x.cr,0);
-  return `${acHd(esc(R.l.name),`${esc(R.l.group)} · ${fmtD(from)} – ${fmtD(to)}`)}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Particulars</th><th>Voucher</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Balance</th></tr></thead><tbody>
+  return `${acHd(esc(R.l.name)+(R.it?` › ${esc(R.it)}`:''),`${R.it?`Sub-ledger of ${esc(R.l.name)} · `:''}${esc(R.l.group)} · ${fmtD(from)} – ${fmtD(to)}`)}${R.it?`<div class="toolbar" style="padding:0 14px 8px"><button class="btn sm ghost" data-ac="itemSel" data-v="">← Show all of ${esc(R.l.name)}</button></div>`:''}<div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Date</th><th>Particulars</th><th>Voucher</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Balance</th></tr></thead><tbody>
     <tr class="ac-tot"><td></td><th>Opening balance</th><td></td><td></td><td></td><th class="r num">${acFmt(R.ob)} ${acDC(R.ob)}</th></tr>
     ${R.rows.map(x=>`<tr class="click" data-ac="open" data-v="${esc(x.v.id)}"><td>${fmtD(x.d)}</td><td>${x.it?`<b>${esc(x.it)}</b> · `:''}${x.dr?'To':'By'} ${x.part.split(', ').length>2?`<span title="${esc(x.part)}">(as per details)</span>`:esc(x.part)}${x.v.narr?`<div class="small muted">${esc(String(x.v.narr).slice(0,90))}</div>`:''}</td><td class="small">${esc(x.v.vtype)} <span class="mono">${esc(x.v.no||'')}</span></td><td class="r num">${x.dr?acFmt(x.dr):''}</td><td class="r num">${x.cr?acFmt(x.cr):''}</td><td class="r num">${acFmt(x.run)} ${acDC(x.run)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No entries in this period.</td></tr>'}
-  </tbody><tfoot><tr><th colspan="3">Current total</th><th class="r num">${acFmt(dr)}</th><th class="r num">${acFmt(cr)}</th><th class="r num">${acFmt(R.cb)} ${acDC(R.cb)}</th></tr></tfoot></table></div>${R.l.itemised?acItemBreakHtml(R.l.id,from,to):''}`; }
+  </tbody><tfoot><tr><th colspan="3">Current total</th><th class="r num">${acFmt(dr)}</th><th class="r num">${acFmt(cr)}</th><th class="r num">${acFmt(R.cb)} ${acDC(R.cb)}</th></tr></tfoot></table></div>${R.l.itemised&&!R.it?acItemBreakHtml(R.l.id,from,to):''}`; }
 /* Outstandings with ageing (FIFO – payments clear the oldest bills first) */
 const AC_AGE=['Current','1–30 days','31–60','61–90','91–120','Over 120'];
 const acCrDays=l=>{ const d=l&&l.credit_days; return d===''||d==null||isNaN(+d)?30:+d; };
@@ -3564,7 +3566,7 @@ document.addEventListener('click',async e=>{
   if(a==='fy'){ const t=today(), fs=acFyStart(t), p=acFyStart(acDay(fs,-1)); UI.acr={...(UI.acr||{}),from:v==='prev'?p:fs,to:v==='prev'?acDay(fs,-1):t}; renderView(true); return; }
   if(a==='ledgerRep'){ e.stopPropagation(); if(e.target.closest('[data-ac="ledEdit"]')) return; UI.acBack=UI.actab==='rep'&&UI.acrep==='ledger'?UI.acBack:{tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY}; UI.actab='rep'; UI.acrep='ledger'; const cell=e.target.closest('[data-f]'), ctx=UI.actab==='led'?((UI.acled||{}).to||today()):((UI.acr||{}).to||today());
     const pt=(cell&&cell.dataset.t)||ctx, pf=(cell&&cell.dataset.f)||(UI.actab==='rep'&&!['bs','out','brs'].includes(UI.acrep)&&(UI.acr||{}).from)||acFyStart(pt);
-    UI.acr={...(UI.acr||{}),l:v,from:pf,to:pt}; renderView(true); window.scrollTo(0,0); return; }
+    UI.acr={...(UI.acr||{}),l:v,from:pf,to:pt,it:''}; renderView(true); window.scrollTo(0,0); return; }
   if(a==='acBack'){ const k=UI.acBack; UI.acBack=null; if(!k) return; UI.actab=k.tab; UI.acrep=k.rep; UI.acr=k.acr; renderView(true); setTimeout(()=>window.scrollTo(0,k.y||0),30); return; }
   if(a==='ledNew') return acLedForm(null);
   if(a==='ledEdit'){ e.stopPropagation(); return acLedForm(acL(v)); }
@@ -3572,13 +3574,14 @@ document.addEventListener('click',async e=>{
   if(a==='accrSet') return acAccrForm();
   if(a==='apprSet') return acApprForm();
   if(a==='mergeExp') return acMergeExp();
+  if(a==='itemSel'){ UI.acr={...(UI.acr||{}),it:v||''}; renderView(true); return; }
   if(a==='unmergeExp') return acUnmergeExp();
   if(a==='audit') return acAuditView();
   if(a==='setEdit'){ const st=acSet()||{}; formDrawer('Company tax numbers',[{k:'company_tin',label:'TIN'},{k:'company_vrn',label:'VRN'}],st,async x=>{ await patch('acset','main',{company_tin:x.company_tin||'',company_vrn:x.company_vrn||''}); },{sub:'Accounts · settings'}); return; }
   if(a==='lock'){ if(!isAdmin) return; const st=acSet()||{}; formDrawer('Lock period',[{k:'locked_until',label:'Lock all entries up to and including',type:'date',help:'Leave empty to unlock everything.'}],st,async x=>{ await patch('acset','main',{locked_until:x.locked_until||''}); logAct(`Accounts locked up to ${x.locked_until||'(nothing)'}`); },{sub:'Accounts · settings',saveLabel:'Save'}); return; }
   if(a==='xls'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t;
     if(r==='tb') return acTBXlsx(to);
-    if(r==='ledger') return acLedgerXlsx(f.l||(acLed()[0]||{}).id,from,to);
+    if(r==='ledger') return acLedgerXlsx(f.l||(acLed()[0]||{}).id,from,to,f.it);
     const html=r==='day'?document.querySelector('.ac-t')?.outerHTML||'':r==='led'?document.querySelector('.ac-t')?.outerHTML||'':acRepHtml(r,from,to); const nm=(AC_REPS.find(x=>x[0]===r)||[0,r==='day'?'Cash Book':'Ledgers'])[1];
     return acXls([[nm,html]],`${nm.replace(/[^\w]+/g,'_')}_${to}.xlsx`,['bs','out','brs'].includes(r)?acFyStart(to):from,to); }
   if(a==='pdf'){ const r=v, f=UI.acr||{}, t=today(), from=f.from||acFyStart(t), to=f.to||t; const nm=(AC_REPS.find(x=>x[0]===r)||[0,r])[1]; return acPdf(nm,acRepHtml(r,from,to),r==='cfm'?'landscape':'portrait'); }
@@ -3959,12 +3962,12 @@ async function acAuditPdf(){
 
 /* ---------- Ledger book in the Tally.ERP 9 layout (SINGLE LEDGER sample): Date · Particulars · Vch Type · Vch No. · Debit · Credit ---------- */
 const acXDate=d=>Math.round((Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))-Date.UTC(1899,11,30))/864e5);
-function acLedgerSheet(W,id,from,to,back){ const R=acLedgerRows(id,from,to); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
+function acLedgerSheet(W,id,from,to,back,it){ const R=acLedgerRows(id,from,to,it); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
   const F9={fn:'Arial',sz:9}, F10={fn:'Arial',sz:10}, N={fn:'Arial',sz:10,b:1,nf:'t2',al:'right'}, fmtL=d=>{ const x=new Date(d+'T00:00:00'); return `${x.getDate()}-${x.toLocaleDateString('en-GB',{month:'long'})}-${x.getFullYear()}`; };
   let r=1; const hd=(t,s={})=>{ A.set(r,0,t,{...F10,...s}); A.merge(r,0,2); r++; };
   hd(co.name||'Nordic Construction Company Limited',{sz:12,b:1}); hd(co.pobox||co.address||''); hd('Tanzania'); hd(`TIN: ${st.company_tin||''}`); hd(`VRN: ${st.company_vrn||''}`);
   if(back&&back.loc){ A.set(1,4,`← Back to ${back.label||'report'}`,{fn:'Arial',sz:10,b:1,u:1,col:'0563C1',al:'right'}); A.merge(1,4,6); A.link(1,4,back.loc,'Back to '+(back.label||'report')); }
-  A.set(r,0,`${l.name} Book`,{fn:'Arial',sz:12,b:1,bd:{t:'thin'}}); A.set(r,1,'',{bd:{t:'thin'}}); A.set(r,2,'',{bd:{t:'thin'}}); A.merge(r,0,2); A.ht(r,15.75); r++;
+  A.set(r,0,`${l.name}${R.it?' – '+R.it:''} Book`,{fn:'Arial',sz:12,b:1,bd:{t:'thin'}}); A.set(r,1,'',{bd:{t:'thin'}}); A.set(r,2,'',{bd:{t:'thin'}}); A.merge(r,0,2); A.ht(r,15.75); r++;
   hd([l.bank,l.acc_no?'A/c '+l.acc_no:'',l.tin?'TIN '+l.tin:'',l.phone||''].filter(Boolean).join(' · ')||l.group); r++; hd(`${fmtL(from)} to ${fmtL(to)}`);
   const hb={bd:{t:'thin',b:'thin'}};
   A.set(r,0,'Date',{...F9,al:'right',...hb}); A.set(r,1,'Particulars',{...F9,b:1,al:'left',...hb}); A.set(r,2,'',hb); A.merge(r,1,2); A.set(r,3,'Vch Type',{...F9,...hb}); A.set(r,4,'Vch No.',{...F9,al:'right',...hb});
@@ -3979,7 +3982,7 @@ function acLedgerSheet(W,id,from,to,back){ const R=acLedgerRows(id,from,to); if(
   const cb=acR(R.cb); A.set(r,1,cb<0?'Cr':'Dr',F10); A.set(r,2,'Closing Balance',{...F10,b:1,al:'left'});
   if(cb>0) A.set(r,6,{f:`F${tr}-G${tr}`,v:cb},N); if(cb<0) A.set(r,5,{f:`G${tr}-F${tr}`,v:-cb},N); r++;
   const gt=acR(Math.max(dr,cr)); A.set(r,5,{f:`SUM(F${tr}:F${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}}); A.set(r,6,{f:`SUM(G${tr}:G${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}});
-  return {A,xml:A.xml([10.1,3.4,62.7,10,11,15.6,16]),name:l.name}; }
+  return {A,xml:A.xml([10.1,3.4,62.7,10,11,15.6,16]),name:R.it||l.name}; }
 /* v199: ledger sheets linked from the exported reports (registry → one SINGLE LEDGER sheet per ledger & period, with a link back) */
 function acLB(reserved){ const m=new Map(), used=new Set((reserved||[]).map(x=>String(x).toLowerCase()));
   return { req(id,from,to,back){ const k=id+'|'+from+'|'+to; if(!m.has(k)){ const l=acL(id); const base=String(l?l.name:id).replace(/[\\\/?*\[\]:']/g,' ').replace(/\s+/g,' ').trim(), y=to.slice(0,4);
@@ -3987,9 +3990,9 @@ function acLB(reserved){ const m=new Map(), used=new Set((reserved||[]).map(x=>S
     loc(id,from,to,back){ return `'${this.req(id,from,to,back)}'!A1`; }, list:()=>[...m.values()] }; }
 function acLBSheets(W,LB){ return LB.list().map(x=>{ const S=acLedgerSheet(W,x.id,x.from,x.to,x.back); return S?[x.nm,S.xml]:null; }).filter(Boolean); }
 const AC_LINK={fn:'Arial',u:1,col:'0563C1'};
-async function acLedgerXlsx(id,from,to){
+async function acLedgerXlsx(id,from,to,it){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const W=acXW(), S=acLedgerSheet(W,id,from,to); if(!S) return toast('Choose a ledger.');
+  const W=acXW(), S=acLedgerSheet(W,id,from,to,null,it); if(!S) return toast('Choose a ledger.');
   const data=acWbZip(W,[[String(S.name).replace(/[\\\/?*\[\]:]/g,' ').slice(0,31),S.xml]]);
   try{ await downloads.save({filename:`${String(S.name).replace(/[^\w]+/g,'_')}_${from}_${to}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Ledger book ${S.name} ${from} – ${to} – Excel`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
@@ -4194,7 +4197,7 @@ function acItemBreakHtml(id,from,to){ const m=new Map(), L=acL(id), bs=L&&!acIsP
   if(bs) (S.ledgers||[]).forEach(x=>{ if(x.merged_into===id&&!x.deleted){ const k=acItemName(x); m.set(k,acR((m.get(k)||0)+acOpS1(x))); } });
   acPost(id).forEach(p=>{ if(p.d>to||(!bs&&p.d<from)) return; const k=p.it||'(no item)'; m.set(k,acR((m.get(k)||0)+p.s)); });
   const a=[...m.entries()].filter(x=>x[1]).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])); if(!a.length) return ''; const t=acR(a.reduce((s,x)=>s+x[1],0));
-  return `<h3 style="margin:14px 14px 6px">Breakdown by item${bs?` – balance at ${fmtD(to)}`:''}</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Item</th><th class="r">Amount</th><th class="r">%</th></tr></thead><tbody>${a.map(([k,v])=>`<tr><td class="ac-in">${esc(k)}</td><td class="r num">${acSign(v)}</td><td class="r small muted">${t?Math.round(v/t*100):0}%</td></tr>`).join('')}</tbody><tfoot><tr class="ac-tot"><th>Total</th><th class="r num">${acSign(t)}</th><th></th></tr></tfoot></table></div>`; }
+  return `<h3 style="margin:14px 14px 6px">Breakdown by item${bs?` – balance at ${fmtD(to)}`:''}</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Item</th><th class="r">Amount</th><th class="r">%</th></tr></thead><tbody>${a.map(([k,v])=>`<tr class="click" data-ac="itemSel" data-v="${esc(k)}" title="Open this sub-ledger"><td class="ac-in ac-lk">${esc(k)}</td><td class="r num">${acSign(v)}</td><td class="r small muted">${t?Math.round(v/t*100):0}%</td></tr>`).join('')}</tbody><tfoot><tr class="ac-tot"><th>Total</th><th class="r num">${acSign(t)}</th><th></th></tr></tfoot></table></div>`; }
 /* v202: expense ledger names without the category prefix ("Administrative – Brela" → "Brela"); the category is kept in fs_line.
    Runs once when a director opens Finance & Accounts (idempotent; skips a name that already exists). */
 let AC_NM_DONE=false;
