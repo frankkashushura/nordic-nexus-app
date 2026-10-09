@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="bbc00883fa98">
+<meta name="nexus-build" content="ad1bae0e6ff1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3741,7 +3741,7 @@ function acSheet(W){
           h+=`<td${m?` colspan="${m[2]-m[1]+1}"`:''} style="${css}">${(()=>{ const t=cl?fmt(cl.v,nf).replace(/\n/g,'<br>'):''; const lk=lkm&&t&&lkm.get(col(c)+r), at=lk&&o.lk(lk); return at?`<span class="xs-lk" ${at}>${t}</span>`:t; })()}</td>`; }
         h+='</tr>'; }
       return h+'</table>'; }); };
-  const api={set,link:(r,c,loc,tip)=>{ const ref=col(c)+r; if(!links.some(x=>x[0]===ref)) links.push([ref,loc,tip]); },box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml:(...a)=>{ const x=xml(...a); if(acSheet.reg) acSheet.reg.set(x,{A:api,cols:a[0],o:a[1]||{}}); return x; },html,get max(){return max;},col}; return api;
+  return {set,link:(r,c,loc,tip)=>{ const ref=col(c)+r; if(!links.some(x=>x[0]===ref)) links.push([ref,loc,tip]); },box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,get max(){return max;},col};
 }
 
 /* ---------- the workbook ---------- */
@@ -3915,7 +3915,7 @@ function acReportDetails(){ const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), Y=ac
     async v=>{ await patch('acset','main',{activity:v.activity||'',directors:v.directors||'',auditor:v.auditor||'',fs_dates:{...(st.fs_dates||{}),[Y]:v.fs_date||''}}); toast('Saved.'); },{sub:'Accounts · cover page, directors’ report and signatures'}); }
 
 /* ---------- workbook package ---------- */
-function acWbZip(W,sheets){ acWbZip.last=sheets;
+function acWbZip(W,sheets){
   const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', files={'[Content_Types].xml':`${H}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((n,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
     '_rels/.rels':`${H}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
     'xl/workbook.xml':`${H}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map(([n],i)=>`<sheet name="${esc(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`,
@@ -3972,8 +3972,8 @@ async function acAuditPdf(){
   .pg{page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto}.pg.land{page:land}@media print{.pg.land table.xs{zoom:.78}}
   table.xs{border-collapse:collapse;table-layout:fixed;width:100%}table.xs td{padding:0 3px;white-space:nowrap;overflow:visible;line-height:1.15;vertical-align:bottom}
   table.xs tr{page-break-inside:avoid}@media screen{body{background:#888}.pg{background:#fff;width:190mm;margin:10px auto;padding:8mm;box-shadow:0 1px 4px #0006}.pg.land{width:277mm}}
-  </style></head><body>${typeof acPdfBar==='function'?acPdfBar():''}${acc.map(pg).join('')}${tb.map(pg).join('')}${tax.map(pg).join('')}${vat.map(pg).join('')}</body></html>`);
-  w.document.close(); logAct(`Annual accounts ${Y} – PDF (audit format)`); acPdfGo(w,800);
+  </style></head><body>${acc.map(pg).join('')}${tb.map(pg).join('')}${tax.map(pg).join('')}${vat.map(pg).join('')}</body></html>`);
+  w.document.close(); logAct(`Annual accounts ${Y} – PDF (audit format)`); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },800);
 }
 
 /* ---------- Ledger book in the Tally.ERP 9 layout (SINGLE LEDGER sample): Date · Particulars · Vch Type · Vch No. · Debit · Credit ---------- */
@@ -4471,13 +4471,13 @@ function acAccTitle(d,f,t){ const h=d.querySelector('h2'); if(!h) return ''; con
 function acPdf(title,html,orient,f,t){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; }
   const a=UI.acr||{}; t=t||a.to||today(); f=f||a.from||acFyStart(t); const d=document.createElement('div'); d.innerHTML=html; const ttl=acAccTitle(d,f,t); acAccBody(d);
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4 ${orient||'portrait'};margin:14mm}
-  @media screen{body{max-width:200mm;margin:10px auto!important}}body{font:10pt 'Book Antiqua',Palatino,'Palatino Linotype',Georgia,serif;color:#000}.acc-h{text-align:center;font-weight:700;font-size:10pt;margin:0 0 14pt}.acc-h div+div{margin-top:13pt}
+  body{font:10pt 'Book Antiqua',Palatino,'Palatino Linotype',Georgia,serif;color:#000}.acc-h{text-align:center;font-weight:700;font-size:10pt;margin:0 0 14pt}.acc-h div+div{margin-top:13pt}
   h2,h3{font-size:10pt;font-weight:700;text-transform:uppercase;margin:12px 0 4px}.sub{font-size:9pt;font-style:italic}
   table{width:100%;border-collapse:collapse;margin:4px 0 10px;page-break-inside:auto}tr{page-break-inside:avoid}th,td{padding:2px 6px;text-align:left;font-size:10pt}td.r,th.r{text-align:right}
   thead th{border-bottom:1px solid #000}table.stm thead th{border-bottom:0}.frame{border:3px double #000;padding:6mm 7mm}.ac-gh td{font-weight:700}.ac-sec td{font-weight:700;text-transform:uppercase}.ac-tot th.num{border-top:1px solid #000}.ac-key th.num{border-top:1px solid #000;border-bottom:3px double #000}p.small{display:none}.ac-in{padding-left:18px}.ac-strong td{font-weight:700}
   .ac-lk{text-decoration:none}.banner,.btn,button,input,.toolbar{display:none!important}.muted{color:#333}.pb{page-break-before:always}</style></head><body>
-  ${acPdfBar()}<div class="frame"><div class="acc-h"><div>${esc(acCoName())}</div><div>${esc(ttl||String(title).toUpperCase())}</div></div>${d.innerHTML}</div></body></html>`);
-  w.document.close(); acPdfGo(w,600); }
+  <div class="frame"><div class="acc-h"><div>${esc(acCoName())}</div><div>${esc(ttl||String(title).toUpperCase())}</div></div>${d.innerHTML}</div></body></html>`);
+  w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },600); }
 
 /* the statement look of the audited accounts for printed reports: whole shillings with (brackets), 31.12.2025 / TShs column heads, no 'Particulars' */
 function acAccBody(d){
@@ -4485,58 +4485,6 @@ function acAccBody(d){
   d.querySelectorAll('thead tr').forEach(tr=>{ const ths=[...tr.children]; let any=false;
     ths.forEach(th=>{ const t=th.textContent.trim(); if(/^particulars$/i.test(t)) th.textContent=''; if(/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(t)){ const x=new Date(t+' 12:00'); if(!isNaN(x)){ th.textContent=acDot(x.toISOString().slice(0,10)); any=true; } } });
     if(any){ const r2=document.createElement('tr'); ths.forEach(th=>{ const c=document.createElement('th'); c.className=th.className; c.textContent=/^\d\d\.\d\d\.\d{4}$/.test(th.textContent)?'TShs':''; r2.appendChild(c); }); tr.after(r2); tr.closest('table').classList.add('stm'); } }); }
-
-/* ===================== v211 · Excel / PDF: Open (view without downloading) or Download ===================== */
-const AC_OUTS=['xls','pdf','annXls','annPdf','annXlsS','annPdfS'];
-let AC_MODE='', AC_MODE_T=0;
-const acModeNow=()=>Date.now()-AC_MODE_T<120000?AC_MODE:'';
-/* toolbar shown on the PDF page when it is only opened – hidden when printed / saved */
-function acPdfBar(){ return `<style>.acpb{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;justify-content:flex-end;background:#0B2545;color:#fff;padding:8px 12px;font:13px Arial,sans-serif;margin:-8px -8px 10px}.acpb b{margin-right:auto}.acpb a{font:600 13px Arial;border-radius:6px;padding:7px 14px;cursor:pointer;background:#fff;color:#0B2545;text-decoration:none}.acpb a.p{background:#F5B700;color:#000}@media print{.acpb{display:none!important}}</style>
-  <div class="acpb"><b>Preview – nothing has been downloaded</b><a class="p" href="#" onclick="window.print();return false">⬇ Download PDF</a><a href="#" onclick="window.close();return false">Close</a></div>`; }
-function acPdfGo(w,ms){ const open=acModeNow()==='open'; AC_MODE=''; if(open){ try{ w.focus(); }catch(_){} return; } setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },ms||600); }
-function acOutChoose(b){ const a=b.dataset.ac, pdf=/pdf/i.test(a); document.getElementById('acOutDlg')?.remove();
-  const d=document.createElement('div'); d.id='acOutDlg'; d.className='ac-out';
-  d.innerHTML=`<div class="ac-out-box" role="dialog" aria-label="${pdf?'PDF':'Excel'}"><div class="ac-out-t">${pdf?'PDF':'Excel'} – what would you like to do?</div>
-    <button class="ac-out-b" data-m="open"><span>👁</span><div><b>Open</b><small>View it here without downloading${pdf?'':' – sheets and links work'}</small></div></button>
-    <button class="ac-out-b" data-m="download"><span>⬇</span><div><b>Download</b><small>${pdf?'Save as a PDF file (choose “Save as PDF”)':'Save the .xlsx file to this device'}</small></div></button>
-    <button class="ac-out-x" data-m="">Cancel</button></div>`;
-  d.addEventListener('click',ev=>{ const x=ev.target.closest('[data-m]'); if(!x&&ev.target!==d) return; const m=x?x.dataset.m:''; d.remove(); if(!m) return;
-    AC_MODE=m; AC_MODE_T=Date.now(); if(m==='open'&&!pdf) acXOpenArm(); if(!document.body.contains(b)){ const q=`[data-ac="${a}"]`+(b.dataset.v!=null?`[data-v="${CSS.escape(b.dataset.v)}"]`:''); b=document.querySelector(q)||b; } /* the page may have refreshed while the dialog was open */
-    if(!document.body.contains(b)){ AC_MODE=''; return toast('The page refreshed – please click again.'); } b.__go=1; try{ b.click(); } finally{ b.__go=0; } });
-  document.body.appendChild(d); }
-document.addEventListener('click',e=>{ const b=e.target.closest('[data-ac]'); if(!b||b.__go||window.AC_NOASK||!AC_OUTS.includes(b.dataset.ac)||b.closest('#acvModal')) return; e.stopPropagation(); e.preventDefault(); acOutChoose(b); },true);
-/* Excel "Open": the workbook that would be saved is shown in a viewer instead (same pages, sheet tabs, working links) */
-function acXOpenArm(){ acSheet.reg=new Map(); const sv=downloads.save, t0=Date.now(), restore=()=>{ if(downloads.save===hook) downloads.save=sv; };
-  const hook=async o=>{ restore(); const isX=/spreadsheet|xlsx/i.test((o&&o.type)||'')||/\.xlsx$/i.test((o&&o.filename)||''); if(!isX||Date.now()-t0>120000) return sv.call(downloads,o);
-    const reg=acSheet.reg; acSheet.reg=null; AC_MODE=''; acXView(o,(acWbZip.last||[]).map(([n,x])=>({n,S:reg&&reg.get(x)})).filter(x=>x.S),sv); };
-  downloads.save=hook; setTimeout(restore,120000); }
-function acXView(o,sheets,sv){ document.getElementById('acXV')?.remove(); if(!sheets.length) return toast('Nothing to show.');
-  const idx=new Map(sheets.map((s,i)=>[s.n,i])), html=[];
-  const lk=loc=>{ const m=/^'(.*)'!([A-Z]+)(\d+)/.exec(loc||''); if(!m||!idx.has(m[1])) return ''; return `data-xs="${idx.get(m[1])}" data-xr="${m[3]}" title="Open ${esc(m[1])}"`; };
-  const page=i=>{ if(!html[i]){ const S=sheets[i].S; html[i]=S.A.html(S.cols,{...S.o,lk}).map(t=>`<section class="xs-pg${/class="xs land/.test(t)?' land':''}">${t}</section>`).join('')||'<div class="xs-wait">Empty sheet.</div>'; } return html[i]; };
-  const v=document.createElement('div'); v.id='acXV'; v.className='ac-xv';
-  v.innerHTML=`<div class="ac-xv-bar"><b>${esc(o.filename||'Workbook')}</b><span class="small">Preview – nothing has been downloaded</span><div class="sp"></div><button class="btn pri sm" data-x="dl">⬇ Download</button><button class="btn sm" data-x="close">✕ Close</button></div>
-    <div class="ac-xv-tabs">${sheets.map((s,i)=>`<button data-xt="${i}" aria-pressed="${i===0}">${esc(s.n)}</button>`).join('')}</div><div class="xs-view ac-xv-body"></div>`;
-  const body=v.querySelector('.ac-xv-body'), hist=[];
-  const show=(i,row,push)=>{ if(push) hist.push(cur); cur=i; body.innerHTML=page(i); v.querySelectorAll('[data-xt]').forEach(t=>t.setAttribute('aria-pressed',+t.dataset.xt===i)); const tb=v.querySelector(`[data-xt="${i}"]`); tb&&tb.scrollIntoView({block:'nearest',inline:'center'});
-    body.scrollTop=0; if(row>1){ const tr=body.querySelectorAll('table.xs tr')[0]; /* rows are rendered in order from the first used row */ const all=[...body.querySelectorAll('table.xs tr')]; const t=all[Math.min(all.length-1,Math.max(0,row-3))]; t&&t.scrollIntoView({block:'center'}); } };
-  let cur=0;
-  v.addEventListener('click',ev=>{ const x=ev.target.closest('[data-x],[data-xt],[data-xs]'); if(!x) return; ev.stopPropagation();
-    if(x.dataset.x==='close') return v.remove(); if(x.dataset.x==='dl') return sv.call(downloads,o).catch(e=>{ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); });
-    if(x.dataset.xt!=null) return show(+x.dataset.xt,0,false); if(x.dataset.xs!=null) return show(+x.dataset.xs,+x.dataset.xr||1,true); });
-  document.addEventListener('keydown',function k(ev){ if(!document.body.contains(v)) return document.removeEventListener('keydown',k); if(ev.key==='Escape') v.remove(); });
-  document.body.appendChild(v); show(0,0,false); }
-document.head.insertAdjacentHTML('beforeend',`<style>
-.ac-out{position:fixed;inset:0;z-index:10002;background:#0008;display:flex;align-items:center;justify-content:center;padding:16px}
-.ac-out-box{background:#fff;color:#0B2545;border-radius:14px;padding:18px;width:min(420px,100%);box-shadow:0 10px 40px #0007;display:flex;flex-direction:column;gap:10px}
-.ac-out-t{font-weight:700;font-size:16px;margin-bottom:4px}.ac-out-b{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid #D0D7E2;background:#F7F9FC;border-radius:10px;padding:12px;cursor:pointer;color:#0B2545}
-.ac-out-b:hover{border-color:#F5B700;background:#FFF8E1}.ac-out-b span{font-size:22px}.ac-out-b b{display:block;font-size:15px}.ac-out-b small{color:#5B6B82}.ac-out-x{border:0;background:none;color:#5B6B82;cursor:pointer;padding:6px}
-.ac-xv{position:fixed;inset:0;z-index:9500;background:#5d636b;display:flex;flex-direction:column}
-.ac-xv-bar{display:flex;gap:10px;align-items:center;background:#0B2545;color:#fff;padding:10px 14px}.ac-xv-bar .sp{flex:1}.ac-xv-bar .small{opacity:.75}
-.ac-xv-tabs{display:flex;gap:4px;overflow-x:auto;background:#E8ECF2;padding:6px 8px;flex:none}.ac-xv-tabs button{white-space:nowrap;border:1px solid #C7CFDB;background:#fff;color:#0B2545;border-radius:6px 6px 0 0;padding:5px 10px;font-size:12px;cursor:pointer}
-.ac-xv-tabs button[aria-pressed="true"]{background:#F5B700;border-color:#F5B700;font-weight:700}.ac-xv-body{flex:1;overflow:auto;margin:0;border-radius:0}
-.ac-xv [data-xs]{color:#0563C1;text-decoration:underline;cursor:pointer}
-</style>`);
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
