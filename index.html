@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="260c01051bc5">
+<meta name="nexus-build" content="ad1bae0e6ff1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3549,7 +3549,7 @@ async function acXlsV199(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }c
     out.push([sn,A.xml([48,18,18,18,18,18,18,18])]); });
   const data=acWbZip(W,[...out,...acLBSheets(W,LB)]);
   try{ await downloads.save({filename:name,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
-function acPdf(title,html,orient){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; } const c=company(), st=acSet()||{};
+function acPdfV1(title,html,orient){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; } const c=company(), st=acSet()||{};
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4 ${orient||'portrait'};margin:14mm}body{font:11px Arial,sans-serif;color:#111}
   .co{border-bottom:2px solid #0B2545;margin-bottom:8px;padding-bottom:4px}.co b{font-size:15px}.co div{color:#555}h2{font-size:14px;margin:10px 0 2px}h3{font-size:12px;margin:10px 0 4px}.sub{color:#555;font-size:10px}
   table{width:100%;border-collapse:collapse;margin:4px 0 10px;page-break-inside:auto}tr{page-break-inside:avoid}th,td{padding:3px 6px;border-bottom:1px solid #DDD;text-align:left}td.r,th.r{text-align:right}.ac-gh td{font-weight:700;background:#F2F4F7}.ac-sec td{font-weight:700;background:#0B2545;color:#fff}.ac-tot th{border-top:1px solid #333}.ac-key th{border-top:2px solid #000;border-bottom:3px double #000}.ac-in{padding-left:18px}
@@ -4308,15 +4308,15 @@ function acBSHtml(dates,title){
   const okAll=D.every(b=>Math.abs(b.ta-b.te)<0.01);
   return `${title===false?'':acHd('Statement of financial position',dates.map(d=>'as at '+fmtD(d)).join(' | '))}<div class="tbl-wrap"><table class="ac-t ac-bs"><thead><tr><th>Particulars</th><th class="c" style="width:56px">Note</th>${dates.map(d=>`<th class="r">${fmtD(d)}</th>`).join('')}</tr></thead><tbody>
     <tr class="ac-sec"><td colspan="${n+2}">ASSETS</td></tr>
-    ${sec('Non-current assets')}${row('Property, plant & equipment',b=>b.fa,'ppe',7)}${tot('Total non-current assets',b=>b.fa)}
-    ${sec('Current assets')}${row('Trade and other receivables',b=>b.recv,'recv')}${row('Cash and bank balances',b=>b.cash,'cash',6)}${row('Tax recovery',b=>b.taxA,'tax',5)}${row('Stock / work in progress',b=>b.stk,'stk',8)}
-    ${tot('Total current assets',b=>b.ca)}${tot('TOTAL ASSETS',b=>b.ta,'ac-tot ac-key')}
+    ${sec('Non-Current Assets')}${row('Property, Plant & Equipment',b=>b.fa,'ppe',7)}${tot('Total Non-Current Assets',b=>b.fa)}
+    ${sec('CURRENT ASSETS')}${row('Trade and Other Receivables',b=>b.recv,'recv')}${row('Cash and Bank Balances',b=>b.cash,'cash',6)}${row('Tax Recovery',b=>b.taxA,'tax',5)}${row('Stock/WIP',b=>b.stk,'stk',8)}
+    ${tot('Total Current Assets',b=>b.ca)}${tot('Total Assets',b=>b.ta,'ac-tot ac-key')}
     <tr class="ac-sec"><td colspan="${n+2}">EQUITY AND LIABILITIES</td></tr>
-    ${sec('Capital and reserves')}${row('Share capital',b=>b.cap,'cap')}${resIds.map(id=>lrow(id,'res')).join('')}
-    <tr class="click" data-ac="rep" data-v="pl" title="Open the Profit & Loss"><td class="ac-in ac-lk">Retained earnings</td><td></td>${D.map(b=>cell(b.ret)).join('')}</tr>
-    ${tot('Total equity',b=>b.eq)}
-    ${sec('Current liabilities')}${row('Trade and other payables',b=>acR(b.pay+b.vat),'pay')}${row('Tax payable',b=>b.taxP,'tax',5)}${row('Bank overdraft',b=>b.od,'od')}${loanIds.map(id=>lrow(id,'loans')).join('')}
-    ${tot('Total liabilities',b=>b.cl)}${tot('TOTAL EQUITY AND LIABILITIES',b=>b.te,'ac-tot ac-key')}
+    ${sec('Capital and Reserves')}${row('Share Capital',b=>b.cap,'cap')}${resIds.map(id=>lrow(id,'res')).join('')}
+    <tr class="click" data-ac="rep" data-v="pl" title="Open the Profit & Loss"><td class="ac-in ac-lk">Retained Earnings</td><td></td>${D.map(b=>cell(b.ret)).join('')}</tr>
+    ${tot('Total Equity',b=>b.eq)}
+    ${sec('Current Liabilities')}${row('Trade and Other Payables',b=>acR(b.pay+b.vat),'pay')}${row('Tax Payable',b=>b.taxP,'tax',5)}${row('Bank O/D',b=>b.od,'od')}${loanIds.map(id=>lrow(id,'loans')).join('')}
+    ${tot('Total Liabilities',b=>b.cl)}${tot('Total Equity and Liabilities',b=>b.te,'ac-tot ac-key')}
   </tbody></table></div>${okAll?'':'<div class="banner warn"><div>The balance sheet does not balance – check the opening balances.</div></div>'}
   <p class="small muted" style="padding:0 14px 10px">Same layout as the audited statement of financial position. Click a line to see the ledgers (or the Note 7 schedule) behind it.</p>`; }
 /* what makes up a caption: its ledgers at the date */
@@ -4425,32 +4425,66 @@ document.head.insertAdjacentHTML('beforeend',`<style>
    ledger → SINGLE LEDGER sheet (sub-ledger when it is an item), P&L / BS caption → its note sheet, report link → that report; each opened sheet links back */
 async function acXls(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   const W=acXW(), clean=n=>String(n).replace(/&/g,'and').replace(/[\\\/?*\[\]:']/g,' ').replace(/\s+/g,' ').trim().slice(0,31), out=[], to0=dt||today(), fr0=df||acFyStart(to0);
-  const names=sheets.map(s=>clean(s[0])), LB=acLB(names), NB=new Map(), Q=[], LS={fn:'Arial',sz:10,u:1,col:'0563C1'};
+  const names=sheets.map(s=>clean(s[0])), LB=acLB(names), NB=new Map(), Q=[], LS={fn:'Book Antiqua',sz:10,u:1,col:'0563C1'};
   const uniq=b=>{ b=clean(b); let n=b, i=2; while(LB.has(n)) n=b.slice(0,27).trim()+' ~'+i++; LB.reserve(n); return n; };
   const drill=(ac,v,f,t,back)=>{ let key,title,html;
     if(ac==='plx'){ const k=AC_PLK[v]; if(!k) return ''; key=`plx|${v}|${f}|${t}`; title=`Note ${k.n} ${k.t}`; html=()=>acPLXHtml(v,f,t); }
     else if(ac==='bsx'){ const k=v==='ppe'?{t:'Property plant and equipment',n:7}:AC_BSK[v]; if(!k) return ''; key=`bsx|${v}|${t}`; title=(k.n?`Note ${k.n} `:'')+k.t; html=()=>v==='ppe'?acPPEHtml(t):acBSXHtml(v,t); }
     else if(ac==='rep'&&['pl','bs','cf','tb'].includes(v)){ key=`rep|${v}|${['bs'].includes(v)?'':f}|${t}`; title=(AC_REPS.find(x=>x[0]===v)||[0,v])[1]; html=()=>acRepHtml(v,v==='bs'?acFyStart(t):f,t); }
     else return '';
-    if(!NB.has(key)){ const nm=uniq(`${title} ${t.slice(0,4)}`); NB.set(key,nm); Q.push([nm,html,back]); } return NB.get(key); };
-  const write=(sn,html,back)=>{ const A=acSheet(W); let r=1; A.set(r,0,company().name||'Nordic Construction Co. Ltd',{fn:'Arial',sz:12,b:1});
-    if(back){ A.set(r,3,'← Back to '+back.label,LS); A.link(r,3,back.loc,'Back to '+back.label); } r+=2;
-    const d=document.createElement('div'); d.innerHTML=html;
-    d.querySelectorAll('h2,h3,.sub,table').forEach(el=>{ if(el.tagName!=='TABLE'){ if(el.closest('table')) return; const t=el.textContent.trim(); if(t){ A.set(r,0,t,{fn:'Arial',sz:el.tagName==='H2'?12:10,b:el.tagName!=='DIV'?1:0,i:el.tagName==='DIV'?1:0}); r++; } return; }
-      el.querySelectorAll('tr').forEach(tr=>{ const head=!!tr.closest('thead'), cl=tr.className||'', bold=head||/ac-gh|ac-tot|ac-key|ac-sec|ac-strong/.test(cl), bd=/ac-key/.test(cl)?{t:'thin',b:'double'}:/ac-tot/.test(cl)?{t:'thin'}:head?{b:'thin'}:{}, fill=/ac-sec/.test(cl)?'D9E1F2':/ac-gh/.test(cl)?'F2F4F7':'';
+    if(!NB.has(key)){ const nm=uniq(`${title} ${t.slice(0,4)}`); NB.set(key,nm); Q.push([nm,html,back,f,t]); } return NB.get(key); };
+  /* every sheet in the audited (NORDIC ACC) style: Book Antiqua 10; margin column A, framed page from column B; company name and title in CAPITALS, bold, centred;
+     'Note' and year columns (31.12.2025 / TShs) as in the statements; whole shillings with (brackets); single line over totals, double line under key totals; no shading */
+  const write=(sn,html,back,f,t)=>{ const A=acSheet(W), BA='Book Antiqua', O=2, F0={fn:BA,sz:10}; let r=1, mc=O;
+    if(back){ A.set(1,O,'← Back to '+back.label,LS); A.link(1,O,back.loc,'Back to '+back.label); }
+    const d=document.createElement('div'); d.innerHTML=html; const ttl=acAccTitle(d,f||fr0,t||to0)||String(sn).toUpperCase();
+    A.set(4,1,acCoName(),{...F0,b:1,al:'center'}); A.set(6,1,ttl,{...F0,b:1,al:'center'}); r=8;
+    const isD=s=>/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(s), toDot=s=>{ const x=new Date(s+' 12:00'); return isNaN(x)?s:acDot(x.toISOString().slice(0,10)); };
+    d.querySelectorAll('h2,h3,.sub,table').forEach(el=>{ if(el.tagName!=='TABLE'){ if(el.closest('table')) return; const tx=el.textContent.replace(/\s+/g,' ').trim(); if(tx){ A.set(r,O,el.tagName==='DIV'?tx:tx.toUpperCase(),{...F0,b:el.tagName!=='DIV'?1:0,i:el.tagName==='DIV'?1:0}); r++; } return; }
+      el.querySelectorAll('tr').forEach(tr=>{ const head=!!tr.closest('thead'), cl=tr.className||'', key=/ac-key/.test(cl), tot=key||/ac-tot/.test(cl), bold=head||tot||/ac-gh|ac-sec|ac-strong/.test(cl);
         const ac=tr.dataset.ac||'', lid=ac==='ledgerRep'?tr.dataset.v:ac==='itemSel'?((UI.acr||{}).l||''):'', it=ac==='ledgerRep'?(tr.dataset.it||''):ac==='itemSel'?(tr.dataset.v||''):'';
-        const f1=tr.dataset.f||(tr.querySelector('[data-f]')||{dataset:{}}).dataset.f, t1=tr.dataset.t||(tr.querySelector('[data-t]')||{dataset:{}}).dataset.t, here={loc:`'${sn}'!A${r}`,label:sn};
-        let c=0; [...tr.children].forEach((td,ci)=>{ const inp=td.querySelector('input'); const t=(inp?inp.value:td.innerText||td.textContent||'').replace(/\s+\n/g,'\n').trim(); const n=t.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); const num=/^-?\d+(\.\d+)?$/.test(n)&&(td.classList.contains('r')||td.classList.contains('num'));
-          const st={fn:'Arial',sz:10,b:bold?1:0,bd,fill,...(num?{nf:'n2',al:'right'}:{}),...(td.classList.contains('ac-in')?{ind:1}:{})};
-          if(!head&&(ci===0||td.dataset.f||td.dataset.t)){ const f=td.dataset.f||f1||fr0, tt=td.dataset.t||t1||to0;
-            if(lid){ A.link(r,c,LB.loc(lid,f,tt,here,it),it?'Open the sub-ledger':'Open the ledger'); if(ci===0) Object.assign(st,LS); }
-            else if(ac){ const nm=drill(ac,tr.dataset.v,f,tt,here); if(nm){ A.link(r,c,`'${nm}'!A1`,'Show what makes up this figure'); if(ci===0) Object.assign(st,LS); } } }
-          A.set(r,c,num?+n:t==='–'?'':t,st); const span=+td.getAttribute('colspan')||1; if(span>1) A.merge(r,c,c+span-1); c+=span; }); r++; }); r++; });
-    return A.xml([48,18,18,18,18,18,18,18,18,18,18]); };
+        const f1=tr.dataset.f||(tr.querySelector('[data-f]')||{dataset:{}}).dataset.f, t1=tr.dataset.t||(tr.querySelector('[data-t]')||{dataset:{}}).dataset.t, here={loc:`'${sn}'!C${r}`,label:sn};
+        const cells=[...tr.children], dates=head&&cells.some(td=>isD(td.textContent.trim())), tsh=[];
+        let c=O; cells.forEach((td,ci)=>{ const inp=td.querySelector('input'); let tx=(inp?inp.value:td.innerText||td.textContent||'').replace(/\s+\n/g,'\n').trim(); const n=tx.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); const numc=!head&&(td.classList.contains('r')||td.classList.contains('num')), num=numc&&(/^-?\d+(\.\d+)?$/.test(n)||/^[–-]$/.test(tx)); const nv=/^[–-]$/.test(tx)?0:+n;
+          const right=td.classList.contains('r')||num, center=td.classList.contains('c');
+          if(head){ if(/^particulars$/i.test(tx)) tx=''; if(isD(tx)){ tx=toDot(tx); tsh.push(c); } }
+          const st={...F0,b:bold?1:0,...(num?{nf:'n0',al:'right'}:right?{al:'right'}:center?{al:'center'}:{}),...(td.classList.contains('ac-in')?{ind:1}:{})};
+          if(num&&tot) st.bd=key?{t:'thin',b:'double'}:{t:'thin'}; if(head&&!dates&&tx) st.bd={b:'thin'};
+          if(!head&&tx&&(num?nv!==0:true)&&(ci===0||td.dataset.f||td.dataset.t)){ const ff=td.dataset.f||f1||fr0, tt=td.dataset.t||t1||to0;
+            if(lid){ A.link(r,c,LB.loc(lid,ff,tt,here,it),it?'Open the sub-ledger':'Open the ledger'); if(ci===0) Object.assign(st,LS,{b:st.b}); }
+            else if(ac){ const nm=drill(ac,tr.dataset.v,ff,tt,here); if(nm){ A.link(r,c,`'${nm}'!A1`,'Show what makes up this figure'); if(ci===0) Object.assign(st,LS,{b:st.b}); } } }
+          A.set(r,c,num?nv:tx==='–'?'':tx,st); const span=+td.getAttribute('colspan')||1; if(span>1) A.merge(r,c,c+span-1); c+=span; });
+        mc=Math.max(mc,c-1); r++; if(tsh.length){ tsh.forEach(x=>A.set(r,x,'TShs',{...F0,b:1,al:'right'})); r+=2; } }); r++; });
+    mc=Math.max(mc,5); A.merge(4,1,mc); A.merge(6,1,mc); A.box(3,Math.max(r,12),1,mc);
+    return A.xml([6.1,3.9,44.4,14.9,16.6,19.9,...Array(Math.max(mc-5,1)).fill(18)]); };
   sheets.forEach(([,html],si)=>out.push([names[si],write(names[si],html)]));
-  for(let i=0;i<Q.length&&i<200;i++){ const [nm,h,back]=Q[i]; out.push([nm,write(nm,h(),back)]); }
+  for(let i=0;i<Q.length&&i<200;i++){ const [nm,h,back,f,t]=Q[i]; out.push([nm,write(nm,h(),back,f,t)]); }
   const data=acWbZip(W,[...out,...acLBSheets(W,LB)]);
   try{ await downloads.save({filename:name,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
+
+/* v210: report headings as in the audited workbook – company name and statement title in CAPITALS, Book Antiqua 10 bold, centred */
+const acCoName=()=>String(company().name||'Nordic Construction Company Limited').toUpperCase();
+function acAccTitle(d,f,t){ const h=d.querySelector('h2'); if(!h) return ''; const box=h.closest('.hd'), sb=box&&box.querySelector('.sub'), sub=sb?sb.textContent:'';
+  const T=h.textContent.replace(/\s+/g,' ').trim().toUpperCase(); (box||h).remove();
+  if(!t) return T; const asAt=/^\s*as at/i.test(sub), per=asAt?`AS AT ${acUpDate(t)}`:(f===acFyStart(t)&&t===acFyEnd(acFyStart(t)))?`FOR THE YEAR ENDED ${acUpDate(t)}`:`FOR THE PERIOD ${acUpDate(f)} TO ${acUpDate(t)}`;
+  return /\bAS AT\b|\bYEAR ENDED\b|\bPERIOD\b/.test(T)?T:`${T} ${per}`; }
+function acPdf(title,html,orient,f,t){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to download the PDF.'); return; }
+  const a=UI.acr||{}; t=t||a.to||today(); f=f||a.from||acFyStart(t); const d=document.createElement('div'); d.innerHTML=html; const ttl=acAccTitle(d,f,t); acAccBody(d);
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4 ${orient||'portrait'};margin:14mm}
+  body{font:10pt 'Book Antiqua',Palatino,'Palatino Linotype',Georgia,serif;color:#000}.acc-h{text-align:center;font-weight:700;font-size:10pt;margin:0 0 14pt}.acc-h div+div{margin-top:13pt}
+  h2,h3{font-size:10pt;font-weight:700;text-transform:uppercase;margin:12px 0 4px}.sub{font-size:9pt;font-style:italic}
+  table{width:100%;border-collapse:collapse;margin:4px 0 10px;page-break-inside:auto}tr{page-break-inside:avoid}th,td{padding:2px 6px;text-align:left;font-size:10pt}td.r,th.r{text-align:right}
+  thead th{border-bottom:1px solid #000}table.stm thead th{border-bottom:0}.frame{border:3px double #000;padding:6mm 7mm}.ac-gh td{font-weight:700}.ac-sec td{font-weight:700;text-transform:uppercase}.ac-tot th.num{border-top:1px solid #000}.ac-key th.num{border-top:1px solid #000;border-bottom:3px double #000}p.small{display:none}.ac-in{padding-left:18px}.ac-strong td{font-weight:700}
+  .ac-lk{text-decoration:none}.banner,.btn,button,input,.toolbar{display:none!important}.muted{color:#333}.pb{page-break-before:always}</style></head><body>
+  <div class="frame"><div class="acc-h"><div>${esc(acCoName())}</div><div>${esc(ttl||String(title).toUpperCase())}</div></div>${d.innerHTML}</div></body></html>`);
+  w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} },600); }
+
+/* the statement look of the audited accounts for printed reports: whole shillings with (brackets), 31.12.2025 / TShs column heads, no 'Particulars' */
+function acAccBody(d){
+  d.querySelectorAll('td.num,th.num').forEach(x=>{ const n=x.textContent.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); if(/^-?\d+(\.\d+)?$/.test(n)){ const v=Math.round(+n); x.textContent=v===0?'-':v<0?'('+Math.abs(v).toLocaleString('en-US')+')':v.toLocaleString('en-US'); } });
+  d.querySelectorAll('thead tr').forEach(tr=>{ const ths=[...tr.children]; let any=false;
+    ths.forEach(th=>{ const t=th.textContent.trim(); if(/^particulars$/i.test(t)) th.textContent=''; if(/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(t)){ const x=new Date(t+' 12:00'); if(!isNaN(x)){ th.textContent=acDot(x.toISOString().slice(0,10)); any=true; } } });
+    if(any){ const r2=document.createElement('tr'); ths.forEach(th=>{ const c=document.createElement('th'); c.className=th.className; c.textContent=/^\d\d\.\d\d\.\d{4}$/.test(th.textContent)?'TShs':''; r2.appendChild(c); }); tr.after(r2); tr.closest('table').classList.add('stm'); } }); }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
