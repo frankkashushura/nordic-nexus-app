@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="5c2aa5ffc8c6">
+<meta name="nexus-build" content="08da9308370d">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -141,6 +141,7 @@ a{color:var(--blue)}
 .btn[disabled]{opacity:.5;pointer-events:none}
 .btn svg{width:15px;height:15px}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;background:var(--panel2);color:var(--muted)}
+a.chip.src-link{text-decoration:none;cursor:pointer;white-space:normal;max-width:100%}a.chip.src-link:hover{filter:brightness(.92);text-decoration:underline}
 .chip.good{background:var(--good-soft);color:var(--good)}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .chip.bad{background:var(--bad-soft);color:var(--bad)}
@@ -1264,7 +1265,8 @@ function intlCard(){
   const ibAge=ib.last_check?(Date.now()-Date.parse(ib.last_check))/36e5:null, ibOk=S.inbox&&ib.ok!==false&&!(ibAge>3);
   const n=S.tenders.filter(t=>/^(UNDP|UNGM|SAM|TED|WEB|MAIL):/.test(t.id)&&isOpenT(t)).length;
   const errs=INTL_SRC.filter(([k])=>src[k]?.ok===false).length+(S.inbox&&ib.ok===false?1:0);
-  const chips=[...INTL_SRC.map(([k,l,d])=>{ const v=src[k]; return `<span class="chip ${!v?'':v.ok===false?'bad':'good'}" title="${esc(d+(v?(v.ok===false?' · error: '+(v.err||''):` · checked ${fmtDT(v.at)}`):''))}">${esc(l)}${v&&v.found?` · ${v.found}`:''}</span>`; }),
+  const chips=[...INTL_SRC.map(([k,l,d])=>{ const v=src[k], u=INTL_URL[k], cls=`chip ${!v?'':v.ok===false?'bad':'good'}`, tip=esc(d+(v?(v.ok===false?' · error: '+(v.err||''):` · checked ${fmtDT(v.at)}`):'')+(u?' · click to open the site':'')), body=`${esc(l)}${v&&v.found?` · ${v.found}`:''}`;
+      return u?`<a class="${cls} src-link" href="${esc(u)}" target="_blank" rel="noopener" data-dhopen="${esc(u)}" data-dhname="${esc(l)}" title="${tip}">${body} ↗</a>`:`<span class="${cls}" title="${tip}">${body}</span>`; }),
     `<span class="chip ${!S.inbox?'':ibOk?'good':'bad'}" title="${esc('Tender invitations arriving in the company email are added automatically'+(ib.last_check?' · checked '+fmtDT(ib.last_check):''))}">Company email</span>`];
   const log=(ib.log||[]).filter(x=>x.tender||/staff/i.test(x.skip||'')).slice(0,4);
   return `<div class="card ti-card"><div class="hd"><h2>Embassies · UN · private</h2><div class="sp"></div><span class="chip ${errs?'amb':'good'}">${errs?'Check source':'Automatic'}</span></div><div class="bd small">
@@ -1282,6 +1284,17 @@ function intlCard(){
   </div></div>`;
 }
 function isOpenT(t){ return Date.parse(t.deadline||'')>Date.now()&&t.screen!=='Drop'&&!/no-?bid|submitted|won|lost|cancel|closed/i.test(t.status||''); }
+/* v217.2 · each scanner source opens its tender page (names as written by the GitHub scanner) */
+const SCAN_URL={'NeST':'https://nest.go.tz/tenders/published-tenders','World Bank (Tanzania, civil works)':'https://projects.worldbank.org/en/projects-operations/procurement?countrycode_exact=TZ',
+ 'TANROADS website':'https://www.tanroads.go.tz/tenders','DDO Tenders (newspapers, private, donors)':'https://www.ddotenders.co.tz/tender.php?page=home','TanzaniaTenders.com (newspapers, portals, private)':'https://www.tanzaniatenders.com/tenders.php',
+ 'CRDB Bank tenders':'https://crdbbank.co.tz/en/about-us/tender','TPA current tenders':'https://www.ports.go.tz/index.php/en/procurements/current-tenders-en','TARURA tenders':'https://tarura.go.tz/trr/matangazo','Bank of Tanzania tenders':'https://www.bot.go.tz/CallsforTender','TEITI tenders':'https://www.teiti.go.tz/tenders',
+ 'TRC tenders':'https://www.trc.co.tz/tenders','TCRA tenders':'https://www.tcra.go.tz/tenders','Azania Bank tenders':'https://www.azaniabank.co.tz/tenders','NBC Bank procurement':'https://www.nbc.co.tz/en/procurement/','Ministry of Water tenders':'https://www.maji.go.tz/tenders',
+ 'REA tenders':'https://www.rea.go.tz/category/tenders','DART tenders':'https://www.dart.go.tz/publications/tenders','TASAC tenders':'https://www.tasac.go.tz/publications/tender','TMDA tenders':'https://www.tmda.go.tz/tenders','DUWASA tenders':'https://www.duwasa.go.tz/tenders',
+ 'MWAUWASA tenders':'https://www.mwauwasa.go.tz/tenders','Ministry of Finance tenders':'https://www.mof.go.tz/pages/tenders','SUA tenders (zabuni)':'https://www.sua.ac.tz/zabuni','Tanzania Posts announcements':'https://www.posta.co.tz/sw/announcement/all-announcement/',
+ 'TRA public notices':'https://www.tra.go.tz/public-notice/all','UDSM announcements':'https://www.udsm.ac.tz','TAWA announcements':'https://www.tawa.go.tz/announcements','Ministry of Health notices':'https://www.moh.go.tz','NM-AIST tenders':'https://www.nm-aist.ac.tz/tenders/all',
+ 'BidDetail – Tanzania tenders':'https://www.biddetail.com/tanzania-tenders','ZoomTanzania tenders':'https://www.zoomtanzania.net/tenders'};
+const INTL_URL={'UNDP':'https://procurement-notices.undp.org/','UNGM':'https://www.ungm.org/Public/Notice','SAM.gov':'https://sam.gov/search/?index=opp&keywords=Tanzania','TED (EU)':'https://ted.europa.eu/en/'};
+function srcUrl(s){ const u=s.url||SCAN_URL[s.name]; return /^https?:\/\//.test(u||'')?u:''; }
 function scannerCard(last){
   const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
   const nt=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0];
@@ -1292,8 +1305,9 @@ function scannerCard(last){
         <dt>Newest tenders</dt><dd>${nt?(()=>{ const t0=Date.parse(tNewAt(nt)); const n=S.tenders.filter(x=>firstSeen(x)&&t0-Date.parse(tNewAt(x))<=15*60e3).length; return `<b>${n}</b> · ${fmtDT(tNewAt(nt))}`; })():'—'}</dd>
         <dt>New for you</dt><dd>${nfy?`<b>${nfy}</b> since your last visit`:'None since your last visit'}</dd></dl>
       ${src.length?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">${src.length} sources${bad?` · <span style="color:var(--bad)">${bad} with errors</span>`:' · all working'}</summary>
-        <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(s=>`<span class="chip ${s.error?'bad':'good'}" title="${esc(s.error||'OK '+s.last_ok)}">${esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA '))}</span>`).join('')}</div>
-        <div class="muted" style="margin-top:6px">Scanned in the cloud every 5–15 min; NEXUS syncs every 10 min (06:00–23:00).${S.lastImport?` Last manual import ${fmtDT(S.lastImport.at)}.`:''}</div></details>`:''}
+        <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(s=>{ const u=srcUrl(s), lbl=esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA ')), tip=esc((s.error||'OK '+s.last_ok)+(u?' · click to open the site':''));
+          return u?`<a class="chip ${s.error?'bad':'good'} src-link" href="${esc(u)}" target="_blank" rel="noopener" data-dhopen="${esc(u)}" data-dhname="${esc(s.name)}" title="${tip}">${lbl} ↗</a>`:`<span class="chip ${s.error?'bad':'good'}" title="${tip}">${lbl}</span>`; }).join('')}</div>
+        <div class="muted" style="margin-top:6px">Click a source to open its tender page. Scanned in the cloud every 5–15 min; NEXUS syncs every 10 min, day and night.${S.lastImport?` Last manual import ${fmtDT(S.lastImport.at)}.`:''}</div></details>`:''}
     </div></div>`;
 }
 
