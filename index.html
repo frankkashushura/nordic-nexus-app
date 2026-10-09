@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="da1fbd294b55">
+<meta name="nexus-build" content="260c01051bc5">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3533,7 +3533,7 @@ function acSettings(){ const st=acSet()||{};
 /* ===================== EXPORT (Excel / PDF) ===================== */
 function acTableAoA(html){ const d=document.createElement('div'); d.innerHTML=html; const out=[]; d.querySelectorAll('h2,h3,table').forEach(el=>{ if(el.tagName!=='TABLE'){ out.push([el.textContent.trim()]); return; }
   el.querySelectorAll('tr').forEach(tr=>{ out.push([...tr.children].map(c=>{ const inp=c.querySelector('input'); const t=(inp?inp.value:c.innerText||c.textContent||'').trim(); const n=t.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); return /^-?\d+(\.\d+)?$/.test(n)&&c.classList.contains('r')?+n:t==='–'?'':t; })); }); out.push([]); }); return out; }
-async function acXls(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+async function acXlsV199(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
   /* v199: native workbook; ledger names (and period figures) link to a SINGLE LEDGER sheet for that ledger & year, which links back */
   const W=acXW(), clean=n=>String(n).replace(/[\\\/?*\[\]:']/g,' ').slice(0,31), names=sheets.map(s=>clean(s[0])), LB=acLB(names), out=[], to0=dt||today(), fr0=df||acFyStart(to0);
   const LS={fn:'Arial',sz:10,u:1,col:'0563C1'};
@@ -3978,7 +3978,7 @@ async function acAuditPdf(){
 
 /* ---------- Ledger book in the Tally.ERP 9 layout (SINGLE LEDGER sample): Date · Particulars · Vch Type · Vch No. · Debit · Credit ---------- */
 const acXDate=d=>Math.round((Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))-Date.UTC(1899,11,30))/864e5);
-function acLedgerSheet(W,id,from,to,back,it){ const R=acLedgerRows(id,from,to,it); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
+function acLedgerSheet(W,id,from,to,back,it,LB,self){ const R=acLedgerRows(id,from,to,it); if(!R) return null; const co=company(), st=acSet()||{}, l=R.l, A=acSheet(W);
   const F9={fn:'Arial',sz:9}, F10={fn:'Arial',sz:10}, N={fn:'Arial',sz:10,b:1,nf:'t2',al:'right'}, fmtL=d=>{ const x=new Date(d+'T00:00:00'); return `${x.getDate()}-${x.toLocaleDateString('en-GB',{month:'long'})}-${x.getFullYear()}`; };
   let r=1; const hd=(t,s={})=>{ A.set(r,0,t,{...F10,...s}); A.merge(r,0,2); r++; };
   hd(co.name||'Nordic Construction Company Limited',{sz:12,b:1}); hd(co.pobox||co.address||''); hd('Tanzania'); hd(`TIN: ${st.company_tin||''}`); hd(`VRN: ${st.company_vrn||''}`);
@@ -3998,18 +3998,24 @@ function acLedgerSheet(W,id,from,to,back,it){ const R=acLedgerRows(id,from,to,it
   const cb=acR(R.cb); A.set(r,1,cb<0?'Cr':'Dr',F10); A.set(r,2,'Closing Balance',{...F10,b:1,al:'left'});
   if(cb>0) A.set(r,6,{f:`F${tr}-G${tr}`,v:cb},N); if(cb<0) A.set(r,5,{f:`G${tr}-F${tr}`,v:-cb},N); r++;
   const gt=acR(Math.max(dr,cr)); A.set(r,5,{f:`SUM(F${tr}:F${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}}); A.set(r,6,{f:`SUM(G${tr}:G${r-1})`,v:gt},{...N,bd:{t:'thin',b:'double'}});
+  /* v209: a combined ledger lists its sub-ledgers (items), each linked to its own ledger sheet */
+  if(LB&&self&&!R.it&&l.itemised){ const its=acItemsOf(id).map(n=>{ const X=acLedgerRows(id,from,to,n); return [n,X?acR(X.cb):0]; }).filter(x=>x[1]);
+    if(its.length){ r+=3; A.set(r,2,'Sub-ledgers (click to open)',{...F10,b:1}); A.set(r,6,'Balance',{...F10,b:1,al:'right'}); r++;
+      its.forEach(([n,v])=>{ A.set(r,2,n,{...F10,u:1,col:'0563C1'}); A.link(r,2,LB.loc(id,from,to,{loc:`'${self}'!C${r}`,label:self},n),'Open the sub-ledger'); A.set(r,6,v,N); r++; });
+      A.set(r,6,acR(its.reduce((a,x)=>a+x[1],0)),{...N,bd:{t:'thin',b:'double'}}); } }
   return {A,xml:A.xml([10.1,3.4,62.7,10,11,15.6,16]),name:R.it||l.name}; }
 /* v199: ledger sheets linked from the exported reports (registry → one SINGLE LEDGER sheet per ledger & period, with a link back) */
 function acLB(reserved){ const m=new Map(), used=new Set((reserved||[]).map(x=>String(x).toLowerCase()));
   return { req(id,from,to,back,it){ const k=id+'|'+from+'|'+to+'|'+(it||''); if(!m.has(k)){ const l=acL(id); const base=String(it||(l?l.name:id)).replace(/[\\\/?*\[\]:']/g,' ').replace(/\s+/g,' ').trim(), y=to.slice(0,4);
       const av=31-y.length-1, sh=base.length<=av?base:base.slice(0,Math.ceil(av*0.55)).trim()+'…'+base.slice(-(av-Math.ceil(av*0.55)-1)).trim(); let nm=`${sh} ${y}`.trim(), i=2; while(used.has(nm.toLowerCase())){ const suf=` ${y}~${i++}`; nm=base.slice(0,31-suf.length)+suf; } used.add(nm.toLowerCase()); m.set(k,{id,from,to,nm,back,it:it||''}); } return m.get(k).nm; },
-    loc(id,from,to,back,it){ return `'${this.req(id,from,to,back,it)}'!A1`; }, list:()=>[...m.values()] }; }
-function acLBSheets(W,LB){ return LB.list().map(x=>{ const S=acLedgerSheet(W,x.id,x.from,x.to,x.back,x.it); return S?[x.nm,S.xml]:null; }).filter(Boolean); }
+    loc(id,from,to,back,it){ return `'${this.req(id,from,to,back,it)}'!A1`; }, list:()=>[...m.values()], has:n=>used.has(String(n).toLowerCase()), reserve:n=>used.add(String(n).toLowerCase()) }; }
+function acLBSheets(W,LB){ const out=[]; for(let i=0;i<LB.list().length&&i<400;i++){ const x=LB.list()[i], S=acLedgerSheet(W,x.id,x.from,x.to,x.back,x.it,LB,x.nm); if(S) out.push([x.nm,S.xml]); } return out; }
 const AC_LINK={fn:'Arial',u:1,col:'0563C1'};
 async function acLedgerXlsx(id,from,to,it){
   try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
-  const W=acXW(), S=acLedgerSheet(W,id,from,to,null,it); if(!S) return toast('Choose a ledger.');
-  const data=acWbZip(W,[[String(S.name).replace(/[\\\/?*\[\]:]/g,' ').slice(0,31),S.xml]]);
+  const W0=acXW(), S0=acLedgerSheet(W0,id,from,to,null,it); if(!S0) return toast('Choose a ledger.');
+  const nm=String(S0.name).replace(/[\\\/?*\[\]:']/g,' ').slice(0,31), W=acXW(), LB=acLB([nm]), S=acLedgerSheet(W,id,from,to,null,it,LB,nm);
+  const data=acWbZip(W,[[nm,S.xml],...acLBSheets(W,LB)]);
   try{ await downloads.save({filename:`${String(S.name).replace(/[^\w]+/g,'_')}_${from}_${to}.xlsx`,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); logAct(`Ledger book ${S.name} ${from} – ${to} – Excel`); }
   catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); }
 }
@@ -4415,6 +4421,36 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 @media(max-width:820px){.xs-view{padding:8px 4px}.xs-pg{zoom:.42}.xs-pg.land{zoom:.3}}
 .xs-wait{color:#fff;text-align:center;padding:40px 10px;font-weight:600}.ac-strong td{font-weight:700}
 </style>`);
+/* v209: report Excel works like the screen – every clickable line links to its own sheet:
+   ledger → SINGLE LEDGER sheet (sub-ledger when it is an item), P&L / BS caption → its note sheet, report link → that report; each opened sheet links back */
+async function acXls(sheets,name,df,dt){ try{ await loadScript(XLSX_URL); }catch(e){ toast(e.message); return; }
+  const W=acXW(), clean=n=>String(n).replace(/&/g,'and').replace(/[\\\/?*\[\]:']/g,' ').replace(/\s+/g,' ').trim().slice(0,31), out=[], to0=dt||today(), fr0=df||acFyStart(to0);
+  const names=sheets.map(s=>clean(s[0])), LB=acLB(names), NB=new Map(), Q=[], LS={fn:'Arial',sz:10,u:1,col:'0563C1'};
+  const uniq=b=>{ b=clean(b); let n=b, i=2; while(LB.has(n)) n=b.slice(0,27).trim()+' ~'+i++; LB.reserve(n); return n; };
+  const drill=(ac,v,f,t,back)=>{ let key,title,html;
+    if(ac==='plx'){ const k=AC_PLK[v]; if(!k) return ''; key=`plx|${v}|${f}|${t}`; title=`Note ${k.n} ${k.t}`; html=()=>acPLXHtml(v,f,t); }
+    else if(ac==='bsx'){ const k=v==='ppe'?{t:'Property plant and equipment',n:7}:AC_BSK[v]; if(!k) return ''; key=`bsx|${v}|${t}`; title=(k.n?`Note ${k.n} `:'')+k.t; html=()=>v==='ppe'?acPPEHtml(t):acBSXHtml(v,t); }
+    else if(ac==='rep'&&['pl','bs','cf','tb'].includes(v)){ key=`rep|${v}|${['bs'].includes(v)?'':f}|${t}`; title=(AC_REPS.find(x=>x[0]===v)||[0,v])[1]; html=()=>acRepHtml(v,v==='bs'?acFyStart(t):f,t); }
+    else return '';
+    if(!NB.has(key)){ const nm=uniq(`${title} ${t.slice(0,4)}`); NB.set(key,nm); Q.push([nm,html,back]); } return NB.get(key); };
+  const write=(sn,html,back)=>{ const A=acSheet(W); let r=1; A.set(r,0,company().name||'Nordic Construction Co. Ltd',{fn:'Arial',sz:12,b:1});
+    if(back){ A.set(r,3,'← Back to '+back.label,LS); A.link(r,3,back.loc,'Back to '+back.label); } r+=2;
+    const d=document.createElement('div'); d.innerHTML=html;
+    d.querySelectorAll('h2,h3,.sub,table').forEach(el=>{ if(el.tagName!=='TABLE'){ if(el.closest('table')) return; const t=el.textContent.trim(); if(t){ A.set(r,0,t,{fn:'Arial',sz:el.tagName==='H2'?12:10,b:el.tagName!=='DIV'?1:0,i:el.tagName==='DIV'?1:0}); r++; } return; }
+      el.querySelectorAll('tr').forEach(tr=>{ const head=!!tr.closest('thead'), cl=tr.className||'', bold=head||/ac-gh|ac-tot|ac-key|ac-sec|ac-strong/.test(cl), bd=/ac-key/.test(cl)?{t:'thin',b:'double'}:/ac-tot/.test(cl)?{t:'thin'}:head?{b:'thin'}:{}, fill=/ac-sec/.test(cl)?'D9E1F2':/ac-gh/.test(cl)?'F2F4F7':'';
+        const ac=tr.dataset.ac||'', lid=ac==='ledgerRep'?tr.dataset.v:ac==='itemSel'?((UI.acr||{}).l||''):'', it=ac==='ledgerRep'?(tr.dataset.it||''):ac==='itemSel'?(tr.dataset.v||''):'';
+        const f1=tr.dataset.f||(tr.querySelector('[data-f]')||{dataset:{}}).dataset.f, t1=tr.dataset.t||(tr.querySelector('[data-t]')||{dataset:{}}).dataset.t, here={loc:`'${sn}'!A${r}`,label:sn};
+        let c=0; [...tr.children].forEach((td,ci)=>{ const inp=td.querySelector('input'); const t=(inp?inp.value:td.innerText||td.textContent||'').replace(/\s+\n/g,'\n').trim(); const n=t.replace(/[,\s]/g,'').replace(/^\((.*)\)$/,'-$1'); const num=/^-?\d+(\.\d+)?$/.test(n)&&(td.classList.contains('r')||td.classList.contains('num'));
+          const st={fn:'Arial',sz:10,b:bold?1:0,bd,fill,...(num?{nf:'n2',al:'right'}:{}),...(td.classList.contains('ac-in')?{ind:1}:{})};
+          if(!head&&(ci===0||td.dataset.f||td.dataset.t)){ const f=td.dataset.f||f1||fr0, tt=td.dataset.t||t1||to0;
+            if(lid){ A.link(r,c,LB.loc(lid,f,tt,here,it),it?'Open the sub-ledger':'Open the ledger'); if(ci===0) Object.assign(st,LS); }
+            else if(ac){ const nm=drill(ac,tr.dataset.v,f,tt,here); if(nm){ A.link(r,c,`'${nm}'!A1`,'Show what makes up this figure'); if(ci===0) Object.assign(st,LS); } } }
+          A.set(r,c,num?+n:t==='–'?'':t,st); const span=+td.getAttribute('colspan')||1; if(span>1) A.merge(r,c,c+span-1); c+=span; }); r++; }); r++; });
+    return A.xml([48,18,18,18,18,18,18,18,18,18,18]); };
+  sheets.forEach(([,html],si)=>out.push([names[si],write(names[si],html)]));
+  for(let i=0;i<Q.length&&i<200;i++){ const [nm,h,back]=Q[i]; out.push([nm,write(nm,h(),back)]); }
+  const data=acWbZip(W,[...out,...acLBSheets(W,LB)]);
+  try{ await downloads.save({filename:name,data,type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }catch(e){ if(e?.code!=='declined') toast('Download failed: '+(e?.message||e)); } }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
