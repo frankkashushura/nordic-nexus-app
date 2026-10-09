@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="2b88b565bbfa">
+<meta name="nexus-build" content="0e482fac1cb4">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -3741,7 +3741,26 @@ function acSheet(W){
           h+=`<td${m?` colspan="${m[2]-m[1]+1}"`:''} style="${css}">${(()=>{ const t=cl?fmt(cl.v,nf).replace(/\n/g,'<br>'):''; const lk=lkm&&t&&lkm.get(col(c)+r), at=lk&&o.lk(lk); return at?`<span class="xs-lk" ${at}>${t}</span>`:t; })()}</td>`; }
         h+='</tr>'; }
       return h+'</table>'; }); };
-  return {set,link:(r,c,loc,tip)=>{ const ref=col(c)+r; if(!links.some(x=>x[0]===ref)) links.push([ref,loc,tip]); },box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,get max(){return max;},col};
+  /* v213: the sheet as Excel shows it on screen – column letters, row numbers, gridlines, real column widths, merged cells, fonts, borders and number formats */
+  const grid=(cols,o={})=>{ const lkm=new Map(links.map(x=>[x[0],x[1]])), bdc=x=>x==='double'?'3px double #000':x?'1px solid #000':'';
+    const fmt=(v,nf)=>{ if(v&&typeof v==='object') v=v.v; if(v===undefined||v===null||v==='') return ''; if(typeof v!=='number') return esc(String(v));
+      if(nf==='pct') return (v*100).toFixed(1)+'%'; if(nf==='dt'){ const d=new Date(Date.UTC(1899,11,30)+v*864e5); return d.toISOString().slice(0,10).split('-').reverse().join('/'); }
+      const d=nf==='n2'||nf==='t2'?2:0, a=Math.abs(v), t=a.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+      if(nf==='n0'||nf==='n2'||nf==='t2'){ if(Math.round(a*Math.pow(10,d))===0) return '-&nbsp;'; return v<0?(nf==='t2'?'-'+t:'('+t+')'):t+'&nbsp;'; } return nf?t:String(v); };
+    let c1=0; for(const [k] of cells) c1=Math.max(c1,k%100); c1=Math.max(c1+2,(cols||[]).length,8); const R=Math.max(max+4,30), px=w=>Math.round((w==null?8.43:w)*7+5);
+    let h=`<table class="xg"><colgroup><col style="width:42px">${[...Array(c1+1).keys()].map(c=>`<col style="width:${px((cols||[])[c])}px">`).join('')}</colgroup><thead><tr><th class="xg-k"></th>${[...Array(c1+1).keys()].map(c=>`<th class="xg-ch">${col(c)}</th>`).join('')}</tr></thead><tbody>`;
+    for(let r=1;r<=R;r++){ h+=`<tr style="height:${Math.round((heights[r]||13.8)*4/3)}px"><th class="xg-rh">${r}</th>`;
+      for(let c=0;c<=c1;c++){ const m=mg.find(x=>x[0]===r&&x[1]===c); if(mg.some(x=>x[0]===r&&c>x[1]&&c<=x[2])) continue; const cl=cells.get(key(r,c));
+        if(!cl&&!m){ h+='<td></td>'; continue; } const s=(cl&&cl.s)||{}, bd=s.bd||{}, nf=s.nf;
+        let css=`font-family:'${s.fn||o.font||'Book Antiqua'}',Palatino,Georgia,serif;font-size:${s.sz||10}pt;`; if(s.b) css+='font-weight:700;'; if(s.i) css+='font-style:italic;'; if(s.u) css+='text-decoration:underline;'; if(s.col) css+=`color:#${s.col};`;
+        const al=s.al||(cl&&typeof (cl.v&&typeof cl.v==='object'?cl.v.v:cl.v)==='number'?'right':''); if(al) css+=`text-align:${al};`; if(s.ind) css+=`padding-left:${s.ind*9+3}px;`; if(s.wrap) css+='white-space:normal;vertical-align:top;'; if(s.fill) css+=`background:#${s.fill};`;
+        [['l','left'],['r','right'],['t','top'],['b','bottom']].forEach(([k,n])=>{ if(bd[k]) css+=`border-${n}:${bdc(bd[k])};`; });
+        if(m){ const last=cells.get(key(r,m[2])); if(last&&last.s&&last.s.bd&&last.s.bd.r) css+=`border-right:${bdc(last.s.bd.r)};`; }
+        let t=cl?fmt(cl.v,nf).replace(/\n/g,'<br>'):''; const lk=t&&lkm.get(col(c)+r), at=lk&&o.lk&&o.lk(lk); if(at) t=`<span class="xs-lk" ${at}>${t}</span>`;
+        h+=`<td${m?` colspan="${m[2]-m[1]+1}"`:''} style="${css}">${t}</td>`; }
+      h+='</tr>'; }
+    return h+'</tbody></table>'; };
+  return {set,link:(r,c,loc,tip)=>{ const ref=col(c)+r; if(!links.some(x=>x[0]===ref)) links.push([ref,loc,tip]); },box,merge:(r,c0,c1)=>{ merges.push(`${col(c0)}${r}:${col(c1)}${r}`); mg.push([r,c0,c1]); },brk:r=>breaks.push(r),ht:(r,h)=>heights[r]=h,xml,html,grid,get max(){return max;},col};
 }
 
 /* ---------- the workbook ---------- */
@@ -4403,27 +4422,43 @@ const AC_ANN={c:null,busy:null};
 const acAnnDeps=()=>[S.vouchers,S.ledgers,S.acset,S.company];
 const acAnnFresh=c=>c&&acAnnDeps().every((x,i)=>x===c.dep[i]);
 function acAnnual(){
-  const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), fe=acFyEnd(fy), Y=fe.slice(0,4), sh=UI.acsh||'acc';
+  const st=acSet()||{}, fy=UI.acfy||acAnnDefFy(), fe=acFyEnd(fy);
   const yrs=[]; for(let d=acFyStart(today()); d>=acFyStart(st.books_from||today()); d=acFyStart(acDay(d,-1))) yrs.push(d);
   const c=AC_ANN.c&&AC_ANN.c.fy===fy?AC_ANN.c:null; if(!acAnnFresh(c)) setTimeout(()=>acAnnBuild(fy),0);
   return `<div class="toolbar"><label class="small">Financial year <select class="inp" data-acf="acfy">${yrs.map(y=>`<option value="${y}" ${y===fy?'selected':''}>${acFyLbl(y)} (${fmtD(y)} – ${fmtD(acFyEnd(y))})</option>`).join('')}</select></label><div class="sp"></div>
     <button class="btn sm" data-ac="annDet">✎ Report details</button><button class="btn sm" data-ac="annXls">⬇ Excel</button><button class="btn pri sm" data-ac="annPdf">⬇ PDF</button></div>
   ${fe>today()?`<div class="banner"><div>This year is not finished yet – figures are up to today; the year ends <b>${fmtD(fe)}</b>.</div></div>`:''}
-  <div class="seg ac-rsel">${[['acc',`ACC ${Y}`],['tb',`TB ${Y}`],['tax','TAX COMP'],['vat','VAT ANALYSIS']].map(([k,l])=>`<button data-ac="annSh" data-v="${k}" aria-pressed="${sh===k}">${l}</button>`).join('')}</div>
-  <div class="xs-view" id="acWb">${c?acAnnPages(c,sh):'<div class="xs-wait">Preparing the annual accounts…</div>'}</div>
-  <p class="small muted" style="padding:2px 4px">The audited workbook, page by page – exactly as the Excel / PDF. Click a blue ledger name (or its figure) to open that ledger sheet for the year.</p>`; }
+  <div class="xw" id="acWb">${c?acAnnWb(c):'<div class="xs-wait">Opening the annual accounts workbook…</div>'}</div>`; }
 async function acAnnBuild(fy){ if(AC_ANN.busy) return; AC_ANN.busy=fy; let o; const dep=acAnnDeps(), keep=UI.acfy;
   try{ UI.acfy=fy; acAuditXlsx.pdf=1; o=await acAuditXlsx(); }catch(e){ console.warn('annual view',e); } finally{ acAuditXlsx.pdf=0; UI.acfy=keep; AC_ANN.busy=null; }
-  if(!o||!o.R) return; AC_ANN.c={fy,dep,R:o.R,lbm:new Map(o.R.LB.list().map(x=>[x.nm,x])),html:{}};
-  const el=document.getElementById('acWb'); if(el&&UI.actab==='annual'&&(UI.acfy||acAnnDefFy())===fy) el.innerHTML=acAnnPages(AC_ANN.c,UI.acsh||'acc');
+  if(!o||!o.R) return; const R=o.R, Y=o.Y;
+  const base=[[`ACC ${Y}`,{A:R.A,cols:[6.1,3.9,44.4,14.9,16.6,19.9,18,22.1,18.7,20,18.7]}],[`TB ${Y}`,{A:R.TB,cols:[38.3,18.3,18.3,21.1],font:'Arial'}],['TAX COMP',{A:R.X,cols:[3.1,52,26.3]}],['VAT ANALYSIS',{A:R.V,cols:[14,20,18,22,18,22]}]];
+  const old=AC_ANN.c&&AC_ANN.c.fy===fy?AC_ANN.c:null;
+  AC_ANN.c={fy,dep,R,base:base.map(x=>x[0]),sheets:Object.fromEntries(base),extra:[],html:{}};
+  if(old) old.extra.forEach(n=>acAnnLedger(AC_ANN.c,n));
+  if(!AC_ANN.c.sheets[UI.acsh]) UI.acsh=base[0][0];
+  const el=document.getElementById('acWb'); if(el&&UI.actab==='annual'&&(UI.acfy||acAnnDefFy())===fy) el.innerHTML=acAnnWb(AC_ANN.c);
   if(!acAnnFresh(AC_ANN.c)&&UI.actab==='annual') setTimeout(()=>acAnnBuild(UI.acfy||acAnnDefFy()),500); }
-function acAnnPages(c,sh){ if(!c.html[sh]){ const R=c.R;
-    const lk=loc=>{ const m=/^'(.*)'!/.exec(loc||''), x=m&&c.lbm.get(m[1]); return x?`data-ac="ledgerRep" data-v="${esc(x.id)}" data-f="${x.from}" data-t="${x.to}"${x.it?` data-it="${esc(x.it)}"`:''} title="Open the ledger${x.it?' – '+esc(x.it):''}"`:''; };
-    const pages=sh==='tb'?R.TB.html([38.3,18.3,18.3,21.1],{font:'Arial',lk}):sh==='tax'?R.X.html([3.1,52,26.3],{lk}):sh==='vat'?R.V.html([14,20,18,22,18,22],{land:1,lk}):R.A.html([6.1,3.9,44.4,14.9,16.6,19.9,18,22.1,18.7,20,18.7],{lk});
-    c.html[sh]=pages.map(t=>`<section class="xs-pg${/class="xs land/.test(t)?' land':''}">${t}</section>`).join('')||'<div class="xs-wait">Nothing to show.</div>'; }
-  return c.html[sh]; }
-document.addEventListener('click',e=>{ const b=e.target.closest('[data-ac="annSh"],[data-ac="plx"]'); if(!b) return; const v=b.dataset.v;
-  if(b.dataset.ac==='annSh'){ UI.acsh=v; renderView(true); return; }
+/* a ledger sheet of the workbook (SINGLE LEDGER format), built the first time its link is clicked */
+function acAnnLedger(c,nm){ if(c.sheets[nm]) return true; const x=c.R.LB.list().find(y=>y.nm===nm); if(!x) return false;
+  const S=acLedgerSheet(c.R.W,x.id,x.from,x.to,x.back,x.it,c.R.LB,x.nm); if(!S) return false; c.sheets[nm]={A:S.A,cols:[10.1,3.4,62.7,10,11,15.6,16],font:'Arial'}; if(!c.extra.includes(nm)) c.extra.push(nm); return true; }
+function acAnnGrid(c,nm){ if(!c.html[nm]){ const S=c.sheets[nm];
+    const lk=loc=>{ const m=/^'(.*)'!([A-Z]+)(\d+)/.exec(loc||''); return m?`data-xg="${encodeURIComponent(m[1])}" data-xr="${m[3]}" title="Go to ${esc(m[1])}"`:''; };
+    c.html[nm]=S.A.grid(S.cols,{font:S.font,lk}); } return c.html[nm]; }
+function acAnnWb(c){ const sh=c.sheets[UI.acsh]?UI.acsh:c.base[0];
+  return `<div class="xw-bar"><span class="xw-nm">${esc(sh)}</span><span class="small">Annual accounts workbook – click a blue name to go to its sheet</span></div>
+  <div class="xw-grid" id="acWbG">${acAnnGrid(c,sh)}</div>
+  <div class="xw-tabs">${[...c.base,...c.extra].map(n=>`<button class="xw-tab" data-xt="${encodeURIComponent(n)}" aria-pressed="${n===sh}">${esc(n)}${c.base.includes(n)?'':`<span class="xw-x" data-xclose="${encodeURIComponent(n)}" title="Close">×</span>`}</button>`).join('')}</div>`; }
+function acAnnGo(nm,row){ const c=AC_ANN.c; if(!c) return; if(!c.sheets[nm]&&!acAnnLedger(c,nm)) return toast('That sheet is not available.');
+  UI.acsh=nm; const el=document.getElementById('acWb'); if(!el) return; el.innerHTML=acAnnWb(c);
+  const g=document.getElementById('acWbG'), tr=g&&g.querySelectorAll('tbody tr')[Math.max(0,(+row||1)-1)];
+  if(g){ g.scrollTop=0; g.scrollLeft=0; if(tr&&row>1){ g.scrollTop=Math.max(0,tr.offsetTop-g.clientHeight/3); tr.classList.add('xw-hit'); setTimeout(()=>tr.classList.remove('xw-hit'),1500); } }
+  const t=el.querySelector('.xw-tab[aria-pressed="true"]'); t&&t.scrollIntoView({block:'nearest',inline:'nearest'}); }
+document.addEventListener('click',e=>{ if(!e.target.closest('#acWb')) return; const x=e.target.closest('[data-xclose],[data-xt],[data-xg]'); if(!x) return; e.stopPropagation(); const c=AC_ANN.c; if(!c) return;
+  if(x.dataset.xclose){ const n=decodeURIComponent(x.dataset.xclose); c.extra=c.extra.filter(y=>y!==n); return acAnnGo(UI.acsh===n?c.base[0]:UI.acsh); }
+  if(x.dataset.xt) return acAnnGo(decodeURIComponent(x.dataset.xt));
+  acAnnGo(decodeURIComponent(x.dataset.xg),+x.dataset.xr||1); },true);
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-ac="plx"]'); if(!b) return; const v=b.dataset.v;
   e.stopPropagation(); const cell=e.target.closest('[data-t]'); (UI.acBk=UI.acBk||[]).push({tab:UI.actab,rep:UI.acrep,acr:{...(UI.acr||{})},y:window.scrollY});
   let to=(cell&&cell.dataset.t)||(UI.acr||{}).to||today(), from=(cell&&cell.dataset.f)||acFyStart(to); if(to>today()) to=today();
   UI.actab='rep'; UI.acrep='plx'; UI.acr={...(UI.acr||{}),plk:v,from,to}; renderView(true); window.scrollTo(0,0); },true);
@@ -4500,6 +4535,22 @@ function acAccBody(d){
   d.querySelectorAll('thead tr').forEach(tr=>{ const ths=[...tr.children]; let any=false;
     ths.forEach(th=>{ const t=th.textContent.trim(); if(/^particulars$/i.test(t)) th.textContent=''; if(/^\d{1,2} [A-Za-z]{3,9} \d{4}$/.test(t)){ const x=new Date(t+' 12:00'); if(!isNaN(x)){ th.textContent=acDot(x.toISOString().slice(0,10)); any=true; } } });
     if(any){ const r2=document.createElement('tr'); ths.forEach(th=>{ const c=document.createElement('th'); c.className=th.className; c.textContent=/^\d\d\.\d\d\.\d{4}$/.test(th.textContent)?'TShs':''; r2.appendChild(c); }); tr.after(r2); tr.closest('table').classList.add('stm'); } }); }
+document.head.insertAdjacentHTML('beforeend',`<style>
+.xw{border:1px solid #B7BEC8;border-radius:8px;overflow:hidden;background:#fff;margin:8px 0;display:flex;flex-direction:column}
+.xw-bar{display:flex;gap:12px;align-items:center;background:#F3F4F6;border-bottom:1px solid #D0D5DC;padding:5px 10px;color:#333}.xw-nm{background:#fff;border:1px solid #C7CCD3;padding:2px 10px;font:600 12px Arial;min-width:120px;color:#000}
+.xw-grid{overflow:auto;height:min(72vh,820px);background:#fff;position:relative}
+table.xg{border-collapse:collapse;table-layout:fixed;width:max-content;background:#fff;color:#000}
+table.xg td{border:1px solid #E1E3E6;padding:0 3px!important;white-space:nowrap;overflow:hidden;line-height:1.15!important;vertical-align:bottom;color:#000;background:#fff;height:auto!important;min-height:0!important;box-sizing:border-box}table.xg th.xg-rh{padding:0!important;line-height:1.1!important;height:auto!important}table.xg tr{height:auto}
+table.xg tr:hover td{background:#fff}table.xg td[style*="background"]{}
+table.xg thead th{position:sticky;top:0;z-index:2;background:#F3F4F6;color:#444;font:12px Arial;font-weight:400;border:1px solid #D0D5DC;height:20px;text-align:center}
+table.xg th.xg-rh{position:sticky;left:0;z-index:1;background:#F3F4F6;color:#444;font:11px Arial;border:1px solid #D0D5DC;text-align:center;width:42px}
+table.xg thead th.xg-k{left:0;z-index:3}
+table.xg tr.xw-hit td{background:#FFF4C2!important}
+.xw-tabs{display:flex;gap:2px;overflow-x:auto;background:#F3F4F6;border-top:1px solid #D0D5DC;padding:0 6px;flex:none}
+.xw-tab{white-space:nowrap;border:0;border-bottom:3px solid transparent;background:none;color:#333;font:13px Arial;padding:7px 12px;cursor:pointer}
+.xw-tab[aria-pressed="true"]{background:#fff;color:#107C41;font-weight:700;border-bottom-color:#107C41}.xw-x{margin-left:8px;color:#888;font-weight:400}.xw-x:hover{color:#c00}
+.xw .xs-wait{color:#555}
+</style>`);
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
