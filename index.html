@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="ad1bae0e6ff1">
+<meta name="nexus-build" content="2b88b565bbfa">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -4243,12 +4243,25 @@ const acPinLocked=()=>money()&&acPinOn()&&(!AC_PIN.ok||AC_PIN.chg);
 function acPinLock(){ if(!AC_PIN.ok) return; AC_PIN.ok=false; AC_PIN.chg=false; try{ acVClose(); }catch(_){} if(typeof route!=='undefined'&&route==='finance') renderView(true); }
 setInterval(()=>{ if(AC_PIN.ok&&acPinOn()&&Date.now()-AC_PIN.last>5*60e3) acPinLock(); },15e3);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) AC_PIN.hid=Date.now(); else if(AC_PIN.hid&&Date.now()-AC_PIN.hid>5*60e3) acPinLock(); });
-async function acPinLoad(){ try{ const s=await db.doc('finpin/'+me.id).get(); AC_PIN.doc=s&&s.exists?s.data():null; AC_PIN.err=''; }catch(e){ AC_PIN.doc=null; AC_PIN.err=e.message||String(e); } }
+/* v212: the PIN record is fetched in the background as soon as the app starts (and kept on this device), so Finance opens at once;
+   a slow or failed request no longer leaves "Checking…" on screen – it times out after 8 s with a Retry button */
+const acPinKey=()=>'nx_finpin_'+((typeof me!=='undefined'&&me&&me.id)||'');
+function acPinCache(d){ try{ if(d===undefined){ const x=localStorage.getItem(acPinKey()); return x?JSON.parse(x):undefined; } if(d) localStorage.setItem(acPinKey(),JSON.stringify(d)); else localStorage.removeItem(acPinKey()); }catch(_){ return undefined; } }
+let acPinBusy=null;
+function acPinLoad(){ if(acPinBusy) return acPinBusy;
+  acPinBusy=(async()=>{ try{ const s=await Promise.race([db.doc('finpin/'+me.id).get(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),8000))]);
+      AC_PIN.doc=s&&s.exists?s.data():null; AC_PIN.err=''; AC_PIN.slow=false; acPinCache(AC_PIN.doc); }
+    catch(e){ if(AC_PIN.doc===undefined){ const c=acPinCache(); if(c!==undefined) AC_PIN.doc=c; else AC_PIN.slow=true; } AC_PIN.err=e.message==='timeout'?'':(e.message||String(e)); }
+    finally{ acPinBusy=null; } })(); return acPinBusy; }
+/* start early: as soon as the user is known and Finance is protected */
+(function acPinPre(){ let n=0; const t=setInterval(()=>{ n++; try{ if(typeof me!=='undefined'&&me&&me.id&&typeof money==='function'&&money()&&acSet()){ clearInterval(t); if(acPinOn()&&AC_PIN.doc===undefined){ const c=acPinCache(); if(c!==undefined) AC_PIN.doc=c; acPinLoad(); } } }catch(_){ } if(n>120) clearInterval(t); },500); })();
 async function acPinHash(pin,salt){ const enc=new TextEncoder(), k=await crypto.subtle.importKey('raw',enc.encode(String(pin)),'PBKDF2',false,['deriveBits']);
   const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode((me.id||'')+':'+salt),iterations:150000,hash:'SHA-256'},k,256); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 const acPinWeak=p=>/^(\d)\1+$/.test(p)||'0123456789'.includes(p)||'9876543210'.includes(p);
 function acPinGate(){ if(!acPinLocked()) return '';
-  if(AC_PIN.doc===undefined){ acPinLoad().then(()=>{ if(route==='finance') renderView(true); }); return `<div class="card ac-pin"><div class="bd">Checking…</div></div>`; }
+  if(AC_PIN.doc===undefined){ const c=acPinCache(); if(c!==undefined){ AC_PIN.doc=c; acPinLoad().then(()=>{ if(route==='finance'&&JSON.stringify(AC_PIN.doc)!==JSON.stringify(c)) renderView(true); }); } }
+  if(AC_PIN.doc===undefined){ if(AC_PIN.slow) return `<div class="card ac-pin"><div class="bd"><div class="ac-pin-ico">🔒</div><p>The server is slow to answer. Check the internet connection and try again.</p><div class="ac-pin-row"><button class="btn pri" data-ac="pinRetry">Retry</button></div></div></div>`;
+    acPinLoad().then(()=>{ if(route==='finance') renderView(true); }); return `<div class="card ac-pin"><div class="bd">Checking…</div></div>`; }
   const d=AC_PIN.doc, setMode=!d||AC_PIN.chg, lk=d&&d.lock_until&&Date.parse(d.lock_until)>Date.now(), inp=(id,ph)=>`<input class="inp ac-pin-in" id="${id}" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="${ph}">`;
   return `<div class="card ac-pin"><div class="bd"><div class="ac-pin-ico">🔒</div><h2>${setMode?(AC_PIN.chg?'Change your Finance PIN':'Set your Finance PIN'):'Finance & Accounts is locked'}</h2>
     ${lk?`<p>Too many wrong attempts. Try again after <b>${new Date(d.lock_until).toTimeString().slice(0,5)}</b>, or ask a director to reset your PIN.</p>`:
@@ -4283,6 +4296,8 @@ async function acPinResets(){ if(!isAdmin) return; let rows=[]; try{ const s=awa
 async function acPinReset(id){ if(!isAdmin||!id) return; if(!await confirmBox('Reset this PIN? The user will set a new one the next time they open Finance.','Reset',true)) return;
   if(await remove('finpin',id)){ logAct('Finance PIN reset by a director'); toast('PIN reset.'); if(id===me.id){ AC_PIN.doc=null; AC_PIN.ok=false; } closeDrawer(); renderView(true); } }
 document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=e.target; if(!t||!t.classList||!t.classList.contains('ac-pin-in')) return; e.preventDefault(); if(t.id==='acPinIn') acPinGo(); else if(t.id==='acPin1'){ const n=document.getElementById('acPin2'); n&&n.focus(); } else acPinSet(); });
+
+document.addEventListener('click',e=>{ if(e.target.closest('[data-ac="pinRetry"]')){ AC_PIN.slow=false; AC_PIN.err=''; renderView(true); } });
 /* ===================== v207 · Balance Sheet in the audited (NORDIC ACC) layout =====================
    One line per statement caption with its note number, as in the audited statement of financial position.
    Each caption opens what it is made of: PPE → Note 7 schedule; the others → their ledgers (then the ledger sheet). */
