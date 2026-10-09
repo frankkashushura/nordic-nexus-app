@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="99ab2b843d0e">
+<meta name="nexus-build" content="98e973bab6b7">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2929,7 +2929,8 @@ const acFyEnd=s=>acDay(`${+s.slice(0,4)+1}${s.slice(4)}`,-1);
 const acFyLbl=s=>acFyM()===1?s.slice(0,4):`${s.slice(0,4)}/${String(+s.slice(0,4)+1).slice(2)}`;
 const acCan=()=>money();
 const acIsCash=id=>AC_CASH.includes((acL(id)||{}).group);
-const acOpS=l=>l?(l.op_dc==='Cr'?-1:1)*(+l.op||0):0;
+const acOpS1=l=>l?(l.op_dc==='Cr'?-1:1)*(+l.op||0):0;
+const acOpS=l=>{ if(!l) return 0; let v=acOpS1(l); if(l.itemised) for(const x of (S.ledgers||[])) if(x.merged_into===l.id&&!x.deleted) v+=acOpS1(x); return v; };
 
 /* ---------- posting index (rebuilt when vouchers/ledgers change) ---------- */
 let AC_IX=null;
@@ -3667,12 +3668,13 @@ function acAudData(fs,fe){
   cf.wc=acR(cf.stock+cf.debt+cf.cred+cf.od+cf.loans+cf.vat); cf.tax=taxPaid; cf.ops=acR(cf.opp+cf.wc+cf.tax); cf.acq=acR(-(faCh+depT)); cf.inv=cf.acq; cf.capCh=acR((B1.cap-B0.cap)+(B1.resT-B0.resT)); cf.fin=cf.capCh;
   cf.net=acR(cf.ops+cf.inv+cf.fin); cf.open=B0.cashNet; cf.close=B1.cashNet;
   // PPE note
-  const fa=pick(l=>l.group==='Fixed Assets'), cls=fa.filter(l=>!acIsAccDep(l)).map((l,i)=>({l,i,k:[/land/i,/build/i,/plant|machin/i,/motor|vehic/i,/furnit|fitt|office eq/i,/comput/i].findIndex(re=>re.test(l.name||''))})).sort((a,b)=>(a.k<0?99:a.k)-(b.k<0?99:b.k)||a.i-b.i).map(x=>x.l), ad=fa.filter(acIsAccDep);
+  const fa=pick(l=>l.group==='Fixed Assets'), cls=fa.filter(l=>!acIsAccDep(l)).map((l,i)=>({l,i,k:[/land/i,/build/i,/plant|machin/i,/motor|vehic/i,/furnit|fitt|office eq/i,/comput/i].findIndex(re=>re.test(l.name||''))})).sort((a,b)=>(a.k<0?99:a.k)-(b.k<0?99:b.k)||a.i-b.i).map(x=>x.l), ad=fa.filter(acIsAccDep).flatMap(x=>x.itemised?acItemsOf(x.id).map(it=>({id:x.id+'|'+it,name:'Accumulated depreciation – '+it,_t:x,_it:it})):[x]);
+  const balA=(a,d)=>a._t?acItemBal(a._t.id,a._it,d):bal(a,d), mvA=(a,sign)=>{ if(!a._t) return mv(a,sign); let dr=0,cr=0; for(const p of acPost(a._t.id)){ if(p.d<fs||p.d>fe||(p.it||'')!==a._it) continue; if(p.s>0) dr+=p.s; else cr-=p.s; } return sign>0?{inc:acR(dr),dec:acR(cr)}:{inc:acR(cr),dec:acR(dr)}; };
   const pair=new Map(); ad.forEach(a=>{ const k=String(a.name).replace(/^.*?accumulated depreciation\s*[–-]?\s*/i,'').trim().toLowerCase(); const c=k&&cls.find(c=>c.name.toLowerCase()===k||c.name.toLowerCase().includes(k)||k.includes(c.name.toLowerCase())); pair.set(a.id,c?c.id:'_other'); });
   const mv=(l,sign)=>{ let dr=0,cr=0; for(const p of acPost(l.id)){ if(p.d<fs||p.d>fe) continue; if(p.s>0) dr+=p.s; else cr-=p.s; } return sign>0?{inc:acR(dr),dec:acR(cr)}:{inc:acR(cr),dec:acR(dr)}; };
   const cols=cls.map(c=>({id:c.id,name:c.name})); if(ad.some(a=>pair.get(a.id)==='_other')) cols.push({id:'_other',name:'Other'});
   const ppe=cols.map(c=>{ const cl=cls.find(x=>x.id===c.id), ads=ad.filter(a=>pair.get(a.id)===c.id);
-    const cb=cl?bal(cl,pre):0, cm=cl?mv(cl,1):{inc:0,dec:0}, db=-ads.reduce((s,a)=>s+bal(a,pre),0), dm=ads.reduce((o,a)=>{ const m=mv(a,-1); return {inc:o.inc+m.inc,dec:o.dec+m.dec}; },{inc:0,dec:0});
+    const cb=cl?bal(cl,pre):0, cm=cl?mv(cl,1):{inc:0,dec:0}, db=-ads.reduce((s,a)=>s+balA(a,pre),0), dm=ads.reduce((o,a)=>{ const m=mvA(a,-1); return {inc:o.inc+m.inc,dec:o.dec+m.dec}; },{inc:0,dec:0});
     const ct=acR(cb+cm.inc-cm.dec), dt=acR(db+dm.inc-dm.dec); return {name:c.name,rate:cl&&cl.dep_rate!=null&&cl.dep_rate!==''?+cl.dep_rate:null,cb,add:cm.inc,disp:cm.dec,ct,db,ddisp:dm.dec,chg:dm.inc,dt,nbv:acR(ct-dt),nbv0:acR(cb-db)}; }).filter(x=>[x.cb,x.add,x.disp,x.db,x.chg,x.ddisp].some(v=>Math.abs(v)>0.004));
   const list=(a,f)=>a.map(l=>({l,name:acDisp(l),v:acR(f(l))}));
   return {fs,fe,rev:list(rev,l=>-per(l)),oth:list(oth,l=>-per(l)),revT,othT,stockL:stock,openStock,closeStock,purch:list(purch,per),purchT,stockAdj,dir:list(dir,per),dirT,cos,
@@ -4166,25 +4168,33 @@ const acMT=id=>{ const l=(S.ledgers||[]).find(x=>x.id===id); return l&&l.merged_
 const acItemName=l=>l.item||acDisp(l);
 const acIsItemL=id=>{ const l=acL(id); return !!(l&&l.itemised); };
 function acItemsOf(id){ const l=acL(id), s=new Set((l&&l.items)||[]); (S.ledgers||[]).forEach(x=>{ if(x.merged_into===id) s.add(acItemName(x)); }); acPost(id).forEach(p=>{ if(p.it) s.add(p.it); }); return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b)); }
-const acMergeCand=()=>(S.ledgers||[]).filter(l=>!l.deleted&&!l.merged_into&&!l.itemised&&l.group==='Indirect Expenses'&&!l.is_dep&&!l.is_tax&&l.id!=='L_dep'&&l.id!=='L_taxexp'&&!/^depreciation$|income tax/i.test(l.name||''));
+const acIsADCand=l=>!l.deleted&&!l.merged_into&&!l.itemised&&l.group==='Fixed Assets'&&l.id!=='L_accdep'&&/accumulat/i.test(l.name||'');
+const acADItem=l=>String(l.name||'').replace(/^.*?accumulated depreciation\s*[–-]?\s*/i,'').trim()||'General';
+const acMergeCand=()=>(S.ledgers||[]).filter(l=>acIsADCand(l)||(!l.deleted&&!l.merged_into&&!l.itemised&&l.group==='Indirect Expenses'&&!l.is_dep&&!l.is_tax&&l.id!=='L_dep'&&l.id!=='L_taxexp'&&!/^depreciation$|income tax/i.test(l.name||'')));
 function acMergeText(){ const m=(S.ledgers||[]).filter(l=>l.merged_into&&!l.deleted).length, c=acMergeCand().length;
   return m?`<b>Combined</b> – ${m} expense ledgers are now items under ${AC_MERGE_T.map(t=>esc(t[2])).join(', ')}${c?` · ${c} not yet combined`:''}`:`${c} separate expense ledgers – can be combined into 4 (as in the audited accounts)`; }
 async function acMergeExp(){ if(!isAdmin) return toast('Only a director can do this.'); const C=acMergeCand(); if(!C.length&&!(S.ledgers||[]).some(l=>l.merged_into)) return toast('No expense ledgers to combine.');
-  const by={}; C.forEach(l=>{ const k=acFsCat(l); (by[k]=by[k]||[]).push(l); });
-  const sum=AC_MERGE_T.map(([k,,n])=>`${n}: ${(by[k]||[]).length} ledgers`).join('\n');
+  const AD=C.filter(acIsADCand), by={}; C.filter(l=>!acIsADCand(l)).forEach(l=>{ const k=acFsCat(l); (by[k]=by[k]||[]).push(l); });
+  const sum=AC_MERGE_T.map(([k,,n])=>`${n}: ${(by[k]||[]).length} ledgers`).filter(x=>!/: 0 ledgers/.test(x)).concat(AD.length?[`ACCUMULATED DEPRECIATION: ${AD.length} ledgers (one per asset class)`]:[]).join('\n');
   if(!await confirmBox(`Combine the expense ledgers into four, like the audited accounts?\n\n${sum}\n\nEach entry keeps its item name (Fuel, Internet fee…), so the totals do not change and the notes still show the breakdown. Old ledgers are kept (hidden) and this can be undone in Settings.`,'Combine ledgers')) return;
-  for(const [k,id,n] of AC_MERGE_T){ const its=(by[k]||[]).map(acItemName), ex=acL(id);
+  if(AD.length){ const its=AD.map(acADItem), ex=acL('L_accdep');
+    if(!ex) await put('ledgers','L_accdep',{name:'Accumulated depreciation',group:'Fixed Assets',itemised:true,items:[...new Set(its)].sort(),op:0,op_dc:'Cr'});
+    else await patch('ledgers','L_accdep',{name:'Accumulated depreciation',itemised:true,items:[...new Set([...(ex.items||[]),...its])].sort(),inactive:false});
+    for(const l of AD) await patch('ledgers',l.id,{merged_into:'L_accdep',item:acADItem(l),inactive:true}); }
+  for(const [k,id,n] of AC_MERGE_T){ if(!(by[k]||[]).length&&!acL(id)) continue; const its=(by[k]||[]).map(acItemName), ex=acL(id);
     if(!ex) await put('ledgers',id,{name:n,group:'Indirect Expenses',fs_line:k,itemised:true,items:[...new Set(its)].sort(),op:0,op_dc:'Dr'});
     else await patch('ledgers',id,{itemised:true,fs_line:k,items:[...new Set([...(ex.items||[]),...its])].sort(),inactive:false}); }
-  for(const l of C){ const k=acFsCat(l), t=AC_MERGE_T.find(x=>x[0]===k)||AC_MERGE_T[2]; await patch('ledgers',l.id,{merged_into:t[1],item:acDisp(l),inactive:true}); }
+  for(const l of C.filter(l=>!acIsADCand(l))){ const k=acFsCat(l), t=AC_MERGE_T.find(x=>x[0]===k)||AC_MERGE_T[2]; await patch('ledgers',l.id,{merged_into:t[1],item:acDisp(l),inactive:true}); }
   logAct(`Expense ledgers combined into ${AC_MERGE_T.map(t=>t[2]).join(', ')} (${C.length} ledgers → items)`); toast('Done – expense ledgers combined. Totals are unchanged.'); }
 async function acUnmergeExp(){ if(!isAdmin) return; const M=(S.ledgers||[]).filter(l=>l.merged_into&&!l.deleted); if(!M.length) return;
   if(!await confirmBox(`Separate the ${M.length} combined expense ledgers again? Entries made after combining stay on the combined ledgers.`,'Separate')) return;
   for(const l of M) await patch('ledgers',l.id,{merged_into:null,inactive:false}); logAct('Expense ledgers separated again'); toast('Separated.'); }
 /* breakdown of an itemised ledger by item (ledger statement) */
-function acItemBreakHtml(id,from,to){ const m=new Map(); acPost(id).forEach(p=>{ if(p.d<from||p.d>to) return; const k=p.it||'(no item)'; m.set(k,acR((m.get(k)||0)+p.s)); });
+function acItemBreakHtml(id,from,to){ const m=new Map(), L=acL(id), bs=L&&!acIsPL(L.group);
+  if(bs) (S.ledgers||[]).forEach(x=>{ if(x.merged_into===id&&!x.deleted){ const k=acItemName(x); m.set(k,acR((m.get(k)||0)+acOpS1(x))); } });
+  acPost(id).forEach(p=>{ if(p.d>to||(!bs&&p.d<from)) return; const k=p.it||'(no item)'; m.set(k,acR((m.get(k)||0)+p.s)); });
   const a=[...m.entries()].filter(x=>x[1]).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])); if(!a.length) return ''; const t=acR(a.reduce((s,x)=>s+x[1],0));
-  return `<h3 style="margin:14px 14px 6px">Breakdown by item</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Item</th><th class="r">Amount</th><th class="r">%</th></tr></thead><tbody>${a.map(([k,v])=>`<tr><td class="ac-in">${esc(k)}</td><td class="r num">${acSign(v)}</td><td class="r small muted">${t?Math.round(v/t*100):0}%</td></tr>`).join('')}</tbody><tfoot><tr class="ac-tot"><th>Total</th><th class="r num">${acSign(t)}</th><th></th></tr></tfoot></table></div>`; }
+  return `<h3 style="margin:14px 14px 6px">Breakdown by item${bs?` – balance at ${fmtD(to)}`:''}</h3><div class="tbl-wrap"><table class="ac-t"><thead><tr><th>Item</th><th class="r">Amount</th><th class="r">%</th></tr></thead><tbody>${a.map(([k,v])=>`<tr><td class="ac-in">${esc(k)}</td><td class="r num">${acSign(v)}</td><td class="r small muted">${t?Math.round(v/t*100):0}%</td></tr>`).join('')}</tbody><tfoot><tr class="ac-tot"><th>Total</th><th class="r num">${acSign(t)}</th><th></th></tr></tfoot></table></div>`; }
 /* v202: expense ledger names without the category prefix ("Administrative – Brela" → "Brela"); the category is kept in fs_line.
    Runs once when a director opens Finance & Accounts (idempotent; skips a name that already exists). */
 let AC_NM_DONE=false;
@@ -4194,6 +4204,9 @@ async function acTidyNames(){ if(AC_NM_DONE||!isAdmin||!(S.ledgers||[]).length) 
   for(const l of L){ let nm=String(l.name).replace(re,'').trim(); if(!nm) continue; nm=nm.charAt(0).toUpperCase()+nm.slice(1); if(taken.has(nm.toLowerCase())) continue; taken.add(nm.toLowerCase());
     await patch('ledgers',l.id,{name:nm,fs_line:l.fs_line||acFsCat(l),...(l.merged_into&&!l.item?{item:nm}:{})}); n++; }
   if(n){ logAct(`Expense ledger names shortened (${n}) – category kept for the notes`); toast(`${n} expense ledger names shortened (e.g. “Brela”).`); } }
+
+/* item-level balance and movement of an itemised ledger (PPE note) */
+function acItemBal(id,it,d){ let v=0; (S.ledgers||[]).forEach(x=>{ if(x.merged_into===id&&!x.deleted&&acItemName(x)===it) v+=acOpS1(x); }); acPost(id).forEach(p=>{ if(p.d<=d&&(p.it||'')===it) v+=p.s; }); return acR(v); }
 /* ===================== v193 · automatic update =====================
    The published page carries <meta name="nexus-build">. NEXUS checks for a newer build every 5 minutes and whenever the window
    comes back into view. A new build is loaded at once when the tab is in the background, or after 2 minutes without typing or
