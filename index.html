@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="8c6218387d68">
+<meta name="nexus-build" content="fb1ed01530be">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1336,6 +1336,9 @@ document.addEventListener('change',e=>{ const el=e.target; if(!el||!/^[gs]\d+$/.
   const gates={}; GATES.forEach((_,i)=>{ const v=document.querySelector('#g'+i)?.value; if(v) gates[i]=v; }); const scores=F02.map((_,i)=>document.querySelector('#s'+i)?.value??'');
   const r=f02Result({gates,scores}); box.innerHTML=r?`<span class="chip ${r.cls}">${esc(r.label)}${r.score!=null?' · '+r.score.toFixed(1):''}</span>`:''; });
 const tBid=t=>/preparing|submitted/i.test(t.status||'');
+/* v217.7 · "Preparing" on Tender Radar shows the Bid Studio progress and opens the bid */
+const tBidChip=t=>{ const b=(S.bids||[]).find(x=>x.id===t.id||x.tender_id===t.id), live=b&&!b.stopped_at, p=live&&typeof bsProgress==='function'?bsProgress(t,b):null;
+  return `<button class="chip amb" style="cursor:pointer;border:0" data-bs="open" data-tid="${esc(t.id)}" title="Open this bid in Bid Studio">📋 Preparing${p&&p.total?' · '+p.pct+'%':''}</button>`; };
 function filteredTenders(){
   const q=UI.tq.toLowerCase();
   if(UI.tscreen==='Ours'){ const now=Date.now(), past=t=>(toDate(t.deadline)||0)<now;
@@ -1393,7 +1396,7 @@ function pageTenders(){
       <td><div class="ttl2">${canWrite!==false?`<button class="tstar${tBid(t)?' on':''}" data-tstar="${esc(t.id)}" aria-pressed="${tBid(t)}" title="${/submitted/i.test(t.status||'')?'Submitted':tBid(t)?'We are preparing this bid – click to stop':'Mark: we will bid for this tender'}" aria-label="Mark as our bid">${tBid(t)?'★':'☆'}</button>`:''}${UI.trBase&&tNewAt(t)>UI.trBase?'<span class="chip blue" style="margin-right:6px">New</span>':''}${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · <span class="mono">${esc(t.no||'')}</span><span class="only-m"> · ${esc(tSrc(t))}</span></div></td>
       <td class="hide-m"><span class="chip" title="${esc([t.source,t.notice].filter(Boolean).join(' · '))}">${esc(tSrc(t))}</span></td><td class="hide-m">${esc(t.location||'')}</td><td class="hide-m">${esc(t.category||'')}</td><td>${screenChip(t.screen)}</td>
       <td>${t.ai?.verdict?`<span class="chip ${verdictCls(t.ai.verdict)}">${esc(t.ai.verdict)}</span>`:'<span class="sub">—</span>'}</td>
-      <td class="hide-m">${/preparing/i.test(t.status||'')?'<span class="chip amb">Preparing</span>':/submitted/i.test(t.status||'')?'<span class="chip good">Submitted</span>':esc(t.status||'')}${t.owner?`<div class="sub">${esc((byId('staff',t.owner)||{}).name||t.owner)}</div>`:''}</td></tr>`).join('')||`<tr><td colspan="8"><div class="empty">${UI.tscreen==='Ours'?'No bids marked yet. Click ☆ next to a tender (or set Status = Preparing) to add it here.':'No tenders match. Change the filter or import the pipeline workbook.'}</div></td></tr>`}</tbody></table></div></div>
+      <td class="hide-m">${/preparing/i.test(t.status||'')?tBidChip(t):/submitted/i.test(t.status||'')?'<span class="chip good">Submitted</span>':esc(t.status||'')}${t.owner?`<div class="sub">${esc((byId('staff',t.owner)||{}).name||t.owner)}</div>`:''}</td></tr>`).join('')||`<tr><td colspan="8"><div class="empty">${UI.tscreen==='Ours'?'No bids marked yet. Click ☆ next to a tender (or set Status = Preparing) to add it here.':'No tenders match. Change the filter or import the pipeline workbook.'}</div></td></tr>`}</tbody></table></div></div>
   <p class="sub">${rows.length} shown of ${S.tenders.length}. Deadline colours: red ≤ 3 days, amber ≤ 7 days.</p>`;
 }
 const TENDER_FIELDS = [
@@ -18975,8 +18978,8 @@ document.addEventListener('click', async e=>{
   if(el.dataset.dlf){ UI.dlf=el.dataset.dlf; renderView(true); return; }
   if(el.dataset.tstar){ e.stopPropagation(); const t=byId('tenders',el.dataset.tstar); if(!t) return;
     if(/submitted/i.test(t.status||'')) return toast('This bid is already submitted – change the status on the tender page if needed.');
-    if(/preparing/i.test(t.status||'')){ if(!await confirmBox(`Stop preparing "${t.title}"? It goes back to Watching.`,'Stop')) return; await patch('tenders',t.id,{status:'Watching'}); logAct(`Tender unmarked: ${t.title}`); toast('Removed from Our bids.'); return; }
-    const sid=typeof myStaffId==='function'?myStaffId():null; await patch('tenders',t.id,{status:'Preparing',...(!t.owner&&sid?{owner:sid}:{})}); logAct(`Tender marked to bid: ${t.title}`); toast(`Added to Our bids${!t.owner&&sid?' – you are the owner (deadline reminders)':''}.`); return; }
+    if(/preparing/i.test(t.status||'')){ if(!await confirmBox(`Stop preparing "${t.title}"? It goes back to Watching and leaves Bid Studio (its checklist is kept if you start again).`,'Stop')) return; await patch('tenders',t.id,{status:'Watching'}); const ob=byId('bids',t.id); if(ob&&!ob.submitted_at) await patch('bids',t.id,{stopped_at:new Date().toISOString(),events:[...(ob.events||[]),{at:new Date().toISOString(),by:me.name||'',e:'stopped'}].slice(-60)}); logAct(`Tender unmarked: ${t.title}`); toast('Removed from Our bids and Bid Studio.'); return; }
+    const sid=typeof myStaffId==='function'?myStaffId():null; await patch('tenders',t.id,{status:'Preparing',...(!t.owner&&sid?{owner:sid}:{})}); if(typeof bsEnsure==='function') await bsEnsure(t.id); logAct(`Tender marked to bid: ${t.title}`); toast(`Added to Our bids and Bid Studio${!t.owner&&sid?' – you are the owner (deadline reminders)':''}.`); return; }
   if(el.dataset.tscreen){ UI.tscreen=el.dataset.tscreen; renderView(true); return; }
   if(el.dataset.pwtab){ UI.ptabw=el.dataset.pwtab; renderView(true); return; }
   const recEdit=(col,id,title,fields,sub)=>{ const r=byId(col,id); formDrawer(title,fields,r,async v=>{ await patch(col,id,v); logAct(`Updated ${title.toLowerCase()} – ${projName(r.project_id)}`); },{sub,onDelete:async()=>{ await remove(col,id); logAct(`Deleted ${title.toLowerCase()} – ${projName(r.project_id)}`); }}); };
@@ -19059,7 +19062,11 @@ document.addEventListener('click', async e=>{
     case 'aiTender': if(T) aiTender(T); break;
     case 'saveF02': if(T){ const f02={gates:GATES.map((_,i)=>$('#g'+i).value),scores:F02.map((_,i)=>{const v=$('#s'+i).value; return v===''?'':+v;})}; f02.gates=Object.fromEntries(f02.gates.map((g,i)=>[i,g])); const r=f02Result(f02); await patch('tenders',T.id,{f02,f02_result:r?.label||''}); logAct(`F-02 score saved for "${T.title}": ${r?.label}`); toast('Score saved: '+(r?.label||'')); drawer.form=false; renderDrawer(); } break;
     case 'applyAiScores': if(T?.ai?.scores){ T.ai.scores.forEach((s,i)=>{ const el=$('#s'+i); if(el) el.value=String(s); }); (T.ai.gates||[]).forEach((g,i)=>{ const el=$('#g'+i); if(el&&['Pass','Fail','TBC'].includes(g.status)) el.value=g.status; }); toast('AI suggestions filled in. Review each score, then save.'); } break;
-    case 'saveTender': if(T){ const v=readForm(tenderEdit()); if(!v) return; await patch('tenders',T.id,v); logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
+    case 'saveTender': if(T){ const v=readForm(tenderEdit()); if(!v) return; await patch('tenders',T.id,v);
+      { const ob=byId('bids',T.id), st=String(v.status||''); /* v217.7 · keep Bid Studio in step with the tender status */
+        if(/preparing/i.test(st)&&typeof bsEnsure==='function') await bsEnsure(T.id);
+        else if(ob&&/submitted/i.test(st)&&!ob.submitted_at) await patch('bids',T.id,{submitted_at:new Date().toISOString(),submitted_by:me.name||''});
+        else if(ob&&!ob.submitted_at&&!ob.stopped_at&&!/preparing|submitted|won|lost/i.test(st)) await patch('bids',T.id,{stopped_at:new Date().toISOString()}); } logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
     case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ /* v217.6 · kept as a hidden record so the automatic sync does not bring it back */
       await patch('tenders',T.id,{deleted:true,status:'Closed',screen:'Drop',deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
     case 'copyInbox': { const a=inboxAddr(); try{ await navigator.clipboard.writeText(a); toast('Tender inbox address copied – forward invitations to it.'); }catch(_){ toast('Copy is blocked here: '+a); } break; }
@@ -19464,11 +19471,18 @@ function bsLibState(k,deadline){ const r=bsLibRec(k);
 
 /* ---------- bid record ---------- */
 function bsStdItems(t){ return BS_STD.map(([name,cat,ln,ck])=>({id:uid(),name,cat,...ln,ck,status:'todo',owner:'',src:'std'})).concat(t&&t.site_visit?[{id:uid(),name:'Site visit / pre-bid meeting'+(t.site_visit?' – '+t.site_visit:''),cat:'other',ck:'visit',status:'todo',owner:'',src:'std'}]:[]); }
-async function bsStart(tid){ const t=byId('tenders',tid); if(!t) return toast('Tender not found.'); if(!bsCan()) return toast('Your login cannot start a bid.');
-  if(bsBid(tid)) return go('bid',tid);
+/* v217.7 · Tender Radar "★ Our bids" and Bid Studio "Bids in preparation" are one list: tender status Preparing */
+async function bsEnsure(tid){ const t=byId('tenders',tid); if(!t||!bsCan()) return null; const b=bsBid(tid);
+  if(b){ if(b.stopped_at) await patch('bids',tid,{stopped_at:'',events:[...(b.events||[]),{at:bsNow(),by:me.name||'',e:'restarted'}].slice(-60)}); return b; }
   const boq=bsBoq(tid,{});
   await put('bids',tid,{tender_id:tid,title:t.title||'',started_at:bsNow(),started_by:me.name||'',owner:t.owner||myStaffId()||'',items:bsStdItems(t),facts:{deadline:t.deadline||'',bid_security:t.bid_security||'',site_visit:t.site_visit||''},boq_id:boq?boq.id:'',events:[{at:bsNow(),by:me.name||'',e:'started'}]});
-  if(!t.status||/^(Watching|New)$/i.test(t.status)) await patch('tenders',tid,{status:'Preparing'});
+  return bsBid(tid); }
+async function bsStart(tid){ const t=byId('tenders',tid); if(!t) return toast('Tender not found.'); if(!bsCan()) return toast('Your login cannot start a bid.');
+  if(!/preparing|submitted|won|lost/i.test(t.status||'')) await patch('tenders',tid,{status:'Preparing'});
+  if(bsBid(tid)&&!bsBid(tid).stopped_at) return go('bid',tid);
+  if(bsBid(tid)){ await bsEnsure(tid); logAct(`Restarted bid in Bid Studio – ${t.title}`); return go('bid',tid); }
+  const boq=bsBoq(tid,{});
+  await put('bids',tid,{tender_id:tid,title:t.title||'',started_at:bsNow(),started_by:me.name||'',owner:t.owner||myStaffId()||'',items:bsStdItems(t),facts:{deadline:t.deadline||'',bid_security:t.bid_security||'',site_visit:t.site_visit||''},boq_id:boq?boq.id:'',events:[{at:bsNow(),by:me.name||'',e:'started'}]});
   logAct(`Started bid in Bid Studio – ${t.title}`); go('bid',tid); }
 async function bsSave(tid,data,ev){ const b=bsBid(tid); if(!b) return; const d={...data}; if(ev) d.events=[...(b.events||[]),{at:bsNow(),by:me.name||'',e:ev}].slice(-60); await patch('bids',tid,d); bsSyncChecklist(tid,{...b,...d}); }
 // effective status of a requirement (auto-ready when the library / BoQ shows it is done)
@@ -19495,14 +19509,14 @@ function pageBid(){
     ${tab==='lib'?bsLibPage():tab==='speed'?bsSpeedPage():bsActivePage()}`; }
 
 function bsActivePage(){
-  const bids=S.bids.filter(b=>byId('tenders',b.tender_id)&&!b.submitted_at).map(b=>({b,t:byId('tenders',b.tender_id)})).sort((x,y)=>String(x.t.deadline||'9').localeCompare(String(y.t.deadline||'9')));
-  const cand=S.tenders.filter(t=>!t.dup_of&&!bsBid(t.id)&&/Pursue|Check/.test(t.screen||'')&&(daysLeft(t.deadline)??-1)>0&&!/submitted|won|lost|no-?bid|cancel|closed/i.test(t.status||'')).sort((a,b)=>String(a.deadline||'').localeCompare(String(b.deadline||''))).slice(0,30);
+  const bids=S.tenders.filter(t=>!t.dup_of&&!t.example&&/preparing/i.test(t.status||'')).map(t=>({b:bsBid(t.id)&&!bsBid(t.id).stopped_at?bsBid(t.id):null,t})).sort((x,y)=>String(x.t.deadline||'9').localeCompare(String(y.t.deadline||'9')));
+  const cand=S.tenders.filter(t=>!t.dup_of&&!t.example&&!tBid(t)&&/Pursue|Check/.test(t.screen||'')&&(daysLeft(t.deadline)??-1)>0&&!/submitted|won|lost|no-?bid|cancel|closed/i.test(t.status||'')).sort((a,b)=>String(a.deadline||'').localeCompare(String(b.deadline||''))).slice(0,30);
   const libMiss=BS_LIB.filter(L=>!bsLibState(L.k,'').ok).length;
   return `${libMiss?`<div class="banner warn"><div><b>${libMiss} of ${BS_LIB.length} company documents</b> are missing, without a file or expired in the bid library. Add them once and every bid picks them up automatically. <button class="btn" data-bs="tab" data-v="lib">Open bid library</button></div></div>`:''}
-  <div class="card"><div class="hd"><h2>Bids in preparation</h2><div class="sp"></div><span class="chip">${bids.length}</span></div>
-  ${bids.length?`<div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Deadline</th><th>Progress</th><th class="hide-m">Bid owner</th><th class="hide-m">BoQ</th></tr></thead><tbody>${bids.map(({b,t})=>{const p=bsProgress(t,b), B=bsBoq(t.id,b), q=B?bqStats(B):null, ow=byId('staff',b.owner);
+  <div class="card"><div class="hd"><h2>Bids in preparation</h2><div class="sp"></div><span class="sub small hide-m">same list as ★ Our bids in Tender Radar&nbsp;</span><span class="chip">${bids.length}</span></div>
+  ${bids.length?`<div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Deadline</th><th>Progress</th><th class="hide-m">Bid owner</th><th class="hide-m">BoQ</th></tr></thead><tbody>${bids.map(({b,t})=>{const p=b?bsProgress(t,b):{done:0,total:0,pct:0}, B=b?bsBoq(t.id,b):null, q=B?bqStats(B):null, ow=byId('staff',(b&&b.owner)||t.owner);
     return `<tr class="click" data-bs="open" data-tid="${esc(t.id)}"><td><div class="ttl2">${esc(t.title)}</div><div class="sub" style="font-size:11.5px">${esc(t.client||'')}${t.no?' · '+esc(t.no):''}</div></td><td>${daysChip(t.deadline)} <span class="sub small">${t.deadline?fmtD(t.deadline):''}</span></td>
-      <td style="min-width:140px"><div class="bar"><i style="width:${p.pct}%"></i></div><div class="sub small">${p.done}/${p.total} ready · ${p.pct}%</div></td><td class="hide-m small">${esc(ow?.name||'—')}</td><td class="hide-m small">${B?`${q.pct}% priced`:'<span class="sub">not started</span>'}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="bd"><div class="empty">No bid in preparation. Start one from the list below or from a tender (button “Bid Studio”).</div></div>'}</div>
+      <td style="min-width:140px"><div class="bar"><i style="width:${p.pct}%"></i></div><div class="sub small">${b?`${p.done}/${p.total} ready · ${p.pct}%`:'checklist not opened yet – click to start'}</div></td><td class="hide-m small">${esc(ow?.name||'—')}</td><td class="hide-m small">${B?`${q.pct}% priced`:'<span class="sub">not started</span>'}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="bd"><div class="empty">No bid in preparation. Start one from the list below, or press ☆ on a tender in Tender Radar.</div></div>'}</div>
   <div class="card"><div class="hd"><h2>Tenders you can start</h2><div class="sp"></div><span class="sub small">Pursue / Check, deadline still open</span></div>
   ${cand.length?`<div class="tbl-wrap"><table><thead><tr><th>Tender</th><th>Screen</th><th>Deadline</th><th class="hide-m">Documents</th><th></th></tr></thead><tbody>${cand.map(t=>`<tr><td><div class="ttl2">${esc(t.title)}</div><div class="sub" style="font-size:11.5px">${esc(t.client||'')}${t.location?' · '+esc(t.location):''}</div></td><td>${screenChip(t.screen)}</td><td>${daysChip(t.deadline)}</td><td class="hide-m small">${(t.files||[]).length?`${t.files.length} file${t.files.length>1?'s':''}`:'<span class="sub">none attached</span>'}</td><td class="r">${bsCan()?`<button class="btn pri" data-bs="start" data-tid="${esc(t.id)}">Start bid</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="bd"><div class="empty">No open Pursue / Check tenders without a bid.</div></div>'}</div>`; }
 
