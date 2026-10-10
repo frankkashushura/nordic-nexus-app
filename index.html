@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="b6341fef756a">
+<meta name="nexus-build" content="9a5f008480ed">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -311,6 +311,7 @@ ul.clean li{margin:3px 0}
 /* mobile */
 .tabbar{display:none}
 .menu-btn{display:none!important}
+.only-m{display:none}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{position:fixed;left:0;top:0;bottom:0;width:260px;z-index:60;transform:translateX(-100%);transition:transform .2s}
@@ -326,6 +327,7 @@ ul.clean li{margin:3px 0}
   .tabbar svg{width:20px;height:20px}
   .tabbar button{position:relative} .tabbar .tcnt{position:absolute;top:2px;left:calc(50% + 6px);background:var(--good);color:#fff;border-radius:9px;padding:0 5px;font:600 10px var(--f-mono)}
   .hide-m{display:none}
+  .only-m{display:inline}
   .kv{grid-template-columns:1fr}
   .kv dt{margin-top:6px}
 }
@@ -1348,6 +1350,20 @@ function filteredTenders(){
     return !q || [t.title,t.client,t.no,t.location,t.category].join(' ').toLowerCase().includes(q);
   }).sort((a,b)=>(toDate(a.deadline)||0)-(toDate(b.deadline)||0));
 }
+/* v217.5 · short name of the place a tender was found (Tender Radar "Source" column) */
+function tSrc(t){
+  const id=String(t.id||''), n=String(t.notice||''), s=String(t.source||'');
+  const pre={UNDP:'UNDP',UNGM:'UNGM (UN)',SAM:'SAM.gov (US)',TED:'TED (EU)',WEB:'Web search',MAIL:'Company email'}[(id.match(/^([A-Z]+):/)||[])[1]];
+  if(pre) return pre;
+  const m=n.match(/^(.*?) \((?:web page|web search)\)$/); if(m) return m[1].replace(/ (tenders|procurement|announcements|notices)$/i,'').replace(/ – Tanzania( tenders)?$/,'');
+  if(/^nest$/i.test(s)) return 'NeST';
+  if(/^World Bank/i.test(n)||/world bank/i.test(s)) return 'World Bank';
+  if(/^TANROADS/i.test(n)) return 'TANROADS';
+  if(/^press$/i.test(s)&&n) return n.split(' (')[0].replace(/^DDO Tenders$/,'DDO Tenders');
+  if(/^UNGM/i.test(n)||/^UNGM$/i.test(s)) return 'UNGM (UN)';
+  if(/^manual/i.test(String(t.found_by||''))) return 'Added manually';
+  return s||n.split(' (')[0]||'—';
+}
 function pageTenders(){
   const rows=filteredTenders(), cats=['All',...new Set(S.tenders.map(t=>t.category).filter(Boolean))];
   const last=S.tenders.reduce((m,t)=>t.imported_at>m?t.imported_at:m,'');
@@ -1372,12 +1388,12 @@ function pageTenders(){
     <input type="file" id="xlsxFile" accept=".xlsx,.xlsm" hidden>
   </div>
   <div class="card"><div class="tbl-wrap"><table>
-    <thead><tr><th>Closes</th><th>Tender</th><th class="hide-m">Location</th><th class="hide-m">Type</th><th>Screen</th><th>AI advice</th><th class="hide-m">Status</th></tr></thead>
+    <thead><tr><th>Closes</th><th>Tender</th><th class="hide-m">Source</th><th class="hide-m">Location</th><th class="hide-m">Type</th><th>Screen</th><th>AI advice</th><th class="hide-m">Status</th></tr></thead>
     <tbody>${rows.map(t=>`<tr class="click" data-open="tender:${esc(t.id)}"><td>${daysChip(t.deadline)}<div class="sub mono">${fmtDT(t.deadline)}</div></td>
-      <td><div class="ttl2">${canWrite!==false?`<button class="tstar${tBid(t)?' on':''}" data-tstar="${esc(t.id)}" aria-pressed="${tBid(t)}" title="${/submitted/i.test(t.status||'')?'Submitted':tBid(t)?'We are preparing this bid – click to stop':'Mark: we will bid for this tender'}" aria-label="Mark as our bid">${tBid(t)?'★':'☆'}</button>`:''}${UI.trBase&&tNewAt(t)>UI.trBase?'<span class="chip blue" style="margin-right:6px">New</span>':''}${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · <span class="mono">${esc(t.no||'')}</span></div></td>
-      <td class="hide-m">${esc(t.location||'')}</td><td class="hide-m">${esc(t.category||'')}</td><td>${screenChip(t.screen)}</td>
+      <td><div class="ttl2">${canWrite!==false?`<button class="tstar${tBid(t)?' on':''}" data-tstar="${esc(t.id)}" aria-pressed="${tBid(t)}" title="${/submitted/i.test(t.status||'')?'Submitted':tBid(t)?'We are preparing this bid – click to stop':'Mark: we will bid for this tender'}" aria-label="Mark as our bid">${tBid(t)?'★':'☆'}</button>`:''}${UI.trBase&&tNewAt(t)>UI.trBase?'<span class="chip blue" style="margin-right:6px">New</span>':''}${esc(t.title)}</div><div class="sub">${esc(t.client||'')} · <span class="mono">${esc(t.no||'')}</span><span class="only-m"> · ${esc(tSrc(t))}</span></div></td>
+      <td class="hide-m"><span class="chip" title="${esc([t.source,t.notice].filter(Boolean).join(' · '))}">${esc(tSrc(t))}</span></td><td class="hide-m">${esc(t.location||'')}</td><td class="hide-m">${esc(t.category||'')}</td><td>${screenChip(t.screen)}</td>
       <td>${t.ai?.verdict?`<span class="chip ${verdictCls(t.ai.verdict)}">${esc(t.ai.verdict)}</span>`:'<span class="sub">—</span>'}</td>
-      <td class="hide-m">${/preparing/i.test(t.status||'')?'<span class="chip amb">Preparing</span>':/submitted/i.test(t.status||'')?'<span class="chip good">Submitted</span>':esc(t.status||'')}${t.owner?`<div class="sub">${esc((byId('staff',t.owner)||{}).name||t.owner)}</div>`:''}</td></tr>`).join('')||`<tr><td colspan="7"><div class="empty">${UI.tscreen==='Ours'?'No bids marked yet. Click ☆ next to a tender (or set Status = Preparing) to add it here.':'No tenders match. Change the filter or import the pipeline workbook.'}</div></td></tr>`}</tbody></table></div></div>
+      <td class="hide-m">${/preparing/i.test(t.status||'')?'<span class="chip amb">Preparing</span>':/submitted/i.test(t.status||'')?'<span class="chip good">Submitted</span>':esc(t.status||'')}${t.owner?`<div class="sub">${esc((byId('staff',t.owner)||{}).name||t.owner)}</div>`:''}</td></tr>`).join('')||`<tr><td colspan="8"><div class="empty">${UI.tscreen==='Ours'?'No bids marked yet. Click ☆ next to a tender (or set Status = Preparing) to add it here.':'No tenders match. Change the filter or import the pipeline workbook.'}</div></td></tr>`}</tbody></table></div></div>
   <p class="sub">${rows.length} shown of ${S.tenders.length}. Deadline colours: red ≤ 3 days, amber ≤ 7 days.</p>`;
 }
 const TENDER_FIELDS = [
