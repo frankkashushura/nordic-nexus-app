@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="5ddd46a2a023">
+<meta name="nexus-build" content="b6341fef756a">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1274,7 +1274,7 @@ function intlCard(){
   return `<div class="card ti-card"><div class="hd"><h2>Embassies · UN · international</h2><div class="sp"></div><span class="chip ${errs?'amb':'good'}">${errs?'Check source':'Automatic'}</span></div><div class="bd small">
     <div class="sub">NEXUS finds these tenders by itself – nothing to do.</div>
     <div class="ti-src">${chips.join('')}</div>
-    ${isrc.length?`<details style="margin-top:4px"><summary class="muted" style="cursor:pointer">${nSrc} international sources in total · ${isrc.length} more pages (World Bank, EU, UK, regional development banks, UN agencies, NGOs)${isrc.some(x=>x.error)?` · <span style="color:var(--bad)">${isrc.filter(x=>x.error).length} with errors</span>`:''}</summary>
+    ${isrc.length?`<details style="margin-top:4px"><summary class="muted" style="cursor:pointer">${nSrc} international sources in total · ${isrc.length} more pages (World Bank, EU, East African banks and bodies, UN agencies)${isrc.some(x=>x.error)?` · <span style="color:var(--bad)">${isrc.filter(x=>x.error).length} with errors</span>`:''}</summary>
       <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${isrc.map(srcChip).join('')}</div>
       <div class="muted" style="margin-top:6px">Each page is checked every 2 hours for construction tenders in Tanzania. Click a source to open it.</div></details>`:''}
     <div class="sub">${n?`<b>${n}</b> open tender${n>1?'s':''} found`:'No open tender right now'}${it.portals_at?` · last check ${fmtDT(it.portals_at).split(' ').pop()}`:''}</div>
