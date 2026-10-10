@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="08da9308370d">
+<meta name="nexus-build" content="5ddd46a2a023">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1263,15 +1263,20 @@ function inboxAddr(){ return S.inbox?.address||'kashushuraconstruction+tenders@g
 function intlCard(){
   const it=S.intl||{}, ib=S.inbox||{}, src=it.sources||{};
   const ibAge=ib.last_check?(Date.now()-Date.parse(ib.last_check))/36e5:null, ibOk=S.inbox&&ib.ok!==false&&!(ibAge>3);
-  const n=S.tenders.filter(t=>/^(UNDP|UNGM|SAM|TED|WEB|MAIL):/.test(t.id)&&isOpenT(t)).length;
-  const errs=INTL_SRC.filter(([k])=>src[k]?.ok===false).length+(S.inbox&&ib.ok===false?1:0);
+  const n=S.tenders.filter(t=>(/^(UNDP|UNGM|SAM|TED|WEB|MAIL):/.test(t.id)||/international/i.test(t.source||'')||/^World Bank/i.test(t.source||''))&&isOpenT(t)).length;
+  const isrc=(S.sync?.scanner?.sources||[]).filter(x=>scanGroup(x)==='intl');   /* v217.3 · international pages read by the cloud scanner */
+  const errs=INTL_SRC.filter(([k])=>src[k]?.ok===false).length+(S.inbox&&ib.ok===false?1:0)+isrc.filter(x=>x.error).length;
+  const nSrc=INTL_SRC.length+1+isrc.length;
   const chips=[...INTL_SRC.map(([k,l,d])=>{ const v=src[k], u=INTL_URL[k], cls=`chip ${!v?'':v.ok===false?'bad':'good'}`, tip=esc(d+(v?(v.ok===false?' · error: '+(v.err||''):` · checked ${fmtDT(v.at)}`):'')+(u?' · click to open the site':'')), body=`${esc(l)}${v&&v.found?` · ${v.found}`:''}`;
       return u?`<a class="${cls} src-link" href="${esc(u)}" target="_blank" rel="noopener" data-dhopen="${esc(u)}" data-dhname="${esc(l)}" title="${tip}">${body} ↗</a>`:`<span class="${cls}" title="${tip}">${body}</span>`; }),
     `<span class="chip ${!S.inbox?'':ibOk?'good':'bad'}" title="${esc('Tender invitations arriving in the company email are added automatically'+(ib.last_check?' · checked '+fmtDT(ib.last_check):''))}">Company email</span>`];
   const log=(ib.log||[]).filter(x=>x.tender||/staff/i.test(x.skip||'')).slice(0,4);
-  return `<div class="card ti-card"><div class="hd"><h2>Embassies · UN · private</h2><div class="sp"></div><span class="chip ${errs?'amb':'good'}">${errs?'Check source':'Automatic'}</span></div><div class="bd small">
+  return `<div class="card ti-card"><div class="hd"><h2>Embassies · UN · international</h2><div class="sp"></div><span class="chip ${errs?'amb':'good'}">${errs?'Check source':'Automatic'}</span></div><div class="bd small">
     <div class="sub">NEXUS finds these tenders by itself – nothing to do.</div>
     <div class="ti-src">${chips.join('')}</div>
+    ${isrc.length?`<details style="margin-top:4px"><summary class="muted" style="cursor:pointer">${nSrc} international sources in total · ${isrc.length} more pages (World Bank, EU, UK, regional development banks, UN agencies, NGOs)${isrc.some(x=>x.error)?` · <span style="color:var(--bad)">${isrc.filter(x=>x.error).length} with errors</span>`:''}</summary>
+      <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${isrc.map(srcChip).join('')}</div>
+      <div class="muted" style="margin-top:6px">Each page is checked every 2 hours for construction tenders in Tanzania. Click a source to open it.</div></details>`:''}
     <div class="sub">${n?`<b>${n}</b> open tender${n>1?'s':''} found`:'No open tender right now'}${it.portals_at?` · last check ${fmtDT(it.portals_at).split(' ').pop()}`:''}</div>
     <details style="margin-top:6px"><summary class="muted" style="cursor:pointer">More</summary>
       <div class="sub" style="margin-top:6px">Invitations that reach <b>kashushuraconstruction@gmail.com</b> are read by AI and added automatically (with their PDFs). Staff can also forward one to:</div>
@@ -1295,8 +1300,11 @@ const SCAN_URL={'NeST':'https://nest.go.tz/tenders/published-tenders','World Ban
  'BidDetail – Tanzania tenders':'https://www.biddetail.com/tanzania-tenders','ZoomTanzania tenders':'https://www.zoomtanzania.net/tenders'};
 const INTL_URL={'UNDP':'https://procurement-notices.undp.org/','UNGM':'https://www.ungm.org/Public/Notice','SAM.gov':'https://sam.gov/search/?index=opp&keywords=Tanzania','TED (EU)':'https://ted.europa.eu/en/'};
 function srcUrl(s){ const u=s.url||SCAN_URL[s.name]; return /^https?:\/\//.test(u||'')?u:''; }
+function scanGroup(s){ return s.group||(s.name==='World Bank (Tanzania, civil works)'?'intl':'tz'); }
+function srcChip(s){ const u=srcUrl(s), lbl=esc(s.name.replace(/ (tenders|procurement)$/,'').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA ')), tip=esc((s.error||'OK '+s.last_ok)+(u?' · click to open the site':''));
+  return u?`<a class="chip ${s.error?'bad':'good'} src-link" href="${esc(u)}" target="_blank" rel="noopener" data-dhopen="${esc(u)}" data-dhname="${esc(s.name)}" title="${tip}">${lbl} ↗</a>`:`<span class="chip ${s.error?'bad':'good'}" title="${tip}">${lbl}</span>`; }
 function scannerCard(last){
-  const sy=S.sync, h=syncHealth(), src=sy?.scanner?.sources||[];
+  const sy=S.sync, h=syncHealth(), src=(sy?.scanner?.sources||[]).filter(x=>scanGroup(x)!=='intl');
   const nt=[...S.tenders].filter(x=>firstSeen(x)).sort((a,b)=>tNewAt(b).localeCompare(tNewAt(a)))[0];
   const nfy=UI.trBase?newTenders(UI.trBase).length:0, bad=src.filter(x=>x.error).length;
   return `<div class="card"><div class="hd"><h2>Automatic scanning</h2><div class="sp"></div><span class="chip ${h.cls}">${h.label}</span></div>
@@ -1304,10 +1312,9 @@ function scannerCard(last){
       <dl class="kv"><dt>Last scan</dt><dd>${sy?.scanner?.last_scan?fmtDT(sy.scanner.last_scan):'—'}${sy?.last_sync?` · synced ${fmtDT(sy.last_sync).split(' ').pop()}`:''}</dd>
         <dt>Newest tenders</dt><dd>${nt?(()=>{ const t0=Date.parse(tNewAt(nt)); const n=S.tenders.filter(x=>firstSeen(x)&&t0-Date.parse(tNewAt(x))<=15*60e3).length; return `<b>${n}</b> · ${fmtDT(tNewAt(nt))}`; })():'—'}</dd>
         <dt>New for you</dt><dd>${nfy?`<b>${nfy}</b> since your last visit`:'None since your last visit'}</dd></dl>
-      ${src.length?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">${src.length} sources${bad?` · <span style="color:var(--bad)">${bad} with errors</span>`:' · all working'}</summary>
-        <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(s=>{ const u=srcUrl(s), lbl=esc(s.name.replace(' tenders','').replace(' (Tanzania, civil works)','').replace('ZPPDA Zanzibar - ','ZPPDA ')), tip=esc((s.error||'OK '+s.last_ok)+(u?' · click to open the site':''));
-          return u?`<a class="chip ${s.error?'bad':'good'} src-link" href="${esc(u)}" target="_blank" rel="noopener" data-dhopen="${esc(u)}" data-dhname="${esc(s.name)}" title="${tip}">${lbl} ↗</a>`:`<span class="chip ${s.error?'bad':'good'}" title="${tip}">${lbl}</span>`; }).join('')}</div>
-        <div class="muted" style="margin-top:6px">Click a source to open its tender page. Scanned in the cloud every 5–15 min; NEXUS syncs every 10 min, day and night.${S.lastImport?` Last manual import ${fmtDT(S.lastImport.at)}.`:''}</div></details>`:''}
+      ${src.length?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">${src.length} Tanzanian sources${bad?` · <span style="color:var(--bad)">${bad} with errors</span>`:' · all working'}</summary>
+        <div class="toolbar" style="margin-top:6px;flex-wrap:wrap">${src.map(srcChip).join('')}</div>
+        <div class="muted" style="margin-top:6px">Click a source to open its tender page. International pages are listed on the Embassies · UN · international card. Scanned in the cloud every 5–60 min; NEXUS syncs every 10 min, day and night.${S.lastImport?` Last manual import ${fmtDT(S.lastImport.at)}.`:''}</div></details>`:''}
     </div></div>`;
 }
 
