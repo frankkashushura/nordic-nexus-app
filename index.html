@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="9a5f008480ed">
+<meta name="nexus-build" content="8c6218387d68">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1265,7 +1265,7 @@ function inboxAddr(){ return S.inbox?.address||'kashushuraconstruction+tenders@g
 function intlCard(){
   const it=S.intl||{}, ib=S.inbox||{}, src=it.sources||{};
   const ibAge=ib.last_check?(Date.now()-Date.parse(ib.last_check))/36e5:null, ibOk=S.inbox&&ib.ok!==false&&!(ibAge>3);
-  const n=S.tenders.filter(t=>(/^(UNDP|UNGM|SAM|TED|WEB|MAIL):/.test(t.id)||/international/i.test(t.source||'')||/^World Bank/i.test(t.source||''))&&isOpenT(t)).length;
+  const n=S.tenders.filter(t=>(/^(UNDP|UNGM|SAM|TED|MAIL):/.test(t.id)||t.source==='Web search'||/international/i.test(t.source||'')||/^World Bank/i.test(t.source||''))&&isOpenT(t)).length;
   const isrc=(S.sync?.scanner?.sources||[]).filter(x=>scanGroup(x)==='intl');   /* v217.3 · international pages read by the cloud scanner */
   const errs=INTL_SRC.filter(([k])=>src[k]?.ok===false).length+(S.inbox&&ib.ok===false?1:0)+isrc.filter(x=>x.error).length;
   const nSrc=INTL_SRC.length+1+isrc.length;
@@ -1353,9 +1353,9 @@ function filteredTenders(){
 /* v217.5 · short name of the place a tender was found (Tender Radar "Source" column) */
 function tSrc(t){
   const id=String(t.id||''), n=String(t.notice||''), s=String(t.source||'');
+  const m=n.match(/^(.*?) \((?:web page|web search)\)$/); if(m) return m[1].replace(/ (tenders|procurement|announcements|notices)$/i,'').replace(/ – Tanzania( tenders)?$/,'');
   const pre={UNDP:'UNDP',UNGM:'UNGM (UN)',SAM:'SAM.gov (US)',TED:'TED (EU)',WEB:'Web search',MAIL:'Company email'}[(id.match(/^([A-Z]+):/)||[])[1]];
   if(pre) return pre;
-  const m=n.match(/^(.*?) \((?:web page|web search)\)$/); if(m) return m[1].replace(/ (tenders|procurement|announcements|notices)$/i,'').replace(/ – Tanzania( tenders)?$/,'');
   if(/^nest$/i.test(s)) return 'NeST';
   if(/^World Bank/i.test(n)||/world bank/i.test(s)) return 'World Bank';
   if(/^TANROADS/i.test(n)) return 'TANROADS';
@@ -19060,7 +19060,8 @@ document.addEventListener('click', async e=>{
     case 'saveF02': if(T){ const f02={gates:GATES.map((_,i)=>$('#g'+i).value),scores:F02.map((_,i)=>{const v=$('#s'+i).value; return v===''?'':+v;})}; f02.gates=Object.fromEntries(f02.gates.map((g,i)=>[i,g])); const r=f02Result(f02); await patch('tenders',T.id,{f02,f02_result:r?.label||''}); logAct(`F-02 score saved for "${T.title}": ${r?.label}`); toast('Score saved: '+(r?.label||'')); drawer.form=false; renderDrawer(); } break;
     case 'applyAiScores': if(T?.ai?.scores){ T.ai.scores.forEach((s,i)=>{ const el=$('#s'+i); if(el) el.value=String(s); }); (T.ai.gates||[]).forEach((g,i)=>{ const el=$('#g'+i); if(el&&['Pass','Fail','TBC'].includes(g.status)) el.value=g.status; }); toast('AI suggestions filled in. Review each score, then save.'); } break;
     case 'saveTender': if(T){ const v=readForm(tenderEdit()); if(!v) return; await patch('tenders',T.id,v); logAct(`Updated tender "${T.title}" (status ${v.status})`); toast('Saved.'); } break;
-    case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ await remove('tenders',T.id); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
+    case 'delTender': if(T&&await confirmBox('Delete this tender from the radar?','Delete',true)){ /* v217.6 · kept as a hidden record so the automatic sync does not bring it back */
+      await patch('tenders',T.id,{deleted:true,status:'Closed',screen:'Drop',deleted_by:me.name||'',deleted_at:new Date().toISOString()}); logAct(`Deleted tender "${T.title}"`); closeDrawer(); } break;
     case 'copyInbox': { const a=inboxAddr(); try{ await navigator.clipboard.writeText(a); toast('Tender inbox address copied – forward invitations to it.'); }catch(_){ toast('Copy is blocked here: '+a); } break; }
     case 'copyAlert': if(T){ const txt=alertText(T); try{ await navigator.clipboard.writeText(txt); toast('Alert text copied. Paste it into WhatsApp, SMS or email.'); }catch(_){ toast('Copy is blocked here. Select the text shown instead.'); } } break;
     case 'tenderToBoq': if(T){ const id=await put('boqs',null,{title:'BoQ – '+T.title,tender_id:T.id,bills:[],vat:18,contingency:0,scope:T.scope||'',owner:me.name||'',owner_uid:me.id||''}); if(id){ logAct(`Started BoQ for tender "${T.title}"`); go('qs',id); } } break;
@@ -19823,7 +19824,7 @@ document.addEventListener('change',async e=>{ const el=e.target;
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
   if(!db){ renderAll(); return; }
   const onErr=c=>err=>{ console.warn(c,err); loaded.add(c); renderAll(); };
-  for(const c of COLS){ db.collection(c).limit(AC_BIG[c]||1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
+  for(const c of COLS){ db.collection(c).limit(AC_BIG[c]||1000).onSnapshot(s=>{ S[c]=s.docs.map(d=>({id:d.id,...d.data()})); if(c==='tenders'){ S.tenderDups=S[c].filter(t=>t.dup_of); S[c]=S[c].filter(t=>!t.dup_of&&!t.deleted); } if(c==='projects'){ S.projectsAll=S[c]; S[c]=S[c].filter(p=>!p.deleted); } loaded.add(c); renderAll(); }, onErr(c)); }
   db.doc('system/sync').onSnapshot(s=>{ S.sync=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/intl').onSnapshot(s=>{ S.intl=s.exists?s.data():null; renderAll(); }, ()=>{});
   db.doc('system/inbox').onSnapshot(s=>{ S.inbox=s.exists?s.data():null; renderAll(); }, ()=>{});
