@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="fb1ed01530be">
+<meta name="nexus-build" content="260813de84d1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -19527,8 +19527,7 @@ function bsWork(t,b){
   const FACTS=[['bid_validity','Bid validity','e.g. 120 days'],['completion','Completion period','e.g. 9 months'],['bid_security','Bid security','e.g. Bid-Securing Declaration / TZS 20,000,000'],['site_visit','Site visit / pre-bid','date, time, place'],['submission','How to submit','e.g. NeST e-procurement'],['ld','Liquidated damages','e.g. 0.1% per day'],['signatory','Signatory (name, position)','e.g. '+(me.name||'')+', Managing Director']];
   const groups=BS_CATS.map(([c,l])=>[c,l,(b.items||[]).map((it,i)=>[it,i]).filter(([it])=>it.cat===c)]).filter(g=>g[2].length);
   const row=([it,i])=>{ const e=bsEff(it,t,b); return `<tr><td><div class="ttl2" style="font-size:13.5px">${esc(it.name)}${it.must===false?' <span class="chip">optional</span>':''}${it.src==='ai'?' <span class="chip" title="Found by AI in the tender documents">AI</span>':''}</div>${it.note?`<div class="sub small">${esc(it.note)}</div>`:''}${bsDetail(it,t,b)}</td>
-    <td class="hide-m">${ro?esc(byId('staff',it.owner)?.name||''):sel(staffOpts,it.owner,`data-bsc="owner" data-i="${i}" id="bso_${i}" style="max-width:150px"`)}</td>
-    <td>${ro?esc((BS_ST.find(x=>x[0]===e.s)||[])[1]||''):sel(BS_ST,e.s,`data-bsc="st" data-i="${i}" id="bss_${i}" class="bs-st-${e.s}"`)}${e.auto?'<div class="sub small">auto</div>':''}</td>
+    <td style="white-space:nowrap">${e.s==='na'?'<span class="sub small">not required</span>':e.auto&&e.s==='ready'?'<span class="chip good" title="Ticked automatically – the document is in the bid library / BoQ">✓ Done</span>':`<label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-bsc="tick" data-i="${i}" id="bss_${i}" ${e.s==='ready'?'checked':''} ${ro?'disabled':''} style="width:18px;height:18px"> <span class="small">Done</span></label>`}</td>
     <td class="r" style="white-space:nowrap">${bsActions(it,i,t,b)}</td></tr>`; };
   return `<div class="toolbar"><button class="btn" data-go="bid">← Bid Studio</button><div class="sp"></div>
     ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button><button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
@@ -19542,7 +19541,7 @@ function bsWork(t,b){
   <div class="card"><div class="hd"><h2>Key bid information</h2><div class="sp"></div><span class="sub small">${f.read_at?'Read by AI '+fmtD(f.read_at)+' – check against the documents':'Filled by “Read requirements (AI)” or type it in'}</span></div>
     <div class="bd"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">${FACTS.map(([k,l,ph])=>`<label class="small"><span class="sub">${l}</span><input id="bsf_${k}" data-bsc="fact" data-k="${k}" value="${esc(f[k]||'')}" placeholder="${esc(ph)}" ${ro?'disabled':''} style="width:100%"></label>`).join('')}</div>
     ${f.eligibility?`<div class="small" style="margin-top:8px"><b>Eligibility / qualification:</b> ${esc(f.eligibility)}</div>`:''}${f.evaluation?`<div class="small" style="margin-top:4px"><b>Evaluation:</b> ${esc(f.evaluation)}</div>`:''}</div></div>
-  ${groups.map(([c,l,L])=>`<div class="card"><div class="hd"><h2>${l}</h2><div class="sp"></div><span class="chip">${L.filter(([it])=>['ready','na'].includes(bsEff(it,t,b).s)).length}/${L.length}</span></div><div class="tbl-wrap"><table class="bs-tbl"><thead><tr><th>Requirement</th><th class="hide-m">Owner</th><th>Status</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div></div>`).join('')}
+  ${groups.map(([c,l,L])=>`<div class="card"><div class="hd"><h2>${l}</h2><div class="sp"></div><span class="chip">${L.filter(([it])=>['ready','na'].includes(bsEff(it,t,b).s)).length}/${L.length}</span></div><div class="tbl-wrap"><table class="bs-tbl"><thead><tr><th>Requirement</th><th>Done</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div></div>`).join('')}
   ${bsCan()?`<div class="card"><div class="bd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="bsnew" placeholder="Add a requirement, e.g. Sworn affidavit of non-blacklisting" style="flex:1;min-width:220px"><select id="bsnewcat">${BS_CATS.map(([k,l])=>`<option value="${k}" ${k==='other'?'selected':''}>${l}</option>`).join('')}</select><button class="btn" data-bs="add">Add</button></div></div>`:''}
   <input type="file" id="bsUp" hidden multiple>`; }
 
@@ -19822,6 +19821,7 @@ document.addEventListener('change',async e=>{ const el=e.target;
   if(k==='fact') return bsSave(tid,{facts:{...(b.facts||{}),[el.dataset.k]:el.value.trim()}});
   const i=+el.dataset.i, L=[...(b.items||[])]; if(!L[i]) return;
   if(k==='owner'){ L[i]={...L[i],owner:el.value}; return bsSave(tid,{items:L}); }
+  if(k==='tick'){ const on=el.checked; L[i]={...L[i],status:on?'ready':'todo',...(on?{done_at:bsNow(),done_by:me.name||''}:{})}; return bsSave(tid,{items:L},`${L[i].name}: ${on?'done':'not done'}`); } /* v217.8 · one tick instead of owner + status lists */
   if(k==='st'){ L[i]={...L[i],status:el.value,...(el.value==='ready'?{done_at:bsNow(),done_by:me.name||''}:{})}; return bsSave(tid,{items:L},`${L[i].name}: ${el.value}`); }
 },true);
 /* ===================== BID STUDIO (end) ===================== */
