@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="01b3822301dc">
+<meta name="nexus-build" content="958441fcf584">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -4801,14 +4801,15 @@ document.head.insertAdjacentHTML('beforeend',`<style>.ac-yrs{display:inline-flex
 /* ===================== CHAT (private 1-to-1; module in nexus-chat.js) ===================== */
 function pageChat(){ return window.NX_CHAT_MOUNT?'<div id="chatHost"></div>':'<div class="card empty">Chat is available in the NEXUS app (sign in online).</div>'; }
 /* ===================== MEETINGS ===================== */
-const MEET_PLAT=[{k:'zoom',n:'Zoom',re:/zoom\.us|zoom\.com/i,make:'https://zoom.us/meeting/schedule',btn:'Create Zoom meeting'},{k:'meet',n:'Google Meet',re:/meet\.google\.com/i,make:'https://meet.google.com/new',btn:'New Google Meet'},
-  {k:'teams',n:'Microsoft Teams',re:/teams\.microsoft\.com|teams\.live\.com/i,make:'https://teams.microsoft.com/l/meeting/new',btn:'New Teams meeting'},{k:'jitsi',n:'NEXUS video room (Jitsi)',re:/meet\.jit\.si|8x8\.vc/i,make:'jitsi',btn:'Free NEXUS room'},
+const MEET_ROOM='NEXUS video room';
+const MEET_PLAT=[{k:'nexus',n:MEET_ROOM,re:/^$/,make:'nexus',btn:'📹 NEXUS video room (inside NEXUS, free)'},{k:'zoom',n:'Zoom',re:/zoom\.us|zoom\.com/i,make:'https://zoom.us/meeting/schedule',btn:'Create Zoom meeting'},{k:'meet',n:'Google Meet',re:/meet\.google\.com/i,make:'https://meet.google.com/new',btn:'New Google Meet'},
+  {k:'teams',n:'Microsoft Teams',re:/teams\.microsoft\.com|teams\.live\.com/i,make:'https://teams.microsoft.com/l/meeting/new',btn:'New Teams meeting'},{k:'jitsi',n:'NEXUS video room (Jitsi)',re:/meet\.jit\.si|8x8\.vc/i},
   {k:'whatsapp',n:'WhatsApp',re:/whatsapp\.com|wa\.me/i},{k:'webex',n:'Webex',re:/webex\.com/i},{k:'other',n:'Other',re:/./}];
 const safeUrl=u=>/^https:\/\/[^\s"'<>]+$/i.test(String(u||'').trim())?String(u).trim():'';
 const meetPlat=m=>{ const l=safeUrl(m.link); if(!l) return null; return MEET_PLAT.find(p=>p.n===m.platform)||MEET_PLAT.find(p=>p.re.test(l)); };
 const MEET_DUR=['30 min','1 hour','1.5 hours','2 hours','Half day','Full day'], MEET_MIN={'30 min':30,'1 hour':60,'1.5 hours':90,'2 hours':120,'Half day':240,'Full day':480};
 const meetFields=()=>[{k:'title',label:'Meeting title',req:1,full:1,ph:'e.g. Weekly site progress meeting – Mount Carmel'},{k:'start',label:'Date & start time',type:'datetime-local',req:1},{k:'duration',label:'Duration',type:'select',options:MEET_DUR,def:'1 hour'},
-  {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'platform',label:'Online platform',type:'select',options:['',...MEET_PLAT.map(p=>p.n)]},{k:'tools',type:'linktools'},{k:'link',label:'Online link',ph:'Paste the Zoom / Google Meet / Teams link here (https://…)',full:1},
+  {k:'mode',label:'Type',type:'select',options:['In person','Online','In person + online']},{k:'venue',label:'Venue',ph:'e.g. Head Office boardroom / site office'},{k:'platform',label:'Online platform',type:'select',options:['',...MEET_PLAT.filter(p=>p.k!=='jitsi').map(p=>p.n)]},{k:'tools',type:'linktools'},{k:'link',label:'Online link',ph:'Zoom / Google Meet / Teams link (https://…) – leave empty for the NEXUS video room',full:1},
   {k:'project_id',label:'Project (optional)',type:'select',options:projOpts('— not project specific —')},{k:'agenda',label:'Agenda',type:'textarea',ph:'1. Progress\n2. Issues\n3. AOB'},
   {k:'invitees',label:'Invite staff (they get an email with a calendar invite and a NEXUS alert)',type:'checks',req:1,options:S.staff.filter(x=>x.status!=='Left'&&x.email).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>[x.id,`${x.name}${x.position?' – '+x.position:''}`])}];
 const myStaffId=()=>{ const e=(me.email||'').toLowerCase(), n=(me.name||'').toLowerCase(); return (S.staff.find(x=>x.uid&&x.uid===me.id)||S.staff.find(x=>!x.uid&&e&&(x.email||'').toLowerCase()===e)||S.staff.find(x=>n&&(x.name||'').toLowerCase()===n))?.id||null; };
@@ -4822,14 +4823,14 @@ function meetCard(m){
   return `<div class="card" style="${cancelled?'opacity:.6':''}"><div class="bd" style="display:flex;gap:14px;align-items:flex-start">
     <div style="min-width:62px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 4px"><div class="label">${d.toLocaleDateString('en-GB',{month:'short'})}</div><div style="font-size:24px;font-weight:700;line-height:1.1">${d.getDate()}</div><div class="sub">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div></div>
     <div class="grow" style="display:flex;flex-direction:column;gap:5px;min-width:0">
-      <div class="toolbar" style="gap:6px">${cancelled?'<span class="chip bad">Cancelled</span>':live?'<span class="chip good">Happening now</span>':soon?'<span class="chip amb">Soon</span>':''}<span class="chip">${esc(m.mode||'In person')}</span>${meetPlat(m)&&meetPlat(m).k!=='other'?`<span class="chip blue">${esc(meetPlat(m).n)}</span>`:''}${m.project_id?`<span class="sub">${esc(projName(m.project_id))}</span>`:''}</div>
+      <div class="toolbar" style="gap:6px">${cancelled?'<span class="chip bad">Cancelled</span>':live?'<span class="chip good">Happening now</span>':soon?'<span class="chip amb">Soon</span>':''}<span class="chip">${esc(m.mode||'In person')}</span>${meetIsRoom(m)?'<span class="chip blue">📹 NEXUS video room</span>':meetPlat(m)&&meetPlat(m).k!=='other'?`<span class="chip blue">${esc(meetPlat(m).n)}</span>`:''}${m.project_id?`<span class="sub">${esc(projName(m.project_id))}</span>`:''}</div>
       <h3 style="margin:0">${esc(m.title)}</h3>
       <div class="small"><b>${d.toTimeString().slice(0,5)}</b> · ${esc(m.duration||'1 hour')}${m.venue?' · '+esc(m.venue):''}</div>
       <div class="sub">Organiser: ${esc(m.organizer||'')} · ${inv.length} invited${yes?` · ✓ ${yes} attending`:''}${no?` · ✗ ${no} can't`:''}${m.version>1&&!cancelled?' · <span class="chip amb">updated</span>':''}</div>
       <div class="sub" style="display:flex;flex-wrap:wrap;gap:4px">${inv.map(i=>`<span class="chip ${resp[i]==='Yes'?'good':resp[i]==='No'?'bad':''}" title="${resp[i]==='Yes'?'Attending':resp[i]==='No'?'Cannot attend':'No answer yet'}">${resp[i]==='Yes'?'✓ ':resp[i]==='No'?'✗ ':''}${esc(staffName(i))}</span>`).join('')}</div>
       ${m.agenda?`<details><summary class="small" style="cursor:pointer">Agenda</summary><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(m.agenda)}</div></details>`:''}
       ${cancelled?`<div class="toolbar" style="gap:6px"><span class="sub">Cancelled by ${esc(m.cancelled_by||'')}${m.cancelled_at?' · '+fmtDT(m.cancelled_at):''}</span>${isAdmin?`<div class="sp"></div><button class="btn sm danger" data-mdel="${esc(m.id)}">Delete record</button>`:''}</div>`:`<div class="toolbar" style="gap:6px">
-        ${safeUrl(m.link)&&!past?`<a class="btn sm pri" href="${esc(safeUrl(m.link))}" target="_blank" rel="noopener">Join ${esc(meetPlat(m)&&meetPlat(m).k!=='other'?meetPlat(m).n.replace(' (Jitsi)',''):'online')}</a>`:''}
+        ${meetIsRoom(m)&&(!past||meetRoomN(m))?meetRoomBtn(m):safeUrl(m.link)&&!past?`<a class="btn sm pri" href="${esc(safeUrl(m.link))}" target="_blank" rel="noopener">Join ${esc(meetPlat(m)&&meetPlat(m).k!=='other'?meetPlat(m).n.replace(' (Jitsi)',''):'online')}</a>`:''}
         ${sid&&inv.includes(sid)&&!past?`<button class="btn sm ${resp[sid]==='Yes'?'pri':''}" data-mrsvp="${esc(m.id)}:Yes">✓ I'll attend</button><button class="btn sm ${resp[sid]==='No'?'danger':''}" data-mrsvp="${esc(m.id)}:No">✗ Can't attend</button>`:''}
         ${canEditMeet(m)&&!past?`<div class="sp"></div><button class="btn sm" data-medit="${esc(m.id)}">Edit</button><button class="btn sm danger" data-mcancel="${esc(m.id)}">Cancel meeting</button>`:''}</div>`}
     </div></div></div>`;
@@ -4848,6 +4849,7 @@ function meetDrawer(m){
   const f=meetFields(); const vals=m?{...m}:{duration:'1 hour',mode:'In person',invitees:[]};
   formDrawer(m?'Edit meeting':'Schedule meeting',f,vals,async v=>{
     const iso=new Date(v.start).toISOString();
+    if(v.platform===MEET_ROOM){ v.link=''; if(v.mode==='In person') v.mode='Online'; }
     if(v.link&&!safeUrl(v.link)){ toast('The online link must be a full web address starting with https://'); return false; }
     if(v.link&&!v.platform){ const pl=MEET_PLAT.find(p=>p.re.test(v.link)); v.platform=pl?pl.n:''; }
     if(v.link&&v.mode==='In person') v.mode='Online';
@@ -4859,6 +4861,38 @@ function meetDrawer(m){
     window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR();
   },{saveLabel:m?'Save changes':'Schedule & send invitations'});
 }
+
+/* ---------- v224 · NEXUS video room = in-app group video call (like a WhatsApp group call) ----------
+   The meeting's room is one fixed call id (mt<meeting id>). The first person in rings every invitee who has a NEXUS
+   login (ring screen inside NEXUS + phone notification); the others join with one tap. Up to CALL_MAX people.
+   Older meetings with a "Free NEXUS room" (meet.jit.si/NordicNexus-…) link open the same in-app room. */
+const meetIsRoom=m=>!!m&&(m.platform===MEET_ROOM||m.platform==='NEXUS video room (Jitsi)'||/meet\.jit\.si\/NordicNexus-/i.test(m.link||''));
+const meetRoomId=m=>'mt'+String(m.id).replace(/[^A-Za-z0-9]/g,'').slice(0,40);
+const meetRoomA=m=>{ try{ return CALL.active.get(meetRoomId(m))||null; }catch(_){ return null; } };
+const meetRoomN=m=>{ const a=meetRoomA(m); return a?(a.uids||[]).length:0; };
+function meetRoomBtn(m){ const inIt=typeof CALL!=='undefined'&&CALL.cur&&CALL.cur.id===meetRoomId(m), n=meetRoomN(m);
+  return `<button class="btn sm pri" data-mroom="${esc(m.id)}" data-mroomb="${esc(m.id)}">${inIt?'📹 Back to the meeting':n?`📹 Join now · ${n} in the room`:'📹 Join video room'}</button>`; }
+function meetRoomUi(){ document.querySelectorAll('[data-mroomb]').forEach(b=>{ const m=byId('meetings',b.dataset.mroomb); if(m) b.outerHTML=meetRoomBtn(m); }); }
+const meetUids=m=>{ const resp=m.responses||{}; const L=(m.invitees||[]).filter(sid=>resp[sid]!=='No').map(sid=>(S.staff||[]).find(x=>x.id===sid)?.uid); if(m.organizer_uid) L.push(m.organizer_uid); return [...new Set(L.filter(u=>u&&u!==me.id))]; };
+async function meetJoin(id){ const m=byId('meetings',id); if(!m) return toast('This meeting no longer exists.');
+  if(typeof callOk!=='function'||!callOk()) return toast(window.NX_RT?'The NEXUS video room needs a microphone (and camera) – allow them for NEXUS.':'The NEXUS video room works in the online NEXUS (signed in).');
+  const rid=meetRoomId(m), a=meetRoomA(m), ctx={meet:m.id,title:m.title};
+  if(CALL.cur){ if(CALL.cur.id===rid){ CALL.cur.min=false; return callRender(); } return toast('You are already in a call – hang up first.'); }
+  if(CALL.ring&&CALL.ring.call===rid) return callAccept(true);
+  const n=a?(a.uids||[]).length:0;
+  if(n>=CALL_MAX) return toast(`The room is full – ${CALL_MAX} people can be in a NEXUS video room. Ask someone to share a screen with others in the same office.`);
+  if(n){ await callJoin({id:rid,ctx,kind:'video',names:a.names||{}}); logAct(`Joined the video meeting "${m.title}"`); return; }
+  // first in: open the room and ring the invitees (in NEXUS + a phone notification)
+  const uids=Date.now()>=meetStart(m)-30*6e4?meetUids(m):[];
+  const ok=await callStart(ctx,uids,'video',{id:rid}); if(!ok) return;
+  if(uids.length){ patch('meetings',m.id,{room_live:{at:new Date().toISOString(),by:me.name||'',uid:me.id}}).then(()=>{ try{ window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); }catch(_){ } }).catch(()=>{}); toast(`Meeting room open – ringing ${uids.length} invitee${uids.length===1?'':'s'}.`); }
+  else toast('Meeting room open – invitees join with “Join video room”.');
+  logAct(`Opened the video meeting "${m.title}"`); }
+// a phone notification "Meeting started" → open NEXUS → the ring screen to join
+function meetRoomOpen(id){ go('meetings'); let k=0; const t=setInterval(()=>{ const m=byId('meetings',id); k++; if(!m){ if(k>40) clearInterval(t); return; }
+    const a=meetRoomA(m); if(a&&(a.uids||[]).length&&!CALL.cur&&!CALL.ring){ clearInterval(t); const from=(a.uids||[])[0]; CALL.ring={call:meetRoomId(m),ctx:{meet:m.id,title:m.title},kind:'video',from,fromName:(a.names||{})[from]||'A colleague',at:Date.now()}; callTone('in'); callRender(); }
+    else if(k>32){ clearInterval(t); toast('Tap “Join video room” on the meeting to join.'); } },250); }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-mroom]'); if(!b) return; e.preventDefault(); meetJoin(b.dataset.mroom); });
 /* ===================== PROFILE PHOTOS (v76) ===================== */
 // every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
 const lcE=s=>String(s||'').trim().toLowerCase();
@@ -7602,15 +7636,15 @@ async function callAccept(video){ const r=CALL.ring; if(!r) return; callStopTone
 function callDecline(){ const r=CALL.ring; if(!r) return; callStopTone(); CALL.ring=null; callSendRing({t:'decline',call:r.call,to:[r.from]}); callRender(); }
 
 /* ---------- start / join ---------- */
-async function callStart(ctx,uids,kind){ if(!callOk()) return toast('Calls need a signed-in NEXUS with a microphone.'); if(CALL.cur) return toast('You are already in a call.');
-  uids=[...new Set(uids)].filter(u=>u&&u!==me.id).slice(0,CALL_MAX-1); if(!uids.length) return toast('Choose who to call.');
-  const id='c'+uid()+Math.random().toString(36).slice(2,6), names=Object.fromEntries(uids.map(u=>[u,callName(u)]));
-  const ok=await callJoin({id,ctx,kind,caller:true,inv:Object.fromEntries(uids.map(u=>[u,'ringing'])),names}); if(!ok) return;
+async function callStart(ctx,uids,kind,o={}){ if(!callOk()) return toast('Calls need a signed-in NEXUS with a microphone.'); if(CALL.cur) return toast('You are already in a call.');
+  uids=[...new Set(uids)].filter(u=>u&&u!==me.id).slice(0,CALL_MAX-1); if(!uids.length&&!o.id) return toast('Choose who to call.');
+  const id=o.id||'c'+uid()+Math.random().toString(36).slice(2,6), names=Object.fromEntries(uids.map(u=>[u,callName(u)]));
+  const ok=await callJoin({id,ctx,kind,caller:uids.length>0,inv:Object.fromEntries(uids.map(u=>[u,'ringing'])),names}); if(!ok) return; if(!uids.length) return true;
   const ring=()=>{ const C=CALL.cur; if(!C||C.id!==id) return; const to=Object.entries(C.inv).filter(([,s])=>s==='ringing').map(([u])=>u); if(to.length) callSendRing({t:'ring',call:id,ctx,kind,to}); };
   ring(); CALL.cur.reRing=setInterval(ring,5000);
-  CALL.cur.noAns=setTimeout(()=>{ const C=CALL.cur; if(C&&C.id===id){ Object.keys(C.inv).forEach(u=>{ if(C.inv[u]==='ringing') C.inv[u]='noanswer'; }); clearInterval(C.reRing); callSendRing({t:'cancel',call:id,to:uids}); if(!C.peers.size){ toast('No answer.'); callHang(true); } else callRender(); } },45e3);
+  CALL.cur.noAns=setTimeout(()=>{ const C=CALL.cur; if(C&&C.id===id){ Object.keys(C.inv).forEach(u=>{ if(C.inv[u]==='ringing') C.inv[u]='noanswer'; }); clearInterval(C.reRing); callSendRing({t:'cancel',call:id,to:uids}); callStopTone(); if(!C.peers.size&&!ctx.meet){ toast('No answer.'); callHang(true); } else callRender(); } },45e3);
   if(ctx.boq&&window.NX_BQL&&BQL_ON()) NX_BQL.send({boq_id:ctx.boq,body:`📞 ${me.name||'A colleague'} started a ${kind==='video'?'video':'voice'} call`,kind:'call',url:null,mentions:uids}).then(r=>{ const L=BQL.msgs[ctx.boq]=BQL.msgs[ctx.boq]||[]; if(r&&!L.some(x=>x.id===r.id)) L.push(r); bqlPanelRender(); }).catch(()=>{});
-  logAct(`Started a ${kind==='video'?'video':'voice'} call (${callCtxTitle(ctx)})`); }
+  logAct(`Started a ${kind==='video'?'video':'voice'} call (${callCtxTitle(ctx)})`); return true; }
 async function callMedia(kind){ const A={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
   if(kind==='video'){ try{ return {s:await navigator.mediaDevices.getUserMedia({audio:A,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}}),kind:'video'}; }catch(e){ console.warn(e); } }
   try{ const s=await navigator.mediaDevices.getUserMedia({audio:A,video:false}); if(kind==='video') toast('Camera not available – you joined with voice.'); return {s,kind:'audio'}; }
@@ -7656,7 +7690,7 @@ async function callSdp(m){ const C=CALL.cur; const P=C.peers.get(m.from)||callPe
 function callDrop(u,why){ const C=CALL.cur; if(!C) return; const P=C.peers.get(u); if(!P) return; try{ P.pc.close(); }catch(_){ } P.el.remove(); C.peers.delete(u); C.inv[u]=why==='lost'?'lost':'left';
   toast(`${bqlFirst(P.name)} ${why==='lost'?'lost the connection':'left the call'}.`); callAlive();
   if(!C.peers.size&&C.connectedAt&&!Object.values(C.inv).includes('ringing')) return callHang(true); callRender(); }
-function callNoAnswerCheck(){ const C=CALL.cur; if(!C||C.peers.size) return; if(Object.values(C.inv).every(s=>s==='decline'||s==='busy'||s==='noanswer')){ const s=Object.values(C.inv); toast(s.includes('busy')?'Busy – on another call.':'Call declined.'); setTimeout(()=>callHang(true),1200); } }
+function callNoAnswerCheck(){ const C=CALL.cur; if(!C||C.peers.size||C.ctx.meet) return; if(Object.values(C.inv).every(s=>s==='decline'||s==='busy'||s==='noanswer')){ const s=Object.values(C.inv); toast(s.includes('busy')?'Busy – on another call.':'Call declined.'); setTimeout(()=>callHang(true),1200); } }
 
 /* ---------- my buttons ---------- */
 function callToggleMic(){ const C=CALL.cur; if(!C) return; C.mic=!C.mic; C.local.getAudioTracks().forEach(t=>t.enabled=C.mic); callSt(); callRender(); }
@@ -7715,17 +7749,17 @@ const CALL_I={end:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="c
   down:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>'};
 function callAv(u,name,big){ return `<div class="nxk-av${big?' big':''}" style="background:${bqlColor(u)}">${esc(callIni(name))}</div>`; }
 function callRingHtml(R){ const v=R.kind==='video';
-  return `<div class="nxk-ring"><div class="nxk-sub">🔒 NEXUS ${v?'video':'voice'} call</div>${callAv(R.from,R.fromName,true)}<h2>${esc(R.fromName||'Colleague')}</h2><div class="nxk-sub">is calling you${R.ctx?` · ${esc(callCtxTitle(R.ctx))}`:''}</div><div class="nxk-pulse"></div>
+  return `<div class="nxk-ring"><div class="nxk-sub">🔒 NEXUS ${R.ctx?.meet?'meeting':v?'video call':'voice call'}</div>${callAv(R.from,R.fromName,true)}<h2>${esc(R.ctx?.meet?callCtxTitle(R.ctx):R.fromName||'Colleague')}</h2><div class="nxk-sub">${R.ctx?.meet?`${esc(R.fromName||'A colleague')} started the meeting – join now`:`is calling you${R.ctx?` · ${esc(callCtxTitle(R.ctx))}`:''}`}</div><div class="nxk-pulse"></div>
     <div class="nxk-acts"><div><button class="nxk-b big red" data-call="decline" aria-label="Decline">${CALL_I.end}</button><span>Decline</span></div>
       ${v?`<div><button class="nxk-b big green" data-call="accept:audio" aria-label="Answer with voice only">${CALL_I.call}</button><span>Voice only</span></div>`:''}
-      <div><button class="nxk-b big green nxk-wiggle" data-call="accept:${v?'video':'audio'}" aria-label="Accept">${v?CALL_I.video:CALL_I.call}</button><span>Accept</span></div></div></div>`; }
+      <div><button class="nxk-b big green nxk-wiggle" data-call="accept:${v?'video':'audio'}" aria-label="${R.ctx?.meet?'Join':'Accept'}">${v?CALL_I.video:CALL_I.call}</button><span>${R.ctx?.meet?'Join':'Accept'}</span></div></div></div>`; }
 function callFullHtml(C){ const P=[...C.peers.values()], waiting=Object.entries(C.inv).filter(([u])=>!C.peers.has(u)), n=Math.max(1,P.length);
   const stTxt=s=>({ringing:'Ringing…',decline:'Declined',busy:'On another call',noanswer:'No answer',left:'Left',lost:'Connection lost'}[s]||'');
   const tiles=P.length?P.map(p=>{ const hasV=p.cam&&p.stream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted);
       return `<div class="nxk-tile${hasV?' vid':''}" data-v="${esc(p.uid)}">${hasV?'':callAv(p.uid,p.name,true)}<div class="nxk-nm">${p.mic?'':'<span class="nxk-mut">'+CALL_I.micoff+'</span>'}${esc(p.name)}${p.state!=='connected'?` <i>· ${p.state==='failed'?'reconnecting…':'connecting…'}</i>`:''}</div></div>`; }).join('')
-    :`<div class="nxk-wait">${waiting.map(([u,s])=>`<div class="nxk-w">${callAv(u,callName(u),true)}<b>${esc(callName(u))}</b><span>${stTxt(s)}</span></div>`).join('')||'<div class="nxk-sub">Connecting…</div>'}</div>`;
+    :`<div class="nxk-wait">${waiting.map(([u,s])=>`<div class="nxk-w">${callAv(u,callName(u),true)}<b>${esc(callName(u))}</b><span>${stTxt(s)}</span></div>`).join('')||`<div class="nxk-sub">${C.ctx.meet?'Waiting for others to join the meeting…':'Connecting…'}</div>`}</div>`;
   const ringing=waiting.filter(([,s])=>s==='ringing').length;
-  return `<div class="nxk-full"><div class="nxk-top"><button class="nxk-ic" data-call="min" aria-label="Make the call small and keep working">${CALL_I.down}</button><div class="nxk-tt"><b>${esc(callCtxTitle(C.ctx))}</b><div class="nxk-sub">🔒 ${C.connectedAt?`<span class="nxk-time">${callDur(Date.now()-C.connectedAt)}</span>`:P.length?'Connecting…':'Calling…'}${P.length&&ringing?` · ${ringing} still ringing`:''}</div></div></div>
+  return `<div class="nxk-full"><div class="nxk-top"><button class="nxk-ic" data-call="min" aria-label="Make the call small and keep working">${CALL_I.down}</button><div class="nxk-tt"><b>${esc(callCtxTitle(C.ctx))}</b><div class="nxk-sub">🔒 ${C.connectedAt?`<span class="nxk-time">${callDur(Date.now()-C.connectedAt)}</span>`:P.length?'Connecting…':C.ctx.meet?'Meeting room':'Calling…'}${P.length&&ringing?` · ${ringing} still ringing`:''}</div></div></div>
     <div class="nxk-grid n${Math.min(n,6)}">${tiles}</div>
     ${C.cam?`<div class="nxk-me" data-v="me"></div>`:''}
     <div class="nxk-bar"><button class="nxk-b${C.mic?'':' off'}" data-call="mic" aria-label="${C.mic?'Mute':'Unmute'}" title="${C.mic?'Mute':'Unmute'}">${C.mic?CALL_I.mic:CALL_I.micoff}</button>
@@ -7768,7 +7802,7 @@ function callBtnHtml(ctxKey,newAttr,cls='btn sm'){ if(!callOk()&&!window.NX_RT) 
   return `<button class="${cls}" data-callgo="${newAttr}" title="Voice or video call with colleagues – inside NEXUS">📞 Call</button>`; }
 const callXlCtx=()=>OXS&&OXS.boq_id?{boq:OXS.boq_id,title:byId('boqs',OXS.boq_id)?.title||OXS.title}:{boq:null,title:OXS?.title||'Excel'};
 function callXlHtml(){ if(!window.NX_RT) return ''; const c=OXS?callXlCtx():null; return `<span id="nxcXl">${c?callBtnHtml(c.boq||c.title,c.boq?'boq:'+c.boq:'xl','tb'):''}</span>`; }
-function callBanners(){ try{ renderTeamBtns(); }catch(_){ } const x=document.getElementById('nxcXl'); if(x&&OXS){ const c=callXlCtx(); x.innerHTML=callBtnHtml(c.boq||c.title,c.boq?'boq:'+c.boq:'xl','tb'); } if(BQL.panel) bqlPanelRender(); }
+function callBanners(){ try{ renderTeamBtns(); }catch(_){ } try{ if(route==='meetings'&&typeof meetRoomUi==='function') meetRoomUi(); }catch(_){ } const x=document.getElementById('nxcXl'); if(x&&OXS){ const c=callXlCtx(); x.innerHTML=callBtnHtml(c.boq||c.title,c.boq?'boq:'+c.boq:'xl','tb'); } if(BQL.panel) bqlPanelRender(); }
 /* used by NEXUS Chat: 📞 / 🎥 in a chat or group */
 window.NX_CALL={ ok:()=>callOk(), start:(ctx,uids,kind)=>callStart(ctx,uids,kind), pick:(ctx,uids)=>callNew({...ctx,only:uids}) };
 window.addEventListener('beforeunload',()=>{ if(CALL.cur) try{ CALL.cur.room.send({t:'bye',from:me.id}); }catch(_){ } });
@@ -19910,7 +19944,7 @@ document.addEventListener('click', async e=>{
     if(await remove('projects',p.id)){ logAct(`Permanently deleted project ${p.name}${n?` (+${n} planning items)`:''}`); toast('Project deleted permanently.'); } return; }
   if(el.dataset.mkroom){ const p=MEET_PLAT.find(x=>x.k===el.dataset.mkroom), root=$('#overlay'), L=root.querySelector('#f_link'), P=root.querySelector('#f_platform'), M=root.querySelector('#f_mode'); if(!p) return;
     if(P) P.value=p.n; if(M&&M.value==='In person') M.value='Online';
-    if(p.make==='jitsi'){ const t=(root.querySelector('#f_title')?.value||'Meeting').replace(/[^A-Za-z0-9]+/g,'').slice(0,30)||'Meeting'; const r=Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); if(L) L.value=`https://meet.jit.si/NordicNexus-${t}-${r}`; toast('Free video room link created – it is saved with the meeting.'); }
+    if(p.make==='nexus'){ if(L) L.value=''; const V=root.querySelector('#f_venue'); if(V&&!V.value.trim()) V.value='NEXUS video room (Meetings → Join)'; toast('The meeting opens inside NEXUS – at meeting time everyone joins with one tap, like a WhatsApp group video call.'); }
     else { window.open(p.make,'_blank','noopener'); toast(`${p.n} opened in a new tab – create the meeting, copy its link and paste it in "Online link".`); L&&L.focus(); }
     return; }
   if(el.dataset.mdel&&isAdmin){ const m=byId('meetings',el.dataset.mdel); if(!m||m.status!=='Cancelled') return; if(await confirmBox(`Delete the cancelled meeting "${m.title}" (${fmtDT(m.start_iso)}) permanently? This cannot be undone.`,'Delete',true)){ await remove('meetings',m.id); logAct(`Deleted cancelled meeting "${m.title}"`); toast('Cancelled meeting deleted.'); } return; }
@@ -20256,6 +20290,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ANN.showing){ ANN.
 window.NX_OPEN=op=>{ op=String(op||''); const [k,v]=op.split(/:(.+)/);
   if(k==='alerts'){ nsOpened(); openDrawer('alerts'); }
   else if(k==='logins'){ if(window.NX_OPEN_USERS) window.NX_OPEN_USERS(); else go('settings'); }
+  else if(k==='meetroom'&&v){ meetRoomOpen(v); }
   else if(k==='ann'&&v){ go('home'); let n=0; const t=setInterval(()=>{ if(byId('announcements',v)){ clearInterval(t); annShow(v,1); } else if(++n>40) clearInterval(t); },250); }
   else if(k==='chat'){ go('chat'); if(v){ let n=0; const t=setInterval(()=>{ if((window.NX_CHAT_OPEN&&window.NX_CHAT_OPEN(v))||++n>40) clearInterval(t); },250); } }
   else if(k==='rec'&&v){ go('records'); let n=0; const t=setInterval(()=>{ if(byId('records',v)){ clearInterval(t); openDrawer('rec',v); } else if(++n>40) clearInterval(t); },250); }
