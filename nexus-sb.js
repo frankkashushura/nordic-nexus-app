@@ -49,11 +49,20 @@
   }
   function ensureChannel() {
     if (channel) return;
-    channel = sb.channel('nexus-docs')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, p => {
-        if (p.eventType === 'DELETE') { const o = p.old || {}; if (o.col) applyRow(o.col, o.id, null); }
-        else { const n = p.new || {}; if (n.col) applyRow(n.col, n.id, n.data); }
-      })
+    const T = 'docs';
+    const onDoc = p => {
+      if (p.eventType === 'DELETE') { const o = p.old || {}; if (o.col) applyRow(o.col, o.id, null); }
+      else { const n = p.new || {}; if (n.col) applyRow(n.col, n.id, n.data); }
+    };
+    channel = sb.channel('nexus-docs');
+    if (BQL.avail) {   // v218: a BoQ change arrives as a small cell change (boq_ops) instead of the whole BoQ
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: T }, onDoc)
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: T }, onDoc)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: T, filter: 'col=neq.boqs' }, onDoc)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'boq_ops' }, p => bqlOp(p.new))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'boq_msgs' }, p => { if (p.new && p.new.id) window.dispatchEvent(new CustomEvent('nx-boq-msg', { detail: { m: p.new, ev: p.eventType } })); });
+    } else channel.on('postgres_changes', { event: '*', schema: 'public', table: T }, onDoc);
+    channel
       .subscribe(status => {
         if (status === 'SUBSCRIBED') { if (wasDown) { wasDown = false; resyncAll(); } setLive(true); }
         else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { wasDown = true; setLive(false); }
@@ -103,6 +112,59 @@
       if (ls && lastSyncSeen && ls !== lastSyncSeen && Date.now() - Date.parse(ls) > 90e3) { console.warn('NEXUS: live updates were missed – reloading'); await resyncAll(); restartChannel(); }
       else if (ls) lastSyncSeen = ls; } catch (_) { /* offline */ }
   }, 240e3);
+
+  /* ---------------- v218 live QS Studio: BoQ cell changes, presence, discussion ---------------- */
+  const BQL = { avail: null, tab: uid(), ch: null, state: null };
+  function bqlApply(d, op) {
+    const bl = (d.bills || []).find(b => b.id === op.bill_id); if (!bl) return false;
+    if (op.kind === 'bill') { bl[op.field] = op.value; return true; }
+    bl.items = bl.items || [];
+    if (op.kind === 'set') { const it = bl.items.find(i => i.id === op.item_id); if (!it) return false; it[op.field] = op.value; return true; }
+    if (op.kind === 'add') { const v = op.value; if (!v || !v.id || bl.items.some(i => i.id === v.id)) return false;
+      const at = op.pos === '^' ? 0 : !op.pos ? bl.items.length : (bl.items.findIndex(i => i.id === op.pos) + 1 || bl.items.length); bl.items.splice(at, 0, clean(v)); return true; }
+    if (op.kind === 'del') { const i = bl.items.findIndex(x => x.id === op.item_id); if (i < 0) return false; bl.items.splice(i, 1); return true; }
+    return false;
+  }
+  function bqlCached(id) { for (const s of colSubs.get('boqs') || []) { const r = s.cache.get(id); if (r) return r.data; } return null; }
+  function bqlLocal(op) { const d = bqlCached(op.boq_id); if (!d) return false; const c = clean(d); if (!bqlApply(c, op)) return false; applyRow('boqs', op.boq_id, c); return true; }
+  async function bqlRefetch(id) { try { const r = await fetchDoc('boqs', id); applyRow('boqs', id, r ? r.data : null); } catch (_) {} }
+  function bqlOp(op) {
+    if (!op || !op.boq_id) return;
+    const mine = op.client === BQL.tab;
+    if (op.kind === 'reload') { if (op.field === 'delete') applyRow('boqs', op.boq_id, null); else bqlRefetch(op.boq_id); }
+    else if (!mine) { if (!bqlLocal(op) && bqlCached(op.boq_id)) bqlRefetch(op.boq_id); }
+    window.dispatchEvent(new CustomEvent('nx-boq-op', { detail: { op, mine } }));
+  }
+  window.NX_BQL = {
+    ok: () => BQL.avail === true,
+    tab: BQL.tab,
+    async probe() {
+      if (BQL.avail !== null) return BQL.avail;
+      try { const { error } = await sb.from('boq_ops').select('id').limit(1); BQL.avail = !error; } catch (_) { BQL.avail = false; }
+      if (BQL.avail) restartChannel();
+      return BQL.avail;
+    },
+    async op(o) {   // {boq_id, bill_id, item_id, kind:'set'|'add'|'del'|'bill', field, value, pos}
+      const row = { boq_id: o.boq_id, bill_id: o.bill_id || null, item_id: o.item_id || null, kind: o.kind, field: o.field || null,
+        value: o.value === undefined ? null : clean({ v: o.value }).v ?? null, pos: o.pos ?? null, client: BQL.tab };
+      bqlLocal(row);
+      const { error } = await sb.from('boq_ops').insert(row);
+      if (error) { await bqlRefetch(o.boq_id); throw mapErr(error); }
+    },
+    join(boqId, h) {
+      this.leave();
+      BQL.ch = sb.channel('boqp:' + boqId, { config: { presence: { key: BQL.tab } } })
+        .on('presence', { event: 'sync' }, () => { try { const st = BQL.ch.presenceState(); h.presence && h.presence(Object.entries(st).filter(([k]) => k !== BQL.tab).map(([, v]) => v[v.length - 1] || {})); } catch (e) { console.warn(e); } })
+        .subscribe(async status => { if (status === 'SUBSCRIBED' && BQL.state) { try { await BQL.ch.track(BQL.state); } catch (_) {} } });
+    },
+    track(state) { BQL.state = state; if (BQL.ch) BQL.ch.track(state).catch(() => {}); },
+    leave() { if (BQL.ch) { try { BQL.ch.untrack(); sb.removeChannel(BQL.ch); } catch (_) {} } BQL.ch = null; },
+    async msgs(boqId) { const { data, error } = await sb.from('boq_msgs').select('*').eq('boq_id', boqId).order('id', { ascending: true }).limit(500); if (error) throw mapErr(error); return data || []; },
+    async send(m) { const { data, error } = await sb.from('boq_msgs').insert(m).select().single(); if (error) throw mapErr(error); return data; },
+    async editMsg(id, patch) { const { error } = await sb.from('boq_msgs').update(patch).eq('id', id); if (error) throw mapErr(error); },
+    async history(boqId, n) { const { data, error } = await sb.from('boq_ops').select('*').eq('boq_id', boqId).neq('kind', 'reload').order('id', { ascending: false }).limit(n || 300); if (error) throw mapErr(error); return data || []; },
+    async mentions(uidMe, since) { const { data, error } = await sb.from('boq_msgs').select('*').contains('mentions', [uidMe]).gte('at', since).eq('deleted', false).order('id', { ascending: false }).limit(30); if (error) throw mapErr(error); return data || []; }
+  };
 
   const db = {
     collection(col) {
@@ -295,7 +357,7 @@
 
   /* ================= sign-in screens ================= */
   const css = `
-  .nxa{position:fixed;inset:0;z-index:200;background:#182340;display:grid;place-items:center;padding:16px;font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif;color:#182340}
+  .nxa{position:fixed;inset:0;z-index:200;background:#182340;display:grid;place-items:center;align-items:safe center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif;color:#182340}
   .nxa .box{background:#FAFBFC;border-radius:10px;width:min(400px,100%);padding:26px 24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
   .nxa .hz{height:8px;margin:-26px -24px 8px;border-radius:10px 10px 0 0;background:repeating-linear-gradient(-45deg,#F2A900 0 12px,#182340 12px 24px)}
   .nxa h1{font:700 30px/1 "Barlow Condensed",Arial,sans-serif;letter-spacing:.04em;margin:0;text-transform:uppercase}
