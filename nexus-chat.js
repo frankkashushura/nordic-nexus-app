@@ -1,17 +1,30 @@
-/* NORDIC NEXUS · private staff chat (1-to-1). Text, photos, documents, voice notes, video.
-   Only the two people in a conversation can read it (database rules in 11_chat.sql). */
+/* NORDIC NEXUS · staff chat – private 1-to-1 chats and groups (v221). Text, photos, documents, voice notes, video,
+   voice & video calls (NEXUS calls), last seen. Only the people in a conversation can read it (11_chat.sql, 55_chat_groups.sql). */
 (function () {
   'use strict';
   const sb = window.NX_SB; if (!sb) return;
   const MAX = 25 * 1024 * 1024, PAGE = 100;
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const say = m => (window.toast ? window.toast(m) : alert(m));
-  const st = { slow: 0, me: null, people: new Map(), threads: [], unread: {}, mst: {}, cur: null, msgs: {}, more: {}, urls: {}, root: null, q: '', rec: null, ready: false, err: '' };
+  const st = { slow: 0, gm: {}, meHide: false, me: null, people: new Map(), threads: [], unread: {}, mst: {}, cur: null, msgs: {}, more: {}, urls: {}, root: null, q: '', rec: null, ready: false, err: '' };
   window.NX_CHAT_UNREAD = 0; window.NX_CHAT_ALERTS = [];
 
   /* ---------- helpers ---------- */
   const other = t => (t.a === st.me ? t.b : t.a);
   const pName = id => st.people.get(id)?.name || 'Former user';
+  const isG = t => !!(t && t.is_group);
+  const thr = id => st.threads.find(x => x.id === id);
+  const tName = t => isG(t) ? (t.name || 'Group') : pName(other(t));
+  const nm = id => id === st.me ? 'You' : pName(id);
+  const gMembers = tid => (st.gm[tid] || []).filter(m => !m.left_at);
+  const myMem = tid => (st.gm[tid] || []).find(m => m.user_id === st.me && !m.left_at);
+  const amAdmin = tid => !!(myMem(tid) && myMem(tid).admin);
+  const ts = iso => iso ? Date.parse(iso) : 0;
+  // "last seen today at 14:05" (like WhatsApp); '' when hidden / unknown
+  function seenTxt(u) { if (st.online && st.online.has(u)) return 'online'; const p = st.people.get(u); const iso = p && p.last_seen; if (!iso) return '';
+    const d = new Date(iso), ago = Date.now() - d; if (ago < 90e3) return 'online';
+    const t = new Date(), y = new Date(Date.now() - 864e5), at = ' at ' + hhmm(iso);
+    return 'last seen ' + (d.toDateString() === t.toDateString() ? 'today' + at : d.toDateString() === y.toDateString() ? 'yesterday' + at : ago < 6 * 864e5 ? d.toLocaleDateString('en-GB', { weekday: 'long' }) + at : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })); }
   const initials = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
   const hhmm = iso => new Date(iso).toTimeString().slice(0, 5);
   const dayLabel = iso => { const d = new Date(iso), t = new Date(); const y = new Date(Date.now() - 864e5);
@@ -26,22 +39,31 @@
     o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.26); } catch (_) {} }
 
   /* ---------- data ---------- */
-  async function loadPeople() { const { data, error } = await sb.rpc('chat_people'); if (error) throw error; st.people = new Map((data || []).map(p => [p.user_id, p])); }
-  async function loadThreads() { const { data, error } = await sb.from('chat_threads').select('*').order('last_at', { ascending: false }); if (error) throw error; st.threads = data || []; }
+  async function loadPeople() { let r = await sb.rpc('chat_people2'); if (r.error) r = await sb.rpc('chat_people'); if (r.error) throw r.error;
+    st.people = new Map((r.data || []).map(p => [p.user_id, p])); if ((r.data || []).length) st.meHide = !!r.data[0].me_hide; }
+  async function loadThreads() { const { data, error } = await sb.from('chat_threads').select('*').order('last_at', { ascending: false }); if (error) throw error; st.threads = data || []; await loadMembers().catch(() => {}); }
+  // group members (with each one's "read up to" / "received up to" time for the ✓✓ ticks)
+  async function loadMembers(ids) { ids = ids || st.threads.filter(isG).map(t => t.id); if (!ids.length) return;
+    const { data, error } = await sb.from('chat_members').select('*').in('thread_id', ids); if (error) return;
+    const g = {}; (data || []).forEach(r => (g[r.thread_id] = g[r.thread_id] || []).push(r)); ids.forEach(id => { st.gm[id] = g[id] || []; }); }
+  let gdT = 0; function groupDelivered() { if (document.visibilityState !== 'visible' || !st.threads.some(isG) || Date.now() - gdT < 3000) return; gdT = Date.now(); sb.rpc('chat_delivered_all').then(() => {}, () => {}); }
+  let seenT = 0; function seen(force) { if (!force && (document.visibilityState !== 'visible' || Date.now() - seenT < 50e3)) return; seenT = Date.now(); sb.rpc('chat_seen').then(() => {}, () => {}); }
   async function loadUnread() {
-    const { data } = await sb.from('chat_messages').select('thread_id').is('read_at', null).neq('sender', st.me).eq('deleted', false).limit(2000);
-    st.unread = {}; (data || []).forEach(r => { st.unread[r.thread_id] = (st.unread[r.thread_id] || 0) + 1; });
+    const r = await sb.rpc('chat_unread'); st.unread = {};
+    if (!r.error) (r.data || []).forEach(x => { st.unread[x.thread_id] = x.n; });
+    else { const { data } = await sb.from('chat_messages').select('thread_id').is('read_at', null).neq('sender', st.me).eq('deleted', false).limit(2000);
+      (data || []).forEach(x => { st.unread[x.thread_id] = (st.unread[x.thread_id] || 0) + 1; }); }
     await markDelivered(); await loadMine(); badge();
   }
   // ticks like WhatsApp: ✓ sent · ✓✓ grey delivered (the other person's NEXUS received it) · ✓✓ blue read
   // "delivered" only while this person is really using NEXUS (app on screen) – a hidden/background tab does not count
   async function markDelivered(id) {
-    if (document.visibilityState !== 'visible') return;
+    if (document.visibilityState !== 'visible') return; groupDelivered();
     try { let q = sb.from('chat_messages').update({ delivered_at: new Date().toISOString() }).neq('sender', st.me).is('delivered_at', null); if (id) q = q.eq('id', id); await q; } catch (_) {}
   }
   async function loadMine() {
     try { const { data, error } = await sb.from('chat_messages').select('thread_id,delivered_at').eq('sender', st.me).is('read_at', null).eq('deleted', false).limit(2000); if (error) return;
-      const m = {}; (data || []).forEach(r => { if (!r.delivered_at) m[r.thread_id] = 'sent'; else if (!m[r.thread_id]) m[r.thread_id] = 'delivered'; }); st.mst = m; } catch (_) {}
+      const m = {}; (data || []).filter(r => !isG(thr(r.thread_id))).forEach(r => { if (!r.delivered_at) m[r.thread_id] = 'sent'; else if (!m[r.thread_id]) m[r.thread_id] = 'delivered'; }); st.mst = m; } catch (_) {}
   }
   let mineT = null; function refreshMine() { clearTimeout(mineT); mineT = setTimeout(async () => { await loadMine(); if (st.root) renderList(); }, 400); }
   const listTick = t => { const s = st.mst[t.id]; return s === 'sent' ? `<span style="color:var(--wa-sub)" title="Sent">${IC.t1}</span> ` : s === 'delivered' ? `<span style="color:var(--wa-sub)" title="Delivered">${IC.t2}</span> ` : `<span class="rd" style="color:var(--wa-tick)" title="Read">${IC.t2}</span> `; };
@@ -55,6 +77,10 @@
   }
   async function markRead(tid) {
     const list = st.msgs[tid] || [];
+    if (isG(thr(tid))) { const me = myMem(tid), last = list.filter(m => m.sender !== st.me && !m.tmp).slice(-1)[0];
+      if (!st.unread[tid] && (!last || (me && ts(me.read_at) >= ts(last.created_at)))) return;
+      st.unread[tid] = 0; badge(); const now = new Date().toISOString(); if (me) { me.read_at = now; me.delivered_at = now; }
+      await sb.rpc('chat_group_read', { t: tid }); return; }
     const pending = st.unread[tid] || list.some(m => m.sender !== st.me && !m.read_at && !m.tmp);
     if (!pending) return;
     st.unread[tid] = 0; badge();
@@ -74,15 +100,19 @@
           if (i < 0) { const t = list.findIndex(x => x.tmp && x.sender === m.sender && x.kind === m.kind && (x.body || '') === (m.body || '')); if (t >= 0) list.splice(t, 1); list.push(m); changed = true; }
           else if (list[i].read_at !== m.read_at || list[i].delivered_at !== m.delivered_at || list[i].deleted !== m.deleted) { list[i] = m; changed = true; if (m.sender === st.me) refreshMine(); }
         }
+        if (isG(thr(tid))) { const before = JSON.stringify(st.gm[tid]); await loadMembers([tid]).catch(() => {}); if (JSON.stringify(st.gm[tid]) !== before) { changed = true; headStatus(); } }
         if (changed) { list.sort((a, b) => a.created_at.localeCompare(b.created_at)); renderMsgs(false); }
         if (list.some(m => m.sender !== st.me && !m.read_at)) markRead(tid).catch(() => {});
-      } else if (++st.slow % 4 === 0) { await loadThreads(); await loadUnread(); }
+      }
+      if (++st.slow % 4 === 0) { await loadThreads(); await loadUnread(); if (st.cur && !thr(st.cur)) { say('You are no longer in this group.'); closeConv(); } else renderList(); }
+      if (st.slow % 15 === 0 && visible()) { await loadPeople().catch(() => {}); headStatus(); }
+      seen();
     } catch (_) {}
   }
   function badge() {
     const n = Object.values(st.unread).reduce((a, b) => a + b, 0);
     window.NX_CHAT_UNREAD = n;
-    window.NX_CHAT_ALERTS = st.threads.filter(t => st.unread[t.id]).map(t => ({ id: t.id, from: pName(other(t)), n: st.unread[t.id], text: t.last_text || '', at: t.last_at }));
+    window.NX_CHAT_ALERTS = st.threads.filter(t => st.unread[t.id]).map(t => ({ id: t.id, from: tName(t), n: st.unread[t.id], text: t.last_text || '', at: t.last_at }));
     try { window.renderNav && window.renderNav(); } catch (_) {}
     if (st.root) renderList();
   }
@@ -91,21 +121,25 @@
     sb.channel('nx-chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, p => onNew(p.new))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, p => onUpd(p.new))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, async () => { await loadThreads().catch(() => {}); badge(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, async () => { await loadThreads().catch(() => {}); badge(); if (st.cur && isG(thr(st.cur))) { renderConv(); } })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_members' }, p => onMem(p.new && p.new.thread_id ? p.new : p.old))
       .subscribe();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') markDelivered(); if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
+    document.addEventListener('visibilitychange', () => { seen(true); if (document.visibilityState === 'visible') markDelivered(); if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
   }
+  let memT = {}; function onMem(r) { if (!r || !r.thread_id) return; clearTimeout(memT[r.thread_id]); memT[r.thread_id] = setTimeout(async () => {
+      if (!thr(r.thread_id) || r.user_id === st.me) { await loadThreads().catch(() => {}); await loadUnread().catch(() => {}); } else await loadMembers([r.thread_id]).catch(() => {});
+      renderList(); if (st.cur === r.thread_id) { headStatus(); renderMsgs(false); } }, 300); }
   async function onNew(m) {
     let t = st.threads.find(x => x.id === m.thread_id);
     if (!t) { await loadThreads().catch(() => {}); await loadPeople().catch(() => {}); t = st.threads.find(x => x.id === m.thread_id); }
     const list = st.msgs[m.thread_id];
     if (list && !list.some(x => x.id === m.id)) { const tmp = list.findIndex(x => x.tmp && x.sender === m.sender && x.body === m.body && x.kind === m.kind); if (tmp >= 0) list.splice(tmp, 1); list.push(m); }
-    if (t) { t.last_at = m.created_at; t.last_from = m.sender; t.last_text = preview(m); st.threads.sort((a, b) => b.last_at.localeCompare(a.last_at)); }
+    if (t) { t.last_at = m.created_at; t.last_from = m.sender; t.last_text = preview(m); t.last_sys = !!m.sys; st.threads.sort((a, b) => b.last_at.localeCompare(a.last_at)); }
     if (m.sender === st.me) { if (!m.read_at) st.mst[m.thread_id] = m.delivered_at ? 'delivered' : 'sent'; }
     if (m.sender !== st.me) {
-      if (!m.delivered_at) markDelivered(m.id);
+      if (isG(t)) groupDelivered(); else if (!m.delivered_at) markDelivered(m.id);
       if (st.cur === m.thread_id && visible()) markRead(m.thread_id).catch(() => {});
-      else { st.unread[m.thread_id] = (st.unread[m.thread_id] || 0) + 1; beep(); if ((window.NX_ROUTE && window.NX_ROUTE()) !== 'chat' || st.cur !== m.thread_id) say(`💬 ${pName(m.sender)}: ${preview(m)}`); }
+      else { st.unread[m.thread_id] = (st.unread[m.thread_id] || 0) + 1; beep(); if ((window.NX_ROUTE && window.NX_ROUTE()) !== 'chat' || st.cur !== m.thread_id) say(isG(t) ? `💬 ${t.name}: ${m.sys ? '' : pName(m.sender) + ': '}${preview(m)}` : `💬 ${pName(m.sender)}: ${preview(m)}`); }
     }
     badge(); if (st.cur === m.thread_id) renderMsgs(true);
   }
@@ -167,7 +201,7 @@
   function closeMenu() { document.querySelectorAll('.nxc-back-drop').forEach(x => x.remove()); }
   function sheet(html, anchor) {
     closeMenu();
-    const bd = document.createElement('div'); bd.className = 'nxc-back-drop'; bd.innerHTML = `<div class="nxc-menu">${html}</div>`;
+    const bd = document.createElement('div'); bd.className = 'nxc-back-drop'; bd.innerHTML = `<div class="nxc-menu${anchor === 'wide' ? ' wide' : ''}">${html}</div>`; if (anchor === 'wide') anchor = null;
     bd.addEventListener('click', e => { if (e.target === bd) closeMenu(); });
     st.root.append(bd); const m = bd.firstChild;
     if (anchor && !mobile() && anchor.getBoundingClientRect().width) { const r = anchor.getBoundingClientRect(), W = m.offsetWidth, H = m.offsetHeight;
@@ -175,13 +209,14 @@
     return m;
   }
   function openMenu(id, anchor) {
-    const m = findMsg(id); if (!m || m.tmp) return;
+    const m = findMsg(id); if (!m || m.tmp || m.sys) return;
     const mine = (m.reactions || {})[st.me];
     const items = [];
     if (!m.deleted) items.push(['reply', '↩️', 'Reply']);
     if (!m.deleted && m.kind === 'text' && m.body) items.push(['copy', '📋', 'Copy']);
     if (!m.deleted && !m.uploading) items.push(['forward', '↪️', 'Forward']);
     if (canEdit(m)) items.push(['edit', '✏️', 'Edit']);
+    if (isG(thr(st.cur)) && m.sender === st.me && !m.deleted) items.push(['minfo', 'ℹ️', 'Info']);
     items.push(['delask', '🗑️', 'Delete']);
     sheet(`${m.deleted ? '' : `<div class="nxc-emo">${EMO.map(e => `<button data-c="react" data-v="${m.id}" data-e="${e}" class="${mine === e ? 'on' : ''}">${e}</button>`).join('')}</div>`}
       ${items.map(([a, i, t]) => `<button class="nxc-mi ${a === 'delask' ? 'bad' : ''}" data-c="${a}" data-v="${m.id}"><span>${i}</span>${t}</button>`).join('')}`, anchor);
@@ -234,9 +269,9 @@
   }
   function forwardPick(id) {
     const m = findMsg(id); if (!m) return; st.fwd = { id, to: new Set() };
-    const ppl = [...st.people.values()];
+    const ppl = [...st.people.values()], grps = st.threads.filter(isG);
     sheet(`<div class="nxc-mh">Forward message to… <span class="nxc-sub">(up to 5)</span></div>
-      <div class="nxc-fl">${ppl.map(p => `<label class="nxc-fp"><input type="checkbox" data-fwto="${p.user_id}">${av(p.name).replace('nxc-av', 'nxc-av sm')}<span>${esc(p.name)}<br><small>${esc(p.job || '')}</small></span></label>`).join('') || '<div class="nxc-mh">No colleagues yet.</div>'}</div>
+      <div class="nxc-fl">${grps.map(t => `<label class="nxc-fp"><input type="checkbox" data-fwto="g:${t.id}">${gav(t.name)}<span>${esc(t.name)}<br><small>Group</small></span></label>`).join('')}${ppl.map(p => `<label class="nxc-fp"><input type="checkbox" data-fwto="${p.user_id}">${av(p.name).replace('nxc-av', 'nxc-av sm')}<span>${esc(p.name)}<br><small>${esc(p.job || '')}</small></span></label>`).join('') || '<div class="nxc-mh">No colleagues yet.</div>'}</div>
       <div style="display:flex;justify-content:flex-end;padding:8px"><button class="nxc-round" data-c="fwdsend" title="Forward">${IC.send}</button></div>`)
       .addEventListener('change', e => { const u = e.target.dataset.fwto; if (!u) return; if (e.target.checked) { if (st.fwd.to.size >= 5) { e.target.checked = false; say('You can forward to up to 5 people at a time.'); return; } st.fwd.to.add(u); } else st.fwd.to.delete(u); });
   }
@@ -245,7 +280,7 @@
     closeMenu(); let n = 0;
     for (const u of f.to) {
       try {
-        const { data: tid, error } = await sb.rpc('chat_open', { other: u }); if (error) throw error;
+        let tid = u.startsWith('g:') ? u.slice(2) : null; if (!tid) { const r = await sb.rpc('chat_open', { other: u }); if (r.error) throw r.error; tid = r.data; }
         const row = { thread_id: tid, kind: m.kind, fwd: true, body: m.kind === 'text' ? m.body : null };
         if (m.file_path) { const dst = `${tid}/${uuid()}-${String(m.file_name || m.kind).replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80)}`;
           const cp = await sb.storage.from('chat').copy(m.file_path, dst); if (cp.error) throw cp.error;
@@ -270,14 +305,18 @@
   function typingChannel(tid) {
     try { if (st.tch) sb.removeChannel(st.tch); } catch (_) {}
     st.typing = 0;
-    st.tch = sb.channel('nx-typing-' + tid).on('broadcast', { event: 'typing' }, p => { if (p.payload && p.payload.u !== st.me) { st.typing = Date.now(); headStatus(); setTimeout(headStatus, 3200); } }).subscribe();
+    st.tch = sb.channel('nx-typing-' + tid).on('broadcast', { event: 'typing' }, p => { if (p.payload && p.payload.u !== st.me) { st.typing = Date.now(); st.typingU = p.payload.u; headStatus(); setTimeout(headStatus, 3200); } }).subscribe();
   }
   function sendTyping() { if (!st.tch || Date.now() - (st.lastType || 0) < 2000) return; st.lastType = Date.now(); try { st.tch.send({ type: 'broadcast', event: 'typing', payload: { u: st.me } }); } catch (_) {} }
   function headStatus() {
     const el = st.root && st.root.querySelector('.nxc-st'); const t = st.threads.find(x => x.id === st.cur); if (!el || !t) return;
-    const o = other(t), p = st.people.get(o) || {};
-    if (Date.now() - (st.typing || 0) < 3000) { el.textContent = 'typing…'; el.classList.add('live'); }
-    else if (st.online && st.online.has(o)) { el.textContent = 'online'; el.classList.add('live'); }
+    const typing = Date.now() - (st.typing || 0) < 3000;
+    if (isG(t)) { if (typing) { el.textContent = `${pName(st.typingU).split(' ')[0]} is typing…`; el.classList.add('live'); return; }
+      el.textContent = gMembers(t.id).map(m => m.user_id === st.me ? 'You' : pName(m.user_id).split(' ')[0]).sort((a, b) => (a === 'You') - (b === 'You') || a.localeCompare(b)).join(', ') || 'Group'; el.classList.remove('live'); return; }
+    const o = other(t), p = st.people.get(o) || {}, sn = seenTxt(o);
+    if (typing) { el.textContent = 'typing…'; el.classList.add('live'); }
+    else if (sn === 'online') { el.textContent = 'online'; el.classList.add('live'); }
+    else if (sn) { el.textContent = sn; el.classList.remove('live'); }
     else { el.textContent = `${p.job || (p.role === 'admin' ? 'Administrator' : 'Staff')} · 🔒 private chat`; el.classList.remove('live'); }
   }
 
@@ -323,10 +362,18 @@
     doc: '<svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zm4 18H6V4h7v5h5z"/></svg>',
     t1: '<svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.1.7L4.7 7.1 2 4.4.9 5.5l3.8 3.8L12.2 1.8z"/></svg>',
     t2: '<svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.1.7L4.7 7.1 2 4.4.9 5.5l3.8 3.8L12.2 1.8zM15 1.8l-1.1-1.1-6.4 6.4-.6-.6-1.1 1.1 1.7 1.7z"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>',
+    video: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>',
+    group: '<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M16 11a3 3 0 100-6 3 3 0 000 6zm-8 0a3 3 0 100-6 3 3 0 000 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 1.9 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z"/></svg>',
+    newg: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M15 12a4 4 0 10-4-4 4 4 0 004 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 7a2 2 0 100-4 2 2 0 000 4zm0 2a2 2 0 100 4 2 2 0 000-4zm0 8a2 2 0 100 4 2 2 0 000-4z"/></svg>',
+    next: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 4l-1.4 1.4 5.6 5.6H4v2h12.2l-5.6 5.6L12 20l8-8z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
     clock: '<svg viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 11.7A5.2 5.2 0 118 2.8a5.2 5.2 0 010 10.4zM8.6 4.5H7.4v4l3.4 2 .6-1-2.8-1.7z"/></svg>'
   };
   const hue = s => { let h = 0; for (const c of String(s || '')) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
   const av = (name, big) => `<div class="nxc-av${big ? ' big' : ''}" style="background:hsl(${hue(name)},42%,52%)">${esc(initials(name))}</div>`;
+  const gav = (name, big) => `<div class="nxc-av ${big ? 'big' : 'sm'} grp" style="background:hsl(${hue(name)},30%,46%)">${IC.group}</div>`;
   const mobile = () => window.matchMedia && window.matchMedia('(max-width:760px)').matches;
 
   const CSS = `
@@ -401,6 +448,19 @@
   .nxc-emo button{font-size:24px;border:0;background:none;cursor:pointer;border-radius:50%;width:40px;height:40px;transition:transform .1s} .nxc-emo button:hover{transform:scale(1.2)} .nxc-emo button.on{background:var(--wa-panel2)}
   .nxc-fl{max-height:50vh;overflow:auto} .nxc-fp{display:flex;align-items:center;gap:12px;padding:8px 16px;cursor:pointer;font-size:15px} .nxc-fp:hover{background:var(--wa-hover)} .nxc-fp small{color:var(--wa-sub)} .nxc-fp input{width:18px;height:18px;accent-color:var(--wa-green)}
   .nxc-st.live{opacity:1;font-weight:500}
+  .nxc-lh{gap:4px} .nxc-lh .t{flex:1} .nxc-hb{background:none;border:0;color:#fff;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0} .nxc-hb:hover{background:rgba(255,255,255,.12)}
+  .nxc-who{cursor:pointer}
+  .nxc-sys{align-self:center;font-size:12.5px;color:var(--wa-sub);background:var(--wa-day);border-radius:8px;padding:5px 12px;margin:6px 0;box-shadow:0 1px .5px rgba(0,0,0,.13);text-align:center;max-width:85%}
+  .nxc-snm{font-size:12.8px;font-weight:600;margin:0 0 1px}
+  .nxc-av.grp svg{width:58%;height:58%} .nxc-av.big{width:96px;height:96px;font-size:34px}
+  .nxc-in{width:100%;box-sizing:border-box;border:0;border-bottom:2px solid var(--wa-green);background:transparent;color:var(--wa-ink);font:16px var(--f-body);padding:8px 2px;outline:0}
+  textarea.nxc-in{resize:vertical;min-height:54px;font-size:14.5px}
+  .nxc-mf{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px}
+  .nxc-gi{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 16px 10px;text-align:center} .nxc-gn{font-size:20px;font-weight:600;margin-top:6px} .nxc-ab{font-size:13.5px;color:var(--wa-ink);margin-top:6px;white-space:pre-wrap}
+  .nxc-gb{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;justify-content:center} .nxc-gb button{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--wa-line);background:none;color:var(--wa-green);border-radius:10px;padding:10px 14px;min-width:68px;cursor:pointer;font-size:13px} .nxc-gb button span{color:var(--wa-ink)}
+  .nxc-adm{font-size:11.5px;color:var(--wa-green);border:1px solid var(--wa-green);border-radius:6px;padding:1px 6px;flex:none}
+  .nxc-menu.wide{min-width:min(400px,94vw);max-width:420px;max-height:88vh;overflow:auto}
+  .nxc-tk.rd{color:var(--wa-tick)}
   @media (max-width:760px){.nxc-back-drop{background:rgba(0,0,0,.35);display:flex;align-items:flex-end} .nxc-menu{width:100%;max-width:none;border-radius:16px 16px 0 0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))} .nxc-mi{padding:14px 22px;font-size:16px}}
   @media (max-width:760px){
     .nxchat{grid-template-columns:1fr;height:calc(100vh - 190px);height:calc(100dvh - 190px);border-radius:8px}
@@ -414,7 +474,7 @@
     if (st.root) return;
     const s = document.createElement('style'); s.textContent = CSS; document.head.append(s);
     st.root = document.createElement('div'); st.root.className = 'nxchat';
-    st.root.innerHTML = `<div class="nxc-l"><div class="nxc-lh">Chats</div><div class="nxc-sb"><label>${IC.search}<input id="nxcSearch" placeholder="Search or start a new chat" autocomplete="off"></label></div><div class="nxc-items"></div></div>
+    st.root.innerHTML = `<div class="nxc-l"><div class="nxc-lh"><span class="t">Chats</span><button class="nxc-hb" data-c="newgroup" title="New group">${IC.newg}</button><button class="nxc-hb" data-c="listmenu" title="More">${IC.more}</button></div><div class="nxc-sb"><label>${IC.search}<input id="nxcSearch" placeholder="Search or start a new chat" autocomplete="off"></label></div><div class="nxc-items"></div></div>
       <div class="nxc-c"><div class="nxc-ch"></div><div class="nxc-m"></div><div class="nxc-k"></div></div>
       <input type="file" id="nxcFile" hidden multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.dwg,.dxf">
       <input type="file" id="nxcCam" hidden accept="image/*" capture="environment">`;
@@ -462,7 +522,87 @@
     else if (a === 'menuclose') closeMenu();
     else if (a === 'ctxclose') { st.reply = st.edit = null; const t = st.root.querySelector('#nxcText'); const keep = t ? t.value : ''; renderComposer(); }
     else if (a === 'jump') jump(v);
+    else if (a === 'vcall' || a === 'vidcall') callChat(a === 'vidcall' ? 'video' : 'audio');
+    else if (a === 'info') { if (isG(thr(st.cur))) groupInfo(); else contactInfo(); }
+    else if (a === 'newgroup') { st.ng = { sel: new Set(), q: '' }; newGroup(1); }
+    else if (a === 'ng1') newGroup(1); else if (a === 'ng2') newGroup(2); else if (a === 'ngcreate') createGroup();
+    else if (a === 'listmenu') sheet(`<button class="nxc-mi" data-c="newgroup"><span>👥</span>New group</button><button class="nxc-mi" data-c="seenset"><span>👁️</span>Last seen: ${st.meHide ? 'hidden (nobody)' : 'shown to colleagues'}</button>`, b);
+    else if (a === 'seenset') seenSetting();
+    else if (a === 'seenhide' || a === 'seenshow') { closeMenu(); const { error } = await sb.rpc('chat_seen_hide', { h: a === 'seenhide' }); if (error) return say(error.message); st.meHide = a === 'seenhide'; await loadPeople().catch(() => {}); headStatus(); say(st.meHide ? 'Your last seen is hidden. You also will not see other people\'s.' : 'Your last seen is visible to colleagues.'); }
+    else if (a === 'grename') groupEdit(); else if (a === 'gsave') groupSave();
+    else if (a === 'gadd') { st.ng = { sel: new Set(), q: '', add: st.cur }; newGroup(1); } else if (a === 'gaddgo') groupAddGo();
+    else if (a === 'gmem') memberMenu(v); else if (a === 'gdm') { closeMenu(); try { const { data, error } = await sb.rpc('chat_open', { other: v }); if (error) throw error; await loadThreads(); openThread(data); } catch (er) { say(er.message || er); } }
+    else if (a === 'gadmin' || a === 'gunadmin') { closeMenu(); const { error } = await sb.rpc('chat_group_admin', { t: st.cur, u: v, make: a === 'gadmin' }); if (error) return say(error.message); await loadMembers([st.cur]); groupInfo(); }
+    else if (a === 'gremove') { closeMenu(); const ok = window.confirmBox ? await window.confirmBox(`Remove ${pName(v)} from the group?`, 'Remove', true) : confirm('Remove?'); if (!ok) return; const { error } = await sb.rpc('chat_group_remove', { t: st.cur, u: v }); if (error) return say(error.message); await loadMembers([st.cur]); headStatus(); }
+    else if (a === 'gleave') { closeMenu(); const ok = window.confirmBox ? await window.confirmBox(`Exit the group "${tName(thr(st.cur))}"? You will no longer see its messages.`, 'Exit group', true) : confirm('Exit group?'); if (!ok) return;
+      const { error } = await sb.rpc('chat_group_remove', { t: st.cur, u: st.me }); if (error) return say(error.message); const tid = st.cur; closeConv(); st.threads = st.threads.filter(t => t.id !== tid); await loadThreads().catch(() => {}); renderList(); say('You left the group.'); }
+    else if (a === 'minfo') msgInfo(v);
   }
+
+  /* ---------- groups ---------- */
+  function newGroup(step) {
+    const g = st.ng || (st.ng = { sel: new Set(), q: '' }); const inG = g.add ? new Set(gMembers(g.add).map(m => m.user_id)) : new Set();
+    if (step !== 2) {
+      const ppl = [...st.people.values()].filter(p => !inG.has(p.user_id) && (!g.q || (p.name || '').toLowerCase().includes(g.q) || (p.job || '').toLowerCase().includes(g.q)));
+      const m = sheet(`<div class="nxc-mh">${g.add ? 'Add people to the group' : 'New group · choose members'} <span class="nxc-sub nxc-cnt">${g.sel.size} selected</span></div>
+        <div style="padding:0 16px 6px"><input class="nxc-in" id="nxcGq" placeholder="Search name…" value="${esc(g.q)}" autocomplete="off"></div>
+        <div class="nxc-fl">${ppl.map(p => `<label class="nxc-fp"><input type="checkbox" data-gsel="${p.user_id}" ${g.sel.has(p.user_id) ? 'checked' : ''}>${av(p.name).replace('nxc-av', 'nxc-av sm')}<span>${esc(p.name)}<br><small>${esc(p.job || '')}</small></span></label>`).join('') || '<div class="nxc-mh" style="font-weight:400">Nobody found.</div>'}</div>
+        <div class="nxc-mf"><button class="nxc-mi" data-c="menuclose" style="width:auto">Cancel</button><button class="nxc-round" data-c="${g.add ? 'gaddgo' : 'ng2'}" title="${g.add ? 'Add' : 'Next'}">${g.add ? IC.check : IC.next}</button></div>`, 'wide');
+      m.addEventListener('change', e => { const u = e.target.dataset.gsel; if (!u) return; e.target.checked ? g.sel.add(u) : g.sel.delete(u); m.querySelector('.nxc-cnt').textContent = g.sel.size + ' selected'; });
+      const q = m.querySelector('#nxcGq'); q.addEventListener('input', () => { g.q = q.value.toLowerCase(); newGroup(1); const q2 = st.root.querySelector('#nxcGq'); if (q2) { q2.focus(); q2.selectionStart = q2.selectionEnd = q2.value.length; } });
+      return; }
+    if (!g.sel.size) return say('Choose at least one colleague.');
+    sheet(`<div class="nxc-gi">${gav(g.name || 'Group', true)}</div><div style="padding:0 18px"><input class="nxc-in" id="nxcGn" maxlength="80" placeholder="Group name (e.g. Moshi site team)" value="${esc(g.name || '')}"></div>
+      <div class="nxc-mh" style="font-weight:400">${g.sel.size} member${g.sel.size > 1 ? 's' : ''} + you: ${esc([...g.sel].map(pName).join(', '))}</div>
+      <div class="nxc-mf"><button class="nxc-mi" data-c="ng1" style="width:auto">← Back</button><button class="nxc-round" data-c="ngcreate" title="Create group">${IC.check}</button></div>`, 'wide');
+    setTimeout(() => { const i = st.root.querySelector('#nxcGn'); if (i) { i.focus(); i.addEventListener('input', () => { g.name = i.value; }); i.addEventListener('keydown', e => { if (e.key === 'Enter') createGroup(); }); } }, 30);
+  }
+  async function createGroup() { const g = st.ng, n = (st.root.querySelector('#nxcGn')?.value || '').trim(); if (!g) return; if (!n) return say('Type a name for the group.');
+    const { data, error } = await sb.rpc('chat_group_create', { p_name: n, p_members: [...g.sel] }); if (error) return say(error.message);
+    closeMenu(); st.ng = null; await loadThreads(); renderList(); openThread(data); say(`Group "${n}" created.`); }
+  async function groupAddGo() { const g = st.ng; if (!g || !g.sel.size) return say('Choose at least one colleague.');
+    const { data, error } = await sb.rpc('chat_group_add', { t: g.add, p_users: [...g.sel] }); if (error) return say(error.message);
+    closeMenu(); st.ng = null; await loadMembers([st.cur]); headStatus(); say(`${data || 0} added to the group.`); }
+  function groupInfo() { const t = thr(st.cur); if (!isG(t)) return contactInfo(); const adm = amAdmin(t.id);
+    const ms = gMembers(t.id).sort((a, b) => (b.user_id === st.me) - (a.user_id === st.me) || b.admin - a.admin || nm(a.user_id).localeCompare(nm(b.user_id)));
+    sheet(`<div class="nxc-gi">${gav(t.name, true)}<div class="nxc-gn">${esc(t.name)}</div><div class="nxc-sub">Group · ${ms.length} member${ms.length > 1 ? 's' : ''}</div>${t.about ? `<div class="nxc-ab">${esc(t.about)}</div>` : ''}
+      <div class="nxc-gb"><button data-c="vcall">${IC.phone}<span>Voice</span></button><button data-c="vidcall">${IC.video}<span>Video</span></button>${adm ? `<button data-c="gadd">${IC.newg}<span>Add</span></button><button data-c="grename">✏️<span>Edit</span></button>` : ''}</div></div>
+      <div class="nxc-mh">${ms.length} members${adm ? ' <span class="nxc-sub">· tap a person for options</span>' : ''}</div>
+      <div class="nxc-fl">${ms.map(x => `<div class="nxc-fp" ${x.user_id !== st.me ? `data-c="gmem" data-v="${x.user_id}"` : ''}>${av(nm(x.user_id)).replace('nxc-av', 'nxc-av sm')}<span style="flex:1;min-width:0">${esc(nm(x.user_id))}<br><small>${esc(x.user_id === st.me ? (st.people.size ? '' : '') : (seenTxt(x.user_id) || st.people.get(x.user_id)?.job || ''))}</small></span>${x.admin ? '<span class="nxc-adm">Group admin</span>' : ''}</div>`).join('')}</div>
+      <button class="nxc-mi bad" data-c="gleave"><span>🚪</span>Exit group</button>`, 'wide'); }
+  function memberMenu(u) { const t = thr(st.cur); if (!t) return; const x = gMembers(t.id).find(m => m.user_id === u); if (!x) return; const adm = amAdmin(t.id);
+    sheet(`<div class="nxc-mh">${esc(pName(u))}</div><button class="nxc-mi" data-c="gdm" data-v="${u}"><span>💬</span>Message ${esc(pName(u).split(' ')[0])}</button>
+      ${adm ? (x.admin ? `<button class="nxc-mi" data-c="gunadmin" data-v="${u}"><span>⬇️</span>Dismiss as admin</button>` : `<button class="nxc-mi" data-c="gadmin" data-v="${u}"><span>⭐</span>Make group admin</button>`) + `<button class="nxc-mi bad" data-c="gremove" data-v="${u}"><span>🚫</span>Remove from group</button>` : ''}
+      <button class="nxc-mi" data-c="menuclose"><span>✕</span>Close</button>`); }
+  function groupEdit() { const t = thr(st.cur); if (!t) return;
+    sheet(`<div class="nxc-mh">Edit group</div><div style="padding:0 18px 8px"><input class="nxc-in" id="nxcGe" maxlength="80" value="${esc(t.name || '')}" placeholder="Group name"><br><br><textarea class="nxc-in" id="nxcGa" maxlength="500" placeholder="Description (optional)">${esc(t.about || '')}</textarea></div>
+      <div class="nxc-mf"><button class="nxc-mi" data-c="menuclose" style="width:auto">Cancel</button><button class="nxc-round" data-c="gsave" title="Save">${IC.check}</button></div>`, 'wide'); }
+  async function groupSave() { const n = st.root.querySelector('#nxcGe')?.value.trim(), ab = st.root.querySelector('#nxcGa')?.value || '';
+    const { error } = await sb.rpc('chat_group_info', { t: st.cur, p_name: n, p_about: ab }); if (error) return say(error.message);
+    closeMenu(); const t = thr(st.cur); if (t) { t.name = n; t.about = ab; } renderConv(); renderList(); }
+  function contactInfo() { const t = thr(st.cur); if (!t || isG(t)) return; const o = other(t), p = st.people.get(o) || {};
+    sheet(`<div class="nxc-gi">${av(pName(o), true)}<div class="nxc-gn">${esc(pName(o))}</div><div class="nxc-sub">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))}</div><div class="nxc-sub">${esc(seenTxt(o) || '')}</div>
+      <div class="nxc-gb"><button data-c="vcall">${IC.phone}<span>Voice</span></button><button data-c="vidcall">${IC.video}<span>Video</span></button></div>
+      <div class="nxc-sub" style="margin-top:12px">🔒 Only the two of you can read this chat – not even administrators.</div></div>`, 'wide'); }
+  function msgInfo(id) { const m = findMsg(id); closeMenu(); if (!m) return; const t0 = ts(m.created_at);
+    const ms = gMembers(st.cur).filter(x => x.user_id !== st.me && ts(x.added_at) <= t0 + 2000);
+    const rd = ms.filter(x => ts(x.read_at) >= t0), dl = ms.filter(x => ts(x.read_at) < t0 && ts(x.delivered_at) >= t0), no = ms.filter(x => ts(x.delivered_at) < t0 && ts(x.read_at) < t0);
+    const row = (x, w) => `<div class="nxc-fp">${av(pName(x.user_id)).replace('nxc-av', 'nxc-av sm')}<span style="flex:1">${esc(pName(x.user_id))}<br><small>${w ? esc(dayLabel(w) + ' ' + hhmm(w)) : ''}</small></span></div>`;
+    sheet(`<div class="nxc-mh">Message info</div><div class="nxc-mh" style="color:var(--wa-tick)">${IC.t2} Read by ${rd.length}</div>${rd.map(x => row(x, x.read_at)).join('')}
+      <div class="nxc-mh">${IC.t2} Delivered to ${dl.length}</div>${dl.map(x => row(x, x.delivered_at)).join('')}${no.length ? `<div class="nxc-mh">${IC.t1} Not received yet (${no.length})</div>${no.map(x => row(x)).join('')}` : ''}`, 'wide'); }
+  function seenSetting() { sheet(`<div class="nxc-mh">Who can see my last seen</div>
+      <button class="nxc-mi" data-c="seenshow"><span>${st.meHide ? '' : '✔️'}</span>My colleagues</button><button class="nxc-mi" data-c="seenhide"><span>${st.meHide ? '✔️' : ''}</span>Nobody</button>
+      <div class="nxc-mh" style="font-weight:400">If you hide yours, you won't see other people's last seen either. "online" is still shown while you have NEXUS open.</div>`, 'wide'); }
+  /* ---------- voice / video call (NEXUS calls) ---------- */
+  function callChat(kind) { closeMenu(); const t = thr(st.cur); if (!t) return; if (!window.NX_CALL) return say('Calls are available in the online NEXUS.');
+    const uids = isG(t) ? gMembers(t.id).map(m => m.user_id).filter(u => u !== st.me) : [other(t)]; if (!uids.length) return say('Nobody else is in this group.');
+    const ctx = { chat: t.id, title: isG(t) ? t.name : 'NEXUS chat' };
+    if (uids.length > 7) return window.NX_CALL.pick(ctx, uids);
+    window.NX_CALL.start(ctx, uids, kind); }
+  // the caller's NEXUS writes the call into the chat when it ends ("📞 Voice call · 2:10" / "📞 Missed voice call")
+  window.NX_CHAT_CALLLOG = async (tid, kind, ms) => { try { const v = kind === 'video' ? 'video' : 'voice', s = Math.round(ms / 1000);
+    const body = ms > 0 ? `📞 ${v[0].toUpperCase() + v.slice(1)} call · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : `📞 Missed ${v} call`;
+    const { data } = await sb.from('chat_messages').insert({ thread_id: tid, kind: 'text', body }).select().single(); if (data && st.msgs[tid] && !st.msgs[tid].some(x => x.id === data.id)) { st.msgs[tid].push(data); if (st.cur === tid) renderMsgs(true); } } catch (_) {} };
   async function openThread(tid) {
     const was = st.cur; st.cur = tid; st.root.classList.add('conv'); document.body.classList.add('nx-chatconv'); st.stick = true; st.reply = st.edit = null; typingChannel(tid);
     if (mobile() && !was && !st.pushed) { history.pushState(Object.assign({}, history.state, { nxchat: 1 }), ''); st.pushed = true; }
@@ -474,19 +614,21 @@
   function renderList() {
     if (!st.root) return; const box = st.root.querySelector('.nxc-items'), q = st.q;
     const withThread = new Set(st.threads.map(other));
-    const th = st.threads.filter(t => !q || pName(other(t)).toLowerCase().includes(q));
+    const th = st.threads.filter(t => !q || tName(t).toLowerCase().includes(q));
     const ppl = [...st.people.values()].filter(p => !withThread.has(p.user_id) && (!q || (p.name || '').toLowerCase().includes(q) || (p.job || '').toLowerCase().includes(q)));
-    box.innerHTML = th.map(t => { const o = other(t), u = st.unread[t.id] || 0, mine = t.last_from === st.me;
-      return `<div class="nxc-it ${st.cur === t.id ? 'on' : ''}" data-c="open" data-v="${t.id}">${av(pName(o))}<div class="g"><div class="r1"><span class="n">${esc(pName(o))}</span><span class="t ${u ? 'u' : ''}">${listTime(t.last_text ? t.last_at : '')}</span></div><div class="r2"><span class="p">${mine && t.last_text ? listTick(t) : ''}${esc(t.last_text || 'Tap to start chatting')}</span>${u ? `<span class="nxc-u">${u}</span>` : ''}</div></div></div>`; }).join('')
+    box.innerHTML = th.map(t => { const g = isG(t), u = st.unread[t.id] || 0, mine = t.last_from === st.me, n = tName(t);
+      const pre = g && t.last_text && !t.last_sys && t.last_from && !String(t.last_text).startsWith(pName(t.last_from)) ? (mine ? 'You: ' : pName(t.last_from).split(' ')[0] + ': ') : '';
+      return `<div class="nxc-it ${st.cur === t.id ? 'on' : ''}" data-c="open" data-v="${t.id}">${g ? gav(n).replace(' sm', '') : av(n)}<div class="g"><div class="r1"><span class="n">${esc(n)}</span><span class="t ${u ? 'u' : ''}">${listTime(t.last_text ? t.last_at : '')}</span></div><div class="r2"><span class="p">${mine && !g && t.last_text ? listTick(t) : ''}${esc(pre + (t.last_text || (g ? 'Group created' : 'Tap to start chatting')))}</span>${u ? `<span class="nxc-u">${u}</span>` : ''}</div></div></div>`; }).join('')
       + (ppl.length ? `<div class="nxc-sec">Start a new chat</div>` + ppl.map(p => `<div class="nxc-it" data-c="person" data-v="${p.user_id}">${av(p.name)}<div class="g"><div class="r1"><span class="n">${esc(p.name)}</span></div><div class="r2"><span class="p">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))}</span></div></div></div>`).join('') : '')
       || `<div class="nxc-empty">${q ? 'Nobody matches your search.' : 'No other NEXUS users yet. Colleagues appear here once they sign up and an administrator approves them.'}</div>`;
   }
   function renderConv() {
     if (!st.root) return; const h = st.root.querySelector('.nxc-ch');
     const t = st.threads.find(x => x.id === st.cur);
-    if (!t) { h.innerHTML = ''; h.style.visibility = 'hidden'; st.root.querySelector('.nxc-m').innerHTML = `<div class="nxc-empty"><div style="font-size:54px;line-height:1">💬</div><b>NEXUS Chat</b><br>Choose a colleague to start chatting.<br>Only the two of you can read your messages – not even administrators. Send text, photos, documents, voice notes and videos (up to 25 MB).</div>`; st.root.querySelector('.nxc-k').innerHTML = ''; return; }
-    h.style.visibility = ''; const p = st.people.get(other(t)) || {};
-    h.innerHTML = `<button class="nxc-back" data-c="back" aria-label="Back to chats">${IC.back}</button>${av(pName(other(t))).replace('nxc-av', 'nxc-av sm')}<div class="nxc-who"><div class="nxc-nm">${esc(pName(other(t)))}</div><div class="nxc-st">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))} · 🔒 private chat</div></div>`;
+    if (!t) { h.innerHTML = ''; h.style.visibility = 'hidden'; st.root.querySelector('.nxc-m').innerHTML = `<div class="nxc-empty"><div style="font-size:54px;line-height:1">💬</div><b>NEXUS Chat</b><br>Choose a colleague or a group to start chatting – or 👥 to make a new group.<br>Only the people in a chat can read it – not even administrators. Send text, photos, documents, voice notes and videos (up to 25 MB), and make voice or video calls.</div>`; st.root.querySelector('.nxc-k').innerHTML = ''; return; }
+    h.style.visibility = ''; const p = st.people.get(other(t)) || {}, g = isG(t);
+    h.innerHTML = `<button class="nxc-back" data-c="back" aria-label="Back to chats">${IC.back}</button>${g ? gav(t.name) : av(pName(other(t))).replace('nxc-av', 'nxc-av sm')}<div class="nxc-who" data-c="info" title="${g ? 'Group info' : 'Contact info'}"><div class="nxc-nm">${esc(tName(t))}</div><div class="nxc-st">${g ? '' : esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff')) + ' · 🔒 private chat'}</div></div>
+      ${window.NX_CALL ? `<button class="nxc-hb" data-c="vidcall" title="Video call" aria-label="Video call">${IC.video}</button><button class="nxc-hb" data-c="vcall" title="Voice call" aria-label="Voice call">${IC.phone}</button>` : ''}<button class="nxc-hb" data-c="info" title="${g ? 'Group info' : 'Contact info'}" aria-label="More">${IC.more}</button>`;
     renderComposer(); headStatus();
   }
   function renderComposer() {
@@ -508,16 +650,22 @@
       default: return linkify(m.body || '');
     }
   }
+  // group ticks: ✓ sent · ✓✓ grey everyone received · ✓✓ blue everyone read
+  function gTick(m) { const t0 = ts(m.created_at), ms = gMembers(st.cur).filter(x => x.user_id !== st.me && ts(x.added_at) <= t0 + 2000);
+    if (!ms.length) return 'sent'; if (ms.every(x => ts(x.read_at) >= t0)) return 'read'; if (ms.every(x => Math.max(ts(x.delivered_at), ts(x.read_at)) >= t0)) return 'delivered'; return 'sent'; }
   function renderMsgs(toBottom) {
     if (!st.root || !st.cur) return; const box = st.root.querySelector('.nxc-m'), list = st.msgs[st.cur];
     if (!list) { box.innerHTML = '<div class="nxc-empty">Loading…</div>'; return; }
     const prevH = box.scrollHeight, prevT = box.scrollTop; let day = '', prev = null, html = st.more[st.cur] ? `<button class="nxc-older" data-c="older">Load earlier messages</button>` : '';
+    const grp = isG(thr(st.cur));
     for (const m of list.filter(vis)) { const d = dayLabel(m.created_at); let tail = !prev || prev.sender !== m.sender; if (d !== day) { day = d; tail = true; html += `<div class="nxc-day">${d}</div>`; }
+      if (m.sys) { html += `<div class="nxc-sys">${esc(m.body || '')}</div>`; prev = null; continue; }
       const mine = m.sender === st.me, media = !m.deleted && !m.uploading && (m.kind === 'image' || m.kind === 'video');
-      const tick = mine ? (m.failed ? ' <span style="color:#ea0038">not sent</span>' : m.tmp ? ' ' + IC.clock : m.read_at ? ` <span class="rd" title="Read">${IC.t2}</span>` : m.delivered_at ? ` <span title="Delivered">${IC.t2}</span>` : ` <span title="Sent">${IC.t1}</span>`) : '';
+      const gs = mine && grp && !m.tmp && !m.failed ? gTick(m) : '';
+      const tick = mine ? (m.failed ? ' <span style="color:#ea0038">not sent</span>' : m.tmp ? ' ' + IC.clock : gs ? (gs === 'read' ? ` <span class="rd" title="Read by everyone">${IC.t2}</span>` : gs === 'delivered' ? ` <span title="Delivered to everyone">${IC.t2}</span>` : ` <span title="Sent">${IC.t1}</span>`) : m.read_at ? ` <span class="rd" title="Read">${IC.t2}</span>` : m.delivered_at ? ` <span title="Delivered">${IC.t2}</span>` : ` <span title="Sent">${IC.t1}</span>`) : '';
       const q = m.reply_to ? (list.find(x => x.id === m.reply_to) || null) : null;
       const rx = Object.values(m.reactions || {}); const rxs = [...new Set(rx)];
-      html += `<div class="nxc-b ${mine ? 'me' : ''} ${tail ? 'tail' : ''} ${media ? 'media' : ''} ${rx.length ? 'hasrx' : ''}" data-id="${m.id}">${!m.tmp ? `<button class="nxc-mn" data-c="menu" data-v="${m.id}" title="Message options"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M3.3 4.6L9 10.3l5.7-5.7 1.6 1.6L9 13.4 1.7 6.2z"/></svg></button>` : ''}${m.fwd && !m.deleted ? '<div class="nxc-fw">↪ Forwarded</div>' : ''}${m.reply_to && !m.deleted ? `<div class="nxc-q" data-c="jump" data-v="${m.reply_to}"><b>${esc(q ? (q.sender === st.me ? 'You' : pName(q.sender)) : 'Reply')}</b><span>${esc(snippet(q))}</span></div>` : ''}${body(m)}<span class="meta">${m.edited_at && !m.deleted ? '<i>Edited</i> ' : ''}${hhmm(m.created_at)}${tick}</span>${rx.length ? `<div class="nxc-rx" data-c="menu" data-v="${m.id}">${rxs.join('')}${rx.length > 1 ? ' ' + rx.length : ''}</div>` : ''}</div>`; prev = m; }
+      html += `<div class="nxc-b ${mine ? 'me' : ''} ${tail ? 'tail' : ''} ${media ? 'media' : ''} ${rx.length ? 'hasrx' : ''}" data-id="${m.id}">${!m.tmp ? `<button class="nxc-mn" data-c="menu" data-v="${m.id}" title="Message options"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M3.3 4.6L9 10.3l5.7-5.7 1.6 1.6L9 13.4 1.7 6.2z"/></svg></button>` : ''}${grp && !mine && tail ? `<div class="nxc-snm" style="color:hsl(${hue(pName(m.sender))},55%,40%)">${esc(pName(m.sender))}</div>` : ''}${m.fwd && !m.deleted ? '<div class="nxc-fw">↪ Forwarded</div>' : ''}${m.reply_to && !m.deleted ? `<div class="nxc-q" data-c="jump" data-v="${m.reply_to}"><b>${esc(q ? (q.sender === st.me ? 'You' : pName(q.sender)) : 'Reply')}</b><span>${esc(snippet(q))}</span></div>` : ''}${body(m)}<span class="meta">${m.edited_at && !m.deleted ? '<i>Edited</i> ' : ''}${hhmm(m.created_at)}${tick}</span>${rx.length ? `<div class="nxc-rx" data-c="menu" data-v="${m.id}">${rxs.join('')}${rx.length > 1 ? ' ' + rx.length : ''}</div>` : ''}</div>`; prev = m; }
     box.innerHTML = html || '<div class="nxc-empty">No messages yet – say hello 👋</div>';
     if (toBottom || st.stick !== false) box.scrollTop = box.scrollHeight; else box.scrollTop = prevT + (box.scrollHeight - prevH);
     fillMedia().catch(() => {});
@@ -540,7 +688,7 @@
       const { data } = await sb.auth.getSession(); const s = data && data.session;
       if (!s) { setTimeout(() => init(tries), 4000); return; }
       st.me = s.user.id; await loadPeople(); await loadThreads(); await loadUnread(); subscribe();
-      st.ready = true; st.err = ''; setInterval(poll, 4000); presence(); build(); renderList(); renderConv(); st.rendered = true;
+      st.ready = true; st.err = ''; setInterval(poll, 4000); presence(); seen(true); build(); renderList(); renderConv(); st.rendered = true;
       if ((window.NX_ROUTE && window.NX_ROUTE()) === 'chat') { const h = document.getElementById('chatHost'); if (h) window.NX_CHAT_MOUNT(h); }
     } catch (e) { st.err = e.message || String(e); if (tries < 20) setTimeout(() => init(tries + 1), 6000); }
   }
