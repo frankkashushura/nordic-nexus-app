@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="563b7b0f3434">
+<meta name="nexus-build" content="01b3822301dc">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1772,17 +1772,19 @@ function rpDownloadForm(){
 function boqTotals(b){ const bills=(b.bills||[]).map(bl=>({name:bl.name,total:(bl.items||[]).reduce((a,i)=>a+(+i.qty||0)*(+i.rate||0),0)})); const sub=bills.reduce((a,x)=>a+x.total,0); const cont=sub*((+b.contingency||0)/100); const vat=(sub+cont)*((+b.vat??18)/100); return {bills,sub,cont,vat,grand:sub+cont+vat}; }
 function pageQs(){
   if(routeArg) return boqEditor(byId('boqs',routeArg));
-  return `<div class="toolbar"><div class="seg">${[['boqs','Bills of Quantities'],['rates','Rate library']].map(([k,l])=>`<button data-qtab="${k}" aria-pressed="${UI.qtab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${UI.qtab==='boqs'?`${canWrite?'<button class="btn" data-bx="imp" title="Import a BoQ from this computer or from files saved in NEXUS">📥 Import BoQ</button><button class="btn" data-bx="gen">AI BoQ from tender documents</button>':''}<button class="btn pri" data-act="newBoq">New BoQ</button>`:''}</div>
+  return `<div class="toolbar"><div class="seg">${[['boqs','Bills of Quantities'],['past',`Past BoQs${pbCount()?' ('+pbCount()+')':''}`],['rates','Rate library']].map(([k,l])=>`<button data-qtab="${k}" aria-pressed="${UI.qtab===k}">${l}</button>`).join('')}</div><div class="sp"></div>
+    ${UI.qtab==='past'&&canWrite?'<button class="btn pri" data-bx="pbimp" title="Add BoQs priced before (Excel, Word, PDF, scans, photos) to the Past BoQs library">📥 Import past BoQs</button>':''}${UI.qtab==='boqs'?`${canWrite?'<button class="btn" data-bx="imp" title="Import a BoQ from this computer or from files saved in NEXUS">📥 Import BoQ</button><button class="btn" data-bx="gen">AI BoQ from tender documents</button>':''}<button class="btn pri" data-act="newBoq">New BoQ</button>`:''}</div>
   ${UI.qtab==='boqs'?`<div class="card"><div class="tbl-wrap"><table><thead><tr><th>BoQ</th><th>For</th><th class="r">Items</th><th class="r">Priced</th><th class="r">Grand total</th><th class="hide-m">Updated</th></tr></thead><tbody>
-    ${S.boqs.map(b=>{const t=boqTotals(b);return `<tr class="click" data-boq="${esc(b.id)}"><td><div class="ttl2">${esc(b.title)}</div>${b.owner?`<div class="sub" style="font-size:11.5px">by ${esc(b.owner)}${b.owner_uid&&b.owner_uid===me.id?' (you)':''}</div>`:''}</td><td class="small">${esc(b.tender_id?('Tender: '+(byId('tenders',b.tender_id)?.title||'')):b.project_id?projName(b.project_id):'—')}</td><td class="r num">${(b.bills||[]).reduce((a,x)=>a+(x.items||[]).length,0)}</td><td class="r num">${(()=>{ const q=bqStats(b); return q.n?`${q.pct}%`:'—'; })()}${b.gen?' <span class="chip blue" title="Built by NEXUS AI from tender documents">AI</span>':''}</td><td class="r num">${tzs(t.grand)}</td><td class="hide-m sub">${fmtD(b.updated_at)} ${esc(b.updated_by||'')}</td></tr>`}).join('')||'<tr><td colspan="6"><div class="empty">No BoQs yet. Press <b>AI BoQ from tender documents</b>, start one from a tender, or press New BoQ.</div></td></tr>'}</tbody></table></div></div>`
-  :rtPage()}`;
+    ${S.boqs.filter(b=>!b.past).map(b=>{const t=boqTotals(b);return `<tr class="click" data-boq="${esc(b.id)}"><td><div class="ttl2">${esc(b.title)}</div>${b.owner?`<div class="sub" style="font-size:11.5px">by ${esc(b.owner)}${b.owner_uid&&b.owner_uid===me.id?' (you)':''}</div>`:''}</td><td class="small">${esc(b.tender_id?('Tender: '+(byId('tenders',b.tender_id)?.title||'')):b.project_id?projName(b.project_id):'—')}</td><td class="r num">${(b.bills||[]).reduce((a,x)=>a+(x.items||[]).length,0)}</td><td class="r num">${(()=>{ const q=bqStats(b); return q.n?`${q.pct}%`:'—'; })()}${b.gen?' <span class="chip blue" title="Built by NEXUS AI from tender documents">AI</span>':''}</td><td class="r num">${tzs(t.grand)}</td><td class="hide-m sub">${fmtD(b.updated_at)} ${esc(b.updated_by||'')}</td></tr>`}).join('')||'<tr><td colspan="6"><div class="empty">No BoQs yet. Press <b>AI BoQ from tender documents</b>, start one from a tender, or press New BoQ.</div></td></tr>'}</tbody></table></div></div>`
+  :UI.qtab==='past'?pbPage():rtPage()}`;
 }
 function boqEditor(b){
   if(!b) return '<div class="empty">This BoQ no longer exists. <button class="btn" data-go="qs">Back to QS Studio</button></div>';
   const t=boqTotals(b);
-  return `<div class="toolbar"><button class="btn" data-go="qs">← All BoQs</button><div class="seg">${[['edit','Edit items'],['price','Price (QS)']].map(([k,l])=>`<button data-bx="mode" data-v="${k}" aria-pressed="${(UI.bqmode||'edit')===k}">${l}</button>`).join('')}</div><div class="sp"></div>
+  if(b.past) UI.qtab='past'; else if(UI.qtab==='past') UI.qtab='boqs';
+  return `<div class="toolbar"><button class="btn" data-go="qs">← ${b.past?'Past BoQs':'All BoQs'}</button><div class="seg">${[['edit','Edit items'],['price','Price (QS)']].map(([k,l])=>`<button data-bx="mode" data-v="${k}" aria-pressed="${(UI.bqmode||'edit')===k}">${l}</button>`).join('')}</div><div class="sp"></div>
     <button class="btn" data-act="applyRates">Apply library rates</button>${canWrite&&UI.bqmode!=='price'?`<button class="btn" data-rt="impboq" data-rtboq="${esc(b.id)}">Save rates to library</button>`:''}<button class="btn pri" data-ox="xedit" ${b.layout&&!bqXlOnly(b)?'title="Opens the original Excel file you imported – same sheets, columns and arrangement – with the current BoQ in it"':''}>📗 ${bqXlOnly(b)?'Open my bills in Excel':b.layout?'Open in Excel (original layout)':'Open in Excel'}</button><button class="btn" data-ox="xopen" title="Download a real .xlsx for use outside NEXUS">⬇ .xlsx</button><label class="btn" style="cursor:pointer">⤴ Update from Excel<input type="file" accept=".xlsx,.xlsm,.xls" hidden data-oxup=""></label>${b.before_excel?'<button class="btn sm" data-ox="xundo">Undo Excel update</button>':''}${isAdmin||(canWrite&&b.owner_uid&&b.owner_uid===me.id)?'<button class="btn danger" data-act="delBoq" title="You can delete BoQs you created or imported">Delete</button>':''}</div>
+  ${b.past?pbBanner(b):canWrite?`<div class="toolbar" style="gap:6px;flex-wrap:wrap"><button class="btn" data-bx="pbcopy" title="Copy whole parts (bills) from a related past BoQ">🗂 Copy from past BoQs</button>${pbHi(b)?`<button class="btn sm pri" data-bx="pbuseall">Use ${pbHi(b)} high-confidence past BoQ rates</button>`:''}<div class="sp"></div><button class="btn sm ghost" data-bx="pbmark" title="Keep this BoQ as a reference – AI uses its rates and parts for new BoQs">🗄 Move to Past BoQs</button></div>`:''}
   <div class="card"><div class="bd"><div class="form">
     <div class="fld full"><label for="bq_title">BoQ title</label><input class="inp" id="bq_title" data-bq="title" value="${esc(b.title)}"></div>
     <div class="fld"><label for="bq_proj">Project</label><select class="inp" id="bq_proj" data-bq="project_id">${projOpts().map(([v,l])=>`<option value="${esc(v)}" ${v===(b.project_id||'')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -2073,6 +2075,7 @@ function bqSrcChip(it){
   if(it.rate===''||it.rate==null) return '<span class="chip bad">Unpriced</span>';
   const p=it.p||{};
   if(p.s==='lib') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Library: '+(p.src||'')+(p.date?' · '+p.date:' · no price date')+(p.reg?' · '+p.reg:'')+(p.ai?' · matched by AI: '+(p.why||'')+(p.factor&&p.factor!==1?' (× '+p.factor+')':''):''))}">Library${p.ai?' · AI':''}${p.old?' · old':''}</span>`;
+  if(p.s==='past') return `<span class="chip ${p.old?'amb':'good'}" title="${esc('Past BoQ: '+(p.src||'')+(p.bill?' · '+p.bill:'')+(p.date?' · '+p.date:'')+(p.reg?' · '+p.reg:'')+(p.ai?' · matched by AI: '+(p.why||'')+(p.factor&&p.factor!==1?' (× '+p.factor+')':''):''))}">Past BoQ${p.ai?' · AI':''}${p.old?' · old':''}</span>`;
   if(p.s==='web') return `<span class="chip amb" title="${esc('Market range from web '+rtFmt(p.low)+' – '+rtFmt(p.high)+' ('+(p.n||0)+' sources, '+(p.at||'')+'): '+(p.basis||''))}">Market (web)</span>`;
   if(p.s==='ai') return `<span class="chip amb" title="${esc('AI estimate – check. Basis: '+(p.basis||''))}">AI estimate</span>`;
   if(p.s==='man') return `<span class="chip blue" title="${esc('Rate entered by '+(p.by||'QS')+(p.at?' on '+p.at:''))}">QS rate</span>`;
@@ -2130,7 +2133,7 @@ async function bqAIUseAll(){ const b=curBoq(); if(!b) return; let n=0; (b.bills|
   if(!n) return toast('No unpriced item has a high-confidence AI match.'); await patch('boqs',b.id,{bills:b.bills}); logAct(`Used ${n} high-confidence AI library matches`); toast(`${n} rates filled from AI library matches.`); }
 async function bqMktUse(bi,ii,which){ const b=curBoq(); const it=b?.bills?.[bi]?.items?.[ii]; const m=it?.mkt; if(!m||m.none) return; const v=which==='low'?m.low:which==='high'?m.high:m.typ; if(!v) return;
   it.rate=Math.round(v); it.p={s:'web',low:m.low,high:m.high,typ:m.typ,pick:which||'typical',basis:String(m.basis||'').slice(0,200),src:(m.src||[])[0]?.u||'',n:(m.src||[]).length,at:today()}; await patch('boqs',b.id,{bills:b.bills}); }
-function bqSugHtml(it,bi,ii){ let h=''; const a=it.aim, m=it.mkt, un=it.rate===''||it.rate==null;
+function bqSugHtml(it,bi,ii){ let h=pbSugHtml(it,bi,ii); const a=it.aim, m=it.mkt, un=it.rate===''||it.rate==null;
   if(a&&!a.none) h+=`<div class="bq-sug ai"><div><span class="chip ${a.conf==='high'?'good':a.conf==='medium'?'amb':'bad'}" style="font-size:10px">✨ AI match · ${esc(a.conf)}</span> <span class="num">${rtFmt(a.rate)}</span></div><div class="sub" style="font-size:11px" title="${esc(a.why||'')}">${esc(a.lib)}${a.factor&&a.factor!==1?` × ${a.factor}`:''} · ${esc(a.reg||'')} ${esc(a.date||'no date')}${a.old?' · old':''}</div>${canWrite&&Math.round(+a.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="aiuse" data-i="${bi}.${ii}">Use</button>`:''}</div>`;
   else if(a?.none&&un) h+=`<div class="sub" style="font-size:11px" title="${esc(a.why||'')}">✨ AI: no same work in library</div>`;
   if(m&&!m.none) h+=`<div class="bq-sug web"><div><span class="chip blue" style="font-size:10px">🌐 Market · ${esc(m.conf||'')}</span></div><div class="num" style="font-size:12.5px">${rtFmt(m.low)} – ${rtFmt(m.high)} <span class="sub">/${esc(m.unit||it.unit||'')}</span></div>
@@ -2147,11 +2150,11 @@ function bqPriceView(b){
   const head=`<div class="card"><div class="bd">
     <div class="toolbar small"><b>Priced ${s.priced} of ${s.n} items</b><span class="sub">· region ${esc(reg)}</span><div class="sp"></div><span class="num">${s.pct}%</span></div><div class="bar"><i style="width:${s.pct}%"></i></div>
     <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;gap:6px"><span class="chip good">Library ${s.lib}</span><span class="chip amb">AI estimate ${s.ai}</span><span class="chip blue">QS rate ${s.man}</span><span class="chip bad">Unpriced ${s.n-s.priced}</span>${s.noqty?`<span class="chip">${s.noqty} without quantity</span>`:''}</div>
-    <p class="sub" style="margin:8px 0 0">Type your current rate in <b>Your rate</b> – it is marked <b>QS rate</b>. <b>Library</b> shows the best matching library rate for this region (tap <b>Use</b> to take it). <b>✨ AI match</b> finds library rates for the same work written in different words. <b>🌐 Market</b> gives a price range from Tanzanian web sources – always open the sources and judge before using. <b>AI estimate</b> rates were proposed from similar library rates and must be checked.</p>
-    ${UI.bqRun?`<div class="bq-run"><span class="spin sm"></span> ${UI.bqRun.k==='ai'?'AI is comparing unpriced items with the Rate library':'Searching Tanzanian web sources for prices'}… ${UI.bqRun.done} of ${UI.bqRun.n} items${UI.bqRun.found?` · ${UI.bqRun.found} found`:''}</div>`:''}
+    <p class="sub" style="margin:8px 0 0">Type your current rate in <b>Your rate</b> – it is marked <b>QS rate</b>. <b>Library</b> shows the best matching library rate for this region (tap <b>Use</b> to take it). <b>✨ AI match</b> finds library rates for the same work written in different words. <b>🗂 Past BoQ</b> finds the same work priced in the company's past BoQs. <b>🌐 Market</b> gives a price range from Tanzanian web sources – always open the sources and judge before using. <b>AI estimate</b> rates were proposed from similar library rates and must be checked.</p>
+    ${UI.bqRun?`<div class="bq-run"><span class="spin sm"></span> ${UI.bqRun.k==='ai'?'AI is comparing unpriced items with the Rate library':UI.bqRun.k==='past'?'AI is comparing unpriced items with past BoQs':'Searching Tanzanian web sources for prices'}… ${UI.bqRun.done} of ${UI.bqRun.n} items${UI.bqRun.found?` · ${UI.bqRun.found} found`:''}</div>`:''}
     ${(()=>{ let hi=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.aim&&!it.aim.none&&it.aim.conf==='high') hi++; })); return hi&&canWrite&&!UI.bqRun?`<div class="bq-run"><b>${hi}</b> unpriced item${hi===1?' has':'s have'} a high-confidence AI library match. <button class="btn sm pri" data-bx="aiuseall">Use all ${hi}</button></div>`:''; })()}</div></div>
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><div class="seg" style="flex-wrap:wrap">${segs.map(([k,l])=>`<button data-bx="filter" data-v="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${canWrite?`<button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="aimatch" ${UI.bqRun?'disabled':''} title="AI compares the unpriced items with the Rate library and finds rates for the same work written differently">✨ AI match from library</button><button class="btn" data-bx="web" ${UI.bqRun?'disabled':''} title="Price ranges for the remaining unpriced items from Tanzanian web sources">🌐 Market rates (web)</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
+    ${canWrite?`<button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="pbmatch" ${UI.bqRun?'disabled':''} title="AI finds the same work in the company's past BoQs and proposes their rates">🗂 AI match from past BoQs</button><button class="btn" data-bx="aimatch" ${UI.bqRun?'disabled':''} title="AI compares the unpriced items with the Rate library and finds rates for the same work written differently">✨ AI match from library</button><button class="btn" data-bx="web" ${UI.bqRun?'disabled':''} title="Price ranges for the remaining unpriced items from Tanzanian web sources">🌐 Market rates (web)</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
   const bills=(b.bills||[]).map((bl,bi)=>{ const rows=(bl.items||[]).map((it,ii)=>({it,ii})).filter(x=>keep(x.it)); if(!rows.length) return '';
     return `<div class="card" data-bid="${esc(bqId(bl,bi))}"><div class="hd"><span class="label mono">Bill ${bi+1}</span><h2 style="font-size:16px">${esc(bl.name||'')}</h2><div class="sp"></div><span class="num">${tzs(boqTotals(b).bills[bi].total)}</span></div><div class="tbl-wrap"><table><thead><tr><th style="width:52px">Item</th><th>Description</th><th style="width:56px">Unit</th><th class="r" style="width:80px">Qty</th><th class="r" style="width:230px">Library / AI / market</th><th class="r" style="width:130px">Your rate</th><th class="r" style="width:130px">Amount</th><th style="width:96px">Source</th></tr></thead><tbody>
       ${rows.map(({it,ii})=>{ const m=matchRate(it.desc,it.unit,reg); const sug0=m?`<span class="num">${rtFmt(m.rate)}</span>${rtCheck(m)?' <span class="chip amb" style="font-size:10px">old</span>':''}<div class="sub" style="font-size:11px">${esc((m.region||'')+' · '+(m.price_date||'no date'))}</div>${canWrite&&Math.round(+m.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="use" data-i="${bi}.${ii}" style="margin-top:3px">Use</button>`:''}`:'<span class="sub">no match</span>', sug=sug0+bqSugHtml(it,bi,ii);
@@ -2176,9 +2179,22 @@ async function bqSaveLib(){ const b=curBoq(); const reg=rtBoqRegion(b), date=tod
 function o_date_needs(ex,date){ return (ex.price_date||'')!==date; }
 
 /* ---------- generator: read tender documents → bills and items → price ---------- */
-function bgOpen(tid,mode){ const T=tid?byId('tenders',tid):null; $('#overlay').innerHTML=''; const imp=mode==='import';
-  openDrawer('bqgen',null,{form:false,g:{mode:imp?'import':'gen',tender:T?T.id:'',project:'',title:T?'BoQ – '+T.title:'',region:T?rtRegionOf(T.location||''):'General',docs:!imp&&T?(T.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})):[],uploads:[],aiRates:!imp,keepRates:imp,libRates:true,copy:null,step:'setup',log:[],res:null}}); }
+function bgOpen(tid,mode){ const T=tid?byId('tenders',tid):null; $('#overlay').innerHTML=''; const pst=mode==='past', imp=mode==='import'||pst;
+  openDrawer('bqgen',null,{form:false,g:{mode:imp?'import':'gen',past:pst?{client:'',location:'',year:String(new Date().getFullYear()),outcome:'Reference only',note:''}:null,tender:T?T.id:'',project:'',title:T?'BoQ – '+T.title:'',region:T?rtRegionOf(T.location||''):'General',docs:!imp&&T?(T.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})):[],uploads:[],aiRates:!imp,keepRates:imp,libRates:!pst,copy:null,step:'setup',log:[],res:null}}); }
 function bgTenderDocs(T){ return (T?.files||[]).map((f,i)=>({i,name:f.name,url:f.url,on:true})); }
+function bgImpFields(g,pOpts,tOpts){ return `<div class="fld"><label>Project</label><select class="inp" data-bgf="project">${pOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.project?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+      <div class="fld"><label>Tender</label><select class="inp" data-bgf="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(v?l:'— not linked to a tender —')}</option>`).join('')}</select></div>
+      <div class="fld"><label>Region for rates</label><select class="inp" data-bgf="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="fld full bgi-opts"><label class="small"><input type="checkbox" data-bgf="keepRates" ${g.keepRates?'checked':''}> <span><b>Keep the rates in the file</b> – a priced BoQ stays priced (marked <b>From file</b>)</span></label>
+        <label class="small"><input type="checkbox" data-bgf="libRates" ${g.libRates?'checked':''}> <span><b>Fill empty rates from the Rate library</b> (${esc(g.region||'General')} first, newest prices)</span></label>
+        <label class="small"><input type="checkbox" data-bgf="aiRates" ${g.aiRates?'checked':''}> <span><b>Let NEXUS AI propose the rest</b> from similar library rates (marked <b>AI estimate</b>)</span></label></div></div>`; }
+function bgPastFields(g){ const p=g.past; return `<div class="fld"><label>Client</label><input class="inp" data-bgp="client" value="${esc(p.client)}" placeholder="e.g. TANROADS, CRDB Bank"></div>
+      <div class="fld"><label>Location</label><input class="inp" data-bgp="location" value="${esc(p.location)}" placeholder="e.g. Moshi"></div>
+      <div class="fld"><label>Year priced</label><input class="inp num" type="number" data-bgp="year" value="${esc(p.year)}"></div>
+      <div class="fld"><label>Outcome</label><select class="inp" data-bgp="outcome">${PB_OUT.map(o=>`<option ${o===p.outcome?'selected':''}>${esc(o)}</option>`).join('')}</select></div>
+      <div class="fld"><label>Region</label><select class="inp" data-bgf="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="fld full"><label>Note (optional)</label><input class="inp" data-bgp="note" value="${esc(p.note)}" placeholder="e.g. lowest bidder, rates checked by QS"></div>
+      <div class="fld full sub">The BoQ is kept as in the file, with its rates (marked <b>From file</b>), in <b>Past BoQs</b> – out of the working list. AI then uses it when you fill new BoQs. One BoQ per import.</div></div>`; }
 function bgDrawer(){
   const g=drawer.g, T=g.tender?byId('tenders',g.tender):null, busy=g.step==='working';
   const tOpts=[['','— no tender (upload files only) —'],...[...S.tenders].sort((a,b)=>(b.deadline||'').localeCompare(a.deadline||'')).slice(0,300).map(t=>[t.id,(t.title||'').slice(0,90)+((t.files||[]).length?` (${t.files.length} docs)`:'')])];
@@ -2192,12 +2208,7 @@ function bgDrawer(){
       ${g.uploads.length?`<div class="bgi-list">${g.uploads.map((u,i)=>`<div class="bgi-f"><span class="ic">${NXF_ICON[nxfKind(u.file)]||'📄'}</span><span class="grow"><b>${esc(u.name)}</b><span class="sub">${esc(u.from||'This computer')} · ${nxfSize(u.file.size)}</span></span><button class="btn sm ghost" data-bx="bgrm" data-i="${i}" aria-label="Remove ${esc(u.name)}">✕</button></div>`).join('')}</div>`:''}</div>
       <div class="form" style="margin-top:12px">
       <div class="fld full"><label>BoQ title</label><input class="inp" data-bgf="title" value="${esc(g.title||'')}" placeholder="BoQ – project name"></div>
-      <div class="fld"><label>Project</label><select class="inp" data-bgf="project">${pOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.project?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
-      <div class="fld"><label>Tender</label><select class="inp" data-bgf="tender">${tOpts.map(([v,l])=>`<option value="${esc(v)}" ${v===g.tender?'selected':''}>${esc(v?l:'— not linked to a tender —')}</option>`).join('')}</select></div>
-      <div class="fld"><label>Region for rates</label><select class="inp" data-bgf="region">${RT_REGIONS.map(r=>`<option ${r===g.region?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
-      <div class="fld full bgi-opts"><label class="small"><input type="checkbox" data-bgf="keepRates" ${g.keepRates?'checked':''}> <span><b>Keep the rates in the file</b> – a priced BoQ stays priced (marked <b>From file</b>)</span></label>
-        <label class="small"><input type="checkbox" data-bgf="libRates" ${g.libRates?'checked':''}> <span><b>Fill empty rates from the Rate library</b> (${esc(g.region||'General')} first, newest prices)</span></label>
-        <label class="small"><input type="checkbox" data-bgf="aiRates" ${g.aiRates?'checked':''}> <span><b>Let NEXUS AI propose the rest</b> from similar library rates (marked <b>AI estimate</b>)</span></label></div></div>
+      ${g.past?bgPastFields(g):bgImpFields(g,pOpts,tOpts)}
       <p class="sub">Excel and Word tables are read directly. PDFs are read by NEXUS AI page by page; scanned PDFs and photos are read by Gemini – spot-check quantities against the document.</p>`;
   } else if(g.step==='setup'){
     body=`<div class="form">
@@ -2220,10 +2231,10 @@ function bgDrawer(){
         <p class="sub">${esc(r.mode)}.${s.other?` <b>${s.other}</b> rates came from the file.`:''} The value excludes unpriced items, contingency and VAT.</p>`; }
     body=`<div class="card"><div class="bd">${log||'<span class="spin"></span> Starting…'}${busy?'<div style="margin-top:8px"><span class="spin"></span> Working – keep this window open.</div>':''}</div></div>${sum}`;
   }
-  const foot=g.step==='setup'?`<button class="btn pri" data-bx="bgstart" ${g.mode==='import'&&!g.uploads.length&&!g.copy?'disabled':''}>${g.mode==='import'?'Import BoQ':'Read documents and build BoQ'}</button><button class="btn" data-act="close">Cancel</button>`
-    :g.step==='review'?`<button class="btn pri" data-bx="bgcreate" ${g.res?.bills?.length?'':'disabled'}>${g.mode==='import'?'Save BoQ in NEXUS':'Create BoQ and start pricing'}</button><button class="btn" data-bx="bgreset">Start again</button>`
+  const foot=g.step==='setup'?`<button class="btn pri" data-bx="bgstart" ${g.mode==='import'&&!g.uploads.length&&!g.copy?'disabled':''}>${g.past?'Import past BoQ':g.mode==='import'?'Import BoQ':'Read documents and build BoQ'}</button><button class="btn" data-act="close">Cancel</button>`
+    :g.step==='review'?`<button class="btn pri" data-bx="bgcreate" ${g.res?.bills?.length?'':'disabled'}>${g.past?'Save in Past BoQs':g.mode==='import'?'Save BoQ in NEXUS':'Create BoQ and start pricing'}</button><button class="btn" data-bx="bgreset">Start again</button>`
     :`<button class="btn" disabled>Working…</button>`;
-  return drawerShell(g.step==='setup'?(g.mode==='import'?'Import a BoQ':'AI BoQ from tender documents'):(g.mode==='import'?'Importing the BoQ':'Building the BoQ'),'QS Studio',body,foot);
+  return drawerShell(g.past?(g.step==='setup'?'Import a past BoQ':'Importing the past BoQ'):g.step==='setup'?(g.mode==='import'?'Import a BoQ':'AI BoQ from tender documents'):(g.mode==='import'?'Importing the BoQ':'Building the BoQ'),'QS Studio',body,foot);
 }
 function bgRedraw(){ if(!drawer||drawer.type!=='bqgen') return; const o=$('#overlay'); const y=o.querySelector('.db')?.scrollTop||0; o.innerHTML=bgDrawer(); document.body.style.overflow='hidden'; const d=o.querySelector('.db'); if(d) d.scrollTop=y; }
 function bgLog(t,flag){ const g=drawer?.g; if(!g) return; g.log.push({t,...(flag==='ok'?{ok:1}:flag==='bad'?{bad:1}:{})}); bgRedraw(); }
@@ -2359,9 +2370,131 @@ Reply with only JSON: {"rates":[{"i":0,"rate":12345,"basis":"from 230 mm blockwo
 async function bgCreate(){ const g=drawer.g; if(!g.res?.bills?.length) return; const T=g.tender?byId('tenders',g.tender):null;
   const s=bqStats({bills:g.res.bills});
   const lay=bqlyFromImport(g); if(lay) g.res.bills=lay.bills; else g.res.bills=g.res.bills.map(bl=>({...bl,items:bl.items.map(({_src,...it})=>it)}));
-  const id=await put('boqs',null,{owner:me.name||'',owner_uid:me.id||'',title:(g.title||'').trim()||('BoQ – '+(T?.title||(g.mode==='import'?'imported':'from documents'))),tender_id:g.tender||'',project_id:g.project||'',region:g.region||'General',bills:g.res.bills,vat:18,contingency:0,scope:T?.scope||'',gen:{at:new Date().toISOString(),by:me.name||'',kind:g.mode||'gen',mode:g.res.mode,files:[...g.docs.filter(d=>d.on).map(d=>d.name),...g.uploads.map(u=>u.name),...(g.copy?['NEXUS BoQ: '+g.copy.name]:[])],items:s.n,lib:s.lib,ai:s.ai,file:s.other}});
+  const id=await put('boqs',null,{owner:me.name||'',owner_uid:me.id||'',title:(g.title||'').trim()||('BoQ – '+(T?.title||(g.mode==='import'?'imported':'from documents'))),tender_id:g.tender||'',project_id:g.project||'',region:g.region||'General',bills:g.res.bills,vat:18,contingency:0,scope:T?.scope||'',...(g.past?{past:{client:String(g.past.client||'').trim(),location:String(g.past.location||'').trim(),year:String(g.past.year||'').trim(),outcome:g.past.outcome||'Reference only',note:String(g.past.note||'').trim(),at:today(),by:me.name||''}}:{}),gen:{at:new Date().toISOString(),by:me.name||'',kind:g.mode||'gen',mode:g.res.mode,files:[...g.docs.filter(d=>d.on).map(d=>d.name),...g.uploads.map(u=>u.name),...(g.copy?['NEXUS BoQ: '+g.copy.name]:[])],items:s.n,lib:s.lib,ai:s.ai,file:s.other}});
   if(id&&lay) await bqlyKeep(id,lay);
+  if(id&&g.past){ logAct(`Added past BoQ "${(g.title||'').trim()||'BoQ'}": ${s.n} items, ${s.other} rates from the file`); closeDrawer(); UI.qtab='past'; UI.bqmode='price'; UI.bqf='all'; go('qs',id); toast('Saved in Past BoQs – AI will use its rates and parts when you fill new BoQs.'); return; }
   if(id){ logAct(g.mode==='import'?`Imported BoQ "${(g.title||'').trim()||'BoQ'}": ${s.n} items, ${s.other} rates from the file, ${s.lib} from library, ${s.ai} AI estimates`:`AI built BoQ${T?` for tender "${T.title}"`:''}: ${s.n} items, ${s.lib} priced from library, ${s.ai} AI estimates`); closeDrawer(); UI.bqmode='price'; UI.bqf='all'; go('qs',id); toast(g.mode==='import'?'BoQ imported – check the items and rates.':'BoQ created – check and complete the rates.'); } }
+
+/* ===================== v223 · PAST BoQs – library of old BoQs + AI fills new BoQs from them =====================
+   A past BoQ is an ordinary BoQ document with past:{client,year,outcome,location,note,at,by}. It is kept out of the working
+   list (QS Studio → Past BoQs). Every priced item in the past BoQs – and in the other NEXUS BoQs – is then used to:
+   • 🗂 AI match: unpriced items of a new BoQ ↔ the same work priced before (with the reason; the QS taps Use),
+   • 🗂 Copy parts: whole bills (Preliminaries, Substructure …) from a related past BoQ into the new one,
+   • 🔍 search past BoQ items by words. */
+const PB_OUT=['Reference only','Won – contract awarded','Lost / not awarded','Completed project','Submitted – result unknown'];
+const pbDate=b=>b?.past?.year?String(b.past.year):String(b?.updated_at||'').slice(0,10);
+function pbOld(b){ const d=pbDate(b); if(!d) return true; const t=Date.parse(/^\d{4}$/.test(d)?d+'-07-01':d); return !isFinite(t)||(Date.now()-t)>365*864e5; }
+const pbChipCls=o=>/^Won|^Completed/.test(o||'')?'good':/^Lost/.test(o||'')?'bad':'';
+function pbIndex(exceptId){ const L=[]; for(const b of S.boqs||[]){ if(b.id===exceptId) continue; const reg=rtBoqRegion(b), d=pbDate(b), old=pbOld(b);
+    (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ const r=+it.rate; if(!(r>0)||!String(it.desc||'').trim()) return;
+      L.push({bid:b.id,title:b.title||'BoQ',past:!!b.past,bill:bl.name||'',desc:String(it.desc),unit:String(it.unit||''),rate:r,reg,date:d,old,n:bqNorm(it.desc),bn:bqNorm(bl.name||'')}); })); }
+  return L; }
+function pbCands(it,bill,reg,IX){ const a=bqNorm(it.desc), u=rtWords(it.unit||''), bn=bqNorm(bill), seen=new Set();
+  return IX.map(x=>{ let n=0; a.forEach(w=>x.n.has(w)&&n++); let sc=n/Math.max(1,Math.min(a.size,x.n.size)); if(sc<.2) return null;
+      if(u&&rtWords(x.unit)===u) sc+=.25; let bo=0; bn.forEach(w=>x.bn.has(w)&&bo++); if(bo) sc+=.08; if(x.reg===reg) sc+=.06; if(!x.old) sc+=.04; if(x.past) sc+=.02; return [sc,x]; })
+    .filter(Boolean).sort((p,q)=>q[0]-p[0]).filter(([,x])=>{ const k=x.desc.toLowerCase()+'|'+rtWords(x.unit)+'|'+Math.round(x.rate); if(seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0,10).map(p=>p[1]); }
+const pbTodo=b=>{ const L=[]; (b.bills||[]).forEach((bl,bi)=>(bl.items||[]).forEach((it,ii)=>{ if(!String(it.desc||'').trim()||(it.rate!==''&&it.rate!=null)) return; L.push({bi,ii,it,bill:bl.name||''}); })); return L; };
+const pbCount=()=>(S.boqs||[]).filter(b=>b.past).length;
+
+/* ---------- AI: match unpriced items with work priced in past BoQs ---------- */
+async function pbMatch(){ const b=curBoq(); if(!b||UI.bqRun) return; const reg=rtBoqRegion(b), IX=pbIndex(b.id);
+  if(!IX.length) return toast('No priced past BoQs yet – add them in QS Studio → Past BoQs → Import past BoQs.');
+  const all=pbTodo(b), todo=all.map(x=>({...x,c:pbCands(x.it,x.bill,reg,IX)})).filter(x=>x.c.length);
+  if(!todo.length) return toast(all.length?'Nothing in the past BoQs is close to the unpriced items.':'There are no unpriced items to fill.');
+  UI.bqRun={k:'past',n:todo.length,done:0,found:0}; renderView(true);
+  try{ for(let s=0;s<todo.length;s+=8){ const grp=todo.slice(s,s+8);
+      const lst=grp.map((x,i)=>`#${i} ${x.it.desc} [unit: ${x.it.unit||'not given'}] (bill: ${x.bill})\n${x.c.map((r,k)=>`   c${k+1}: ${r.desc} | ${r.unit||'?'} | ${Math.round(r.rate)} TZS | bill: ${r.bill} | BoQ: ${r.title} (${r.reg}, ${r.date||'no date'})`).join('\n')}`).join('\n');
+      window.NX_AI_KIND='ask';
+      const res=await sample.json(`You are a senior Tanzanian quantity surveyor at Nordic Construction filling a NEW Bill of Quantities from the company's own PAST BoQs. For each new item, pick the ONE candidate from the past BoQs that is the SAME work, even when worded differently (e.g. "230 mm sandcrete block walling" = "nine inch blockwork"; "Y12 bars" = "high yield reinforcement 12 mm").
+Material, size or thickness, grade or mix, finish and method must match. If it is the same work in a unit that converts simply (concrete per m3 vs a 150 mm slab per m2 → factor 0.15; per tonne vs per kg → 0.001) give "factor" so past rate × factor = rate per the new unit, and say so in "why". Lump-sum items (Sum, Item, LS – e.g. preliminaries, signboard, insurance) depend on the size of the project: match only the same thing and never give "high" for them. Prefer recent prices and the same region when two candidates are equally good. Never pick different work because words overlap – use "id": null when none is the same work.
+Reply with JSON only: {"matches":[{"i":0,"id":"c1 or null","factor":1,"conf":"high | medium | low","why":"short reason"}]}
+NEW ITEMS AND CANDIDATES FROM PAST BoQs:
+${lst}`,{max_tokens:3000});
+      (res?.matches||[]).forEach(m=>{ const x=grp[+m?.i]; if(!x) return; const k=/^c(\d+)$/i.exec(String(m.id||'')); const r=k?x.c[+k[1]-1]:null; let f=+m.factor||1; if(!(f>0.0005&&f<1000)) f=1;
+        let conf=['high','medium','low'].includes(m.conf)?m.conf:'low'; if(r&&conf==='high'&&BQ_LUMP.test(String(x.it.unit||r.unit||'').trim())) conf='medium';
+        if(r){ x.it.pbm={boq:r.bid,title:String(r.title).slice(0,120),bill:String(r.bill).slice(0,80),desc:r.desc.slice(0,160),unit:r.unit,rate:Math.round(r.rate*f),orig:r.rate,factor:f,reg:r.reg,date:r.date,old:r.old,conf,why:String(m.why||'').slice(0,200),at:today()}; UI.bqRun.found++; }
+        else x.it.pbm={none:true,why:String(m.why||'').slice(0,160),at:today()}; });
+      UI.bqRun.done=Math.min(todo.length,s+8); renderView(true); }
+    await patch('boqs',b.id,{bills:b.bills}); logAct(`AI matched ${UI.bqRun.found} of ${todo.length} unpriced BoQ items to past BoQs (${b.title||'BoQ'})`);
+    toast(UI.bqRun.found?`AI found the same work in past BoQs for ${UI.bqRun.found} of ${todo.length} items – check them and tap Use.`:'AI found no same work in the past BoQs.'); }
+  catch(e){ toast(e?.code==='rate_limited'?'AI is busy – try again in a minute.':'AI matching stopped: '+(e?.message||e)); try{ await patch('boqs',b.id,{bills:b.bills}); }catch(_){} }
+  UI.bqRun=null; renderView(true); }
+const pbP=m=>({s:'past',boq:m.boq,src:m.title,bill:m.bill,date:m.date,reg:m.reg,old:!!m.old,...(m.why?{ai:true,why:m.why}:{}),...(m.factor&&m.factor!==1?{factor:m.factor}:{})});
+function pbApply(it){ const m=it.pbm; it.rate=m.rate; it.p=pbP(m); if(!String(it.unit||'').trim()&&m.unit&&(m.factor||1)===1) it.unit=m.unit; }
+async function pbUse(bi,ii){ const b=curBoq(); const it=b?.bills?.[bi]?.items?.[ii]; if(!it?.pbm||it.pbm.none) return; pbApply(it); await patch('boqs',b.id,{bills:b.bills}); }
+const pbHi=b=>{ let n=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.pbm&&!it.pbm.none&&it.pbm.conf==='high') n++; })); return n; };
+async function pbUseAll(){ const b=curBoq(); if(!b) return; let n=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.pbm&&!it.pbm.none&&it.pbm.conf==='high'){ pbApply(it); n++; } }));
+  if(!n) return toast('No unpriced item has a high-confidence past BoQ match.'); await patch('boqs',b.id,{bills:b.bills}); logAct(`Used ${n} high-confidence past BoQ matches (${b.title||'BoQ'})`); toast(`${n} rate${n===1?'':'s'} filled from past BoQs.`); }
+function pbSugHtml(it,bi,ii){ const m=it.pbm, un=it.rate===''||it.rate==null; if(!m) return '';
+  if(m.none) return un?`<div class="sub" style="font-size:11px" title="${esc(m.why||'')}">🗂 AI: no same work in past BoQs</div>`:'';
+  return `<div class="bq-sug ai"><div><span class="chip ${m.conf==='high'?'good':m.conf==='medium'?'amb':'bad'}" style="font-size:10px">🗂 Past BoQ · ${esc(m.conf)}</span> <span class="num">${rtFmt(m.rate)}</span></div><div class="sub" style="font-size:11px" title="${esc(m.why||'')}">${esc(m.desc)}${m.factor&&m.factor!==1?` × ${m.factor}`:''} · <a href="#" data-boq="${esc(m.boq)}">${esc(m.title)}</a> · ${esc(m.date||'no date')}${m.old?' · old':''}</div>${canWrite&&Math.round(+m.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="pbuse" data-i="${bi}.${ii}">Use</button>`:''}</div>`; }
+
+/* ---------- QS Studio → Past BoQs ---------- */
+function pbSearch(q){ const w=String(q||'').toLowerCase().split(/\s+/).filter(x=>x.length>1); if(!w.length) return [];
+  return pbIndex(null).filter(x=>x.past&&w.every(t=>(x.desc+' '+x.bill+' '+x.unit).toLowerCase().includes(t))).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,80); }
+function pbResults(){ const q=UI.pbq||''; if(!q.trim()) return ''; const R=pbSearch(q);
+  return `<div class="card"><div class="hd"><h2>Items in past BoQs matching “${esc(q)}”</h2><div class="sp"></div><span class="sub">${R.length>=80?'first 80':R.length} found</span></div><div class="tbl-wrap"><table><thead><tr><th>Description</th><th>Unit</th><th class="r">Rate</th><th class="hide-m">Bill</th><th>Past BoQ</th><th>Year</th></tr></thead><tbody>
+    ${R.map(x=>`<tr class="click" data-boq="${esc(x.bid)}"><td class="small">${esc(x.desc.slice(0,160))}</td><td>${esc(x.unit)}</td><td class="r num">${rtFmt(x.rate)}</td><td class="hide-m sub">${esc(x.bill.slice(0,50))}</td><td class="small">${esc(x.title)}</td><td class="sub">${esc(String(x.date).slice(0,4))}${x.old?' <span class="chip amb" style="font-size:10px">old</span>':''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty">No item in the past BoQs contains these words.</div></td></tr>'}</tbody></table></div></div>`; }
+function pbPage(){ const P=(S.boqs||[]).filter(b=>b.past).sort((a,b)=>String(pbDate(b)).localeCompare(String(pbDate(a)))||String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
+  return `<div class="card"><div class="bd small">🗂 <b>Past BoQs</b> are BoQs the company priced before – tenders won or lost, completed projects, old Excel or PDF BoQs. They stay out of the working list. When you price a new BoQ, <b>Price (QS) → 🗂 AI match from past BoQs</b> finds the same work in them, and <b>🗂 Copy from past BoQs</b> copies whole parts such as Preliminaries.</div></div>
+  <div class="toolbar"><input class="inp" id="pbq" style="flex:1;min-width:200px" placeholder="🔍 Search items in past BoQs, e.g. 230mm blockwork, Y12, emulsion" value="${esc(UI.pbq||'')}" aria-label="Search items in past BoQs"></div>
+  <div id="pbRes">${pbResults()}</div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Past BoQ</th><th class="hide-m">Location</th><th>Year</th><th>Outcome</th><th class="r">Items</th><th class="r">Priced</th><th class="r">Grand total</th></tr></thead><tbody>
+    ${P.map(b=>{ const t=boqTotals(b), q=bqStats(b); return `<tr class="click" data-boq="${esc(b.id)}"><td><div class="ttl2">${esc(b.title)}</div>${b.past.client?`<div class="sub" style="font-size:11.5px">${esc(b.past.client)}</div>`:''}</td><td class="hide-m small">${esc(b.past.location||rtBoqRegion(b))}</td><td class="num">${esc(String(pbDate(b)).slice(0,4))}</td><td><span class="chip ${pbChipCls(b.past.outcome)}">${esc(b.past.outcome||'Reference only')}</span></td><td class="r num">${q.n}</td><td class="r num">${q.n?q.pct+'%':'—'}</td><td class="r num">${tzs(t.grand)}</td></tr>`; }).join('')
+      ||`<tr><td colspan="7"><div class="empty">No past BoQs yet. Press <b>📥 Import past BoQs</b> and add old BoQs from Excel, Word, PDF or photos – NEXUS keeps their rates so AI can use them on new BoQs.</div></td></tr>`}</tbody></table></div></div>`; }
+function pbBanner(b){ const p=b.past; if(!p) return '';
+  return `<div class="banner small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:200px">🗂 <b>Past BoQ</b> – kept for reference${p.client?` · ${esc(p.client)}`:''}${p.location?` · ${esc(p.location)}`:''} · ${esc(String(pbDate(b)).slice(0,4)||'no year')} · <span class="chip ${pbChipCls(p.outcome)}">${esc(p.outcome||'Reference only')}</span>${p.note?`<div class="sub">${esc(p.note)}</div>`:''}<div class="sub">AI uses its rates and parts when filling new BoQs.</div></div>${canWrite?`<button class="btn sm" data-bx="pbedit">Edit details</button><button class="btn sm ghost" data-bx="pbunmark" title="Moves it back to the working Bills of Quantities">Move to working BoQs</button>`:''}</div>`; }
+function pbEdit(b,mark){ const p=b.past||{};
+  formDrawer(mark?'Move to Past BoQs':'Past BoQ details',[{k:'client',label:'Client'},{k:'location',label:'Location'},{k:'year',label:'Year priced',type:'number'},{k:'outcome',label:'Outcome',type:'select',options:PB_OUT},{k:'note',label:'Note (optional)',full:1}],
+    {client:p.client||'',location:p.location||'',year:p.year||String(b.updated_at||'').slice(0,4)||String(new Date().getFullYear()),outcome:p.outcome||'Reference only',note:p.note||''},
+    async v=>{ await patch('boqs',b.id,{past:{...p,client:String(v.client||'').trim(),location:String(v.location||'').trim(),year:String(v.year||'').trim(),outcome:v.outcome||'Reference only',note:String(v.note||'').trim(),at:p.at||today(),by:p.by||me.name||''}});
+      if(mark){ logAct(`Moved BoQ "${b.title}" to Past BoQs`); toast('Moved to Past BoQs – AI will use it when filling new BoQs.'); } },{saveLabel:mark?'Move to Past BoQs':'Save',sub:'QS Studio'}); }
+
+/* ---------- 🗂 Copy parts (bills) from a related past BoQ ---------- */
+const pbWords=b=>bqNorm([b.title||'',b.scope||'',...(b.bills||[]).map(bl=>(bl.name||'')+' '+(bl.items||[]).slice(0,60).map(i=>i.desc||'').join(' '))].join(' '));
+function pbRelated(b){ const mine=pbWords(b);
+  return (S.boqs||[]).filter(x=>x.id!==b.id&&(x.bills||[]).some(bl=>(bl.items||[]).length)).map(x=>{ const o=pbWords(x); let n=0; mine.forEach(w=>o.has(w)&&n++); return {b:x,sc:mine.size&&o.size?n/Math.min(mine.size,o.size):0}; })
+    .sort((p,q)=>q.sc-p.sc||(q.b.past?1:0)-(p.b.past?1:0)||String(pbDate(q.b)).localeCompare(String(pbDate(p.b)))); }
+function pbCopyOpen(){ const b=curBoq(); if(!b) return; $('#overlay').innerHTML=''; openDrawer('pbcopy',b.id,{form:false,pc:{q:'',open:null,sel:{},qty:false,rates:true}}); }
+function pbCopyDrawer(){ const b=byId('boqs',drawer.id), P=drawer.pc; if(!b) return drawerShell('Copy from past BoQs','QS Studio','<div class="empty">This BoQ no longer exists.</div>');
+  const q=P.q.toLowerCase().trim(); let L=pbRelated(b); if(q) L=L.filter(x=>((x.b.title||'')+' '+(x.b.past?.client||'')+' '+(x.b.bills||[]).map(bl=>bl.name).join(' ')).toLowerCase().includes(q));
+  const nSel=Object.values(P.sel).filter(Boolean).length;
+  const rows=L.slice(0,40).map(({b:x,sc})=>{ const t=boqTotals(x), op=P.open===x.id;
+    return `<div class="card" style="margin:0 0 8px"><div class="bd" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b>${esc(x.title||'BoQ')}</b> ${x.past?`<span class="chip ${pbChipCls(x.past.outcome)}" style="font-size:10px">Past · ${esc(String(pbDate(x)).slice(0,4))}</span>`:'<span class="chip blue" style="font-size:10px">Working BoQ</span>'}<div class="sub" style="font-size:11.5px">${esc(x.past?.client||'')}${x.past?.client?' · ':''}${(x.bills||[]).length} bills · ${tzs(t.grand)}${sc>0?` · ${Math.round(Math.min(1,sc)*100)}% related`:''}</div></div><button class="btn sm" data-bx="pbopen" data-id="${esc(x.id)}">${op?'Hide parts':'Show parts'}</button></div>
+      ${op?`<div class="bd" style="padding-top:0">${(x.bills||[]).map((bl,bi)=>{ const its=(bl.items||[]).filter(i=>String(i.desc||'').trim()); if(!its.length) return ''; const k=x.id+':'+bi, tot=t.bills[bi]?.total||0;
+        return `<label class="small" style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line,#e5e7eb)"><input type="checkbox" data-pbsel="${esc(k)}" ${P.sel[k]?'checked':''}><span><b>${esc(bl.name||'Bill '+(bi+1))}</b> <span class="sub">· ${its.length} items${tot?' · '+tzs(tot):''}</span><span class="sub" style="display:block;font-size:11px">${its.slice(0,3).map(i=>esc(String(i.desc).slice(0,70))).join(' · ')}${its.length>3?' …':''}</span></span></label>`; }).join('')}</div>`:''}</div>`; }).join('');
+  const body=`<p class="sub" style="margin-top:0">BoQs most related to <b>${esc(b.title||'this BoQ')}</b> come first. Open one, tick the parts (bills) you want and they are added at the end of this BoQ.</p>
+    <input class="inp" id="pbcq" placeholder="Filter by title, client or bill name" value="${esc(P.q)}" style="margin-bottom:10px">
+    ${rows||'<div class="empty">No other BoQ with items yet. Import past BoQs in QS Studio → Past BoQs.</div>'}
+    <div class="bgi-opts" style="margin-top:8px"><label class="small"><input type="checkbox" data-pbopt="rates" ${P.rates?'checked':''}> <span><b>Copy the rates</b> – marked <b>Past BoQ</b> with where they came from (check old prices)</span></label><label class="small"><input type="checkbox" data-pbopt="qty" ${P.qty?'checked':''}> <span><b>Copy the quantities</b> – leave off when the new project's take-off is different</span></label></div>`;
+  return drawerShell('Copy from past BoQs','QS Studio',body,`<button class="btn pri" data-bx="pbcopygo" ${nSel?'':'disabled'}>Add ${nSel||''} part${nSel===1?'':'s'} to this BoQ</button><button class="btn" data-act="close">Cancel</button>`); }
+function pbCopyRedraw(){ if(drawer?.type!=='pbcopy') return; const o=$('#overlay'); const y=o.querySelector('.db')?.scrollTop||0, f=document.activeElement?.id; o.innerHTML=pbCopyDrawer(); document.body.style.overflow='hidden'; const d=o.querySelector('.db'); if(d) d.scrollTop=y; if(f==='pbcq'){ const i=$('#pbcq'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
+async function pbCopyGo(){ const b=byId('boqs',drawer.id), P=drawer.pc; if(!b) return; const add=[]; let n=0;
+  for(const [k,on] of Object.entries(P.sel)){ if(!on) continue; const i=k.lastIndexOf(':'), src=byId('boqs',k.slice(0,i)), bl=src?.bills?.[+k.slice(i+1)]; if(!bl) continue;
+    const pm={s:'past',boq:src.id,src:src.title||'BoQ',bill:bl.name||'',date:pbDate(src),reg:rtBoqRegion(src),old:pbOld(src)};
+    const items=(bl.items||[]).filter(it=>String(it.desc||'').trim()).map(it=>{ const r=+it.rate>0&&P.rates; n++; return {ref:it.ref||'',desc:it.desc,unit:it.unit||'',qty:P.qty?(it.qty??''):'',rate:r?+it.rate:'',...(r?{p:pm}:{})}; });
+    add.push({name:bl.name||'Bill',items}); }
+  if(!add.length) return; await patch('boqs',b.id,{bills:[...(b.bills||[]),...add]});
+  logAct(`Copied ${add.length} part${add.length===1?'':'s'} (${n} items) from past BoQs into "${b.title||'BoQ'}"`); closeDrawer(); toast(`${add.length} part${add.length===1?'':'s'} added – ${n} items${P.rates?', rates marked Past BoQ':''}${P.qty?'':'. Enter the quantities from your take-off'}.`); }
+
+document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bx]'); if(!el) return; const a=el.dataset.bx;
+  if(a==='pbmatch'){ await pbMatch(); return; }
+  if(a==='pbuse'){ const [bi,ii]=el.dataset.i.split('.').map(Number); await pbUse(bi,ii); return; }
+  if(a==='pbuseall'){ await pbUseAll(); return; }
+  if(a==='pbimp'){ bgOpen('','past'); return; }
+  if(a==='pbcopy'){ pbCopyOpen(); return; }
+  if(a==='pbopen'&&drawer?.type==='pbcopy'){ drawer.pc.open=drawer.pc.open===el.dataset.id?null:el.dataset.id; pbCopyRedraw(); return; }
+  if(a==='pbcopygo'&&drawer?.type==='pbcopy'){ el.disabled=true; await pbCopyGo(); return; }
+  if(a==='pbedit'||a==='pbmark'){ const b=curBoq(); if(b) pbEdit(b,a==='pbmark'); return; }
+  if(a==='pbunmark'){ const b=curBoq(); if(!b) return; await patch('boqs',b.id,{past:null}); logAct(`Moved BoQ "${b.title}" back to working BoQs`); toast('Moved to the working Bills of Quantities.'); return; } });
+document.addEventListener('change',e=>{ const el=e.target; if(drawer?.type!=='pbcopy') return;
+  if(el.dataset.pbsel){ drawer.pc.sel[el.dataset.pbsel]=el.checked; pbCopyRedraw(); return; }
+  if(el.dataset.pbopt){ drawer.pc[el.dataset.pbopt]=el.checked; return; } });
+document.addEventListener('input',e=>{ const el=e.target;
+  if(el.id==='pbq'){ UI.pbq=el.value; clearTimeout(pbPage._t); pbPage._t=setTimeout(()=>{ const r=$('#pbRes'); if(r) r.innerHTML=pbResults(); },200); return; }
+  if(el.id==='pbcq'&&drawer?.type==='pbcopy'){ drawer.pc.q=el.value; clearTimeout(pbCopyDrawer._t); pbCopyDrawer._t=setTimeout(pbCopyRedraw,250); } });
+/* ===================== PAST BoQs (end) ===================== */
 
 /* ---------- events ---------- */
 document.addEventListener('click', async e=>{ const el=e.target.closest('[data-bx]'); if(!el) return; const a=el.dataset.bx;
@@ -2387,8 +2520,9 @@ document.addEventListener('click', async e=>{ const el=e.target.closest('[data-b
 document.addEventListener('change', e=>{ const el=e.target; if(!drawer||drawer.type!=='bqgen') return; const g=drawer.g;
   if(el.id==='bgFile'&&el.files?.length){ for(const f of el.files) g.uploads.push({name:f.name,file:f}); el.value=''; if(!g.title) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z]+$/i,''); bgRedraw(); return; }
   if(el.dataset.bgdoc!==undefined){ const d=g.docs.find(x=>x.i===+el.dataset.bgdoc); if(d) d.on=el.checked; return; }
+  if(el.dataset.bgp&&g.past){ g.past[el.dataset.bgp]=el.value; return; }
   if(el.dataset.bgf){ const k=el.dataset.bgf; g[k]=el.type==='checkbox'?el.checked:el.value; if(k==='region'&&g.mode==='import'){ bgRedraw(); } if(k==='tender'){ const T=byId('tenders',el.value); if(g.mode!=='import') g.docs=bgTenderDocs(T); g.title=T?'BoQ – '+T.title:g.title; g.region=T?rtRegionOf(T.location||''):g.region; bgRedraw(); } } });
-document.addEventListener('input', e=>{ const el=e.target; if(drawer?.type==='bqgen'&&el.dataset.bgf==='title') drawer.g.title=el.value; });
+document.addEventListener('input', e=>{ const el=e.target; if(drawer?.type==='bqgen'&&el.dataset.bgf==='title') drawer.g.title=el.value; if(drawer?.type==='bqgen'&&el.dataset.bgp&&drawer.g.past) drawer.g.past[el.dataset.bgp]=el.value; });
 document.addEventListener('dragover',e=>{ const d=e.target.closest?.('#bgDrop'); if(!d) return; e.preventDefault(); d.classList.add('on'); });
 document.addEventListener('dragleave',e=>{ const d=e.target.closest?.('#bgDrop'); if(d&&!d.contains(e.relatedTarget)) d.classList.remove('on'); });
 document.addEventListener('drop',e=>{ const d=e.target.closest?.('#bgDrop'); if(!d||drawer?.type!=='bqgen') return; e.preventDefault(); const g=drawer.g; for(const f of (e.dataTransfer?.files||[])) g.uploads.push({name:f.name,file:f}); if(!g.title&&g.uploads[0]) g.title='BoQ – '+g.uploads[0].name.replace(/\.[a-z0-9]+$/i,''); bgRedraw(); });
@@ -8966,6 +9100,7 @@ function renderDrawer(){
   else if(t==='rate'){ html=rateDrawer(); drawer.form=true; }
   else if(t==='rtimp'){ html=rtImpDrawer(); drawer.form=true; }
   else if(t==='bqgen'){ html=bgDrawer(); drawer.form=true; }
+  else if(t==='pbcopy'){ html=pbCopyDrawer(); drawer.form=true; }
   else if(t==='ask'){ html=askDrawer(); }
   else if(t==='myphoto'){ html=myPhotoDrawer(); drawer.form=true; }
   else if(t==='html'){ html=drawerShell(drawer.title||'',drawer.sub||'',`<div class="card">${drawer.html||''}</div>`); }
