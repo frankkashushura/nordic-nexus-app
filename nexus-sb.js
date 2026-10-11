@@ -154,6 +154,17 @@
       const { error } = await sb.from('boq_ops').insert(row);
       if (error) { await bqlRefetch(o.boq_id); throw mapErr(error); }
     },
+    async ops(list) {   // v219: many changes in one go (NEXUS Excel live / Update from Excel), applied in order
+      const rows = (list || []).map(o => ({ boq_id: o.boq_id, bill_id: o.bill_id || null, item_id: o.item_id || null, kind: o.kind, field: o.field || null,
+        value: o.value === undefined ? null : clean({ v: o.value }).v ?? null, pos: o.pos ?? null, client: BQL.tab }));
+      if (!rows.length) return 0;
+      rows.forEach(r => bqlLocal(r));
+      for (let i = 0; i < rows.length; i += 200) {
+        const { error } = await sb.from('boq_ops').insert(rows.slice(i, i + 200));
+        if (error) { await bqlRefetch(rows[0].boq_id); throw mapErr(error); }
+      }
+      return rows.length;
+    },
     join(boqId, h) {
       this.leave();
       BQL.ch = sb.channel('boqp:' + boqId, { config: { presence: { key: BQL.tab } } })
