@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="2c5ce73544ac">
+<meta name="nexus-build" content="0fc63d22b025">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -8,7 +8,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="config.js?v=188"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=219"></script>
+<script src="nexus-sb.js?v=220"></script>
 <script src="nexus-chat.js?v=188"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
@@ -728,6 +728,7 @@ table.kv{width:100%!important;border-collapse:collapse;margin:8px 0;display:tabl
 @media (max-width:600px){.hse-k{padding:11px 12px}.hse-k b{font-size:22px}.hse-row{padding:10px 12px;gap:10px}.hse-addact{grid-template-columns:1fr}.hse .toolbar>.btn{flex:1}}
 #bb .bb-offi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px 0;font-size:12.5px}#bb .bb-offi a{color:inherit;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 10px}#bb .bb-offi a:hover{border-color:#1EB53A}
 .bqx-live{display:inline-flex;align-items:center;gap:2px;color:#fff;font-weight:600;font-size:12px;padding:0 10px;white-space:nowrap}.bqx-live .bql-av{width:20px;height:20px;font-size:9.5px;border:1.5px solid #fff;margin-left:2px}.bqx-pc{position:absolute;box-sizing:border-box;border:2px solid var(--bqc);pointer-events:none;z-index:4}.bqx-pc span{position:absolute;right:-2px;top:-15px;background:var(--bqc);color:#fff;font:600 10px/14px 'Segoe UI',Arial,sans-serif;padding:0 4px;border-radius:3px 3px 0 0;white-space:nowrap}body.bqx-xl .bql-panel{z-index:350;top:0!important}
+#nxCall[hidden],#nxcStash[hidden]{display:none!important}#nxCall.full{position:fixed;inset:0;z-index:600;background:#0B141A;color:#E9EDEF;font:15px/1.4 'Segoe UI',system-ui,-apple-system,Arial,sans-serif}#nxCall .sub,#nxCall .nxc-sub{color:#8696A0;font-size:13px}.nxc-full,.nxc-ring{position:absolute;inset:0;display:flex;flex-direction:column}.nxc-ring{align-items:center;justify-content:center;gap:6px;text-align:center;background:radial-gradient(circle at 50% 35%,#1F2C34,#0B141A 70%)}.nxc-ring h2{margin:12px 0 0;font-size:26px;font-weight:600;color:#fff;text-transform:none;letter-spacing:0;font-family:inherit}.nxc-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex:none}.nxc-av.big{width:110px;height:110px;font-size:38px;box-shadow:0 0 0 6px rgba(255,255,255,.06)}.nxc-pulse{width:10px;height:10px;border-radius:50%;background:#00A884;margin:14px auto 0;animation:nxcP 1.2s infinite}@keyframes nxcP{0%{box-shadow:0 0 0 0 rgba(0,168,132,.6)}100%{box-shadow:0 0 0 22px rgba(0,168,132,0)}}.nxc-acts{display:flex;gap:48px;margin-top:56px}.nxc-acts>div{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;color:#C9D1D6}.nxc-b{width:54px;height:54px;border-radius:50%;border:0;background:#2A3942;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}.nxc-b:hover{filter:brightness(1.15)}.nxc-b.off{background:#E9EDEF;color:#0B141A}.nxc-b.big{width:68px;height:68px}.nxc-b.red{background:#EA0038}.nxc-b.green{background:#00A884}.nxc-b.sm{width:34px;height:34px}.nxc-b.sm svg{width:18px;height:18px}.nxc-wiggle{animation:nxcW 1.2s infinite}@keyframes nxcW{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}.nxc-top{display:flex;align-items:center;gap:10px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top))}.nxc-tt{flex:1;min-width:0}.nxc-tt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nxc-ic{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px}.nxc-ic.dark{background:#F0F2F5;color:#111}.nxc-grid{flex:1;display:grid;gap:6px;padding:6px;min-height:0}.nxc-grid.n1{grid-template-columns:1fr}.nxc-grid.n2{grid-template-columns:1fr}.nxc-grid.n3,.nxc-grid.n4{grid-template-columns:1fr 1fr}.nxc-grid.n5,.nxc-grid.n6{grid-template-columns:1fr 1fr 1fr}@media(min-width:900px){.nxc-grid.n2{grid-template-columns:1fr 1fr}}.nxc-tile{position:relative;background:#1F2C34;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0}.nxc-tile .nxc-v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}.nxc-tile.vid .nxc-v{opacity:1}.nxc-nm{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.45);padding:3px 10px;border-radius:12px;font-size:13px;display:flex;align-items:center;gap:4px;max-width:calc(100% - 20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nxc-nm i{color:#8696A0}.nxc-mut svg{width:15px;height:15px;color:#F15C6D;vertical-align:-3px}.nxc-wait{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:28px;align-items:center;justify-content:center}.nxc-w{display:flex;flex-direction:column;align-items:center;gap:8px}.nxc-w span{color:#8696A0;font-size:13px}.nxc-me{position:absolute;right:14px;bottom:104px;width:112px;height:150px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 4px 18px rgba(0,0,0,.5);z-index:2}.nxc-mev{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}@media(min-width:900px){.nxc-me{width:220px;height:150px}}.nxc-bar{display:flex;justify-content:center;gap:18px;padding:16px 12px;padding-bottom:max(18px,env(safe-area-inset-bottom));background:#1F2C34;border-radius:22px 22px 0 0}#nxCall.mini{position:fixed;right:16px;bottom:calc(46px + env(safe-area-inset-bottom));z-index:600}.nxc-mini{display:flex;align-items:center;gap:10px;background:#00A884;color:#fff;border-radius:24px;padding:6px 6px 6px 14px;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;font:600 14px 'Segoe UI',system-ui,Arial,sans-serif;max-width:92vw}.nxc-mn{font-weight:400;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}.nxc-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:nxcP 1.4s infinite}.nxc-sheet{position:absolute;right:0;top:0;bottom:0;width:min(440px,100vw);background:#fff;color:#111B21;display:flex;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.3)}#nxCall.full:has(.nxc-sheet){background:rgba(11,20,26,.55)}.nxc-sh{display:flex;gap:12px;align-items:center;padding:14px}.nxc-sheet .inp{margin:0 14px 8px;width:calc(100% - 28px)}.nxc-list{flex:1;overflow:auto;border-top:1px solid #E9EDEF}.nxc-p{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid #F0F2F5}.nxc-p:hover{background:#F5F6F6}.nxc-p input{width:20px;height:20px;accent-color:#00A884}.nxc-p>span{display:flex;flex-direction:column;min-width:0}.nxc-p .sub{color:#667781}.nxc-on{color:#00A884}.nxc-go{display:flex;gap:10px;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom));border-top:1px solid #E9EDEF}.nxc-go .btn{flex:1;justify-content:center;min-height:46px;font-size:15px}.nxc-go .btn.pri{background:#00A884;border-color:#00A884}.nxc-gbtn{background:#00A884!important;color:#fff!important;border-color:#00A884!important}#oxApp .tb.nxc-gbtn{border-radius:4px}body.nxc-open{overflow:hidden}
 .bq-own{width:auto!important;flex:none!important;max-width:170px;height:34px;padding:4px 8px}.bq-st{width:auto!important;flex:none!important;height:34px;padding:4px 8px}.bq-fs{border:0;margin:0;padding:0;min-width:0}.bq-fs[disabled]{opacity:.6}.bq-on{display:flex;gap:4px;flex-wrap:wrap}.bq-bill>.hd{flex-wrap:wrap;gap:8px}
 /* v218 live QS Studio */
 tr.bql-on>td{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--bqc) 7%,transparent)}tr.bql-on>td:first-child{box-shadow:inset 3px 0 0 var(--bqc),inset 0 0 0 9999px color-mix(in srgb,var(--bqc) 7%,transparent);position:relative}
@@ -7034,12 +7035,12 @@ async function bqlLoadHist(){ try{ BQL.hist=await NX_BQL.history(BQL.joined,400)
 async function bqlLoadMentions(){ if(!me.id) return; try{ BQL.ment=await NX_BQL.mentions(me.id,new Date(Date.now()-3*864e5).toISOString()); renderAll(); }catch(_){} }
 window.addEventListener('nx-boq-msg',e=>{ const {m,ev}=e.detail||{}; if(!m) return; const L=BQL.msgs[m.boq_id];
   if(L){ const i=L.findIndex(x=>x.id===m.id); if(i>=0) L[i]=m; else L.push(m); }
-  if(ev==='INSERT'&&(m.mentions||[]).includes(me.id)&&m.by_uid!==me.id){ BQL.ment.unshift(m); renderAll(); if(m.boq_id!==BQL.joined||!BQL.panel) toast(`💬 ${bqlFirst(m.by_name)} mentioned you in a BoQ`); }
+  if(ev==='INSERT'&&(m.mentions||[]).includes(me.id)&&m.by_uid!==me.id){ BQL.ment.unshift(m); renderAll(); if(m.kind!=='call'&&(m.boq_id!==BQL.joined||!BQL.panel)) toast(`💬 ${bqlFirst(m.by_name)} mentioned you in a BoQ`); }
   if(m.boq_id===BQL.joined){ bqlPanelRender(); renderTeamBtns(); bqlBadges(); } });
 function renderTeamBtns(){ const el=$('#bqlBtns'); if(el&&BQL.joined) el.innerHTML=bqlBtnsHtml(byId('boqs',BQL.joined)); }
-const bqlCall=id=>{ const L=(BQL.msgs[id]||[]).filter(m=>m.kind==='call'&&!m.deleted&&Date.now()-Date.parse(m.at)<3*36e5); return L[L.length-1]||null; };
+const bqlCall=id=>{ const L=(BQL.msgs[id]||[]).filter(m=>m.kind==='call'&&m.url&&!m.deleted&&Date.now()-Date.parse(m.at)<3*36e5); return L[L.length-1]||null; };
 function bqlBtnsHtml(b){ if(!b||!BQL_ON()) return ''; const n=(BQL.msgs[b.id]||[]).filter(m=>!m.deleted).length, call=bqlCall(b.id);
-  return `<button class="btn sm" data-bql="open:chat" title="Team discussion for this BoQ">💬 Discussion${n?' ('+n+')':''}</button><button class="btn sm" data-bql="open:hist" title="Who changed what, with Undo">🕘 History</button>${call?`<a class="btn sm pri" href="${esc(call.url)}" target="_blank" rel="noopener" title="Started by ${esc(call.by_name)}">📞 Join call</a>`:`<button class="btn sm" data-bql="call" title="Free video call for the team">📞 Call</button>`}`; }
+  return `<button class="btn sm" data-bql="open:chat" title="Team discussion for this BoQ">💬 Discussion${n?' ('+n+')':''}</button><button class="btn sm" data-bql="open:hist" title="Who changed what, with Undo">🕘 History</button>${call?`<a class="btn sm" href="${esc(call.url)}" target="_blank" rel="noopener" title="Meeting link shared by ${esc(call.by_name)}">🔗 Meeting</a>`:''}${callBtnHtml(b.id,'boq:'+b.id)}`; }
 function bqlItemBtn(b,bl,it){ if(!BQL_ON()||!it||!it.id) return ''; const n=(BQL.msgs[b.id]||[]).filter(m=>m.item_id===it.id&&!m.deleted).length;
   return `<button class="btn sm bql-ib${n?' has':''}" data-bql="item:${esc(bl.id)}:${esc(it.id)}" title="Comment on this item / its history" aria-label="Comment on item ${esc(it.ref||'')}">💬${n?' '+n:''}</button>`; }
 function bqlItemLabel(b,billId,itemId,fallback){ const bills=b?.bills||[], bi=bills.findIndex(x=>x.id===billId), bl=bills[bi], it=bl&&(bl.items||[]).find(x=>x.id===itemId);
@@ -7057,13 +7058,13 @@ function bqlPanelRender(){ const p=bqlPanelEl(), b=BQL.joined&&byId('boqs',BQL.j
   if(BQL.tab==='chat'){ const L=(BQL.msgs[b.id]||[]).filter(m=>!it||m.item_id===it.item);
     body=L.map(m=>{ const mine=m.by_uid===me.id; return `<div class="bql-m ${mine?'me':''}" style="--bqc:${bqlColor(m.by_uid)}"><div class="bql-mh"><b>${esc(m.by_name||'')}</b><span class="sub">${fmtDT(m.at)}${m.edited_at?' · edited':''}</span>${mine&&!m.deleted?`<button class="lnk" data-bql="rm:${m.id}" title="Remove this message">Remove</button>`:''}</div>
       ${m.item_id?`<button class="bql-chip" data-bql="goto:${esc(m.bill_id||'')}:${esc(m.item_id)}" title="Show this item">📌 ${esc(bqlItemLabel(b,m.bill_id,m.item_id,m.item_label))}</button>`:''}
-      <div class="bql-mb">${m.deleted?'<i class="sub">(message removed)</i>':bqlBody(m.body)}</div>${m.kind==='call'&&m.url&&!m.deleted?`<a class="btn sm pri" href="${esc(m.url)}" target="_blank" rel="noopener">📞 Join call</a>`:''}</div>`; }).join('')
+      <div class="bql-mb">${m.deleted?'<i class="sub">(message removed)</i>':bqlBody(m.body)}</div>${m.kind==='call'&&!m.url&&!m.deleted?callMsgBtn(m):''}${m.kind==='call'&&m.url&&!m.deleted?`<a class="btn sm pri" href="${esc(m.url)}" target="_blank" rel="noopener">📞 Join call</a>`:''}</div>`; }).join('')
       ||`<p class="sub" style="padding:12px">${it?'No comments on this item yet.':'No messages yet. Ask about measurements, drawings or rates – type @ to mention a colleague (they get a notification).'}</p>`; }
   else { const H=BQL.hist; if(!H){ body='<p class="sub" style="padding:12px"><span class="spin"></span> Loading history…</p>'; setTimeout(bqlLoadHist,0); }
     else { const L=H.filter(o=>o.kind!=='reload'&&o.field!=='p'&&(!it||o.item_id===it.item));
       body=L.slice(0,300).map(o=>bqlHistRow(b,o,H)).join('')||'<p class="sub" style="padding:12px">No changes recorded yet. From now on every change shows here with the person, the time and the old value.</p>'; } }
   p.innerHTML=`<div class="bql-hd"><div class="seg"><button data-bql="tab:chat" aria-pressed="${BQL.tab==='chat'}">💬 Discussion</button><button data-bql="tab:hist" aria-pressed="${BQL.tab==='hist'}">🕘 History</button></div><div class="sp"></div>
-      ${call?`<a class="btn sm pri" href="${esc(call.url)}" target="_blank" rel="noopener">📞 Join</a>`:`<button class="btn sm" data-bql="call" title="Start a free video call and invite the team">📞 Call</button>`}<button class="iconbtn" data-bql="close" aria-label="Close panel">✕</button></div>
+      ${call?`<a class="btn sm" href="${esc(call.url)}" target="_blank" rel="noopener">🔗 Meeting</a>`:''}${callBtnHtml(b.id,'boq:'+b.id)}<button class="iconbtn" data-bql="close" aria-label="Close panel">✕</button></div>
     <div class="bql-sub"><span id="bqlOn">${bqlOnlineHtml()}</span></div>
     ${it?`<div class="bql-focus">📌 ${esc(bqlItemLabel(b,it.bill,it.item))}<button class="lnk" data-bql="unfocus">Show all</button></div>`:''}
     <div class="bql-body" id="bqlBody">${body}</div>
@@ -7123,7 +7124,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bq
   if(a==='goto') return bqlGoto(x,y);
   if(a==='send') return bqlSendMsg();
   if(a==='undo') return bqlUndo(x);
-  if(a==='call') return bqlStartCall();
+  if(a==='call') return callNew({boq:BQL.joined,title:byId('boqs',BQL.joined)?.title||''});
   if(a==='link'){ return formDrawer('Share a meeting link',[{k:'url',label:'Google Meet, Zoom or Teams link',req:1,help:'Starts with https:// – the team gets a Join button for the next 3 hours.'}],{},async v=>{ const u=String(v.url||'').trim(); if(!/^https:\/\/[^\s<>"]+$/.test(u)){ toast('Paste a link starting with https://'); return false; } await bqlStartCall(u); return true; },{saveLabel:'Share link'}); }
   if(a==='rm'){ if(!await confirmBox('Remove this message for everyone?','Remove',true)) return; try{ await NX_BQL.editMsg(+x,{deleted:true}); }catch(err){ toast(err.message); } return; }
   if(a==='at'){ const t=$('#bqlTxt'), p=(S.people||[]).find(q=>q.id===el.dataset.bql.slice(3)), st=t&&bqlAtState(t); if(!t||!p||!st) return;
@@ -7131,7 +7132,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bq
 });
 /* alerts: someone @mentioned me (3 days) */
 function bqlAlerts(A){ (BQL.ment||[]).filter(m=>!m.deleted&&Date.now()-Date.parse(m.at)<3*864e5).forEach(m=>{ const b=byId('boqs',m.boq_id);
-  A.push({lvl:'blue',kind:'Mentioned in a BoQ',text:`${m.by_name}: ${String(m.body).slice(0,100)}`,sub:(b?.title||'BoQ')+(m.item_label?' · '+m.item_label:''),go:['boq',m.boq_id],sort:22,at:m.at}); }); }
+  A.push({lvl:'blue',kind:m.kind==='call'?'BoQ call':'Mentioned in a BoQ',text:`${m.by_name}: ${String(m.body).slice(0,100)}`,sub:(b?.title||'BoQ')+(m.item_label?' · '+m.item_label:''),go:['boq',m.boq_id],sort:22,at:m.at}); }); }
 /* ===================== LIVE QS STUDIO (end) ===================== */
 /* ===================== LIVE QS STUDIO IN NEXUS EXCEL v219 =====================
    "Open in Excel" (NEXUS Excel) on a live BoQ: every cell you change in a Bill sheet goes to the BoQ as the same small
@@ -7269,6 +7270,209 @@ async function bqxApplyBills(b,bills){ const srv=byId('boqs',b.id)||b; if(bqxNee
     if(String(bl.name||'').trim()&&String(bl.name).trim().toUpperCase()!==String(sb.name||'').trim().toUpperCase()) ops.push({boq_id:b.id,bill_id:sb.id,kind:'bill',field:'name',value:bl.name}); });
   if(ops.length) await NX_BQL.ops(ops); return ops.length; }
 /* ===================== LIVE QS STUDIO IN NEXUS EXCEL (end) ===================== */
+/* ===================== NEXUS CALLS v220 – WhatsApp-style voice & video calls inside NEXUS =====================
+   Tap 📞 Call → pick colleagues → Voice or Video. Their NEXUS rings (Accept / Decline) wherever they are in NEXUS,
+   phones that are closed get a notification. Sound and picture go directly between the phones/PCs (WebRTC);
+   NEXUS only passes the small "set-up" messages (realtime broadcast). Up to 8 people. The call keeps running while
+   you work: ⌄ makes it a small green bar, tap it to come back. Works in QS Studio, in NEXUS Excel and from any page. */
+const CALL={rt:null,cur:null,ring:null,active:new Map(),pick:null,tone:null,tick:0};
+const CALL_MAX=8;
+const callIce=()=>[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'},...(((window.NEXUS_CONFIG||{}).ice)||[])];
+const callOk=()=>!!(window.NX_RT&&me&&me.id&&navigator.mediaDevices&&window.RTCPeerConnection);
+const callIni=n=>String(n||'?').trim().split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase();
+const callDur=ms=>{ const s=Math.max(0,Math.floor(ms/1000)); return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
+const callCtxTitle=ctx=>ctx?.boq?(byId('boqs',ctx.boq)?.title||ctx.title||'BoQ'):(ctx?.title||'NEXUS call');
+function callBoot(){ if(CALL.rt||!callOk()) return; CALL.rt=NX_RT.open('nx-ring',callRingMsg); }
+setInterval(callBoot,2500);
+setInterval(()=>{ const t=Date.now(); let ch=false; for(const [k,a] of CALL.active) if(t-a.seen>40e3){ CALL.active.delete(k); ch=true; } if(ch) callBanners(); },10e3);
+const callSendRing=m=>{ try{ CALL.rt&&CALL.rt.send({...m,from:me.id,fromName:me.name||''}); }catch(_){} };
+
+/* ---------- ringing channel (everyone in NEXUS listens) ---------- */
+function callRingMsg(m){ if(!m||!m.t||m.from===me.id) return;
+  if(m.t==='alive'){ const a=CALL.active.get(m.call)||{uids:[],names:{}}; const names={...a.names,...(m.names||{})}; CALL.active.set(m.call,{call:m.call,ctx:m.ctx,kind:m.kind,uids:[...new Set([...(a.uids||[]),...(m.uids||[])])].filter(u=>!m.left||u!==m.from),names,seen:Date.now()}); callBanners(); return; }
+  if(m.t==='ended'){ CALL.active.delete(m.call); callBanners(); return; }
+  if(m.to&&!m.to.includes(me.id)) return;
+  if(m.t==='ring'){ if(CALL.cur){ if(CALL.cur.id!==m.call) callSendRing({t:'busy',call:m.call,to:[m.from]}); return; } if(CALL.ring) return; return callIncoming(m); }
+  if(m.t==='cancel'&&CALL.ring&&CALL.ring.call===m.call){ callStopTone(); CALL.ring=null; callRender(); toast(`📞 Missed call from ${m.fromName||'a colleague'}`); return; }
+  if((m.t==='decline'||m.t==='busy')&&CALL.cur&&CALL.cur.id===m.call){ CALL.cur.inv[m.from]=m.t; callRender(); callNoAnswerCheck(); } }
+
+/* ---------- incoming call ---------- */
+function callIncoming(m){ CALL.ring={...m,at:Date.now()}; callTone('in'); try{ navigator.vibrate&&navigator.vibrate([400,200,400,200,400]); }catch(_){}
+  clearTimeout(CALL.ringT); CALL.ringT=setTimeout(()=>{ if(CALL.ring&&CALL.ring.call===m.call){ callStopTone(); CALL.ring=null; callRender(); toast(`📞 Missed call from ${m.fromName||'a colleague'}`); } },45e3);
+  callRender(); }
+async function callAccept(video){ const r=CALL.ring; if(!r) return; callStopTone(); CALL.ring=null;
+  const ok=await callJoin({id:r.call,ctx:r.ctx,kind:video?'video':'audio',inv:{[r.from]:'ringing'},names:{[r.from]:r.fromName}}); if(!ok) callSendRing({t:'decline',call:r.call,to:[r.from]}); }
+function callDecline(){ const r=CALL.ring; if(!r) return; callStopTone(); CALL.ring=null; callSendRing({t:'decline',call:r.call,to:[r.from]}); callRender(); }
+
+/* ---------- start / join ---------- */
+async function callStart(ctx,uids,kind){ if(!callOk()) return toast('Calls need a signed-in NEXUS with a microphone.'); if(CALL.cur) return toast('You are already in a call.');
+  uids=[...new Set(uids)].filter(u=>u&&u!==me.id).slice(0,CALL_MAX-1); if(!uids.length) return toast('Choose who to call.');
+  const id='c'+uid()+Math.random().toString(36).slice(2,6), names=Object.fromEntries(uids.map(u=>[u,callName(u)]));
+  const ok=await callJoin({id,ctx,kind,caller:true,inv:Object.fromEntries(uids.map(u=>[u,'ringing'])),names}); if(!ok) return;
+  const ring=()=>{ const C=CALL.cur; if(!C||C.id!==id) return; const to=Object.entries(C.inv).filter(([,s])=>s==='ringing').map(([u])=>u); if(to.length) callSendRing({t:'ring',call:id,ctx,kind,to}); };
+  ring(); CALL.cur.reRing=setInterval(ring,5000);
+  CALL.cur.noAns=setTimeout(()=>{ const C=CALL.cur; if(C&&C.id===id){ Object.keys(C.inv).forEach(u=>{ if(C.inv[u]==='ringing') C.inv[u]='noanswer'; }); clearInterval(C.reRing); callSendRing({t:'cancel',call:id,to:uids}); if(!C.peers.size){ toast('No answer.'); callHang(true); } else callRender(); } },45e3);
+  if(ctx.boq&&window.NX_BQL&&BQL_ON()) NX_BQL.send({boq_id:ctx.boq,body:`📞 ${me.name||'A colleague'} started a ${kind==='video'?'video':'voice'} call`,kind:'call',url:null,mentions:uids}).then(r=>{ const L=BQL.msgs[ctx.boq]=BQL.msgs[ctx.boq]||[]; if(r&&!L.some(x=>x.id===r.id)) L.push(r); bqlPanelRender(); }).catch(()=>{});
+  logAct(`Started a ${kind==='video'?'video':'voice'} call (${callCtxTitle(ctx)})`); }
+async function callMedia(kind){ const A={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+  if(kind==='video'){ try{ return {s:await navigator.mediaDevices.getUserMedia({audio:A,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}}),kind:'video'}; }catch(e){ console.warn(e); } }
+  try{ const s=await navigator.mediaDevices.getUserMedia({audio:A,video:false}); if(kind==='video') toast('Camera not available – you joined with voice.'); return {s,kind:'audio'}; }
+  catch(e){ console.warn(e); toast('Allow the microphone for NEXUS to make calls (🔒 next to the address → Microphone → Allow).'); return null; } }
+async function callJoin(o){ if(CALL.cur) return false; const M=await callMedia(o.kind); if(!M) return false;
+  const C=CALL.cur={id:o.id,ctx:o.ctx||{},kind:M.kind,local:M.s,peers:new Map(),inv:o.inv||{},names:o.names||{},caller:!!o.caller,started:Date.now(),connectedAt:null,mic:true,cam:M.kind==='video',min:false,front:true,vid:null};
+  C.vid=callVideoEl(true); C.vid.srcObject=M.s;
+  C.room=NX_RT.open('nx-call-'+o.id,callRoomMsg); C.room.send({t:'hello',from:me.id,name:me.name||'',mic:true,cam:M.kind==='video'});
+  if(o.caller) callTone('out');
+  callAlive(); C.aliveT=setInterval(callAlive,15e3); clearInterval(CALL.tick); CALL.tick=setInterval(callTickUi,1000);
+  callRender(); callBanners(); return true; }
+function callJoinActive(id){ const a=CALL.active.get(id); if(!a) return toast('That call has ended.'); callJoin({id,ctx:a.ctx,kind:a.kind,names:a.names}); }
+function callAlive(){ const C=CALL.cur; if(!C) return; const names={[me.id]:me.name||''}; C.peers.forEach(P=>{ names[P.uid]=P.name; }); callSendRing({t:'alive',call:C.id,ctx:C.ctx,kind:C.kind,uids:Object.keys(names),names}); }
+const callName=u=>(CALL.cur&&CALL.cur.names[u])||(S.people||[]).find(p=>p.id===u)?.name||(S.staff||[]).find(s=>s.uid===u)?.name||'Colleague';
+
+/* ---------- connections (one per colleague; "perfect negotiation") ---------- */
+function callRoomMsg(m){ const C=CALL.cur; if(!C||!m||m.from===me.id||(m.to&&m.to!==me.id)) return;
+  if(m.t==='hello'){ C.room.send({t:'here',from:me.id,name:me.name||'',to:m.from,mic:C.mic,cam:C.cam}); const P=callPeer(m.from,m.name); if(P){ P.mic=m.mic!==false; P.cam=!!m.cam; } return; }
+  if(m.t==='here'){ const P=callPeer(m.from,m.name); if(P){ P.mic=m.mic!==false; P.cam=!!m.cam; } return; }
+  if(m.t==='sdp') return callSdp(m);
+  if(m.t==='ice'){ const P=C.peers.get(m.from); if(!P) return; if(P.pc.remoteDescription) P.pc.addIceCandidate(m.c).catch(e=>{ if(!P.ignore) console.warn(e); }); else P.q.push(m.c); return; }
+  if(m.t==='bye') return callDrop(m.from,'left');
+  if(m.t==='st'){ const P=C.peers.get(m.from); if(P){ P.mic=m.mic; P.cam=m.cam; callRender(); } } }
+function callPeer(u,name){ const C=CALL.cur; if(!C) return null; if(C.peers.has(u)) return C.peers.get(u); if(C.peers.size>=CALL_MAX-1) return null;
+  const pc=new RTCPeerConnection({iceServers:callIce()}), P={uid:u,name:name||callName(u),pc,stream:new MediaStream(),state:'connecting',mic:true,cam:false,q:[],polite:me.id>u,making:false,ignore:false,el:callVideoEl(false)};
+  P.el.srcObject=P.stream; C.peers.set(u,P); C.inv[u]='joined'; C.names[u]=P.name; callStopTone(); clearTimeout(C.noAns);
+  const send=(t,x)=>C.room.send({t,from:me.id,to:u,...x});
+  /* no offer collisions: the colleague with the smaller id offers first, the other adds sound/camera when the offer arrives */
+  P.addTracks=()=>{ if(P.added) return; P.added=true; C.local.getTracks().forEach(t=>pc.addTrack(t,C.local)); };
+  if(!P.polite) P.addTracks(); else P.waitT=setTimeout(()=>P.addTracks(),4000);
+  pc.ontrack=e=>{ if(!P.stream.getTracks().includes(e.track)) P.stream.addTrack(e.track); e.track.onunmute=()=>callRender(); P.el.play&&P.el.play().catch(()=>{}); callRender(); };
+  pc.onicecandidate=e=>{ if(e.candidate) send('ice',{c:e.candidate.toJSON()}); };
+  pc.onnegotiationneeded=async()=>{ try{ P.making=true; await pc.setLocalDescription(); send('sdp',{d:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},name:me.name||''}); }catch(e){ console.warn(e); } finally{ P.making=false; } };
+  pc.onconnectionstatechange=()=>{ P.state=pc.connectionState; if(P.state==='connected'){ if(!C.connectedAt) C.connectedAt=Date.now(); callSt(); }
+    if(P.state==='failed'){ try{ pc.restartIce(); }catch(_){ } clearTimeout(P.failT); P.failT=setTimeout(()=>{ if(P.pc.connectionState==='failed') callDrop(u,'lost'); },15e3); }
+    callRender(); };
+  callRender(); callAlive(); return P; }
+async function callSdp(m){ const C=CALL.cur; const P=C.peers.get(m.from)||callPeer(m.from,m.name); if(!P) return; const d=m.d, pc=P.pc;
+  try{ const collision=d.type==='offer'&&(P.making||pc.signalingState!=='stable'); P.ignore=!P.polite&&collision; if(P.ignore) return;
+    await pc.setRemoteDescription(d); for(const c of P.q.splice(0)) await pc.addIceCandidate(c).catch(()=>{});
+    if(d.type==='offer'){ clearTimeout(P.waitT); P.addTracks(); await pc.setLocalDescription(); C.room.send({t:'sdp',from:me.id,to:m.from,d:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},name:me.name||''}); } }
+  catch(e){ console.warn('call sdp',e); } }
+function callDrop(u,why){ const C=CALL.cur; if(!C) return; const P=C.peers.get(u); if(!P) return; try{ P.pc.close(); }catch(_){ } P.el.remove(); C.peers.delete(u); C.inv[u]=why==='lost'?'lost':'left';
+  toast(`${bqlFirst(P.name)} ${why==='lost'?'lost the connection':'left the call'}.`); callAlive();
+  if(!C.peers.size&&C.connectedAt&&!Object.values(C.inv).includes('ringing')) return callHang(true); callRender(); }
+function callNoAnswerCheck(){ const C=CALL.cur; if(!C||C.peers.size) return; if(Object.values(C.inv).every(s=>s==='decline'||s==='busy'||s==='noanswer')){ const s=Object.values(C.inv); toast(s.includes('busy')?'Busy – on another call.':'Call declined.'); setTimeout(()=>callHang(true),1200); } }
+
+/* ---------- my buttons ---------- */
+function callToggleMic(){ const C=CALL.cur; if(!C) return; C.mic=!C.mic; C.local.getAudioTracks().forEach(t=>t.enabled=C.mic); callSt(); callRender(); }
+async function callToggleCam(){ const C=CALL.cur; if(!C) return; let v=C.local.getVideoTracks()[0];
+  if(!v){ try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:C.front?'user':'environment',width:{ideal:640},height:{ideal:480}}}); v=s.getVideoTracks()[0]; C.local.addTrack(v); C.peers.forEach(P=>{ if(P.added) P.pc.addTrack(v,C.local); }); C.cam=true; C.kind='video'; }
+    catch(e){ return toast('Camera not available on this device.'); } }
+  else { C.cam=!C.cam; v.enabled=C.cam; }
+  C.vid.srcObject=C.local; callSt(); callRender(); }
+async function callFlip(){ const C=CALL.cur; const old=C&&C.local.getVideoTracks()[0]; if(!old) return; C.front=!C.front;
+  try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:C.front?'user':'environment',width:{ideal:640},height:{ideal:480}}}); const v=s.getVideoTracks()[0];
+    for(const P of C.peers.values()){ const snd=P.pc.getSenders().find(x=>x.track===old); if(snd) await snd.replaceTrack(v); }
+    C.local.removeTrack(old); old.stop(); C.local.addTrack(v); C.vid.srcObject=C.local; callRender(); }catch(e){ C.front=!C.front; toast('Could not switch camera.'); } }
+const callSt=()=>{ const C=CALL.cur; C&&C.room.send({t:'st',from:me.id,mic:C.mic,cam:C.cam}); };
+function callHang(silent){ const C=CALL.cur; if(!C) return; CALL.cur=null; callStopTone();
+  try{ C.room.send({t:'bye',from:me.id}); }catch(_){ }
+  if(C.caller&&!C.connectedAt) callSendRing({t:'cancel',call:C.id,to:Object.keys(C.inv)});
+  callSendRing({t:'alive',call:C.id,ctx:C.ctx,kind:C.kind,uids:[...C.peers.keys()],names:{},left:true}); if(!C.peers.size) callSendRing({t:'ended',call:C.id});
+  [C.aliveT,C.reRing].forEach(clearInterval); clearTimeout(C.noAns); clearInterval(CALL.tick);
+  C.peers.forEach(P=>{ try{ P.pc.close(); }catch(_){ } P.el.remove(); }); C.local.getTracks().forEach(t=>t.stop()); C.vid.remove();
+  setTimeout(()=>{ try{ C.room.close(); }catch(_){ } },800); CALL.active.delete(C.id);
+  if(!silent||C.connectedAt) toast(C.connectedAt?`Call ended · ${callDur(Date.now()-C.connectedAt)}`:'Call ended.');
+  callRender(); callBanners(); }
+
+/* ---------- sounds (made in the browser – no files) ---------- */
+function callTone(kind){ callStopTone(); try{ const ctx=CALL.ac=CALL.ac||new (window.AudioContext||window.webkitAudioContext)(); ctx.resume&&ctx.resume();
+    const beep=(f,d,at,v=.12)=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=f; o.type='sine'; g.gain.setValueAtTime(0,ctx.currentTime+at); g.gain.linearRampToValueAtTime(v,ctx.currentTime+at+.02); g.gain.setValueAtTime(v,ctx.currentTime+at+d-.03); g.gain.linearRampToValueAtTime(0,ctx.currentTime+at+d); o.connect(g).connect(ctx.destination); o.start(ctx.currentTime+at); o.stop(ctx.currentTime+at+d+.05); };
+    const play=()=>{ if(kind==='in'){ [[784,.18,0],[988,.18,.22],[1175,.3,.44],[784,.18,1.2],[988,.18,1.42],[1175,.3,1.64]].forEach(([f,d,a])=>beep(f,d,a,.16)); } else { beep(425,1,0,.07); } };
+    play(); CALL.tone=setInterval(play,kind==='in'?3000:4000); }catch(_){ } }
+function callStopTone(){ clearInterval(CALL.tone); CALL.tone=null; try{ navigator.vibrate&&navigator.vibrate(0); }catch(_){ } }
+
+/* ---------- screens ---------- */
+function callVideoEl(mine){ const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.setAttribute('playsinline',''); if(mine){ v.muted=true; v.className='nxc-mev'; } else v.className='nxc-v'; return v; }
+function callEl(){ let el=document.getElementById('nxCall'); if(!el){ el=document.createElement('div'); el.id='nxCall'; document.body.append(el); el.addEventListener('click',callClick); el.addEventListener('input',e=>{ if(e.target.id==='nxcQ'&&CALL.pick){ CALL.pick.q=e.target.value; callRender(); const q=document.getElementById('nxcQ'); if(q){ q.focus(); q.selectionStart=q.selectionEnd=q.value.length; } } }); } return el; }
+function callRender(){ const C=CALL.cur, R=CALL.ring, el=callEl(); let keep=document.getElementById('nxcStash'); if(!keep){ keep=document.createElement('div'); keep.id='nxcStash'; keep.hidden=true; document.body.append(keep); }
+  if(C){ keep.append(C.vid); C.peers.forEach(P=>keep.append(P.el)); }
+  el.className=''; let h='';
+  if(CALL.pick) h=callPickHtml();
+  else if(R&&!C) h=callRingHtml(R);
+  else if(C&&C.min) h=`<div class="nxc-mini" data-call="max" role="button" aria-label="Back to the call"><span class="nxc-dot"></span><b>${C.kind==='video'?'🎥':'📞'} <span class="nxc-time">${C.connectedAt?callDur(Date.now()-C.connectedAt):'Calling…'}</span></b><span class="nxc-mn">${esc([...C.peers.values()].map(P=>bqlFirst(P.name)).join(', ')||Object.keys(C.inv).map(u=>bqlFirst(callName(u))).join(', '))}</span><button class="nxc-b sm red" data-call="end" aria-label="End call">${CALL_I.end}</button></div>`;
+  else if(C) h=callFullHtml(C);
+  if(!h){ el.innerHTML=''; el.hidden=true; document.body.classList.remove('nxc-open'); return; }
+  el.hidden=false; el.className=C&&C.min&&!CALL.pick?'mini':'full'; document.body.classList.toggle('nxc-open',el.className==='full');
+  el.innerHTML=h;
+  if(C&&!C.min&&!CALL.pick){ C.peers.forEach(P=>{ const s=el.querySelector(`[data-v="${CSS.escape(P.uid)}"]`); if(s) s.append(P.el); }); const me2=el.querySelector('[data-v="me"]'); if(me2) me2.append(C.vid); }
+  [C?.vid,...(C?[...C.peers.values()].map(P=>P.el):[])].forEach(v=>v&&v.play&&v.play().catch(()=>{})); }
+const CALL_I={end:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.996.996 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>',
+  call:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>',
+  video:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>',
+  mic:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5.3-3a5.3 5.3 0 0 1-10.6 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-1.7z"/></svg>',
+  micoff:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5a3 3 0 0 0-6 0v.18l5.98 5.99zM4.27 3 3 4.27l6.01 6.01V11a3 3 0 0 0 4.49 2.61l1.66 1.66A5.3 5.3 0 0 1 6.7 11H5a7 7 0 0 0 6 6.9V21h2v-3.1c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>',
+  camoff:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M21 6.5l-4 4V7a1 1 0 0 0-1-1H9.82L21 17.18V6.5zM3.27 2 2 3.27 4.73 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/></svg>',
+  flip:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M20 5h-3.2L15 3H9L7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 13a5 5 0 0 1-4.9-4H5l2.5-2.5L10 14H8.1a4 4 0 0 0 6.6 1.9l.7.7A5 5 0 0 1 12 18zm4.5-4.5L14 11h1.9a4 4 0 0 0-6.6-1.9l-.7-.7A5 5 0 0 1 16.9 11H19l-2.5 2.5z"/></svg>',
+  add:'<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>',
+  down:'<svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>'};
+function callAv(u,name,big){ return `<div class="nxc-av${big?' big':''}" style="background:${bqlColor(u)}">${esc(callIni(name))}</div>`; }
+function callRingHtml(R){ const v=R.kind==='video';
+  return `<div class="nxc-ring"><div class="nxc-sub">🔒 NEXUS ${v?'video':'voice'} call</div>${callAv(R.from,R.fromName,true)}<h2>${esc(R.fromName||'Colleague')}</h2><div class="nxc-sub">is calling you${R.ctx?` · ${esc(callCtxTitle(R.ctx))}`:''}</div><div class="nxc-pulse"></div>
+    <div class="nxc-acts"><div><button class="nxc-b big red" data-call="decline" aria-label="Decline">${CALL_I.end}</button><span>Decline</span></div>
+      ${v?`<div><button class="nxc-b big green" data-call="accept:audio" aria-label="Answer with voice only">${CALL_I.call}</button><span>Voice only</span></div>`:''}
+      <div><button class="nxc-b big green nxc-wiggle" data-call="accept:${v?'video':'audio'}" aria-label="Accept">${v?CALL_I.video:CALL_I.call}</button><span>Accept</span></div></div></div>`; }
+function callFullHtml(C){ const P=[...C.peers.values()], waiting=Object.entries(C.inv).filter(([u])=>!C.peers.has(u)), n=Math.max(1,P.length);
+  const stTxt=s=>({ringing:'Ringing…',decline:'Declined',busy:'On another call',noanswer:'No answer',left:'Left',lost:'Connection lost'}[s]||'');
+  const tiles=P.length?P.map(p=>{ const hasV=p.cam&&p.stream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted);
+      return `<div class="nxc-tile${hasV?' vid':''}" data-v="${esc(p.uid)}">${hasV?'':callAv(p.uid,p.name,true)}<div class="nxc-nm">${p.mic?'':'<span class="nxc-mut">'+CALL_I.micoff+'</span>'}${esc(p.name)}${p.state!=='connected'?` <i>· ${p.state==='failed'?'reconnecting…':'connecting…'}</i>`:''}</div></div>`; }).join('')
+    :`<div class="nxc-wait">${waiting.map(([u,s])=>`<div class="nxc-w">${callAv(u,callName(u),true)}<b>${esc(callName(u))}</b><span>${stTxt(s)}</span></div>`).join('')||'<div class="nxc-sub">Connecting…</div>'}</div>`;
+  const ringing=waiting.filter(([,s])=>s==='ringing').length;
+  return `<div class="nxc-full"><div class="nxc-top"><button class="nxc-ic" data-call="min" aria-label="Make the call small and keep working">${CALL_I.down}</button><div class="nxc-tt"><b>${esc(callCtxTitle(C.ctx))}</b><div class="nxc-sub">🔒 ${C.connectedAt?`<span class="nxc-time">${callDur(Date.now()-C.connectedAt)}</span>`:P.length?'Connecting…':'Calling…'}${P.length&&ringing?` · ${ringing} still ringing`:''}</div></div></div>
+    <div class="nxc-grid n${Math.min(n,6)}">${tiles}</div>
+    ${C.cam?`<div class="nxc-me" data-v="me"></div>`:''}
+    <div class="nxc-bar"><button class="nxc-b${C.mic?'':' off'}" data-call="mic" aria-label="${C.mic?'Mute':'Unmute'}" title="${C.mic?'Mute':'Unmute'}">${C.mic?CALL_I.mic:CALL_I.micoff}</button>
+      <button class="nxc-b${C.cam?'':' off'}" data-call="cam" aria-label="${C.cam?'Camera off':'Camera on'}" title="${C.cam?'Camera off':'Camera on'}">${C.cam?CALL_I.cam:CALL_I.camoff}</button>
+      ${C.cam?`<button class="nxc-b" data-call="flip" aria-label="Switch camera" title="Switch camera">${CALL_I.flip}</button>`:''}
+      <button class="nxc-b" data-call="add" aria-label="Add people" title="Add people">${CALL_I.add}</button>
+      <button class="nxc-b red" data-call="end" aria-label="End call" title="End call">${CALL_I.end}</button></div></div>`; }
+function callTickUi(){ const C=CALL.cur; if(!C||!C.connectedAt) return; document.querySelectorAll('.nxc-time').forEach(x=>x.textContent=callDur(Date.now()-C.connectedAt)); }
+
+/* ---------- who to call (like WhatsApp: tick people, then Voice or Video) ---------- */
+function callNew(ctx){ if(!callOk()) return toast(window.NX_RT?'Calls need a microphone and a modern browser.':'Calls work in the online NEXUS.'); if(CALL.cur){ CALL.cur.min=false; return callRender(); }
+  if(!(S.people||[]).length) loadPeople().then(()=>CALL.pick&&callRender());
+  const here=new Set((ctx.boq&&BQL.joined===ctx.boq?BQL.pres:[]).map(p=>p.uid)); CALL.pick={ctx,sel:new Set(here),q:'',here,add:false}; callRender(); }
+function callAddPeople(){ const C=CALL.cur; if(!C) return; CALL.pick={ctx:C.ctx,sel:new Set(),q:'',here:new Set(),add:true}; callRender(); }
+function callPickHtml(){ const K=CALL.pick, q=K.q.toLowerCase(), inCall=new Set(CALL.cur?[...CALL.cur.peers.keys(),...Object.keys(CALL.cur.inv)]:[]);
+  const qs=new Set((S.staff||[]).filter(s=>/qs|quantity|survey|estimat/i.test((s.position||'')+' '+(s.department||''))).map(s=>s.uid).filter(Boolean));
+  const L=bqlPeople().filter(p=>!inCall.has(p.id)&&(!q||p.name.toLowerCase().includes(q))).sort((a,b)=>(K.here.has(b.id)-K.here.has(a.id))||(qs.has(b.id)-qs.has(a.id))||a.name.localeCompare(b.name));
+  return `<div class="nxc-sheet" role="dialog" aria-label="Choose who to call"><div class="nxc-sh"><button class="nxc-ic dark" data-call="pickclose" aria-label="Close">✕</button><div><b>${K.add?'Add people to the call':'New call'}</b><div class="sub">${esc(callCtxTitle(K.ctx))} · ${K.sel.size} selected</div></div></div>
+    <input class="inp" id="nxcQ" placeholder="Search name…" value="${esc(K.q)}" autocomplete="off">
+    <div class="nxc-list">${L.map(p=>`<label class="nxc-p"><input type="checkbox" data-callp="${esc(p.id)}" ${K.sel.has(p.id)?'checked':''}>${callAv(p.id,p.name)}<span><b>${esc(p.name)}</b><span class="sub">${K.here.has(p.id)?'<span class="nxc-on">● on this BoQ now</span>':esc(p.roleTxt||(qs.has(p.id)?'QS':''))}</span></span></label>`).join('')||`<p class="sub" style="padding:14px">${(S.people||[]).length?'Nobody found.':'<span class="spin"></span> Loading colleagues…'}</p>`}</div>
+    <div class="nxc-go">${K.add?`<button class="btn pri" data-call="go:add" ${K.sel.size?'':'disabled'}>Add ${K.sel.size||''} to the call</button>`:`<button class="btn nxc-gv" data-call="go:audio" ${K.sel.size?'':'disabled'}>📞 Voice call</button><button class="btn pri nxc-gv" data-call="go:video" ${K.sel.size?'':'disabled'}>🎥 Video call</button>`}</div></div>`; }
+function callClick(e){ const cb=e.target.closest('[data-callp]'); if(cb){ const K=CALL.pick; if(K){ cb.checked?K.sel.add(cb.dataset.callp):K.sel.delete(cb.dataset.callp); const n=K.sel.size; document.querySelectorAll('#nxCall .nxc-go .btn').forEach(b=>b.disabled=!n); const s=document.querySelector('#nxCall .nxc-sh .sub'); if(s) s.textContent=`${callCtxTitle(K.ctx)} · ${n} selected`; } return; }
+  const b=e.target.closest('[data-call]'); if(!b) return; const [a,x]=b.dataset.call.split(':'); e.stopPropagation();
+  if(a==='accept') return callAccept(x==='video'); if(a==='decline') return callDecline();
+  if(a==='end') return callHang(); if(a==='mic') return callToggleMic(); if(a==='cam') return callToggleCam(); if(a==='flip') return callFlip();
+  if(a==='min'){ CALL.cur.min=true; return callRender(); } if(a==='max'){ CALL.cur.min=false; return callRender(); }
+  if(a==='add') return callAddPeople(); if(a==='pickclose'){ CALL.pick=null; return callRender(); }
+  if(a==='go'){ const K=CALL.pick; if(!K||!K.sel.size) return; const L=[...K.sel]; CALL.pick=null;
+    if(x==='add'){ const C=CALL.cur; if(!C) return callRender(); L.forEach(u=>{ C.inv[u]='ringing'; C.names[u]=callName(u); }); callSendRing({t:'ring',call:C.id,ctx:C.ctx,kind:C.kind,to:L}); clearInterval(C.reRing); C.reRing=setInterval(()=>{ const to=Object.entries(C.inv).filter(([,s])=>s==='ringing').map(([u])=>u); if(to.length) callSendRing({t:'ring',call:C.id,ctx:C.ctx,kind:C.kind,to}); },5000); setTimeout(()=>{ L.forEach(u=>{ if(C.inv[u]==='ringing') C.inv[u]='noanswer'; }); callRender(); },45e3); return callRender(); }
+    callRender(); return callStart(K.ctx,L,x); } }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-callgo]'); if(!b) return; const [a,x]=b.dataset.callgo.split(':');
+  if(a==='join') return callJoinActive(b.dataset.callgo.slice(5)); if(a==='back'&&CALL.cur){ CALL.cur.min=false; return callRender(); }
+  if(a==='boq') return callNew({boq:x,title:byId('boqs',x)?.title||''}); if(a==='xl') return callNew(callXlCtx()); });
+
+/* ---------- 📞 buttons in QS Studio and NEXUS Excel ---------- */
+function callMsgBtn(m){ const a=callActiveFor(m.boq_id); return a&&Date.now()-Date.parse(m.at)<4*36e5?`<button class="btn sm pri" data-callgo="join:${esc(a.call)}">📞 Join call</button>`:''; }
+function callActiveFor(ctxKey){ for(const a of CALL.active.values()){ const k=a.ctx?.boq||a.ctx?.title; if(k===ctxKey&&!(CALL.cur&&CALL.cur.id===a.call)) return a; } return null; }
+function callBtnHtml(ctxKey,newAttr,cls='btn sm'){ if(!callOk()&&!window.NX_RT) return ''; if(CALL.cur&&((CALL.cur.ctx.boq||CALL.cur.ctx.title)===ctxKey)) return `<button class="${cls} nxc-gbtn" data-callgo="back" title="Back to the call">📞 In call</button>`;
+  const a=callActiveFor(ctxKey); if(a) return `<button class="${cls} nxc-gbtn" data-callgo="join:${esc(a.call)}" title="${esc(Object.values(a.names||{}).join(', '))}">📞 Join call (${(a.uids||[]).length})</button>`;
+  return `<button class="${cls}" data-callgo="${newAttr}" title="Voice or video call with colleagues – inside NEXUS">📞 Call</button>`; }
+const callXlCtx=()=>OXS&&OXS.boq_id?{boq:OXS.boq_id,title:byId('boqs',OXS.boq_id)?.title||OXS.title}:{boq:null,title:OXS?.title||'Excel'};
+function callXlHtml(){ if(!window.NX_RT) return ''; const c=OXS?callXlCtx():null; return `<span id="nxcXl">${c?callBtnHtml(c.boq||c.title,c.boq?'boq:'+c.boq:'xl','tb'):''}</span>`; }
+function callBanners(){ try{ renderTeamBtns(); }catch(_){ } const x=document.getElementById('nxcXl'); if(x&&OXS){ const c=callXlCtx(); x.innerHTML=callBtnHtml(c.boq||c.title,c.boq?'boq:'+c.boq:'xl','tb'); } if(BQL.panel) bqlPanelRender(); }
+window.addEventListener('beforeunload',()=>{ if(CALL.cur) try{ CALL.cur.room.send({t:'bye',from:me.id}); }catch(_){ } });
+/* ===================== NEXUS CALLS (end) ===================== */
 /* ---------- Excel teamwork (v134): Excel / NEXUS Excel saves merge bill by bill too ----------
    On export we record each bill's id + fingerprint (hidden NEXUS sheet, or OXS.boq_base in NEXUS Excel).
    On "Update from Excel" / "Save to BoQ": bills unchanged in Excel keep the colleague's latest version;
@@ -12907,7 +13111,7 @@ function oxsOpen(doc){ const names=doc.names||doc.sheets?.names||[];
   OXS={...doc,names:JSON.parse(JSON.stringify(names)),sheets:(doc.sheets&&doc.sheets.length?doc.sheets:[{name:'Sheet1',cells:{}}]).map(oxs3PrepSheet),cur:0,sel:{r:0,c:0,r2:0,c2:0}};
   if(doc.act!=null&&OXS.sheets[doc.act]&&!OXS.sheets[doc.act].hidden) OXS.cur=doc.act; else OXS.cur=Math.max(0,OXS.sheets.findIndex(s=>!s.hidden));
   oxsHist=[]; oxsFut=[]; Object.assign(OXS3,{G:null,ed:null,selX:[],painter:null,mq:null,obj:null,filling:null,refs:[],clip:null}); oxs3Bump();
-  const el=oxShell('xlsx',doc.title||'Book1',{tabs:['Home','Insert','Page Layout','Formulas','Data','Review','View'],onTab:t=>{ if(t==='File') return oxsFile(); $('#oxRib').innerHTML=oxsRibbon(t); oxs3SyncRibbonInputs(); },status:doc.id?'Saved to NEXUS':'Not saved yet',right:doc.boq_id?(doc.bqx?bqxRight():'<button class="tb" data-oxa="boqsave">⤴ Save to BoQ</button>'):''});
+  const el=oxShell('xlsx',doc.title||'Book1',{tabs:['Home','Insert','Page Layout','Formulas','Data','Review','View'],onTab:t=>{ if(t==='File') return oxsFile(); $('#oxRib').innerHTML=oxsRibbon(t); oxs3SyncRibbonInputs(); },status:doc.id?'Saved to NEXUS':'Not saved yet',right:(doc.boq_id?(doc.bqx?bqxRight():'<button class="tb" data-oxa="boqsave">⤴ Save to BoQ</button>'):'')+callXlHtml()});
   el.querySelector('#oxTabs').insertAdjacentHTML('afterbegin','');
   $('#oxRib').innerHTML=oxsRibbon('Home');
   $('#oxBody').innerHTML=`<div class="oxs-fbar" id="oxsFbar"><div class="nbw"><input id="oxsName" aria-label="Name box" autocomplete="off" spellcheck="false"><button data-oxa="m:names2" title="Defined names">▼</button></div><button class="fxb" data-oxa="fbx" title="Cancel">✕</button><button class="fxb" data-oxa="fbok" title="Enter">✓</button><button class="fxb" data-oxa="fx" title="Insert Function" style="font:italic 600 14px Cambria,Georgia,serif">fx</button><input id="oxsF" aria-label="Formula bar" autocomplete="off" spellcheck="false"></div><div class="oxs-wrap" id="oxsWrap" tabindex="0" role="grid" aria-label="Worksheet"></div><div class="oxs-tabs" id="oxsTabs"></div>`;

@@ -135,6 +135,20 @@
     else if (!mine) { if (!bqlLocal(op) && bqlCached(op.boq_id)) bqlRefetch(op.boq_id); }
     window.dispatchEvent(new CustomEvent('nx-boq-op', { detail: { op, mine } }));
   }
+  /* v220: NEXUS calls – small realtime "broadcast" rooms for ringing + call set-up (audio/video goes phone-to-phone, WebRTC) */
+  window.NX_RT = {
+    tab: BQL.tab,
+    open(name, on) {
+      const ch = sb.channel(name, { config: { broadcast: { self: false, ack: false } } });
+      ch.on('broadcast', { event: 'm' }, ({ payload }) => { try { on(payload); } catch (e) { console.warn(e); } });
+      let ok; const ready = new Promise(res => { ok = res; });
+      ch.subscribe(st => { if (st === 'SUBSCRIBED') ok(true); });
+      return {
+        async send(p) { await Promise.race([ready, new Promise(r => setTimeout(r, 6000))]); return ch.send({ type: 'broadcast', event: 'm', payload: p }); },
+        close() { try { sb.removeChannel(ch); } catch (_) {} }
+      };
+    }
+  };
   window.NX_BQL = {
     ok: () => BQL.avail === true,
     tab: BQL.tab,
