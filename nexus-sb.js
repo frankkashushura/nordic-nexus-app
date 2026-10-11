@@ -140,7 +140,10 @@
     tab: BQL.tab,
     async probe() {
       if (BQL.avail !== null) return BQL.avail;
-      try { const { error } = await sb.from('boq_ops').select('id').limit(1); BQL.avail = !error; } catch (_) { BQL.avail = false; }
+      try { const { data: { session: ss } } = await sb.auth.getSession(); if (!ss) return false;   // not signed in yet: ask again later
+        const { error } = await sb.from('boq_ops').select('id').limit(1);
+        if (!error) BQL.avail = true; else if (/does not exist|schema cache|42P01|PGRST20/i.test((error.code || '') + ' ' + (error.message || ''))) BQL.avail = false; else return false;
+      } catch (_) { return false; }
       if (BQL.avail) restartChannel();
       return BQL.avail;
     },

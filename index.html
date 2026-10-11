@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="4bd46090deb1">
+<meta name="nexus-build" content="d0b9b007e9d1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -6940,7 +6940,8 @@ const BQL={pres:[],msgs:{},hist:null,panel:false,tab:'chat',item:null,joined:'',
 const BQL_COL=['#2E75B6','#C0392B','#2E8B57','#8E44AD','#D35400','#16A085','#B7950B','#C2185B','#5D6D7E','#1F618D'];
 const bqlColor=u=>{ let h=0; String(u||'').split('').forEach(c=>{ h=(h*31+c.charCodeAt(0))>>>0; }); return BQL_COL[h%BQL_COL.length]; };
 const bqlFirst=n=>String(n||'').trim().split(/\s+/)[0]||'Someone';
-setTimeout(()=>{ if(window.NX_BQL) NX_BQL.probe().then(ok=>{ if(ok){ renderAll(); bqlLoadMentions(); } }); },1500);
+function bqlProbe(){ if(window.NX_BQL&&!NX_BQL.ok()) NX_BQL.probe().then(ok=>{ if(ok){ renderAll(); bqlLoadMentions(); } }).catch(()=>{}); }
+Promise.resolve(window.NX_READY).then(()=>setTimeout(bqlProbe,1200)).catch(()=>{}); setInterval(()=>{ if(window.NX_BQL&&!NX_BQL.ok()&&me&&me.id) bqlProbe(); },30e3);
 
 /* ---------- where am I: join / leave the BoQ's live presence ---------- */
 setInterval(()=>{ const want=(route==='qs'&&routeArg&&BQL_ON())?routeArg:'';
