@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="fc44bab1b7b9">
+<meta name="nexus-build" content="2c0700c5c674">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -883,19 +883,18 @@ function nxAppPrint(html,title){
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
 const NX_APP_VER='234';
+const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
+function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
   // page top: tabs first, then number tiles; a lone button row after the tiles joins the tabs row
   const kids=[...V.children], g=kids[0], t=kids[1];
   const isKpi=e=>e&&e.classList.contains('grid')&&e.querySelector(':scope>.kpi'), isTabs=e=>e&&e.classList.contains('toolbar')&&e.querySelector(':scope>.seg');
-  if(isKpi(g)&&isTabs(t)) V.insertBefore(t,g);
+  if(isKpi(g)&&isTabs(t)){ const same=V.__el===g; V.insertBefore(t,g); if(same) V.__el=V.firstElementChild; }   // keep renderView's "nothing changed" check working (no blink)
   const k2=[...V.children], i=k2.findIndex(isKpi);
   if(i>0&&isTabs(k2[i-1])){ const b=k2[i+1], T=k2[i-1]; if(b&&b.classList.contains('toolbar')&&!b.querySelector('.seg,input,select,textarea')&&b.querySelector('.btn')&&!T.querySelector('.btn')){ if(!T.querySelector(':scope>.sp')){ const sp=document.createElement('div'); sp.className='sp'; T.append(sp); } [...b.children].filter(x=>!x.classList.contains('sp')).forEach(x=>T.append(x)); b.remove(); } }
   // empty page: repeat the page's main button in the middle
   const E=V.querySelector(':scope>.card.empty,:scope>div>.card.empty'); if(E&&!E.querySelector('button,a')){ const P=V.querySelector(':scope>.toolbar .btn.pri'); if(P){ const c=document.createElement('button'); c.type='button'; c.className='btn pri nx-empty-act'; c.textContent=P.textContent.trim(); c.onclick=()=>P.click(); E.append(c); } }
   if(!phone) return;
-  // short page names on phones, so the title fits on one line
-  const PT=document.getElementById('pageTitle'), SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
-  if(PT&&SHORT[PT.textContent.trim()]) PT.textContent=SHORT[PT.textContent.trim()];
   // tabs: show a fade when there are more tabs to swipe to, and keep the chosen tab in view
   V.querySelectorAll('.seg').forEach(sg=>{ const more=sg.scrollWidth>sg.clientWidth+4; sg.classList.toggle('nx-more',more); if(more&&!sg.dataset.nxs){ sg.dataset.nxs=1; const on=sg.querySelector('[aria-pressed="true"]'); if(on&&on.offsetLeft+on.offsetWidth>sg.clientWidth) sg.scrollLeft=on.offsetLeft-16; const f=()=>sg.classList.toggle('nx-end',sg.scrollLeft+sg.clientWidth>=sg.scrollWidth-4); sg.addEventListener('scroll',f,{passive:true}); f(); } });
   // wide tables: cards on phones
@@ -9356,7 +9355,7 @@ function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSa
   if(!force && a && v.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && !['tq','staffq','rq','rtq','oxq','winq','supq','hxWq','hxDq','hxAq','hxFl'].includes(a.id)){ pendingView=true; return; }
   pendingView=false;
   const snap=snapshotInputs(v);
-  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=route==='bid'&&routeArg?(byId('tenders',routeArg)?.title||'Bid'):route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'';
+  const p=PAGES.find(x=>x.k===route); $('#pageTitle').textContent=nxTitle(route==='bid'&&routeArg?(byId('tenders',routeArg)?.title||'Bid'):route==='qs'&&routeArg?(byId('boqs',routeArg)?.title||'BoQ'):route==='project'?(byId('projects',routeArg)?.name||'Project'):route==='dept'?(routeArg||'Department'):p?.t||'');
   $('#crumb').textContent=route==='bid'&&routeArg?'Bid Studio · bid workspace':route==='qs'&&routeArg?'QS Studio · BoQ editor':route==='project'?'Projects · workspace':route==='dept'?'Departments':'NORDIC NEXUS';
   const banner = !db ? `<div class="banner warn"><div><b>Working offline.</b> The NEXUS database is not connected in this view, so nothing you enter is saved.</div></div>` : '';
   const vh=banner+(loaded.size<3&&db?'<div class="empty"><span class="spin"></span> Loading NEXUS data…</div>':PAGE_FN[route]());
