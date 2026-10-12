@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="f98edfaae187">
+<meta name="nexus-build" content="6291f2efbbd6">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -764,6 +764,41 @@ body.bql-open .main{padding-right:380px}
 .pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}.pf-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}.pf-step{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card,rgba(255,255,255,.03));flex:1;min-width:150px}.pf-step b{display:block;font-size:.9rem}.pf-step small{opacity:.75}.pf-step.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.pf-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#000;font-weight:700;flex:none}.pf-ar{opacity:.5;font-size:1.3rem}.pf-tl{margin:10px 0 4px;border-left:3px solid var(--line);padding-left:12px;display:grid;gap:6px}.pf-tl>div{opacity:.75}.pf-tl .ok{opacity:1}.pf-tl .no{opacity:1;color:var(--bad)}@media(max-width:700px){.pf-ar{display:none}.pf-step{min-width:45%}}
 .tstar{background:none;border:0;padding:0 6px 0 0;font-size:17px;line-height:1;cursor:pointer;color:var(--muted);vertical-align:-1px}.tstar.on{color:#E0A100}.tstar:hover{color:#E0A100}
 
+/* v243 · Works Planner */
+body.wp-on{overflow:hidden}#wpApp{position:fixed;inset:0;z-index:300;background:#F3F5F8;color:#1B2533;display:flex;flex-direction:column;font:13px/1.35 "Segoe UI",Inter,Arial,sans-serif}
+#wpApp .wp-top{display:flex;align-items:center;gap:12px;background:#0F2B4C;color:#fff;padding:8px 12px}#wpApp .wp-brand{font-size:12px;letter-spacing:.06em;color:#9CC4FF}#wpApp .wp-brand b{color:#FFB400}
+#wpApp .wp-ttl{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#wpApp .wp-st{font-size:11.5px;color:#C9D6E8}#wpApp .wp-x{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:6px;background:#C0392B;color:#fff}
+#wpApp .wp-tabs{display:flex;gap:2px;background:#E4E9F0;padding:6px 10px 0;overflow-x:auto}#wpApp .wp-tabs button{all:unset;cursor:pointer;padding:8px 14px;border-radius:8px 8px 0 0;font-weight:600;color:#3E4C61;white-space:nowrap}#wpApp .wp-tabs button.on{background:#fff;color:#0F2B4C;box-shadow:0 -2px 0 #FFB400 inset}
+#wpApp .wp-body{flex:1;overflow:auto;padding:12px}#wpApp .wp-body.wp-pb{display:flex;flex-direction:column;overflow:hidden;padding:8px 10px}
+#wpApp .wp-card{background:#fff;border:1px solid #D9E0EA;border-radius:10px;padding:12px 14px;margin-bottom:12px}#wpApp h3{margin:0 0 10px;font-size:15px;color:#0F2B4C}#wpApp .wp-sub{font-weight:400;font-size:11.5px;color:#66748A}
+#wpApp .wp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 12px}#wpApp .wp-grid label,#wpApp .wp-title,#wpApp .wp-fl{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:600;color:#44526A}#wpApp .wp-grid .full{grid-column:1/-1}
+#wpApp .wp-in{font:inherit;font-weight:400;color:#111;background:#fff;border:1px solid #C9D2DE;border-radius:5px;padding:5px 7px;width:100%;box-sizing:border-box}#wpApp textarea.wp-in{resize:vertical;line-height:1.35}
+#wpApp .wp-li{padding:3px 0}#wpApp .wp-kpis{display:flex;gap:12px;flex-wrap:wrap}#wpApp .wp-kpis>div{flex:1 1 180px;background:#F5F8FC;border-radius:8px;padding:10px}#wpApp .wp-kpis b{display:block;font-size:20px;color:#0F2B4C}#wpApp .wp-kpis span{font-size:11.5px;color:#55637A}
+#wpApp .wp-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}#wpApp .wp-bar .sp{flex:1}#wpApp .wp-grp{display:inline-flex;gap:2px;padding:0 4px;border-left:1px solid #D5DCE6}
+#wpApp .wp-b{all:unset;cursor:pointer;padding:6px 10px;border:1px solid #C3CDDA;border-radius:6px;background:#fff;font-weight:600;font-size:12.5px;color:#22324A;white-space:nowrap}#wpApp .wp-b:hover{background:#EEF3FA}#wpApp .wp-b.pri{background:#0F2B4C;color:#fff;border-color:#0F2B4C}#wpApp .wp-b.on{background:#FFB400;border-color:#E0A000;color:#111}#wpApp .wp-b[disabled]{opacity:.6;pointer-events:none}
+#wpApp .wp-ok{display:inline-block;background:#D9F2E3;color:#17653A;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}#wpApp .wp-ck{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap}
+#wpApp .wp-empty{background:#fff;border:1px dashed #B8C4D4;border-radius:10px;padding:26px;text-align:center;color:#4A5870;line-height:1.6}
+#wpApp .wp-mst{overflow:auto;background:#fff;border:1px solid #9AA8BA;border-radius:6px;margin-top:8px}#wpApp .wp-mst table{border-collapse:collapse;width:100%;min-width:1100px;table-layout:fixed}#wpApp .wp-mst th{position:sticky;top:0;z-index:1;background:#D9E2F3;color:#0F2B4C;border:1px solid #8A9BB3;padding:6px 4px;font-weight:700;font-size:12px;letter-spacing:0;text-transform:none}#wpApp .wp-mst th .wp-sub{color:#4A5870}
+#wpApp .wp-mst td{border:1px solid #B8C4D4;vertical-align:top;padding:4px}#wpApp .wp-mst td.c{text-align:center;font-weight:700}#wpApp .wp-mst tr.sel td{background:#FFFBEA}#wpApp .wp-mst textarea{min-height:56px}#wpApp .wp-mst select,#wpApp .wp-mst input{margin-bottom:3px}
+#wpApp .wp-rowb button,#wpApp .wp-del,#wpApp .wp-ins{all:unset;cursor:pointer;display:block;margin:4px auto 0;font-size:11px;color:#5A6880;padding:1px 4px;border-radius:4px}#wpApp .wp-del{color:#C0392B}#wpApp .wp-rowb button:hover,#wpApp .wp-del:hover,#wpApp .wp-ins:hover{background:#EEF2F7}
+#wpApp .wp-chip{display:inline-block;margin-top:3px;background:#E3EEFB;color:#1F4E8A;border-radius:8px;padding:0 6px;font-size:10.5px}#wpApp .wp-flags{background:#FFF6DB;border:1px solid #F0D27A;border-radius:6px;padding:4px 6px;margin-top:4px;font-size:11.5px;color:#6A4D00}#wpApp .wp-flags button{all:unset;cursor:pointer;font-weight:700;color:#0F2B4C;margin-top:2px}
+#wpApp .wp-warn{background:#FFF6DB;border-left:3px solid #E0A000;padding:4px 8px;margin:3px 0;font-size:12px;border-radius:4px}#wpApp .wp-warn button{all:unset;cursor:pointer;font-weight:700;color:#0F2B4C;margin-left:4px}#wpApp .wp-err{background:#FDE7E5;border-left:3px solid #C0392B;padding:5px 8px;margin:3px 0;font-size:12.5px;border-radius:4px}
+#wpApp .wp-sumline{font-size:12px;color:#36445A;margin:2px 0 6px}
+#wpApp .wp-split{flex:1;display:flex;min-height:0;border:1px solid #9AA8BA;border-radius:6px;background:#fff;overflow:hidden}#wpApp .wp-tbl{width:min(760px,52%);display:flex;flex-direction:column;border-right:2px solid #9AA8BA;min-width:0}
+#wpApp .wp-th,#wpApp .wp-tr{display:grid;grid-template-columns:34px minmax(150px,1fr) 70px 98px 62px 82px 90px 40px 30px;align-items:center}#wpApp .wp-th{height:44px;background:#E4EAF2;color:#0F2B4C;font-weight:700;font-size:11.5px;border-bottom:1px solid #9AA8BA}#wpApp .wp-th span{padding:0 4px}
+#wpApp .wp-rows{flex:1;overflow:auto}#wpApp .wp-tr{height:24px;border-bottom:1px solid #EDF0F4;font-size:12px}#wpApp .wp-tr>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;height:24px;display:flex;align-items:center;border-right:1px solid #EDF0F4}#wpApp .wp-tr .c1,#wpApp .wp-tr .c9{justify-content:center;color:#5A6880}
+#wpApp .wp-tr.sel{background:#FFF4CC}#wpApp .wp-tr.sum{font-weight:700}#wpApp .wp-tr.crit .c2 input{color:#B3261E}#wpApp .wp-tr i{font-style:normal;padding:0 4px}#wpApp .wp-cell{all:unset;width:100%;height:22px;padding:0 4px;box-sizing:border-box;font:inherit}#wpApp .wp-cell:focus{background:#fff;outline:2px solid #3B82F6}#wpApp .wp-cell.con{color:#9A5B00}
+#wpApp .wp-tg{all:unset;cursor:pointer;width:14px;text-align:center;color:#334}#wpApp .wp-gwrap{flex:1;min-width:0;display:flex;flex-direction:column}#wpApp .wp-gh{height:44px;overflow:hidden;background:#E4EAF2;border-bottom:1px solid #9AA8BA}#wpApp .wp-gh>div{position:relative;height:44px}
+#wpApp .wp-hr1,#wpApp .wp-hr2{position:relative;height:22px}#wpApp .wp-h1,#wpApp .wp-h2{position:absolute;top:0;height:22px;border-left:1px solid #B5C0D0;font-size:10.5px;padding-left:3px;overflow:hidden;white-space:nowrap;line-height:22px}#wpApp .wp-h2{font-size:9.5px;line-height:10px;padding-top:1px;text-align:center;padding-left:0}#wpApp .wp-hr1{border-bottom:1px solid #C8D1DD}
+#wpApp .wp-gantt{flex:1;overflow:auto}#wpApp .wp-gin{position:relative}#wpApp .wp-nw{position:absolute;top:0;bottom:0;background:#F1F3F6}#wpApp .wp-vl{position:absolute;top:0;bottom:0;border-left:1px dotted #C8D1DD}#wpApp .wp-today{position:absolute;top:0;bottom:0;border-left:2px dashed #E0A000;z-index:2}
+#wpApp .wp-bar1{position:absolute;height:13px;background:#6E9BE5;border:1px solid #2F5E9E;border-radius:2px;z-index:3;box-sizing:border-box}#wpApp .wp-bar1.crit{background:#E57368;border-color:#A8322A}#wpApp .wp-pg{height:5px;margin-top:3px;background:#1D3557}
+#wpApp .wp-sb{position:absolute;height:6px;background:#222;z-index:3}#wpApp .wp-sb:before,#wpApp .wp-sb:after{content:"";position:absolute;top:0;border:5px solid transparent;border-top:7px solid #222}#wpApp .wp-sb:before{left:-5px}#wpApp .wp-sb:after{right:-5px}
+#wpApp .wp-md{position:absolute;width:12px;height:12px;background:#222;transform:rotate(45deg);z-index:3}#wpApp .wp-bl{position:absolute;font-size:10.5px;color:#334;white-space:nowrap;z-index:3}#wpApp .wp-arr{position:absolute;left:0;top:0;z-index:2;pointer-events:none}
+#wpApp .wp-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:#4A5870;padding:6px 2px 0}#wpApp .lg{display:inline-block;width:18px;height:9px;vertical-align:middle;margin-right:4px}#wpApp .lg.b{background:#6E9BE5}#wpApp .lg.c{background:#E57368}#wpApp .lg.p{background:#1D3557;height:4px}#wpApp .lg.s{background:#222;height:5px}#wpApp .lg.m{width:9px;height:9px;background:#222;transform:rotate(45deg)}
+#wpApp .wp-prev{border:1px solid #C9D2DE;border-radius:8px;overflow:hidden;margin-top:8px;background:#fff}#wpApp .wp-prev iframe{width:100%;height:520px;border:0;display:block}
+#wpApp .wp-rt{width:100%;border-collapse:collapse}#wpApp .wp-rt td,#wpApp .wp-rt th{border-bottom:1px solid #E3E8EF;padding:6px;text-align:left}
+#wpApp .wp-dlg{position:fixed;inset:0;background:rgba(15,25,40,.45);z-index:320;display:grid;place-items:center}#wpApp .wp-dbox{background:#fff;border-radius:12px;padding:16px;width:min(560px,94vw);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:10px}#wpApp .wp-cks{display:flex;flex-wrap:wrap;gap:8px 14px;font-weight:400}#wpApp .wp-dact{display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:760px){#wpApp .wp-split{flex-direction:column}#wpApp .wp-tbl{width:100%;height:46%;border-right:0;border-bottom:2px solid #9AA8BA}#wpApp .wp-th,#wpApp .wp-tr{grid-template-columns:28px minmax(140px,1fr) 64px 92px 58px 70px 80px 36px 26px}#wpApp .wp-tbl{overflow-x:auto}#wpApp .wp-th,#wpApp .wp-rows{min-width:640px}}
 /* v239 Support Staff: no tender card on Home */
 body.nx-sup .home-duo{grid-template-columns:1fr!important}body.nx-sup .home-duo>section.card:first-child{display:none}
 /* ===================== v234 · design polish (phone layout, cards, tiles, empty pages, Blueprint) ===================== */
@@ -855,7 +890,7 @@ body.nx-sup .home-duo{grid-template-columns:1fr!important}body.nx-sup .home-duo>
 <script>
 /* ===================== NORDIC NEXUS — core ===================== */
 const LOGO = document.querySelector('#brandMark img').src;
-const COLS = ['bids','ledgers','vouchers','acset','paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
+const COLS = ['plans','bids','ledgers','vouchers','acset','paystat','proformas','bidhist','projfiles','hse_osha','tenders','projects','reports','boqs','rates','finance','procurement','suppliers','staff','tasks','compliance','certificates','milestones','variations','risks','snags','plant','meetings','announcements','records','avatars','departments','deptnotes','officedocs','formresp','po','valuations','leave','away','hrrec','vlog','hse_inc','hse_obs','hse_insp','hse_tbt','hse_permit','hse_train','hse_ppe','hse_stock','hse_site','hse_hours','wins','boqlive','boqnotes','askchat','hse_worker','hse_con','hse_doc','hse_med','hse_ra','hse_aud','hse_env','hse_drill','hse_sched','hse_gate','hse_ca','hse_cfg','hse_hist'];
 const S = {company:null, activity:[]};
 COLS.forEach(c => S[c] = []);
 const AC_BIG={vouchers:20000,ledgers:5000,finance:10000,procurement:10000,po:10000,certificates:5000,valuations:5000,paystat:5000,tenders:5000,records:5000};
@@ -885,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='242';
+const NX_APP_VER='243';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -5215,6 +5250,549 @@ async function tnaSaved(id){ const ex={...TNA.extra}; const files=TNA.files; tna
   const p={...ex}; if(list.length){ const t=byId('tenders',id); p.files=[...((t&&t.files)||[]),...list]; p.docs='Y'; } if(Object.keys(ex).length) p.ai_read_at=new Date().toISOString();
   if(Object.keys(p).length) await patch('tenders',id,p); }
 /* ===================== ADD TENDER FROM DOCUMENT (end) ===================== */
+/* ===================== v243 · WORKS PLANNER – scheduling engine (no UI; tested on its own) ===================== */
+// Day-based critical-path scheduler: working calendar (working weekdays, public holidays, shutdowns), durations in working days,
+// elapsed days, weeks or hours, FS / SS / FF / SF links with leads and lags, summary tasks (rolled up from their children,
+// links on a summary apply to all its tasks), milestones, constraints (ASAP, SNET, FNET, MSO, FNLT), forward and backward pass,
+// total float, critical path, loop detection, required-completion check and exclusive-resource clashes.
+const WPS=(()=>{
+  const dn=s=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?Math.round(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5):null; };
+  const ds=n=>n==null?'':new Date(n*864e5).toISOString().slice(0,10);
+  const dow=n=>((n+4)%7+7)%7;                        // 0 Sunday … 6 Saturday (1970-01-01 was a Thursday)
+  function mkCal(c){ c=c||{}; const days=new Set((c.days&&c.days.length?c.days:[1,2,3,4,5]).map(Number)); const hol=new Set();
+    (c.holidays||[]).forEach(h=>{ const a=dn(h.from||h.date||h), b=dn(h.to||h.from||h.date||h); if(a!=null) for(let i=a;i<=(b??a);i++) hol.add(i); });
+    const work=n=>days.has(dow(n))&&!hol.has(n);
+    return {days,hol,work,hpd:+c.hours||8,wpw:days.size||5}; }
+  // working-day arithmetic
+  const nextW=(C,n)=>{ let k=0; while(!C.work(n)&&k++<4000) n++; return n; };
+  const prevW=(C,n)=>{ let k=0; while(!C.work(n)&&k++<4000) n--; return n; };
+  function addW(C,n,k){ if(k>0){ while(k>0){ n++; if(C.work(n)) k--; } } else if(k<0){ while(k<0){ n--; if(C.work(n)) k++; } } return n; }
+  function countW(C,a,b){ if(b<a) return -countW(C,b,a); let c=0; for(let i=a;i<b;i++) if(C.work(i)) c++; return c; }  // working days from a to b (b excluded)
+  // duration → {len, el}: len = working days (el=false) or calendar days (el=true)
+  function durOf(C,d){ d=d||{}; const n=Math.max(0,+d.n||0), u=d.u||'d';
+    if(u==='ed') return {len:Math.ceil(n),el:true}; if(u==='w') return {len:Math.ceil(n*C.wpw),el:false}; if(u==='ew') return {len:Math.ceil(n*7),el:true};
+    if(u==='h') return {len:Math.ceil(n/C.hpd),el:false}; if(u==='mo') return {len:Math.ceil(n*C.wpw*4.33),el:false}; return {len:Math.ceil(n),el:false}; }
+  function lagOf(C,l){ if(!l) return {k:0,el:false}; const n=+l.n||0, u=l.u||'d'; if(u==='ed') return {k:Math.round(n),el:true}; if(u==='w') return {k:Math.round(n*C.wpw),el:false}; if(u==='h') return {k:Math.round(n/C.hpd),el:false}; return {k:Math.round(n),el:false}; }
+  const shift=(C,n,L)=>L.el?n+L.k:addW(C,n,L.k);
+  // a task that starts on s: first day it occupies, and its last day
+  const startOn=(C,D,s)=>D.el||D.len===0?s:nextW(C,s);
+  const finOf=(C,D,s)=>D.len===0?s:D.el?s+D.len-1:addW(C,s,D.len-1);
+  const startFromFin=(C,D,f)=>D.len===0?f:D.el?f-D.len+1:addW(C,prevW(C,f),-(D.len-1));
+  function parseDur(t){ const s=String(t??'').trim().toLowerCase().replace(',', '.'); if(!s) return null; const m=s.match(/^(-?\d+(?:\.\d+)?)\s*(e?d(?:ays?)?|e?w(?:ee)?k?s?|e?wks?|h(?:rs?|ours?)?|mo(?:nths?)?|edays?|ewks?)?\??$/); if(!m) return null;
+    let u=(m[2]||'d'); u=/^e?d/.test(u)?(u[0]==='e'?'ed':'d'):/^e?w/.test(u)?(u[0]==='e'?'ew':'w'):/^h/.test(u)?'h':/^mo/.test(u)?'mo':'d'; return {n:+m[1],u,est:/\?$/.test(s)}; }
+  const fmtDur=d=>{ if(!d) return ''; const n=+d.n||0, u=d.u||'d'; const L={d:['day','days'],ed:['eday','edays'],w:['wk','wks'],ew:['ewk','ewks'],h:['hr','hrs'],mo:['mon','mons']}[u]||['day','days']; return `${n} ${n===1?L[0]:L[1]}${d.est?'?':''}`; };
+  // predecessor text "3FS+2d, 5SS, 7" ↔ links; ids are the row numbers shown in the table
+  function parsePreds(txt,rowToId){ const out=[], bad=[]; String(txt||'').split(/[,;]+/).map(x=>x.trim()).filter(Boolean).forEach(p=>{
+      const m=p.toUpperCase().match(/^(\d+)\s*(FS|SS|FF|SF)?\s*(?:([+-])\s*(\d+(?:\.\d+)?)\s*(ED|D|W|H|EDAYS?|DAYS?|WKS?)?)?$/); if(!m){ bad.push(p); return; }
+      const id=rowToId(+m[1]); if(!id){ bad.push(p); return; } let u=(m[5]||'D').toLowerCase(); u=u.startsWith('e')?'ed':u.startsWith('w')?'w':u.startsWith('h')?'h':'d';
+      out.push({id,type:m[2]||'FS',lag:m[3]?{n:(m[3]==='-'?-1:1)*+m[4],u}:null}); }); return {links:out,bad}; }
+  function fmtPreds(links,idToRow){ return (links||[]).map(l=>{ const r=idToRow(l.id); if(!r) return ''; const lg=l.lag&&+l.lag.n?`${+l.lag.n>0?'+':''}${+l.lag.n}${l.lag.u==='ed'?'ed':l.lag.u==='w'?'w':l.lag.u==='h'?'h':'d'}`:''; return `${r}${l.type&&l.type!=='FS'||lg?l.type||'FS':''}${lg}`; }).filter(Boolean).join(', '); }
+
+  /* schedule(plan) → {rows:Map id→{es,ef,ls,lf,tf,crit,sum,lvl,dur}, start, finish, errors[], warnings[]} */
+  function schedule(P){
+    const C=mkCal(P.calendar), T=(P.tasks||[]).filter(t=>t&&t.id), errors=[], warnings=[];
+    const by=new Map(T.map(t=>[t.id,t])), idx=new Map(T.map((t,i)=>[t.id,i]));
+    // hierarchy from outline levels (row order)
+    const par=new Map(), kids=new Map(T.map(t=>[t.id,[]])), stack=[];
+    T.forEach(t=>{ const L=Math.max(1,+t.lvl||1); while(stack.length&&stack[stack.length-1].L>=L) stack.pop(); const p=stack.length?stack[stack.length-1].t:null; if(p){ par.set(t.id,p.id); kids.get(p.id).push(t.id); } stack.push({L,t}); });
+    const isSum=id=>kids.get(id).length>0;
+    const leavesOf=id=>{ const o=[]; const w=x=>{ const k=kids.get(x); if(!k.length) o.push(x); else k.forEach(w); }; w(id); return o; };
+    const ancestors=id=>{ const o=[]; let p=par.get(id); while(p){ o.push(p); p=par.get(p); } return o; };
+    // leaf-level links: explicit links + links inherited from summaries
+    const links=[];   // {p,s,type,lag}
+    T.forEach(t=>{ (t.preds||[]).forEach(l=>{ if(!by.has(l.id)){ warnings.push(`Task ${idx.get(t.id)+1}: a predecessor no longer exists – link ignored.`); return; }
+      if(l.id===t.id||ancestors(t.id).includes(l.id)||ancestors(l.id).includes(t.id)){ errors.push(`Task ${idx.get(t.id)+1} "${t.name}" is linked to its own summary task – remove this link.`); return; }
+      const PS=leavesOf(l.id), SS=leavesOf(t.id); PS.forEach(p=>SS.forEach(s=>links.push({p,s,type:l.type||'FS',lag:lagOf(C,l.lag)}))); }); });
+    const leaves=T.filter(t=>!isSum(t.id)).map(t=>t.id);
+    const preds=new Map(leaves.map(id=>[id,[]])), succs=new Map(leaves.map(id=>[id,[]]));
+    links.forEach(l=>{ if(preds.has(l.s)&&succs.has(l.p)){ preds.get(l.s).push(l); succs.get(l.p).push(l); } });
+    // topological order (Kahn) – a loop is an error, never silently "fixed"
+    const indeg=new Map(leaves.map(id=>[id,preds.get(id).length])), q=leaves.filter(id=>!indeg.get(id)), order=[];
+    while(q.length){ const id=q.shift(); order.push(id); succs.get(id).forEach(l=>{ indeg.set(l.s,indeg.get(l.s)-1); if(!indeg.get(l.s)) q.push(l.s); }); }
+    if(order.length<leaves.length){ const loop=leaves.filter(id=>indeg.get(id)>0).map(id=>idx.get(id)+1); errors.push(`The links make a loop (circular dependency) between tasks ${loop.slice(0,8).join(', ')}${loop.length>8?' …':''}. Remove one of these links.`);
+      return {rows:new Map(),start:null,finish:null,errors,warnings,cal:C}; }
+    const P0=dn(P.start)??dn(new Date().toISOString()), R=new Map();
+    const D=new Map(leaves.map(id=>[id,durOf(C,by.get(id).dur||(by.get(id).ms?{n:0}:{n:1}))]));
+    // forward pass
+    for(const id of order){ const t=by.get(id), d=D.get(id); let es=startOn(C,d,P0), why='start', eod=false;   // eod: a milestone at the END of its day (after a task) – the next task starts the next working day
+      for(const l of preds.get(id)){ const p=R.get(l.p); let c;
+        if(l.type==='SS') c=startOn(C,d,shift(C,p.es,l.lag));
+        else if(l.type==='FF') c=startFromFin(C,d,shift(C,p.ef,l.lag));
+        else if(l.type==='SF') c=startFromFin(C,d,shift(C,p.es,l.lag));
+        else if(p.dur.len===0&&!p.eod) c=startOn(C,d,shift(C,p.ef,l.lag));                       // after a start-of-day milestone: same day
+        else c=d.len===0?shift(C,p.ef,l.lag):startOn(C,d,(l.lag.el?p.ef+1+l.lag.k:addW(C,p.ef,1+l.lag.k)));
+        if(c>es){ es=c; why='link'; eod=d.len===0&&(l.type==='FS'||l.type==='FF')&&!(p.dur.len===0&&!p.eod); } }
+      const k=t.con||{}; const cd=dn(k.date);
+      if(k.type==='SNET'&&cd!=null){ const c=startOn(C,d,cd); if(c>es){ es=c; why='con'; } }
+      if(k.type==='FNET'&&cd!=null){ const c=startFromFin(C,d,d.el||d.len===0?cd:prevW(C,cd)); if(c>es){ es=c; why='con'; } }
+      if(k.type==='MSO'&&cd!=null){ const c=startOn(C,d,cd); if(c<es) warnings.push(`Task ${idx.get(id)+1} "${t.name}": must start on ${ds(cd)} but its links need ${ds(es)} – the links win; check the date.`); else es=c; }
+      if(why==='con') eod=false; const ef=finOf(C,d,es); R.set(id,{es,ef,dur:d,eod});
+      if(k.type==='FNLT'&&cd!=null&&ef>cd) warnings.push(`Task ${idx.get(id)+1} "${t.name}" finishes ${ds(ef)}, after its "finish no later than" date ${ds(cd)}.`); }
+    const PF=leaves.length?Math.max(...leaves.map(id=>R.get(id).ef)):P0;
+    // backward pass
+    for(const id of [...order].reverse()){ const d=D.get(id), r=R.get(id); let lf=PF;
+      for(const l of succs.get(id)){ const s=R.get(l.s), sd=D.get(l.s); let c;
+        if(l.type==='SS') c=finOf(C,d,shift(C,s.ls,{k:-l.lag.k,el:l.lag.el}));
+        else if(l.type==='FF') c=shift(C,s.lf,{k:-l.lag.k,el:l.lag.el});
+        else if(l.type==='SF') c=finOf(C,d,shift(C,s.lf,{k:-l.lag.k,el:l.lag.el}));
+        else if(d.len===0&&!r.eod) c=shift(C,s.ls,{k:-l.lag.k,el:l.lag.el});
+        else c=sd.len===0?shift(C,s.ls,{k:-l.lag.k,el:l.lag.el}):(l.lag.el?s.ls-1-l.lag.k:addW(C,s.ls,-1-l.lag.k));
+        if(c<lf) lf=c; }
+      if(!d.el&&d.len>0) lf=prevW(C,lf);
+      const ls=startFromFin(C,d,lf); r.lf=lf; r.ls=ls; r.tf=d.el?(ls-r.es):countW(C,r.es,ls); r.crit=r.tf<=0; }
+    // summaries roll up from their children (deepest first)
+    const sums=T.filter(t=>isSum(t.id)).sort((a,b)=>ancestors(b.id).length-ancestors(a.id).length);
+    for(const t of sums){ const K=kids.get(t.id).map(k=>R.get(k)).filter(Boolean); if(!K.length) continue;
+      const es=Math.min(...K.map(k=>k.es)), ef=Math.max(...K.map(k=>k.ef)); R.set(t.id,{es,ef,ls:Math.min(...K.map(k=>k.ls)),lf:Math.max(...K.map(k=>k.lf)),tf:Math.min(...K.map(k=>k.tf)),crit:K.some(k=>k.crit),sum:true,dur:{len:countW(C,es,ef+1),el:false}}); }
+    T.forEach(t=>{ const r=R.get(t.id); if(r){ r.lvl=Math.max(1,+t.lvl||1); r.ms=(r.dur&&r.dur.len===0&&!r.sum); r.parent=par.get(t.id)||null; r.kids=kids.get(t.id); } });
+    // required completion & exclusive resources
+    const req=dn(P.required_finish); if(req!=null&&PF>req) warnings.push(`The programme finishes ${ds(PF)}, ${countW(C,req,PF)} working days after the required completion date ${ds(req)}. Shorten durations or overlap work – NEXUS does not change the dates by itself.`);
+    const ex=new Set((P.resources||[]).filter(r=>r.exclusive).map(r=>String(r.name).toLowerCase()));
+    if(ex.size){ const use=new Map(); leaves.forEach(id=>(by.get(id).res||[]).forEach(n=>{ const k=String(n).replace(/^\d+\s*[x×]?\s*/,'').toLowerCase().trim(); if(ex.has(k)){ if(!use.has(k)) use.set(k,[]); use.get(k).push(id); } }));
+      use.forEach((ids,k)=>{ for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++){ const a=R.get(ids[i]), b=R.get(ids[j]); if(a.es<=b.ef&&b.es<=a.ef) warnings.push(`"${k}" is needed by tasks ${idx.get(ids[i])+1} and ${idx.get(ids[j])+1} at the same time (${ds(Math.max(a.es,b.es))}).`); } }); }
+    return {rows:R,start:leaves.length?Math.min(...leaves.map(id=>R.get(id).es)):P0,finish:PF,errors,warnings,cal:C,links,isSum,kids,par};
+  }
+  return {dn,ds,dow,mkCal,addW,countW,nextW,prevW,durOf,parseDur,fmtDur,parsePreds,fmtPreds,schedule};
+})();
+/* ===================== WORKS PLANNER – scheduling engine (end) ===================== */
+/* ===================== v243 · WORKS PLANNER – Method Statement (7-column) + Programme of Works (CPM / Gantt) ===================== */
+// One plan per tender or project (collection "plans"). Both documents share the project information, the method statement
+// operations link to programme tasks (many-to-many), approved documents are only changed after confirmation (new revision).
+const WP={doc:null,tab:'info',dirty:false,t:0,sel:null,zoom:'w',crit:true,coll:new Set(),busy:'',msSel:null};
+const WP_SC=['MAIN CONTRACTOR','ELECTRICAL SUBCONTRACTOR','PLUMBING SUBCONTRACTOR','HVAC SUBCONTRACTOR','SPECIALIST FIRE SYSTEM CONTRACTOR','ICT / ELV SUBCONTRACTOR','ALUMINIUM & GLAZING SUBCONTRACTOR','ALL STAKEHOLDERS'];
+const WP_DU=[['d','working days'],['ed','calendar days'],['w','weeks']];
+const wpCan=()=>canWrite!==false&&!(typeof isSup==='function'&&isSup());
+const wpL=s=>String(s||'').split(/\r?\n/).map(x=>x.replace(/^\s*[•\-\*–]\s*/,'').trim()).filter(Boolean);
+function wpNew(o){ const t=o.tender_id&&byId('tenders',o.tender_id), p=o.project_id&&byId('projects',o.project_id), c=company();
+  const title=(p&&p.name)||(t&&t.title)||'New project', loc=(p&&p.location)||(t&&t.location)||'';
+  return {id:o.id,tender_id:o.tender_id||'',project_id:o.project_id||'',created_at:new Date().toISOString(),created_by:me.name||'',
+    info:{title,location:loc,client:(p&&p.client)||(t&&t.client)||'',consultant:(p&&p.consultant)||'',contractor:c.name||'',contract_ref:(p&&p.contract_no)||(t&&t.no)||'',
+      start:(p&&p.start)||'',required_finish:(p&&p.end)||'',revision:'0',issue_date:today(),prepared_by:me.name||'',checked_by:'',approved_by:''},
+    ms:{title:`METHOD STATEMENT FOR ${String(title).toUpperCase()}${loc?', '+String(loc).toUpperCase():''}`,rows:[],status:'draft',rev:0},
+    pow:{calendar:{days:[1,2,3,4,5],hours:8,holidays:[]},tasks:[],resources:[],status:'draft',rev:0},revisions:[]}; }
+function wpIdFor(o){ return o.id||(o.tender_id?'T_'+safeId(o.tender_id):o.project_id?'P_'+safeId(o.project_id):'X_'+uid()); }
+async function wpOpen(o={}){ const id=wpIdFor(o); let d=(S.plans||[]).find(x=>x.id===id);
+  if(!d){ if(!wpCan()) return toast('Your login can read plans but not create them.'); d=wpNew({...o,id}); }
+  WP.doc=JSON.parse(JSON.stringify(d)); WP.tab=o.tab||'info'; WP.dirty=false; WP.sel=null; WP.coll=new Set(); wpMount(); }
+function wpMount(){ document.getElementById('wpApp')?.remove(); const el=document.createElement('div'); el.id='wpApp'; document.body.appendChild(el);
+  el.addEventListener('click',wpClick); el.addEventListener('change',wpChange); el.addEventListener('input',wpInput); el.addEventListener('keydown',wpKey);
+  document.body.classList.add('wp-on'); wpRender(); }
+function wpClose(){ if(WP.dirty) wpSaveNow(); document.getElementById('wpApp')?.remove(); document.body.classList.remove('wp-on'); WP.doc=null; if(typeof renderView==='function') renderView(true); }
+function wpTouch(part){ const d=WP.doc; if(!d) return; WP.dirty=true; $('#wpSave')&&($('#wpSave').textContent='Editing…'); clearTimeout(WP.t); WP.t=setTimeout(wpSaveNow,1500); }
+async function wpSaveNow(){ const d=WP.doc; if(!d||!wpCan()) return; clearTimeout(WP.t); WP.dirty=false; d.updated_at=new Date().toISOString(); d.updated_by=me.name||'';
+  try{ await put('plans',d.id,JSON.parse(JSON.stringify(d))); const e=$('#wpSave'); if(e) e.textContent='Saved '+new Date().toTimeString().slice(0,5); }catch(e){ WP.dirty=true; toast('Could not save: '+(e.message||e)); } }
+// approved documents: change only after confirmation → new revision (the approved one is kept in Revisions)
+async function wpGuard(part){ const p=WP.doc[part]; if(!p||p.status!=='approved') return true;
+  if(!await confirmBox(`This ${part==='ms'?'method statement':'programme'} is APPROVED (Rev ${p.rev}). Changing it starts Rev ${(+p.rev||0)+1} – the approved version stays in Revisions. Continue?`,'Start new revision')) return false;
+  wpSnap(part,'Approved version (before Rev '+((+p.rev||0)+1)+')'); p.status='draft'; p.rev=(+p.rev||0)+1; WP.doc.info.revision=String(Math.max(+WP.doc.ms.rev||0,+WP.doc.pow.rev||0)); wpTouch(); return true; }
+function wpSnap(part,note){ const d=WP.doc; d.revisions=d.revisions||[]; d.revisions.unshift({id:uid(),at:new Date().toISOString(),by:me.name||'',part,rev:d[part].rev,status:d[part].status,note:note||'',data:JSON.parse(JSON.stringify(d[part]))}); d.revisions=d.revisions.slice(0,10); }
+const wpEsc=s=>esc(String(s??''));
+function wpSched(){ const d=WP.doc, P=d.pow; return WPS.schedule({start:d.info.start||today(),required_finish:d.info.required_finish,calendar:P.calendar,tasks:P.tasks,resources:P.resources}); }
+function wpRender(){ const el=$('#wpApp'); if(!el||!WP.doc) return; const d=WP.doc, T=[['info','Project details'],['ms','Method Statement'],['pow','Programme of Works'],['out','Preview & export'],['rev','Revisions']];
+  const sc=el.querySelector('.wp-body')?.scrollTop||0, gx=el.querySelector('#wpGantt')?.scrollLeft||0, ty=el.querySelector('#wpRows')?.scrollTop||0;
+  el.innerHTML=`<div class="wp-top"><div class="wp-brand">NEXUS <b>Works Planner</b></div><div class="wp-ttl" title="${wpEsc(d.info.title)}">${wpEsc(d.info.title)}</div>
+    <span class="wp-st" id="wpSave">${WP.dirty?'Editing…':'Saved'}</span><button class="wp-x" data-wp="close" aria-label="Close">✕</button></div>
+    <div class="wp-tabs">${T.map(([k,l])=>`<button data-wptab="${k}" class="${WP.tab===k?'on':''}">${l}${k==='ms'&&d.ms.status==='approved'?' <span class="wp-ok">Approved</span>':''}${k==='pow'&&d.pow.status==='approved'?' <span class="wp-ok">Approved</span>':''}</button>`).join('')}</div>
+    <div class="wp-body ${WP.tab==='pow'?'wp-pb':''}">${WP.tab==='info'?wpInfo():WP.tab==='ms'?wpMs():WP.tab==='pow'?wpPow():WP.tab==='out'?wpOut():wpRev()}</div>`;
+  el.querySelectorAll('.wp-mst textarea').forEach(wpGrow);
+  const b=el.querySelector('.wp-body'); if(b) b.scrollTop=sc; const g=el.querySelector('#wpGantt'); if(g){ g.scrollLeft=gx; } const r=el.querySelector('#wpRows'); if(r){ r.scrollTop=ty; if(g) g.scrollTop=ty; } if(WP.tab==='pow') wpArrows(); }
+
+/* ---------- Project details (shared by both documents) ---------- */
+function wpInfo(){ const d=WP.doc, i=d.info, t=d.tender_id&&byId('tenders',d.tender_id), p=d.project_id&&byId('projects',d.project_id), B=t&&typeof bsBoq==='function'?bsBoq(t.id):null;
+  const F=[['title','Project title',1],['location','Project location'],['client','Employer / client'],['consultant','Consultant / architect'],['contractor','Contractor'],['contract_ref','Contract / tender reference'],['start','Commencement date','date'],['required_finish','Required completion date','date'],['revision','Revision'],['issue_date','Issue date','date'],['prepared_by','Prepared by'],['checked_by','Checked by'],['approved_by','Approved by']];
+  const src=[t?`Tender: <b>${wpEsc(t.title)}</b>${(t.files||[]).length?` · ${t.files.length} tender document${t.files.length>1?'s':''}`:' · no tender documents attached'}`:'',p?`Project: <b>${wpEsc(p.name)}</b>`:'',B?`BoQ: <b>${wpEsc(B.title||'BoQ')}</b> · ${(B.bills||[]).length} bills`:''].filter(Boolean);
+  const S_=wpSched();
+  return `<div class="wp-card"><h3>Project information <span class="wp-sub">used by the method statement and the programme</span></h3>
+    <div class="wp-grid">${F.map(([k,l,ty])=>`<label class="${ty===1?'full':''}">${l}<input class="wp-in" data-wpi="${k}" ${ty==='date'?'type="date"':''} value="${wpEsc(i[k]||'')}"></label>`).join('')}</div></div>
+    <div class="wp-card"><h3>Sources</h3>${src.length?src.map(s=>`<div class="wp-li">${s}</div>`).join(''):'<div class="wp-li">No tender or project linked – type the details above.</div>'}
+    <div class="wp-sub" style="margin-top:6px">AI drafts read the tender documents, the BoQ outline and the scope. Anything it cannot find is flagged for you to check – it does not invent specifications.</div></div>
+    <div class="wp-card"><h3>Status</h3><div class="wp-kpis">
+      <div><b>${d.ms.rows.length}</b><span>method statement operations · ${d.ms.status==='approved'?'Approved Rev '+d.ms.rev:'Draft Rev '+d.ms.rev}</span></div>
+      <div><b>${d.pow.tasks.length}</b><span>programme tasks · ${d.pow.status==='approved'?'Approved Rev '+d.pow.rev:'Draft Rev '+d.pow.rev}</span></div>
+      <div><b>${S_.finish!=null&&d.pow.tasks.length?fmtD(WPS.ds(S_.finish)):'—'}</b><span>planned completion${S_.finish!=null&&d.pow.tasks.length?` · ${WPS.countW(S_.cal,S_.start,S_.finish+1)} working days`:''}</span></div></div></div>`; }
+
+/* ---------- Method statement editor: S/N | OPERATION | DURATION | METHOD | PLANT/EQUIPMENT | LABOUR | S/C ---------- */
+function wpMsReview(){ // programme says something else about an operation's duration → review flag (never overwritten automatically)
+  const d=WP.doc, out=new Map(); if(!d.pow.tasks.length) return out; const R=wpSched(); if(R.errors.length) return out;
+  d.ms.rows.forEach(r=>{ const T=d.pow.tasks.filter(t=>(t.ms_ref||[]).includes(r.id)); if(!T.length) return; const rs=T.map(t=>R.rows.get(t.id)).filter(Boolean); if(!rs.length) return;
+    const es=Math.min(...rs.map(x=>x.es)), ef=Math.max(...rs.map(x=>x.ef)), wd=WPS.countW(R.cal,es,ef+1), cd=ef-es+1; const D=r.dur||{};
+    const mine=D.u==='ed'?cd:D.u==='w'?Math.round(wd/R.cal.wpw*10)/10:wd, n=+D.n||0; if(!n||Math.abs(mine-n)>Math.max(1,n*.15)) out.set(r.id,{wd,cd,txt:D.u==='ed'?`${cd} calendar days`:D.u==='w'?`${Math.round(wd/R.cal.wpw*10)/10} weeks`:`${wd} working days`,n:D.u==='ed'?cd:D.u==='w'?Math.round(wd/R.cal.wpw*10)/10:wd}); });
+  return out; }
+function wpMs(){ const d=WP.doc, M=d.ms, rv=wpMsReview(), ro=!wpCan();
+  return `<div class="wp-bar">${ro?'':`<button class="wp-b pri" data-wp="msai" ${WP.busy?'disabled':''}>${WP.busy==='msai'?'<span class="spin"></span> AI is writing…':'✨ AI draft from tender documents & BoQ'}</button><button class="wp-b" data-wp="msadd">＋ Add operation</button>`}
+      <button class="wp-b" data-wptab="out">👁 Preview</button><span class="sp"></span>
+      ${ro?'':M.status==='approved'?`<span class="wp-ok">Approved Rev ${M.rev}${M.approved_by?' · '+wpEsc(M.approved_by):''}</span>`:`<button class="wp-b" data-wp="msapprove">✓ Approve Rev ${M.rev}</button>`}</div>
+    <label class="wp-title">Document title<textarea class="wp-in" data-wpm="title" rows="2">${wpEsc(M.title)}</textarea></label>
+    ${M.rows.length?`<div class="wp-mst"><table><colgroup><col style="width:46px"><col style="width:15%"><col style="width:120px"><col><col style="width:16%"><col style="width:13%"><col style="width:12%"><col style="width:34px"></colgroup>
+      <thead><tr><th>S/N</th><th>OPERATION</th><th>DURATION</th><th>METHOD <span class="wp-sub">one step per line</span></th><th>PLANT/EQUIPMENT</th><th>LABOUR</th><th>S/C</th><th></th></tr></thead><tbody>
+      ${M.rows.map((r,i)=>{ const D=r.dur||{}, rw=rv.get(r.id), lk=d.pow.tasks.filter(t=>(t.ms_ref||[]).includes(r.id)).length;
+        return `<tr data-msr="${r.id}" class="${WP.msSel===r.id?'sel':''}"><td class="c">${i+1}<div class="wp-rowb">${ro?'':`<button data-wp="msup" title="Move up">▲</button><button data-wp="msdn" title="Move down">▼</button>`}</div></td>
+        <td><textarea class="wp-in" data-wpr="op" rows="3">${wpEsc(r.op)}</textarea>${lk?`<div class="wp-chip">${lk} programme task${lk>1?'s':''}</div>`:''}</td>
+        <td><input class="wp-in" data-wpr="dn" inputmode="decimal" value="${wpEsc(D.txt||(D.n??''))}" placeholder="e.g. 14" title="A number, or text such as AS INSTRUCTED"><select class="wp-in" data-wpr="du">${WP_DU.map(([k,l])=>`<option value="${k}" ${(D.u||'d')===k?'selected':''}>${l}</option>`).join('')}</select>
+          <label class="wp-ck"><input type="checkbox" data-wpr="est" ${D.est?'checked':''}> estimate</label>${rw?`<div class="wp-warn" title="Linked programme tasks span ${rw.txt}">Programme: ${rw.txt} <button data-wp="msusepow" data-n="${rw.n}">use</button></div>`:''}</td>
+        <td><textarea class="wp-in" data-wpr="method" rows="${Math.min(14,Math.max(4,(r.method||[]).length+1))}">${wpEsc((r.method||[]).join('\n'))}</textarea>${(r.flags||[]).length?`<div class="wp-flags">${r.flags.map(f=>`<div>⚠ ${wpEsc(f)}</div>`).join('')}<button data-wp="msflagok">Checked – clear</button></div>`:''}</td>
+        <td><textarea class="wp-in" data-wpr="plant" rows="4">${wpEsc((r.plant||[]).join('\n'))}</textarea></td>
+        <td><textarea class="wp-in" data-wpr="labour" rows="4">${wpEsc((r.labour||[]).join('\n'))}</textarea></td>
+        <td><textarea class="wp-in" data-wpr="sc" rows="3" list="wpScL">${wpEsc((r.sc||[]).join('\n'))}</textarea><select class="wp-in wp-scadd" data-wpr="scadd"><option value="">+ add…</option>${WP_SC.map(x=>`<option>${x}</option>`).join('')}</select></td>
+        <td class="c">${ro?'':`<button class="wp-del" data-wp="msdel" title="Delete operation">✕</button><button class="wp-ins" data-wp="msins" title="Insert operation below">＋</button>`}</td></tr>`; }).join('')}</tbody></table></div>`
+      :`<div class="wp-empty">No operations yet. Press <b>AI draft</b> to write them from the tender documents and BoQ, or <b>Add operation</b> to type your own.<br>Each operation has: what is done, how long it takes, the step-by-step method, plant and equipment, labour and who does it (S/C).</div>`}`; }
+function wpGrow(t){ t.style.height='auto'; t.style.height=Math.min(900,t.scrollHeight+2)+'px'; }
+function wpMsRow(id){ return WP.doc.ms.rows.find(r=>r.id===id); }
+
+/* ---------- Programme of Works: task table + Gantt chart ---------- */
+function wpVis(){ const T=WP.doc.pow.tasks, out=[]; let hide=0; T.forEach((t,i)=>{ const L=+t.lvl||1; if(hide&&L>hide) return; hide=0; out.push({t,i}); const nxt=T[i+1]; if(WP.coll.has(t.id)&&nxt&&(+nxt.lvl||1)>L) hide=L; }); return out; }
+function wpPow(){ const d=WP.doc, P=d.pow, R=wpSched(), ro=!wpCan(), V=wpVis(), rowOf=new Map(P.tasks.map((t,i)=>[t.id,i+1]));
+  const rng=wpRange(R), px=wpPx(), W=Math.ceil((rng.b-rng.a+1)*px);
+  const sel=WP.sel&&P.tasks.findIndex(t=>t.id===WP.sel);
+  const tb=`<div class="wp-bar">${ro?'':`<button class="wp-b" data-wp="tadd">＋ Task</button><button class="wp-b" data-wp="tsum">＋ Summary</button><button class="wp-b" data-wp="tms">◆ Milestone</button>
+      <span class="wp-grp"><button class="wp-b" data-wp="tout" title="Outdent">⇤</button><button class="wp-b" data-wp="tin" title="Indent (make sub-task)">⇥</button><button class="wp-b" data-wp="tup" title="Move up">▲</button><button class="wp-b" data-wp="tdn" title="Move down">▼</button><button class="wp-b" data-wp="tlink" title="Link selected task to the one above (Finish-to-Start)">🔗 Link</button><button class="wp-b" data-wp="tdel" title="Delete task">✕</button></span>`}
+      <span class="wp-grp">${[['d','Days'],['w','Weeks'],['m','Months']].map(([k,l])=>`<button class="wp-b ${WP.zoom===k?'on':''}" data-wpz="${k}">${l}</button>`).join('')}</span>
+      <label class="wp-ck"><input type="checkbox" data-wp="crit" ${WP.crit?'checked':''}> Critical path</label><button class="wp-b" data-wp="collall">⊟</button><button class="wp-b" data-wp="expall">⊞</button>
+      <span class="sp"></span>${ro?'':`<button class="wp-b" data-wp="cal">📅 Calendar</button><button class="wp-b" data-wp="resdlg">👷 Resources</button><button class="wp-b" data-wp="powfromms">⇢ From method statement</button><button class="wp-b pri" data-wp="powai" ${WP.busy?'disabled':''}>${WP.busy==='powai'?'<span class="spin"></span> AI is planning…':'✨ AI programme'}</button><button class="wp-b" data-wp="impxml">⬆ Import MS Project XML</button>${P.status==='approved'?`<span class="wp-ok">Approved Rev ${P.rev}</span>`:`<button class="wp-b" data-wp="powapprove">✓ Approve</button>`}`}</div>`;
+  const msg=[...R.errors.map(e=>`<div class="wp-err">⛔ ${wpEsc(e)}</div>`),...R.warnings.slice(0,6).map(w=>`<div class="wp-warn">⚠ ${wpEsc(w)}</div>`)].join('');
+  const sum=P.tasks.length&&!R.errors.length?`<div class="wp-sumline">Start <b>${fmtD(WPS.ds(R.start))}</b> · Finish <b>${fmtD(WPS.ds(R.finish))}</b> · <b>${WPS.countW(R.cal,R.start,R.finish+1)}</b> working days (${R.finish-R.start+1} calendar days) · ${P.tasks.length} tasks · calendar ${[...R.cal.days].sort().map(x=>'SMTWTFS'[x]).join('')}${(P.calendar.holidays||[]).length?` · ${P.calendar.holidays.length} holidays`:''}${d.info.required_finish?` · required by <b>${fmtD(d.info.required_finish)}</b>`:''}</div>`:'';
+  if(!P.tasks.length) return tb+msg+`<div class="wp-empty">No programme yet. Use <b>From method statement</b> (one task per operation, linked in order), <b>AI programme</b> (summary tasks, sub-tasks, durations and links from the tender, BoQ and method statement), <b>Import MS Project XML</b>, or add tasks yourself.<br>Dates are always calculated from the commencement date (${d.info.start?fmtD(d.info.start):'set it in Project details'}), the durations, the links and the working calendar.</div>`;
+  const rowsH=V.map(({t,i})=>{ const r=R.rows.get(t.id)||{}, sum=r.sum, crit=WP.crit&&r.crit&&!sum, L=+t.lvl||1, ms=r.ms;
+    return `<div class="wp-tr ${WP.sel===t.id?'sel':''} ${sum?'sum':''} ${crit?'crit':''}" data-tid="${t.id}">
+      <span class="c1">${i+1}</span><span class="c2" style="padding-left:${(L-1)*14+4}px">${sum?`<button class="wp-tg" data-wp="tog">${WP.coll.has(t.id)?'▸':'▾'}</button>`:''}${ms?'◆ ':''}<input class="wp-cell" data-wpt="name" value="${wpEsc(t.name)}" ${ro?'readonly':''}></span>
+      <span class="c3">${sum?`<i>${r.dur?r.dur.len:0} days</i>`:`<input class="wp-cell" data-wpt="dur" value="${wpEsc(WPS.fmtDur(t.dur||{n:1,u:'d'}))}" ${ro?'readonly':''}>`}</span>
+      <span class="c4">${sum?`<i>${r.es!=null?wpDs(r.es):''}</i>`:`<input class="wp-cell ${t.con&&t.con.type!=='ASAP'?'con':''}" type="date" data-wpt="start" value="${r.es!=null?WPS.ds(r.es):''}" title="${t.con&&t.con.date?'Start no earlier than '+t.con.date+' (set by you). Clear the date to let the links decide.':'Calculated from the links. Type a date to set “start no earlier than”.'}" ${ro?'readonly':''}>`}</span>
+      <span class="c5"><i>${r.ef!=null?wpDs(r.ef):''}</i></span>
+      <span class="c6"><input class="wp-cell" data-wpt="preds" value="${wpEsc(WPS.fmtPreds(t.preds,id=>rowOf.get(id)))}" ${ro?'readonly':''}></span>
+      <span class="c7"><input class="wp-cell" data-wpt="res" value="${wpEsc((t.res||[]).join(', '))}" ${ro?'readonly':''}></span>
+      <span class="c8">${sum?'':`<input class="wp-cell" type="number" min="0" max="100" data-wpt="pct" value="${+t.pct||0}" ${ro?'readonly':''}>`}</span>
+      <span class="c9" title="Total float (working days)">${r.tf!=null?r.tf:''}</span></div>`; }).join('');
+  const bars=V.map(({t},k)=>{ const r=R.rows.get(t.id); if(!r||r.es==null) return ''; const x=(r.es-rng.a)*px, w=Math.max(px*.6,(r.ef-r.es+1)*px), y=k*24;
+    if(r.sum) return `<div class="wp-sb" style="left:${x}px;top:${y+8}px;width:${w}px"></div>`;
+    if(r.ms) return `<div class="wp-md" style="left:${x+px/2-7}px;top:${y+5}px" title="${wpEsc(t.name)} · ${wpDs(r.es)}"></div><span class="wp-bl" style="left:${x+px/2+10}px;top:${y+4}px">${wpDs(r.es)}</span>`;
+    const crit=WP.crit&&r.crit; return `<div class="wp-bar1 ${crit?'crit':''}" style="left:${x}px;top:${y+5}px;width:${w}px" title="${wpEsc(t.name)} · ${wpDs(r.es)} – ${wpDs(r.ef)}${r.tf!=null?' · float '+r.tf+' d':''}"><div class="wp-pg" style="width:${Math.max(0,Math.min(100,+t.pct||0))}%"></div></div>${(t.res||[]).length?`<span class="wp-bl" style="left:${x+w+5}px;top:${y+4}px">${wpEsc(t.res.join(', '))}</span>`:''}`; }).join('');
+  const scale=wpScale(rng,px,R.cal), today0=WPS.dn(today()), tl=today0>=rng.a&&today0<=rng.b?`<div class="wp-today" style="left:${(today0-rng.a)*px}px"></div>`:'';
+  return tb+msg+sum+`<div class="wp-split"><div class="wp-tbl"><div class="wp-th"><span class="c1">ID</span><span class="c2">Task Name</span><span class="c3">Duration</span><span class="c4">Start</span><span class="c5">Finish</span><span class="c6">Predecessors</span><span class="c7">Resource Names</span><span class="c8">%</span><span class="c9">TF</span></div><div class="wp-rows" id="wpRows">${rowsH}<div style="height:30px"></div></div></div>
+    <div class="wp-gwrap"><div class="wp-gh" id="wpGh"><div style="width:${W}px">${scale.head}</div></div><div class="wp-gantt" id="wpGantt"><div class="wp-gin" style="width:${W}px;height:${V.length*24+30}px">${scale.bg}${tl}<svg class="wp-arr" id="wpArr" width="${W}" height="${V.length*24+30}"></svg>${bars}</div></div></div></div>
+    <div class="wp-legend"><span><i class="lg b"></i>Task</span><span><i class="lg c"></i>Critical task</span><span><i class="lg p"></i>Progress</span><span><i class="lg s"></i>Summary</span><span><i class="lg m"></i>Milestone</span><span>Duration: <b>5d</b> working days · <b>3ed</b> calendar days · <b>2w</b> weeks · <b>0</b> milestone. Predecessors: <b>3</b> (finish-to-start), <b>4SS+2d</b>, <b>5FF</b>, <b>6SF</b>, <b>7FS-1d</b> (lead).</span></div>`; }
+const wpDs=n=>{ const s=WPS.ds(n); return s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(2,4):''; };
+function wpPx(){ return WP.zoom==='d'?26:WP.zoom==='m'?2.4:7; }
+function wpRange(R){ const a=(R.start??WPS.dn(today()))-(WP.zoom==='m'?10:3), b=(R.finish??a+60)+(WP.zoom==='m'?40:WP.zoom==='w'?21:7); return {a,b}; }
+function wpScale(rng,px,C){ let head1='',head2='',bg='';
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for(let n=rng.a;n<=rng.b;n++){ const s=WPS.ds(n), dw=WPS.dow(n), x=(n-rng.a)*px;
+    if(s.slice(8)==='01'||n===rng.a){ const days=new Date(Date.UTC(+s.slice(0,4),+s.slice(5,7),0)).getUTCDate()-(+s.slice(8))+1; head1+=`<div class="wp-h1" style="left:${x}px;width:${days*px}px">${M[+s.slice(5,7)-1]} ${WP.zoom==='m'?s.slice(0,4):s.slice(2,4)}</div>`; }
+    if(WP.zoom==='d'){ head2+=`<div class="wp-h2" style="left:${x}px;width:${px}px">${'SMTWTFS'[dw]}<br>${+s.slice(8)}</div>`; }
+    else if(WP.zoom==='w'&&dw===1){ head2+=`<div class="wp-h2" style="left:${x}px;width:${7*px}px">${+s.slice(8)}</div>`; }
+    if(WP.zoom!=='m'&&!C.work(n)) bg+=`<div class="wp-nw" style="left:${x}px;width:${px}px"></div>`;
+    if(WP.zoom==='m'&&s.slice(8)==='01') bg+=`<div class="wp-vl" style="left:${x}px"></div>`; }
+  if(WP.zoom==='m'){ head2=head1; head1=''; let y=''; for(let n=rng.a;n<=rng.b;n++){ const s=WPS.ds(n); if(s.slice(5)==='01-01'||n===rng.a){ y+=`<div class="wp-h1" style="left:${(n-rng.a)*px}px">${s.slice(0,4)}</div>`; } } head1=y; head2=head2.replace(/wp-h1/g,'wp-h2'); }
+  return {head:`<div class="wp-hr1">${head1}</div><div class="wp-hr2">${head2}</div>`,bg}; }
+function wpArrows(){ const svg=$('#wpArr'); if(!svg||!WP.doc) return; const R=wpSched(); if(R.errors.length) return; const V=wpVis(), pos=new Map(V.map(({t},k)=>[t.id,k])), rng=wpRange(R), px=wpPx(); let h='';
+  WP.doc.pow.tasks.forEach(t=>(t.preds||[]).forEach(l=>{ const a=R.rows.get(l.id), b=R.rows.get(t.id); if(!a||!b||!pos.has(l.id)||!pos.has(t.id)) return;
+    const ya=pos.get(l.id)*24+12, yb=pos.get(t.id)*24+12, ty=l.type||'FS'; const xa=((ty==='SS'||ty==='SF')?a.es:a.ef+1)*1, xb=((ty==='FF'||ty==='SF')?b.ef+1:b.es)*1;
+    const X1=(xa-rng.a)*px, X2=(xb-rng.a)*px, c=WP.crit&&a.crit&&b.crit?'#C0392B':'#5B6B82'; const mx=Math.max(X1+6,ty==='FS'?X1+6:X1-6);
+    h+=`<path d="M${X1} ${ya} H${ty==='SS'||ty==='SF'?X1-6:mx} V${yb} H${X2+(ty==='FF'||ty==='SF'?6:-1)}" fill="none" stroke="${c}" stroke-width="1"/><path d="M${X2+(ty==='FF'||ty==='SF'?6:-1)} ${yb} l${ty==='FF'||ty==='SF'?'5 -3 v6':'-5 -3 v6'} z" fill="${c}"/>`; }));
+  svg.innerHTML=h; }
+function wpTask(id){ return WP.doc.pow.tasks.find(t=>t.id===id); }
+function wpTaskNew(o={}){ return {id:uid(),name:o.name||'New task',lvl:o.lvl||1,dur:o.dur||{n:1,u:'d'},preds:o.preds||[],res:o.res||[],pct:0,ms_ref:o.ms_ref||[]}; }
+
+/* ---------- events ---------- */
+async function wpClick(e){ const tb=e.target.closest('[data-wptab]'); if(tb){ WP.tab=tb.dataset.wptab; return wpRender(); }
+  const z=e.target.closest('[data-wpz]'); if(z){ WP.zoom=z.dataset.wpz; return wpRender(); }
+  const tr=e.target.closest('.wp-tr'); if(tr&&!e.target.closest('[data-wp]')){ if(WP.sel!==tr.dataset.tid){ WP.sel=tr.dataset.tid; document.querySelectorAll('.wp-tr.sel').forEach(x=>x.classList.remove('sel')); tr.classList.add('sel'); } }
+  const mr=e.target.closest('tr[data-msr]'); if(mr) WP.msSel=mr.dataset.msr;
+  const b=e.target.closest('[data-wp]'); if(!b) return; const a=b.dataset.wp, d=WP.doc;
+  if(a==='close') return wpClose();
+  if(a==='crit') return;
+  if(['msadd','msins','msdel','msup','msdn','msusepow','msflagok','msai'].includes(a)&&!await wpGuard('ms')) return;
+  if(['tadd','tsum','tms','tin','tout','tup','tdn','tdel','tlink','powfromms','powai','impxml','cal','resdlg'].includes(a)&&!await wpGuard('pow')) return;
+  const M=d.ms.rows, rid=mr&&mr.dataset.msr, ri=M.findIndex(r=>r.id===rid);
+  if(a==='msadd'||a==='msins'){ const r={id:uid(),op:'',dur:{n:'',u:'d',est:true},method:[],plant:[],labour:[],sc:['MAIN CONTRACTOR']}; if(a==='msins'&&ri>=0) M.splice(ri+1,0,r); else M.push(r); WP.msSel=r.id; wpTouch(); return wpRender(); }
+  if(a==='msdel'&&ri>=0){ if(!await confirmBox(`Delete operation ${ri+1} "${String(M[ri].op||'').slice(0,60)}"? Programme tasks linked to it stay, without the link.`,'Delete',true)) return; d.pow.tasks.forEach(t=>t.ms_ref=(t.ms_ref||[]).filter(x=>x!==rid)); M.splice(ri,1); wpTouch(); return wpRender(); }
+  if((a==='msup'&&ri>0)||(a==='msdn'&&ri>=0&&ri<M.length-1)){ const j=a==='msup'?ri-1:ri+1; [M[ri],M[j]]=[M[j],M[ri]]; wpTouch(); return wpRender(); }
+  if(a==='msusepow'&&ri>=0){ M[ri].dur={...(M[ri].dur||{}),n:+b.dataset.n,est:false}; wpTouch(); return wpRender(); }
+  if(a==='msflagok'&&ri>=0){ M[ri].flags=[]; wpTouch(); return wpRender(); }
+  if(a==='msapprove'){ if(!d.ms.rows.length) return toast('Nothing to approve yet.'); const est=d.ms.rows.filter(r=>r.dur&&r.dur.est).length, fl=d.ms.rows.filter(r=>(r.flags||[]).length).length;
+    if(!await confirmBox(`Approve the method statement as Rev ${d.ms.rev}?${est?` ${est} duration${est>1?'s are':' is'} still marked as estimate.`:''}${fl?` ${fl} operation${fl>1?'s have':' has'} AI notes to check.`:''} After approval, changes start a new revision.`,'Approve')) return;
+    d.ms.status='approved'; d.ms.approved_by=me.name||''; d.ms.approved_at=new Date().toISOString(); d.info.approved_by=d.info.approved_by||me.name||''; wpSnap('ms','Approved Rev '+d.ms.rev); wpTouch(); await wpSaveNow(); wpBidLink('ms',d.ms.doc_id||null).catch(()=>{}); return wpRender(); }
+  if(a==='powapprove'){ const R=wpSched(); if(R.errors.length) return toast('Fix the programme errors first.'); if(!await confirmBox(`Approve the programme as Rev ${d.pow.rev}? After approval, changes start a new revision.`,'Approve')) return;
+    d.pow.status='approved'; d.pow.approved_by=me.name||''; d.pow.approved_at=new Date().toISOString(); wpSnap('pow','Approved Rev '+d.pow.rev); wpTouch(); await wpSaveNow(); wpBidLink('wp',null).catch(()=>{}); return wpRender(); }
+  if(a==='msai') return wpMsAI();
+  if(a==='powai') return wpPowAI();
+  if(a==='powfromms') return wpPowFromMs();
+  if(a==='impxml') return oxPickFile('.xml,application/xml,text/xml',f=>wpImportXml(f));
+  if(a==='cal') return wpCalDlg();
+  if(a==='resdlg') return wpResDlg();
+  const P=d.pow.tasks, si=WP.sel?P.findIndex(t=>t.id===WP.sel):-1;
+  if(a==='tadd'||a==='tsum'||a==='tms'){ const L=si>=0?(+P[si].lvl||1):1; const t=wpTaskNew({lvl:L,name:a==='tsum'?'NEW WORK SECTION':a==='tms'?'Milestone':'New task',dur:a==='tms'?{n:0,u:'d'}:{n:1,u:'d'}});
+    let at=si>=0?si+1:P.length; if(si>=0&&wpIsSum(si)&&a!=='tsum'){ t.lvl=L+1; } else if(si>=0){ while(at<P.length&&(+P[at].lvl||1)>L) at++; }
+    P.splice(at,0,t); if(a==='tsum'){ const ch=wpTaskNew({lvl:t.lvl+1,name:'New task'}); P.splice(at+1,0,ch); } WP.sel=t.id; wpTouch(); return wpRender(); }
+  if(si<0&&['tin','tout','tup','tdn','tdel','tlink','tog'].includes(a)&&a!=='tog') return toast('Click a task first.');
+  if(a==='tog'){ const id=tr&&tr.dataset.tid; if(!id) return; WP.coll.has(id)?WP.coll.delete(id):WP.coll.add(id); return wpRender(); }
+  if(a==='collall'){ P.forEach((t,i)=>{ if(wpIsSum(i)) WP.coll.add(t.id); }); return wpRender(); }
+  if(a==='expall'){ WP.coll.clear(); return wpRender(); }
+  const blk=i=>{ let j=i+1; const L=+P[i].lvl||1; while(j<P.length&&(+P[j].lvl||1)>L) j++; return j; };
+  if(a==='tin'){ if(si===0) return toast('The first task cannot be a sub-task.'); const L=+P[si].lvl||1, prevL=+P[si-1].lvl||1; if(L>prevL) return toast('Already a sub-task of the task above.'); const e2=blk(si); for(let i=si;i<e2;i++) P[i].lvl=(+P[i].lvl||1)+1; wpTouch(); return wpRender(); }
+  if(a==='tout'){ const L=+P[si].lvl||1; if(L<=1) return; const e2=blk(si); for(let i=si;i<e2;i++) P[i].lvl=Math.max(1,(+P[i].lvl||1)-1); wpTouch(); return wpRender(); }
+  if(a==='tup'||a==='tdn'){ const e2=blk(si), seg=P.slice(si,e2); if(a==='tup'){ if(si===0) return; let j=si-1; const L=+P[si].lvl||1; while(j>0&&(+P[j].lvl||1)>L) j--; P.splice(si,seg.length); P.splice(j,0,...seg); } else { if(e2>=P.length) return; const e3=blk(e2); P.splice(si,seg.length); P.splice(si+(e3-e2),0,...seg); } wpTouch(); return wpRender(); }
+  if(a==='tdel'){ const e2=blk(si), n=e2-si; if(!await confirmBox(`Delete "${P[si].name}"${n>1?` and its ${n-1} sub-task${n>2?'s':''}`:''}? Links to ${n>1?'them':'it'} are removed.`,'Delete',true)) return; const gone=new Set(P.slice(si,e2).map(t=>t.id)); P.splice(si,n); P.forEach(t=>t.preds=(t.preds||[]).filter(l=>!gone.has(l.id))); WP.sel=null; wpTouch(); return wpRender(); }
+  if(a==='tlink'){ if(si===0) return; let j=si-1; while(j>=0&&wpIsSum(j)) j--; if(j<0) return; const t=P[si]; if((t.preds||[]).some(l=>l.id===P[j].id)) return toast('Already linked.'); t.preds=[...(t.preds||[]),{id:P[j].id,type:'FS'}]; const R=wpSched(); if(R.errors.length){ t.preds.pop(); return toast(R.errors[0]); } wpTouch(); return wpRender(); }
+}
+function wpIsSum(i){ const P=WP.doc.pow.tasks; return i>=0&&i<P.length-1&&(+P[i+1].lvl||1)>(+P[i].lvl||1); }
+function wpInput(e){ const t=e.target; if(t.dataset.wpi){ WP.doc.info[t.dataset.wpi]=t.value; if(t.dataset.wpi==='title'){ const x=$('#wpApp .wp-ttl'); if(x) x.textContent=t.value; } wpTouch(); return; }
+  if(t.dataset.wpm==='title'){ if(WP.doc.ms.status==='approved'){ return; } WP.doc.ms.title=t.value; WP.doc.ms.title_edited=true; wpTouch(); return; }
+  if(t.tagName==='TEXTAREA'&&t.closest('.wp-mst')) wpGrow(t);
+  const mr=t.closest('tr[data-msr]'); if(mr&&t.dataset.wpr&&t.tagName==='TEXTAREA'){ if(WP.doc.ms.status==='approved') return; const r=wpMsRow(mr.dataset.msr); if(!r) return; const k=t.dataset.wpr; if(k==='op') r.op=t.value; else r[k]=wpL(t.value); wpTouch(); } }
+async function wpChange(e){ const t=e.target, d=WP.doc;
+  if(t.dataset.wp==='crit'){ WP.crit=t.checked; return wpRender(); }
+  if(t.dataset.wpm==='title'||(t.closest('tr[data-msr]')&&t.dataset.wpr)){ if(d.ms.status==='approved'){ if(!await wpGuard('ms')) return wpRender(); }
+    if(t.dataset.wpm==='title'){ d.ms.title=t.value; wpTouch(); return; }
+    const r=wpMsRow(t.closest('tr[data-msr]').dataset.msr), k=t.dataset.wpr; if(!r) return; r.dur=r.dur||{u:'d'};
+    if(k==='dn'){ const v=String(t.value).trim(); if(v===''||/^\d+(\.\d+)?$/.test(v)){ r.dur.n=v===''?'':+v; delete r.dur.txt; } else { r.dur.txt=v.toUpperCase(); r.dur.n=''; } r.dur.est=false; } else if(k==='du') r.dur.u=t.value; else if(k==='est') r.dur.est=t.checked;
+    else if(k==='scadd'){ if(t.value){ r.sc=[...new Set([...(r.sc||[]),t.value])]; } }
+    else if(k==='op') r.op=t.value; else r[k]=wpL(t.value);
+    wpTouch(); if(['dn','est','scadd','du'].includes(k)) wpRender(); return; }
+  const row=t.closest('.wp-tr'); if(row&&t.dataset.wpt){ if(d.pow.status==='approved'&&!await wpGuard('pow')) return wpRender(); const T=wpTask(row.dataset.tid); if(!T) return; const k=t.dataset.wpt, P=d.pow.tasks;
+    if(k==='name') T.name=t.value;
+    else if(k==='dur'){ const v=WPS.parseDur(t.value); if(!v){ toast('Duration examples: 5d, 3ed, 2w, 0 (milestone).'); return wpRender(); } T.dur=v; }
+    else if(k==='start'){ T.con=t.value?{type:'SNET',date:t.value}:null; }
+    else if(k==='preds'){ const p=WPS.parsePreds(t.value,n=>P[n-1]&&P[n-1].id); if(p.bad.length) toast('Not understood: '+p.bad.join(', ')+' – use the task ID, e.g. 3, 4SS+2d, 5FF.'); const old=T.preds; T.preds=p.links.filter(l=>l.id!==T.id);
+      const R=wpSched(); if(R.errors.length){ T.preds=old; toast(R.errors[0]); } }
+    else if(k==='res') T.res=String(t.value).split(',').map(x=>x.trim()).filter(Boolean);
+    else if(k==='pct') T.pct=Math.max(0,Math.min(100,+t.value||0));
+    wpTouch(); return wpRender(); } }
+function wpKey(e){ if(e.key==='Enter'&&e.target.classList.contains('wp-cell')){ e.preventDefault(); e.target.blur(); } }
+document.addEventListener('scroll',e=>{ const t=e.target; if(!t||!t.id) return; if(t.id==='wpGantt'){ const r=$('#wpRows'), h=$('#wpGh'); if(r&&r.scrollTop!==t.scrollTop) r.scrollTop=t.scrollTop; if(h) h.scrollLeft=t.scrollLeft; } else if(t.id==='wpRows'){ const g=$('#wpGantt'); if(g&&g.scrollTop!==t.scrollTop) g.scrollTop=t.scrollTop; } },true);
+async function wpCalDlg(){ const C=WP.doc.pow.calendar; const N=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const v=await wpForm('Working calendar',[{k:'days',label:'Working days',type:'checks',options:N.map((n,i)=>[String(i),n]),value:(C.days||[1,2,3,4,5]).map(String)},{k:'hours',label:'Working hours per day',type:'number',value:C.hours||8},
+    {k:'hol',label:'Public holidays & shutdowns – one per line: 2026-12-25 Christmas, or 2026-12-24 to 2027-01-02 Shutdown',type:'textarea',value:(C.holidays||[]).map(h=>`${h.date||h.from}${h.to&&h.to!==(h.date||h.from)?' to '+h.to:''}${h.name?' '+h.name:''}`).join('\n')}],'Apply');
+  if(!v) return; const hol=[]; String(v.hol||'').split('\n').map(x=>x.trim()).filter(Boolean).forEach(l=>{ const m=l.match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2}))?\s*(.*)$/); if(m) hol.push({date:m[1],to:m[2]||'',name:m[3]||''}); });
+  C.days=(v.days||[]).map(Number); if(!C.days.length) C.days=[1,2,3,4,5]; C.hours=+v.hours||8; C.holidays=hol; wpTouch(); wpRender(); }
+function wpTzHolidays(y){ return [[`${y}-01-01`,"New Year's Day"],[`${y}-01-12`,'Zanzibar Revolution Day'],[`${y}-04-07`,'Karume Day'],[`${y}-04-26`,'Union Day'],[`${y}-05-01`,'Workers Day'],[`${y}-07-07`,'Saba Saba'],[`${y}-08-08`,'Nane Nane'],[`${y}-10-14`,'Nyerere Day'],[`${y}-12-09`,'Independence Day'],[`${y}-12-25`,'Christmas Day'],[`${y}-12-26`,'Boxing Day']]; }
+// small form dialog inside the planner
+function wpForm(title,fields,ok='OK'){ return new Promise(res=>{ const d=document.createElement('div'); d.className='wp-dlg';
+  d.innerHTML=`<div class="wp-dbox"><h3>${wpEsc(title)}</h3>${fields.map(f=>`<label class="wp-fl">${wpEsc(f.label)}${f.type==='textarea'?`<textarea class="wp-in" data-k="${f.k}" rows="6">${wpEsc(f.value||'')}</textarea>`:f.type==='checks'?`<div class="wp-cks">${f.options.map(([v,l])=>`<label><input type="checkbox" data-k="${f.k}" value="${v}" ${(f.value||[]).includes(v)?'checked':''}> ${l}</label>`).join('')}</div>`:f.type==='select'?`<select class="wp-in" data-k="${f.k}">${f.options.map(([v,l])=>`<option value="${wpEsc(v)}" ${f.value===v?'selected':''}>${wpEsc(l)}</option>`).join('')}</select>`:`<input class="wp-in" data-k="${f.k}" type="${f.type||'text'}" value="${wpEsc(f.value??'')}">`}${f.help?`<span class="wp-sub">${wpEsc(f.help)}</span>`:''}</label>`).join('')}
+    ${title==='Working calendar'?'<button class="wp-b" data-tzh>＋ Add Tanzania public holidays</button>':''}<div class="wp-dact"><button class="wp-b pri" data-ok>${wpEsc(ok)}</button><button class="wp-b" data-no>Cancel</button></div></div>`;
+  ($('#wpApp')||document.body).appendChild(d);
+  d.addEventListener('click',e=>{ if(e.target.closest('[data-tzh]')){ const ta=d.querySelector('textarea[data-k="hol"]'); const y=new Date().getFullYear(); const ex=ta.value.trim(); ta.value=(ex?ex+'\n':'')+[...wpTzHolidays(y),...wpTzHolidays(y+1)].map(([a,b])=>`${a} ${b}`).join('\n'); return; }
+    if(e.target.closest('[data-no]')||e.target===d){ d.remove(); res(null); } if(e.target.closest('[data-ok]')){ const v={}; fields.forEach(f=>{ if(f.type==='checks') v[f.k]=[...d.querySelectorAll(`input[data-k="${f.k}"]:checked`)].map(x=>x.value); else v[f.k]=d.querySelector(`[data-k="${f.k}"]`).value; }); d.remove(); res(v); } }); }); }
+
+async function wpResDlg(){ const P=WP.doc.pow; const names=[...new Set(P.tasks.flatMap(t=>(t.res||[]).map(n=>String(n).replace(/^\d+\s*[x×]?\s*/,'').trim())).filter(Boolean))].sort();
+  if(!names.length) return toast('No resources yet – type them in the "Resource Names" column (e.g. 4 Masons, Mobile crane).');
+  const v=await wpForm('Resources',[{k:'ex',label:'Tick the plant or teams that can only work on ONE task at a time (e.g. a single crane). NEXUS then warns when two tasks need it on the same day – it does not move any dates.',type:'checks',options:names.map(n=>[n,n]),value:(P.resources||[]).filter(r=>r.exclusive).map(r=>r.name)}],'Save');
+  if(!v) return; P.resources=names.map(n=>({name:n,exclusive:(v.ex||[]).includes(n)})); wpTouch(); wpRender(); }
+/* ---------- revisions ---------- */
+function wpRev(){ const R=WP.doc.revisions||[]; return `<div class="wp-card"><h3>Revisions <span class="wp-sub">a copy is kept whenever a document is approved or an approved document is changed (last 10)</span></h3>
+  ${R.length?`<table class="wp-rt"><thead><tr><th>Date</th><th>Document</th><th>Rev</th><th>Note</th><th>By</th><th></th></tr></thead><tbody>${R.map(r=>`<tr><td>${fmtDT(r.at)}</td><td>${r.part==='ms'?'Method statement':'Programme'}</td><td>${r.rev}</td><td>${wpEsc(r.note)}</td><td>${wpEsc(r.by)}</td><td>${wpCan()?`<button class="wp-b" data-wp="restore" data-rid="${r.id}">Restore</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="wp-li">No revisions yet.</div>'}</div>`; }
+document.addEventListener('click',async e=>{ const b=e.target.closest('#wpApp [data-wp="restore"]'); if(!b) return; const r=(WP.doc.revisions||[]).find(x=>x.id===b.dataset.rid); if(!r) return;
+  if(!await confirmBox(`Restore the ${r.part==='ms'?'method statement':'programme'} from ${fmtDT(r.at)} (Rev ${r.rev})? The current version is kept in Revisions first.`,'Restore')) return;
+  wpSnap(r.part,'Before restoring '+fmtDT(r.at)); WP.doc[r.part]={...JSON.parse(JSON.stringify(r.data)),status:'draft'}; wpTouch(); wpRender(); toast('Restored as a draft – approve it again when checked.'); });
+/* ===================== WORKS PLANNER – editor (end of part 1) ===================== */
+/* ===================== WORKS PLANNER – part 2: AI drafts, Word / PDF / Excel / MS Project XML, links to Bid Studio & projects ===================== */
+const wpDurTxt=D=>{ D=D||{}; if(D.txt) return D.txt; if(D.n===''||D.n==null) return ''; const n=+D.n; const u=D.u||'d'; const s=u==='ed'?`${n} Calendar day${n===1?'':'s'}`:u==='w'?`${n} week${n===1?'':'s'}`:`${n} Working day${n===1?'':'s'}`; return s+(D.est?' (est.)':''); };
+/* ---------- AI: method statement ---------- */
+async function wpCtx(maxDoc=9000){ const d=WP.doc, t=d.tender_id&&byId('tenders',d.tender_id), p=d.project_id&&byId('projects',d.project_id);
+  const B=t&&typeof bsBoq==='function'?bsBoq(t.id):p?[...S.boqs].filter(x=>x.project_id===p.id).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')))[0]:null;
+  let docs=''; if(t&&(t.files||[]).length&&typeof bsDocText==='function'){ try{ const tx=await bsDocText(t); docs=typeof bsPick==='function'?bsPick(tx,maxDoc):tx.slice(0,maxDoc); }catch(_){ } }
+  const b=t&&typeof bsBid==='function'?bsBid(t.id):null, f=(b&&b.facts)||{};
+  return {B,docs,txt:`Project: ${d.info.title}\nLocation: ${d.info.location||'not stated'}\nEmployer: ${d.info.client||'not stated'}\nConsultant: ${d.info.consultant||'not stated'}\nScope: ${String((t&&(t.scope||t.notice))||(p&&p.notes)||'').slice(0,1500)||'not stated'}\nCompletion period: ${f.completion||(d.info.start&&d.info.required_finish?`${d.info.start} to ${d.info.required_finish}`:'not stated')}\nBoQ outline:\n${B&&typeof bsBoqOutline==='function'?bsBoqOutline(B,140):'No BoQ in NEXUS.'}${docs?`\n\nFROM THE TENDER DOCUMENTS (specifications, scope, conditions):\n${docs}`:''}`}; }
+const WP_MS_EX=`Example of the expected style (from a Nordic method statement – do NOT copy its content, only its level of detail):
+{"op":"MOBILISATION AND SITE ESTABLISHMENT","dur":{"n":14,"u":"d"},"method":["Take possession of site on the Date of Possession; agree working zones, access routes, delivery times and restricted areas with the Architect and the Employer.","Confirm police and local authority requirements for access, standing vehicles and off-loading.","Erect 1.80m high close-boarded hoarding with lockable gates; fix safety signage and project name board.","Set up site office, lockable store, welfare and latrine facilities at Architect-approved positions; provide first-aid box and fire extinguishers.","Provide temporary water and metered power with RCD-protected distribution and temporary lighting.","Provide 24-hour watching and site lighting; carry out induction of all operatives, including sub-contractors."],"plant":["Hoarding materials","Signage","Temporary DB & cabling","Hand tools","Pick-up / light truck"],"labour":["Site Foreman","2 Carpenters","1 Electrician","6 General labourers","Security guards"],"sc":["MAIN CONTRACTOR"],"flags":[]}`;
+async function wpMsAI(){ const d=WP.doc; if(WP.busy) return; if(d.ms.rows.length&&!await confirmBox(`Replace the ${d.ms.rows.length} operations with a new AI draft? (The current ones are kept in Revisions.)`,'Write new draft')) return;
+  WP.busy='msai'; wpRender();
+  try{ const X=await wpCtx(); const r=await bgAI(`${typeof companyContext==='function'?companyContext():''}
+You are a senior construction planner in Tanzania writing a METHOD STATEMENT table for a tender / contract. Columns: OPERATION | DURATION | METHOD | PLANT/EQUIPMENT | LABOUR | S/C.
+${X.txt}
+
+Rules:
+- 12 to 30 operations in construction order (mobilisation and site establishment; condition survey / setting out; submittals and procurement of long-lead items; each work package that this project actually has – from the BoQ bills and the documents; testing and commissioning; snagging; final inspection, handover and demobilisation). Only include works that this project contains.
+- OPERATION: concise but specific, in CAPITALS.
+- METHOD: 4 to 9 practical steps in execution order – preparation, execution, coordination, quality checks, inspection HOLD POINTS, safety precautions; refer to "approved drawings / specification" where applicable.
+- NEVER invent specifications that are not given (concrete grades, bar sizes, equipment capacities, brands, test values). If a needed detail is missing, write the step generally and add a short note to "flags" (e.g. "Concrete grade not stated in the documents – confirm").
+- DURATION: realistic working days ("u":"d") or weeks ("u":"w"); put "est":true on every duration – the planner will confirm them. Use the completion period if given.
+- PLANT/EQUIPMENT: only what the operation needs. LABOUR: supervisory staff first, then trades with numbers (e.g. "4 Masons"), then general labourers.
+- S/C: MAIN CONTRACTOR, or the right specialist (ELECTRICAL SUBCONTRACTOR, PLUMBING SUBCONTRACTOR, HVAC SUBCONTRACTOR, SPECIALIST FIRE SYSTEM CONTRACTOR, ICT / ELV SUBCONTRACTOR, ALL STAKEHOLDERS) – more than one when shared.
+${WP_MS_EX}
+Return JSON only: {"title":"METHOD STATEMENT FOR … , <LOCATION>","rows":[{"op":"","dur":{"n":0,"u":"d","est":true},"method":[""],"plant":[""],"labour":[""],"sc":[""],"flags":[""]}],"missing":["information the planner should supply"]}`,9000);
+    if(!r||!Array.isArray(r.rows)||!r.rows.length) throw new Error('the AI did not return any operations – try again');
+    if(d.ms.rows.length) wpSnap('ms','Before AI redraft');
+    d.ms.rows=r.rows.slice(0,40).map(x=>({id:uid(),op:String(x.op||'').toUpperCase().slice(0,200),dur:{n:+x.dur?.n||'',u:['d','ed','w'].includes(x.dur?.u)?x.dur.u:'d',est:true},method:(x.method||[]).map(String).filter(Boolean).slice(0,14),plant:(x.plant||[]).map(String).filter(Boolean).slice(0,12),labour:(x.labour||[]).map(String).filter(Boolean).slice(0,12),sc:(x.sc||['MAIN CONTRACTOR']).map(s=>String(s).toUpperCase()).filter(Boolean).slice(0,4),flags:(x.flags||[]).map(String).filter(Boolean).slice(0,6)}));
+    if(r.title&&!d.ms.title_edited) d.ms.title=String(r.title).toUpperCase().slice(0,300); d.ms.missing=(r.missing||[]).map(String).slice(0,10); d.ms.ai_at=new Date().toISOString();
+    wpTouch(); toast(`AI drafted ${d.ms.rows.length} operations – check every duration (marked estimate) and the ⚠ notes.`); }
+  catch(e){ toast('AI draft failed: '+(e.message||e)); }
+  finally{ WP.busy=''; wpRender(); } }
+/* ---------- programme from the method statement (no AI): one task per operation, linked in order ---------- */
+async function wpPowFromMs(){ const d=WP.doc, M=d.ms.rows; if(!M.length) return toast('Write the method statement first.');
+  if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with one task per method statement operation? (The current programme is kept in Revisions.)`,'Replace')) return;
+  if(d.pow.tasks.length) wpSnap('pow','Before “from method statement”');
+  const T=[wpTaskNew({name:'Commencement',lvl:1,dur:{n:0,u:'d'}})]; let prev=T[0];
+  M.forEach(r=>{ const D=r.dur||{}; const t=wpTaskNew({name:String(r.op||'Operation').replace(/\s+/g,' '),lvl:1,dur:D.txt||D.n===''||D.n==null?{n:1,u:'d',est:true}:{n:+D.n,u:D.u||'d',est:!!D.est},preds:[{id:prev.id,type:'FS'}],ms_ref:[r.id]}); T.push(t); prev=t; });
+  T.push(wpTaskNew({name:'Practical completion',lvl:1,dur:{n:0,u:'d'},preds:[{id:prev.id,type:'FS'}]}));
+  d.pow.tasks=T; wpTouch(); WP.tab='pow'; wpRender(); toast('Programme made from the method statement – one finish-to-start chain. Overlap work with SS links (e.g. 4SS+5d) where the site allows.'); }
+/* ---------- AI programme: work sections (summary tasks), sub-tasks, durations, real construction links ---------- */
+async function wpPowAI(){ const d=WP.doc; if(WP.busy) return; if(!d.info.start) return toast('Set the commencement date in Project details first.');
+  if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with a new AI programme? (The current one is kept in Revisions.)`,'Write new programme')) return;
+  WP.busy='powai'; wpRender();
+  try{ const X=await wpCtx(5000), M=d.ms.rows;
+    const msTxt=M.length?M.map((r,i)=>`${i+1}. ${r.op} – ${wpDurTxt(r.dur)||'no duration'}${(r.method||[]).length?'\n   steps: '+r.method.slice(0,8).join(' | ').slice(0,700):''}`).join('\n'):'No method statement yet.';
+    const r=await bgAI(`You are a construction planner preparing a PROGRAMME OF WORKS (Microsoft Project style) in Tanzania.
+${X.txt}
+Commencement: ${d.info.start}${d.info.required_finish?` · required completion: ${d.info.required_finish}`:''} · working days: ${(d.pow.calendar.days||[1,2,3,4,5]).length} per week.
+METHOD STATEMENT OPERATIONS (keep the same names for the work sections; numbers are used in "ms"):
+${msTxt}
+
+Build the programme as a work breakdown: level 1 = work sections (summary tasks, usually one per method statement operation, grouped where sensible), level 2 = activities inside each section (from the method steps), with a zero-duration milestone at the end of the main sections and "Practical completion" / "Handover" at the end.
+Durations: whole working days ("5d") or calendar days for curing ("7ed"); milestones "0". Keep each section close to the method statement duration. Mark all durations as estimates by adding "?" (e.g. "5d?").
+Links ("preds", using the "ref" numbers): only real construction logic – FS for sequence, SS with a lag where work can overlap (e.g. "12SS+3d"), FF where finishes must align. Do not link everything in one chain; let independent trades run in parallel where the method allows. No links on summary rows unless the whole section waits for another section.
+Resources: main crew in "res" (e.g. ["4 Masons","Site Foreman"]).
+Return JSON only: {"tasks":[{"ref":"1","name":"","lvl":1,"dur":"","preds":"","res":[""],"ms":[1]}],"notes":["assumptions"]}`,9000);
+    if(!r||!Array.isArray(r.tasks)||!r.tasks.length) throw new Error('the AI did not return a programme – try again');
+    const refId=new Map(), T=r.tasks.slice(0,250).map(x=>{ const t=wpTaskNew({name:String(x.name||'Task').slice(0,200),lvl:Math.max(1,Math.min(4,+x.lvl||1)),dur:WPS.parseDur(x.dur)||{n:1,u:'d',est:true},res:(x.res||[]).map(String).slice(0,6),ms_ref:(x.ms||[]).map(n=>M[+n-1]&&M[+n-1].id).filter(Boolean)}); refId.set(String(x.ref),t.id); return t; });
+    T.forEach((t,i)=>{ const p=WPS.parsePreds(r.tasks[i].preds||'',n=>refId.get(String(n))); t.preds=p.links.filter(l=>l.id!==t.id); });
+    // a link that makes a loop is dropped (and reported), never kept
+    let dropped=0; for(let k=0;k<40;k++){ const R=WPS.schedule({start:d.info.start,calendar:d.pow.calendar,tasks:T}); if(!R.errors.length) break; const m=R.errors[0].match(/tasks ([\d, ]+)/); const ids=m?m[1].split(',').map(x=>+x.trim()):[]; const t=T[(ids[ids.length-1]||1)-1]; if(t&&t.preds.length){ t.preds.pop(); dropped++; } else break; }
+    if(d.pow.tasks.length) wpSnap('pow','Before AI programme'); d.pow.tasks=T; d.pow.notes=(r.notes||[]).map(String).slice(0,10); wpTouch();
+    toast(`AI programme: ${T.length} tasks.${dropped?` ${dropped} link${dropped>1?'s were':' was'} removed because ${dropped>1?'they':'it'} made a loop.`:''} Durations with ? are estimates – confirm them.`); }
+  catch(e){ toast('AI programme failed: '+(e.message||e)); }
+  finally{ WP.busy=''; wpRender(); } }
+
+/* ---------- Word: method statement (official letterhead, landscape, 7 columns, repeated header row, bullets) ---------- */
+const WP_W=[540,2340,1440,6120,2520,1620,1800];
+function wpMsDocxBody(){ const d=WP.doc, M=d.ms, W=WP_W;   // same grid as the Nordic reference: 16,380 twips, starting 455 twips left of the margin
+  const F='<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>';
+  const run=(t,o={})=>`<w:r><w:rPr>${F}${o.b?'<w:b/>':''}<w:sz w:val="${o.sz||24}"/><w:szCs w:val="${o.sz||24}"/></w:rPr><w:t xml:space="preserve">${oxX(t)}</w:t></w:r>`;
+  const par=(t,o={})=>`<w:p><w:pPr>${o.bul?'<w:numPr><w:ilvl w:val="0"/><w:numId w:val="901"/></w:numPr>':''}<w:spacing w:before="0" w:after="${o.after??20}" w:line="240" w:lineRule="auto"/>${o.bul?'<w:ind w:left="230" w:hanging="200"/>':''}${o.jc?`<w:jc w:val="${o.jc}"/>`:''}</w:pPr>${t===''?'':run(t,o)}</w:p>`;
+  const cell=(w,ps,o={})=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.shade?'<w:shd w:val="clear" w:color="auto" w:fill="D9E2F3"/>':''}${o.vc?'<w:vAlign w:val="center"/>':''}</w:tcPr>${ps||'<w:p/>'}</w:tc>`;
+  const B=['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`).join('');
+  const head=`<w:tr><w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>${['S/N','OPERATION','DURATION','METHOD','PLANT/EQUIPMENT','LABOUR','S/C'].map((h,i)=>cell(W[i],par(h,{b:true,jc:'center',after:0}),{shade:true,vc:true})).join('')}</w:tr>`;
+  const rows=M.rows.map((r,i)=>{ const lines=(r.method||[]).reduce((a,s)=>a+Math.ceil(String(s).length/62),0); const keep=lines<=12;   // short operations stay on one page; long ones may continue on the next page (header row repeats)
+    return `<w:tr><w:trPr>${keep?'<w:cantSplit/>':''}</w:trPr>${cell(W[0],par(String(i+1),{jc:'center'}))}${cell(W[1],par(String(r.op||'').toUpperCase()))}${cell(W[2],par(wpDurTxt(r.dur),{jc:'center'}))}${cell(W[3],(r.method||[]).map(s=>par(s,{bul:true})).join('')||'<w:p/>')}${cell(W[4],(r.plant||[]).map(s=>par(s,{bul:true})).join('')||'<w:p/>')}${cell(W[5],(r.labour||[]).map(s=>par(s,{jc:'center'})).join('')||'<w:p/>')}${cell(W[6],(r.sc||[]).map(s=>par(String(s).toUpperCase())).join('')||'<w:p/>')}</w:tr>`; }).join('');
+  return `<w:p><w:pPr><w:spacing w:before="0" w:after="120"/><w:jc w:val="center"/></w:pPr>${run(String(M.title||'').toUpperCase(),{b:true,sz:24})}</w:p>
+    <w:tbl><w:tblPr><w:tblW w:w="${W.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblInd w:w="-455" w:type="dxa"/><w:tblBorders>${B}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>
+    <w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${rows}</w:tbl>
+    ${d.info.prepared_by||d.info.checked_by||d.info.approved_by?`<w:p><w:pPr><w:spacing w:before="240" w:after="0"/></w:pPr>${run(`Prepared by: ${d.info.prepared_by||'……………………'}     Checked by: ${d.info.checked_by||'……………………'}     Approved by: ${d.info.approved_by||'……………………'}     Rev ${M.rev||0}${M.status==='approved'?' (approved)':' (draft)'} · ${fmtD(d.info.issue_date||today())}`,{sz:20})}</w:p>`:''}`; }
+async function wpMsDocx(){ await loadScript(XLSX_URL); return oxDocx(wpMsDocxBody(),{landscape:true,lr:720}); }
+async function wpMsDownload(){ if(!WP.doc.ms.rows.length) return toast('The method statement has no operations yet.'); try{ const b=await wpMsDocx(); if(await oxSave(`Method Statement – ${WP.doc.info.title}`.slice(0,80),b,'docx')) logAct(`Works Planner: Word method statement for ${WP.doc.info.title}`); }catch(e){ toast('Word export failed: '+(e.message||e)); } }
+// keep a Word copy in NEXUS Office (and tick the Bid Studio requirement when the plan belongs to a tender)
+async function wpMsToOffice(){ const d=WP.doc; if(!d.ms.rows.length) return toast('Nothing to save yet.'); try{ const b=await wpMsDocx(); const html=oxDocxToHtml(b).html;
+  const id=await oxStore({type:'docx',title:`Method Statement – ${String(d.info.title).slice(0,70)}`,html,orient:'l',margin:'Narrow',lh:true,tpl:'plan:ms',tender_id:d.tender_id||'',project_id:d.project_id||''}); if(!id) throw new Error('could not save');
+  d.ms.doc_id=id; wpTouch(); await wpBidLink('ms',id); toast('Saved in NEXUS Office as a Word document.'); }catch(e){ toast('Could not save to NEXUS Office: '+(e.message||e)); } }
+async function wpBidLink(form,docId){ const d=WP.doc; if(!d.tender_id||typeof bsBid!=='function') return; const b=bsBid(d.tender_id); if(!b) return; const L=[...(b.items||[])]; const j=L.findIndex(x=>x.form===form); if(j<0) return; L[j]={...L[j],...(docId?{doc_id:docId}:{}),plan_id:d.id,status:L[j].status==='todo'?'doing':L[j].status}; await bsSave(d.tender_id,{items:L},`Works Planner: ${form==='ms'?'method statement':'work programme'} linked`); }
+/* ---------- print / PDF: method statement (same layout as the Word file) ---------- */
+function wpPrintOpen(html,title){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; } w.document.open(); w.document.write(html); w.document.close(); if(!window.NexusAndroid) setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } },700); }
+function wpMsHtml(forPrint){ const d=WP.doc, M=d.ms, tw=WP_W.reduce((a,b)=>a+b,0), ban=typeof OXLH!=='undefined'?OXLH.img.banner:'', wm=typeof OXLH!=='undefined'?OXLH.img.wm:'';
+  const css=`@page{size:A4 landscape;margin:12mm 12.7mm 16mm 12.7mm}body{font-family:"Times New Roman",Times,serif;color:#000;margin:0}.lh{width:100%;display:block;margin:0 0 6px}.wm{position:fixed;left:50%;top:55%;width:42%;transform:translate(-50%,-50%);opacity:.07;z-index:-1}
+    h1{font-size:12pt;text-align:center;margin:4px 0 8px;font-weight:bold;text-transform:uppercase}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:11.5pt}th,td{border:1px solid #000;padding:2px 4px;vertical-align:top;line-height:1.18}th{background:#D9E2F3;text-align:center;vertical-align:middle;font-weight:bold}
+    thead{display:table-header-group}tr.k{page-break-inside:avoid;break-inside:avoid}td ul{margin:0;padding-left:15px}td li{margin:0 0 1px}.c{text-align:center}.ft{margin-top:12px;font-size:9.5pt}`;
+  const rows=M.rows.map((r,i)=>`<tr class="${(r.method||[]).reduce((a,s)=>a+Math.ceil(String(s).length/62),0)<=12?'k':''}"><td class="c">${i+1}</td><td>${esc(String(r.op||'').toUpperCase())}</td><td class="c">${esc(wpDurTxt(r.dur))}</td><td><ul>${(r.method||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul></td><td><ul>${(r.plant||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul></td><td class="c">${(r.labour||[]).map(s=>esc(s)).join('<br>')}</td><td>${(r.sc||[]).map(s=>esc(String(s).toUpperCase())).join('<br>')}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Method Statement – ${esc(d.info.title)}</title><style>${css}</style></head><body>${ban?`<img class="lh" src="data:image/png;base64,${ban}" alt="">`:''}${wm?`<img class="wm" src="data:image/png;base64,${wm}" alt="">`:''}
+    <h1>${esc(M.title)}</h1><table><colgroup>${WP_W.map(w=>`<col style="width:${(w/tw*100).toFixed(2)}%">`).join('')}</colgroup><thead><tr><th>S/N</th><th>OPERATION</th><th>DURATION</th><th>METHOD</th><th>PLANT/EQUIPMENT</th><th>LABOUR</th><th>S/C</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="ft">Prepared by: ${esc(d.info.prepared_by||'……………………')} &nbsp; · &nbsp; Checked by: ${esc(d.info.checked_by||'……………………')} &nbsp; · &nbsp; Approved by: ${esc(d.info.approved_by||'……………………')} &nbsp; · &nbsp; Rev ${M.rev||0} ${M.status==='approved'?'(approved)':'(draft)'} · ${esc(fmtD(d.info.issue_date||today()))}</div></body></html>`; }
+/* ---------- print / PDF: programme of works (header block, table + Gantt, legend, pages with repeated headings) ---------- */
+function wpPowHtml(o={}){ const d=WP.doc, R=wpSched(), P=d.pow, ban=typeof OXLH!=='undefined'?OXLH.img.banner:''; if(R.errors.length) return null;
+  const rowOf=new Map(P.tasks.map((t,i)=>[t.id,i+1])), a=R.start-3, b=R.finish+10, days=b-a+1, gw=o.size==='A3'?1180:780, px=gw/days, perPage=o.size==='A3'?46:24;
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; let mh='', grid='';
+  for(let n=a;n<=b;n++){ const s=WPS.ds(n); if(s.slice(8)==='01'||n===a){ const dim=new Date(Date.UTC(+s.slice(0,4),+s.slice(5,7),0)).getUTCDate()-(+s.slice(8))+1; mh+=`<div class="mh" style="left:${(n-a)*px}px;width:${Math.min(dim,b-n+1)*px}px">${dim*px>34?M[+s.slice(5,7)-1]+' '+s.slice(2,4):''}</div>`; grid+=`<div class="gl" style="left:${(n-a)*px}px"></div>`; } }
+  const crit=o.crit!==false, rowsAll=P.tasks.map((t,i)=>({t,i,r:R.rows.get(t.id)})).filter(x=>x.r);
+  const bar=x=>{ const r=x.r, X=(r.es-a)*px, w=Math.max(2,(r.ef-r.es+1)*px); if(r.sum) return `<div class="sb" style="left:${X}px;width:${w}px"></div>`; if(r.ms) return `<div class="md" style="left:${X+px/2-5}px"></div><span class="bl" style="left:${X+px/2+7}px">${wpDs(r.es)}</span>`; return `<div class="br ${crit&&r.crit?'cr':''}" style="left:${X}px;width:${w}px"><i style="width:${Math.min(100,+x.t.pct||0)}%"></i></div>`; };
+  const pages=[]; for(let i=0;i<rowsAll.length;i+=perPage) pages.push(rowsAll.slice(i,i+perPage));
+  const hdr=`<div class="hd">${ban?`<img src="data:image/png;base64,${ban}" class="lh">`:''}<h1>PROGRAMME OF WORKS</h1><h2>${esc(d.info.title)}${d.info.location?', '+esc(d.info.location):''}</h2>
+    <table class="kv"><tr><td><b>Employer:</b> ${esc(d.info.client||'—')}</td><td><b>Contractor:</b> ${esc(d.info.contractor||company().name||'—')}</td><td><b>Contract ref:</b> ${esc(d.info.contract_ref||'—')}</td><td><b>Revision:</b> ${P.rev||0}${P.status==='approved'?' (approved)':' (draft)'} · ${esc(fmtD(d.info.issue_date||today()))}</td></tr>
+    <tr><td><b>Commencement:</b> ${fmtD(WPS.ds(R.start))}</td><td><b>Planned completion:</b> ${fmtD(WPS.ds(R.finish))}</td><td><b>Duration:</b> ${WPS.countW(R.cal,R.start,R.finish+1)} working days (${R.finish-R.start+1} calendar days)</td><td><b>Required completion:</b> ${d.info.required_finish?fmtD(d.info.required_finish):'—'}</td></tr></table></div>`;
+  const legend=`<div class="lg"><span><i class="br"></i> Task</span>${crit?'<span><i class="br cr"></i> Critical</span>':''}<span><i class="sb"></i> Summary</span><span><i class="md"></i> Milestone</span><span>Calendar: ${[...R.cal.days].sort().map(x=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][x]).join(', ')}${(P.calendar.holidays||[]).length?` · ${P.calendar.holidays.length} holiday(s)`:''}</span><span class="sg">Prepared by: ${esc(d.info.prepared_by||'…………')} · Checked by: ${esc(d.info.checked_by||'…………')} · Approved by: ${esc(d.info.approved_by||'…………')}</span></div>`;
+  const css=`@page{size:${o.size==='A3'?'A3':'A4'} landscape;margin:9mm}body{font:9px/1.25 Arial,Helvetica,sans-serif;color:#111;margin:0}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}.lh{width:100%;max-height:70px;object-fit:contain;object-position:left}
+    h1{font-size:15px;margin:2px 0;text-align:center;color:#0F2B4C}h2{font-size:11px;margin:0 0 4px;text-align:center}.kv{width:100%;border-collapse:collapse;margin-bottom:5px}.kv td{border:1px solid #9AA6B8;padding:2px 4px;font-size:8.5px}
+    .w{display:flex;border:1px solid #6B7A90}.tb{border-collapse:collapse;table-layout:fixed}.tb th,.tb td{border-bottom:1px solid #D5DBE5;border-right:1px solid #D5DBE5;height:16px;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tb th{background:#DCE6F2;height:28px}
+    .tb tr.s td{font-weight:bold}.g{position:relative;width:${gw}px;overflow:hidden;border-left:1px solid #6B7A90}.mh{position:absolute;top:0;height:14px;border-right:1px solid #9AA6B8;text-align:center;font-size:8px;background:#DCE6F2;overflow:hidden}
+    .gl{position:absolute;top:28px;bottom:0;border-left:1px dotted #C8CFDA}.r{position:absolute;left:0;right:0;height:17px}.br{position:absolute;top:4px;height:8px;background:#5B8BD9;border:1px solid #2F5E9E}.br.cr{background:#E05A4F;border-color:#A8322A}.br i{display:block;height:3px;margin-top:2.5px;background:#1D3557}
+    .sb{position:absolute;top:5px;height:4px;background:#111}.sb:before,.sb:after{content:"";position:absolute;top:0;border:4px solid transparent;border-top:5px solid #111}.sb:before{left:-4px}.sb:after{right:-4px}.md{position:absolute;top:4px;width:9px;height:9px;background:#111;transform:rotate(45deg)}.bl{position:absolute;top:2px;font-size:7.5px;color:#333;white-space:nowrap}
+    .lg{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px;font-size:8.5px;align-items:center}.lg i{display:inline-block;position:relative;vertical-align:middle;width:22px}.lg i.br,.lg i.sb{position:relative;top:0}.lg i.md{position:relative;top:0;width:8px;height:8px}.sg{margin-left:auto}`;
+  const body=pages.map((pg,pi)=>`<div class="pg">${hdr}<div class="w"><table class="tb" style="width:${o.size==='A3'?560:420}px"><colgroup><col style="width:24px"><col><col style="width:46px"><col style="width:52px"><col style="width:52px">${o.size==='A3'?'<col style="width:64px">':''}</colgroup>
+      <thead><tr><th>ID</th><th>Task Name</th><th>Duration</th><th>Start</th><th>Finish</th>${o.size==='A3'?'<th>Predecessors</th>':''}</tr></thead><tbody>${pg.map(x=>`<tr class="${x.r.sum?'s':''}"><td>${x.i+1}</td><td style="padding-left:${((+x.t.lvl||1)-1)*9+3}px">${x.r.ms?'◆ ':''}${esc(x.t.name)}</td><td>${x.r.sum?x.r.dur.len+' days':esc(WPS.fmtDur(x.t.dur))}</td><td>${wpDs(x.r.es)}</td><td>${wpDs(x.r.ef)}</td>${o.size==='A3'?`<td>${esc(WPS.fmtPreds(x.t.preds,id=>rowOf.get(id)))}</td>`:''}</tr>`).join('')}</tbody></table>
+      <div class="g"><div style="position:relative;height:14px">${mh}</div><div style="height:14px;background:#DCE6F2;border-bottom:1px solid #9AA6B8"></div>${grid}${pg.map((x,k)=>`<div class="r" style="top:${28+k*17}px">${bar(x)}</div>`).join('')}<div style="height:${pg.length*17}px"></div></div></div>
+      ${legend}<div style="text-align:right;font-size:8px;color:#555">Page ${pi+1} of ${pages.length}</div></div>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Programme of Works – ${esc(d.info.title)}</title><style>${css}</style></head><body>${body}</body></html>`; }
+/* ---------- Excel ---------- */
+async function wpPowXlsx(){ const d=WP.doc, R=wpSched(); if(R.errors.length) return toast(R.errors[0]); await loadScript(XLSX_URL);
+  const P=d.pow.tasks, C=R.cal;
+  const rows=[[{v:`PROGRAMME OF WORKS – ${String(d.info.title).toUpperCase()}`,s:1}],[{v:`${d.info.client?'Employer: '+d.info.client+' · ':''}Contractor: ${d.info.contractor||company().name} · Commencement ${WPS.ds(R.start)} · Completion ${WPS.ds(R.finish)} · ${WPS.countW(C,R.start,R.finish+1)} working days · Rev ${d.pow.rev||0}`,s:8}],
+    ['ID','WBS','Task Name','Duration','Start','Finish','Predecessors','Resource Names','% Complete','Total Float (days)','Critical','Early Start','Early Finish','Late Start','Late Finish'].map(v=>({v,s:2}))];
+  const wbs=[], cnt=[]; P.forEach((t,i)=>{ const L=+t.lvl||1; cnt.length=L; cnt[L-1]=(cnt[L-1]||0)+1; for(let k=0;k<L-1;k++) cnt[k]=cnt[k]||1; wbs.push(cnt.slice(0,L).join('.')); });
+  P.forEach((t,i)=>{ const r=R.rows.get(t.id)||{}; rows.push([{v:i+1,s:10},{v:wbs[i],s:3},{v:'   '.repeat((+t.lvl||1)-1)+(r.ms?'◆ ':'')+t.name,s:r.sum?9:3},{v:r.sum?`${r.dur.len} days`:WPS.fmtDur(t.dur),s:3},{v:WPS.ds(r.es),s:10},{v:WPS.ds(r.ef),s:10},{v:WPS.fmtPreds(t.preds,id=>P.findIndex(x=>x.id===id)+1),s:3},{v:(t.res||[]).join(', '),s:3},{v:(+t.pct||0)/100,s:12},{v:r.tf,s:10},{v:r.crit?'Yes':'No',s:10},{v:WPS.ds(r.es),s:10},{v:WPS.ds(r.ef),s:10},{v:WPS.ds(r.ls),s:10},{v:WPS.ds(r.lf),s:10}]); });
+  const cal=[[{v:'WORKING CALENDAR',s:1}],[{v:'Working days',s:2},{v:[...C.days].sort().map(x=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][x]).join(', '),s:3}],[{v:'Hours per day',s:2},{v:C.hpd,s:3}],[{v:'Holidays / shutdowns',s:2}],...(d.pow.calendar.holidays||[]).map(h=>[{v:h.date+(h.to?' to '+h.to:''),s:3},{v:h.name||'',s:3}])];
+  const bytes=oxXlsx([{name:'Programme',rows,cols:[6,8,60,11,11,11,16,24,10,10,8,11,11,11,11],freeze:3,landscape:true,merges:['A1:O1','A2:O2']},{name:'Calendar',rows:cal,cols:[24,50]}]);
+  if(await oxSave(`Programme of Works – ${d.info.title}`.slice(0,80),bytes,'xlsx')) logAct(`Works Planner: Excel programme for ${d.info.title}`); }
+/* ---------- Microsoft Project XML (MSPDI) – opens in MS Project (File › Open › XML) with hierarchy, durations, links, calendar ---------- */
+function wpToMspdi(){ const d=WP.doc, R=wpSched(); if(R.errors.length) throw new Error(R.errors[0]); const C=R.cal, hpd=C.hpd, P=d.pow.tasks;
+  const X=oxX, T=n=>WPS.ds(n), st=n=>`${T(n)}T08:00:00`, fn=n=>`${T(n)}T${String(8+hpd+(hpd>4?1:0)).padStart(2,'0')}:00:00`;
+  const dur=(len,el)=>el?`PT${len*24}H0M0S`:`PT${len*hpd}H0M0S`;
+  const uidOf=new Map(P.map((t,i)=>[t.id,i+1])), outl=[]; const cnt=[];
+  P.forEach(t=>{ const L=+t.lvl||1; cnt.length=L; cnt[L-1]=(cnt[L-1]||0)+1; for(let k=0;k<L-1;k++) cnt[k]=cnt[k]||1; outl.push(cnt.slice(0,L).join('.')); });
+  const resN=[...new Set(P.flatMap(t=>t.res||[]))]; const resU=new Map(resN.map((n,i)=>[n,i+1]));
+  const CT={SNET:4,SNLT:5,FNET:6,FNLT:7,MSO:2,MFO:3};
+  const tasks=P.map((t,i)=>{ const r=R.rows.get(t.id); const D=r.sum?{len:r.dur.len,el:false}:WPS.durOf(C,t.dur||{n:1}); const ms=!r.sum&&D.len===0;
+    const lk=(t.preds||[]).filter(l=>uidOf.has(l.id)).map(l=>{ const L=l.lag&&+l.lag.n?l.lag:null; const el=L&&L.u==='ed'; const k=L?(L.u==='w'?L.n*C.wpw:L.u==='h'?L.n/hpd:L.n):0; return `<PredecessorLink><PredecessorUID>${uidOf.get(l.id)}</PredecessorUID><Type>${{FF:0,FS:1,SF:2,SS:3}[l.type||'FS']}</Type><CrossProject>0</CrossProject><LinkLag>${Math.round(k*(el?24:hpd)*600)}</LinkLag><LagFormat>${el?8:7}</LagFormat></PredecessorLink>`; }).join('');
+    const con=t.con&&CT[t.con.type]&&t.con.date?`<ConstraintType>${CT[t.con.type]}</ConstraintType><ConstraintDate>${t.con.date}T08:00:00</ConstraintDate>`:'<ConstraintType>0</ConstraintType>';
+    return `<Task><UID>${i+1}</UID><ID>${i+1}</ID><Name>${X(t.name)}</Name><Type>1</Type><IsNull>0</IsNull><WBS>${outl[i]}</WBS><OutlineNumber>${outl[i]}</OutlineNumber><OutlineLevel>${+t.lvl||1}</OutlineLevel><Priority>500</Priority>
+<Start>${st(r.es)}</Start><Finish>${ms?st(r.ef):fn(r.ef)}</Finish><Duration>${dur(D.len,D.el)}</Duration><DurationFormat>${D.el?(t.dur&&t.dur.est?40:8):(t.dur&&t.dur.est?39:7)}</DurationFormat><Work>PT0H0M0S</Work><Manual>0</Manual><Estimated>${t.dur&&t.dur.est?1:0}</Estimated><Milestone>${ms?1:0}</Milestone><Summary>${r.sum?1:0}</Summary><Critical>${r.crit?1:0}</Critical>
+<EarlyStart>${st(r.es)}</EarlyStart><EarlyFinish>${fn(r.ef)}</EarlyFinish><LateStart>${st(r.ls)}</LateStart><LateFinish>${fn(r.lf)}</LateFinish><TotalSlack>${Math.max(0,r.tf||0)*hpd*600}</TotalSlack><PercentComplete>${Math.round(+t.pct||0)}</PercentComplete>${con}<CalendarUID>-1</CalendarUID>${lk}</Task>`; }).join('\n');
+  const days=[1,2,3,4,5,6,7].map(k=>{ const w=C.days.has(k-1); return `<WeekDay><DayType>${k}</DayType><DayWorking>${w?1:0}</DayWorking>${w?`<WorkingTimes><WorkingTime><FromTime>08:00:00</FromTime><ToTime>${hpd>4?'12:00:00':String(8+hpd).padStart(2,'0')+':00:00'}</ToTime></WorkingTime>${hpd>4?`<WorkingTime><FromTime>13:00:00</FromTime><ToTime>${String(13+hpd-4).padStart(2,'0')}:00:00</ToTime></WorkingTime>`:''}</WorkingTimes>`:''}</WeekDay>`; }).join('');
+  const exc=(d.pow.calendar.holidays||[]).map(h=>`<Exception><EnteredByOccurrences>0</EnteredByOccurrences><TimePeriod><FromDate>${h.date}T00:00:00</FromDate><ToDate>${h.to||h.date}T23:59:00</ToDate></TimePeriod><Occurrences>1</Occurrences><Name>${X(h.name||'Holiday')}</Name><Type>1</Type><DayWorking>0</DayWorking></Exception>`).join('');
+  const res=resN.map(n=>`<Resource><UID>${resU.get(n)}</UID><ID>${resU.get(n)}</ID><Name>${X(n)}</Name><Type>1</Type></Resource>`).join('');
+  let au=0; const asg=P.flatMap((t,i)=>(t.res||[]).map(n=>`<Assignment><UID>${++au}</UID><TaskUID>${i+1}</TaskUID><ResourceUID>${resU.get(n)}</ResourceUID><Units>1</Units></Assignment>`)).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project"><SaveVersion>14</SaveVersion><Name>${X(d.info.title)}.xml</Name><Title>${X(d.info.title)}</Title><Company>${X(d.info.contractor||company().name||'')}</Company><Author>${X(d.info.prepared_by||me.name||'')}</Author>
+<ScheduleFromStart>1</ScheduleFromStart><StartDate>${st(R.start)}</StartDate><FinishDate>${fn(R.finish)}</FinishDate><CalendarUID>1</CalendarUID><DefaultStartTime>08:00:00</DefaultStartTime><DefaultFinishTime>${String(8+hpd+(hpd>4?1:0)).padStart(2,'0')}:00:00</DefaultFinishTime>
+<MinutesPerDay>${hpd*60}</MinutesPerDay><MinutesPerWeek>${hpd*60*C.wpw}</MinutesPerWeek><DaysPerMonth>${Math.round(C.wpw*4.33)}</DaysPerMonth><DurationFormat>7</DurationFormat><WorkFormat>2</WorkFormat><NewTasksEffortDriven>0</NewTasksEffortDriven><DefaultTaskType>1</DefaultTaskType><CurrencySymbol>TZS</CurrencySymbol>
+<Calendars><Calendar><UID>1</UID><Name>${X('NEXUS – '+[...C.days].sort().map(x=>'SMTWTFS'[x]).join(''))}</Name><IsBaseCalendar>1</IsBaseCalendar><BaseCalendarUID>-1</BaseCalendarUID><WeekDays>${days}</WeekDays>${exc?`<Exceptions>${exc}</Exceptions>`:''}</Calendar></Calendars>
+<Tasks><Task><UID>0</UID><ID>0</ID><Name>${X(d.info.title)}</Name><Type>1</Type><OutlineNumber>0</OutlineNumber><OutlineLevel>0</OutlineLevel><Start>${st(R.start)}</Start><Finish>${fn(R.finish)}</Finish><Summary>1</Summary></Task>
+${tasks}</Tasks><Resources>${res}</Resources><Assignments>${asg}</Assignments></Project>`; }
+async function wpXmlDownload(){ try{ const x=wpToMspdi(); if(await oxSave(`Programme of Works – ${WP.doc.info.title}`.slice(0,80),new TextEncoder().encode(x),'xml')) logAct(`Works Planner: MS Project XML for ${WP.doc.info.title}`); }catch(e){ toast(e.message||String(e)); } }
+async function wpImportXml(file){ let doc; try{ doc=new DOMParser().parseFromString(await file.text(),'application/xml'); }catch(e){ return toast('Could not read the file.'); }
+  if(!doc||doc.documentElement.localName!=='Project') return toast('This is not a Microsoft Project XML file. In MS Project: File › Save As › "XML Format (*.xml)".');
+  const g=(el,n)=>{ const x=[...el.children].find(c=>c.localName===n); return x?x.textContent:''; }, d=WP.doc;
+  const mpd=+g(doc.documentElement,'MinutesPerDay')||480, hpd=mpd/60, start=g(doc.documentElement,'StartDate').slice(0,10);
+  const tl=[...doc.getElementsByTagNameNS('*','Task')].filter(t=>+g(t,'OutlineLevel')>0&&g(t,'IsNull')!=='1'&&g(t,'Name'));
+  if(!tl.length) return toast('No tasks found in this file.');
+  if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with the ${tl.length} tasks from "${file.name}"? (The current programme is kept in Revisions.)`,'Import')) return;
+  const ID=new Map(), T=tl.map(t=>{ const iso=g(t,'Duration'), m=iso.match(/PT(\d+(?:\.\d+)?)H(\d+)M/); const h=m?+m[1]+(+m[2])/60:0; const fmt=+g(t,'DurationFormat'); const el=[4,6,8,10,12,36,38,40,42,44].includes(fmt);
+    const est=g(t,'Estimated')==='1'||fmt>=35; const n=el?Math.round(h/24*10)/10:Math.round(h/hpd*10)/10; const x=wpTaskNew({name:g(t,'Name'),lvl:+g(t,'OutlineLevel')||1,dur:{n:g(t,'Milestone')==='1'?0:n,u:el?'ed':'d',...(est?{est:true}:{})}});
+    x.pct=+g(t,'PercentComplete')||0; const ct={4:'SNET',5:'SNLT',6:'FNET',7:'FNLT',2:'MSO',3:'MFO'}[+g(t,'ConstraintType')]; if(ct&&g(t,'ConstraintDate')) x.con={type:ct,date:g(t,'ConstraintDate').slice(0,10)}; ID.set(g(t,'UID'),x.id); x._el=t; return x; });
+  T.forEach(x=>{ x.preds=[...x._el.children].filter(c=>c.localName==='PredecessorLink').map(l=>{ const id=ID.get(g(l,'PredecessorUID')); if(!id) return null; const lag=+g(l,'LinkLag')||0, lf=+g(l,'LagFormat'); const el=[4,6,8,10,12].includes(lf); const n=Math.round(lag/600/(el?24:hpd)*10)/10;
+    return {id,type:['FF','FS','SF','SS'][+g(l,'Type')]||'FS',lag:n?{n,u:el?'ed':'d'}:null}; }).filter(Boolean); delete x._el; });
+  const RS=new Map([...doc.getElementsByTagNameNS('*','Resource')].map(r=>[g(r,'UID'),g(r,'Name')])); [...doc.getElementsByTagNameNS('*','Assignment')].forEach(a=>{ const tid=ID.get(g(a,'TaskUID')), n=RS.get(g(a,'ResourceUID')); const t=T.find(x=>x.id===tid); if(t&&n) t.res=[...new Set([...(t.res||[]),n])]; });
+  // the project's base calendar only (resource calendars are ignored)
+  const cuid=g(doc.documentElement,'CalendarUID')||'1', cal=[...doc.getElementsByTagNameNS('*','Calendar')].find(c=>g(c,'UID')===cuid)||[...doc.getElementsByTagNameNS('*','Calendar')].find(c=>g(c,'IsBaseCalendar')==='1');
+  const kid=(el,n)=>el?[...el.children].find(c=>c.localName===n):null, WDs=kid(cal,'WeekDays')?[...kid(cal,'WeekDays').children]:[];
+  const days=WDs.filter(w=>+g(w,'DayType')>=1&&+g(w,'DayType')<=7&&g(w,'DayWorking')==='1').map(w=>+g(w,'DayType')-1);
+  const hol=[...(kid(cal,'Exceptions')?kid(cal,'Exceptions').children:[]),...WDs.filter(w=>g(w,'DayType')==='0')].map(e=>{ const tp=kid(e,'TimePeriod'); return tp&&g(e,'DayWorking')!=='1'?{date:g(tp,'FromDate').slice(0,10),to:g(tp,'ToDate').slice(0,10),name:g(e,'Name')}:null; }).filter(Boolean);
+  if(d.pow.tasks.length) wpSnap('pow','Before importing '+file.name);
+  d.pow.tasks=T; if(days.length) d.pow.calendar={...d.pow.calendar,days:[...new Set(days)],hours:Math.min(12,Math.max(1,Math.round(hpd))),holidays:hol}; if(start&&start!==d.info.start&&(!d.info.start||await confirmBox(`The imported programme starts on ${fmtD(start)}; the commencement date here is ${fmtD(d.info.start)}. Use ${fmtD(start)} as the commencement date?`,'Use '+fmtD(start)))) d.info.start=start;
+  wpTouch(); WP.tab='pow'; wpRender(); const R=wpSched(); toast(`Imported ${T.length} tasks from Microsoft Project.${R.errors.length?' '+R.errors[0]:''}`); }
+/* ---------- send to the project's programme (Projects › Programme) ---------- */
+async function wpToProject(){ const d=WP.doc; if(!d.project_id) return toast('This plan is not linked to a project.'); if(!isAdmin) return toast('Only directors/administrators replace a project programme.'); const R=wpSched(); if(R.errors.length) return toast(R.errors[0]);
+  const old=msOf(d.project_id); if(!await confirmBox(`Replace the programme of "${projName(d.project_id)}" (${old.length} activities) with the ${d.pow.tasks.filter((t,i)=>!wpIsSum(i)).length} tasks of this plan? Progress already recorded on activities with the same name is kept.`,'Replace programme',true)) return;
+  const P=d.pow.tasks, leaf=P.filter((t,i)=>!R.rows.get(t.id)?.sum), tot=leaf.reduce((a,t)=>a+Math.max(0,(R.rows.get(t.id).dur||{}).len||0),0)||1, idm=new Map();
+  for(const t of leaf){ idm.set(t.id,'pw'+uid()); }
+  for(const m of old) await patch('milestones',m.id,{deleted:true}).catch(()=>{});
+  for(const t of leaf){ const r=R.rows.get(t.id), was=old.find(m=>m.name===t.name); await put('milestones',idm.get(t.id),{project_id:d.project_id,name:t.name,kind:r.ms?'milestone':'activity',planned_start:WPS.ds(r.es),planned_finish:WPS.ds(r.ef),weight:r.ms?0:Math.round((r.dur.len||0)/tot*1000)/10,progress:was?+was.progress||0:+t.pct||0,preds:(t.preds||[]).map(l=>idm.get(l.id)).filter(Boolean),resp:(t.res||[]).join(', '),source:'works-planner'}); }
+  logAct(`Works Planner: programme sent to project ${projName(d.project_id)}`); toast('The project programme now follows this plan.'); }
+/* ---------- Preview & export tab ---------- */
+function wpOut(){ const d=WP.doc, R=wpSched(), t=d.tender_id;
+  return `<div class="wp-card"><h3>Method Statement <span class="wp-sub">${d.ms.rows.length} operations · ${d.ms.status==='approved'?'approved Rev '+d.ms.rev:'draft Rev '+d.ms.rev}</span></h3>
+    <div class="wp-bar"><button class="wp-b pri" data-wpx="msdocx">⬇ Word (.docx)</button><button class="wp-b" data-wpx="mspdf">🖨 PDF / print</button>${wpCan()?`<button class="wp-b" data-wpx="msoffice">🗂 Save to NEXUS Office${t?' & Bid Studio':''}</button>`:''}</div>
+    ${d.ms.rows.length?`<div class="wp-prev"><iframe id="wpMsPrev" title="Method statement preview"></iframe></div>`:'<div class="wp-li">No operations yet.</div>'}</div>
+    <div class="wp-card"><h3>Programme of Works <span class="wp-sub">${d.pow.tasks.length} tasks${R.finish!=null&&d.pow.tasks.length&&!R.errors.length?` · ${fmtD(WPS.ds(R.start))} – ${fmtD(WPS.ds(R.finish))}`:''}</span></h3>
+    ${R.errors.length?`<div class="wp-err">⛔ ${wpEsc(R.errors[0])}</div>`:''}
+    <div class="wp-bar"><button class="wp-b pri" data-wpx="powpdf">🖨 PDF / print (A3)</button><button class="wp-b" data-wpx="powpdf4">🖨 PDF / print (A4)</button><button class="wp-b" data-wpx="powxlsx">⬇ Excel</button><button class="wp-b" data-wpx="powxml">⬇ MS Project XML</button>${d.project_id&&isAdmin?`<button class="wp-b" data-wpx="topro">⇢ Use as the project programme</button>`:''}</div>
+    <div class="wp-sub">MS Project XML keeps the task hierarchy, durations, links (FS/SS/FF/SF with lags), constraints, the calendar and resources. Open it in Microsoft Project with File › Open › “XML Format”, then Save As .mpp. A native .mpp file cannot be written from a web app.</div>
+    ${d.pow.tasks.length&&!R.errors.length?`<div class="wp-prev"><iframe id="wpPowPrev" title="Programme preview"></iframe></div>`:''}</div>`; }
+document.addEventListener('click',async e=>{ const b=e.target.closest('#wpApp [data-wpx]'); if(!b) return; const a=b.dataset.wpx;
+  if(a==='msdocx') return wpMsDownload(); if(a==='mspdf') return wpPrintOpen(wpMsHtml(true),'Method statement'); if(a==='msoffice') return wpMsToOffice();
+  if(a==='powpdf'||a==='powpdf4'){ const h=wpPowHtml({size:a==='powpdf'?'A3':'A4',crit:WP.crit}); return h?wpPrintOpen(h,'Programme of works'):toast('Fix the programme errors first.'); }
+  if(a==='powxlsx') return wpPowXlsx(); if(a==='powxml') return wpXmlDownload(); if(a==='topro') return wpToProject(); });
+// fill the preview frames after the tab is drawn
+new MutationObserver(()=>{ const f=document.getElementById('wpMsPrev'); if(f&&!f.__d){ f.__d=1; f.srcdoc=wpMsHtml(false); } const g=document.getElementById('wpPowPrev'); if(g&&!g.__d){ g.__d=1; g.srcdoc=wpPowHtml({size:'A3',crit:WP.crit})||''; } }).observe(document.body,{childList:true,subtree:true});
+/* ---------- entry points ---------- */
+function wpEntryBtn(o,label){ return `<button class="btn sm" data-wpopen="${o.tender_id?'t:'+esc(o.tender_id):'p:'+esc(o.project_id)}" data-wptab0="${o.tab||'info'}">${label||'📐 Method statement & programme'}</button>`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-wpopen]'); if(!b) return; e.preventDefault(); e.stopPropagation(); const [k,id]=b.dataset.wpopen.split(/:(.+)/); wpOpen(k==='t'?{tender_id:id,tab:b.dataset.wptab0}:{project_id:id,tab:b.dataset.wptab0}); },true);
+/* ===================== WORKS PLANNER (end) ===================== */
 /* ===================== PROFILE PHOTOS (v76) ===================== */
 // every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
 const lcE=s=>String(s||'').trim().toLowerCase();
@@ -6827,6 +7405,7 @@ function pmProgrammeTab(p){
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
     ${canWrite&&ms.length?'<button class="btn sm" data-act="pmShift" title="Move every activity to a new start date, keeping the same durations and sequence">📅 Change start date</button>':''}
     ${isAdmin&&ms.length?'<button class="btn sm danger" data-act="pmDelAll" title="Delete the whole programme of this project">🗑 Delete programme</button>':''}
+    ${wpEntryBtn({project_id:p.id,tab:'pow'},'📐 Programme of Works & method statement')}
     ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmPdf" title="Download the Gantt chart as PDF (choose “Save as PDF” in the print window)">⬇ PDF</button><button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
   ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
@@ -10033,7 +10612,7 @@ function oxTbl(rows,{widths,header=true,shade}={}){ let W=widths||rows[0].map(()
 function oxLetterhead(){ const c=company(), logo=oxLogoBytes(); const E=9525;
   const pic=logo?`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${110*E}" cy="${80*E}"/><wp:docPr id="1" name="Logo"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="logo.${logo.ext}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rLogo"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${110*E}" cy="${80*E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`:'';
   return `<w:tbl><w:tblPr><w:tblW w:w="9900" w:type="dxa"/><w:tblBorders><w:bottom w:val="single" w:sz="18" w:color="539FDC"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="1900"/><w:gridCol w:w="8000"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="1900" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p>${pic}</w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="8000" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${oxP(String(c.name||'').toUpperCase(),{b:true,sz:30,color:'182340',after:20,align:'right'})}${oxP([c.crb_building,c.crb_civil].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:20,align:'right'})}${oxP([c.address,c.pobox].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:20,align:'right'})}${oxP([c.phone,c.email,c.web].filter(Boolean).join(' · '),{sz:17,color:'4B5563',after:60,align:'right'})}</w:tc></w:tr></w:tbl>${oxP('',{after:120})}`; }
-function oxDocx(bodyXml,{landscape=false,lh=true}={}){
+function oxDocx(bodyXml,{landscape=false,lh=true,lr}={}){
   const c=company(), logo=oxLogoBytes(), f={};
   f['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`;
   f['_rels/.rels']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
@@ -10043,7 +10622,11 @@ function oxDocx(bodyXml,{landscape=false,lh=true}={}){
   const pg=landscape?'<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>':'<w:pgSz w:w="11906" w:h="16838"/>';
   f['word/document.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${bodyXml}<w:sectPr><w:footerReference w:type="default" r:id="rFoot"/>${pg}<w:pgMar w:top="900" w:right="1000" w:bottom="1000" w:left="1000" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr></w:body></w:document>`;
   if(logo) f[`word/media/logo.${logo.ext}`]=logo.bytes;
-  if(lh){ f['word/styles.xml']=oxLhFont(f['word/styles.xml']); oxLhApply(f,{landscape}); }
+  if(/w:numId w:val="901"/.test(bodyXml)){   // v243: real Word bullets (used by the Works Planner method statement)
+    f['word/numbering.xml']=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="901"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="\u2022"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="230" w:hanging="200"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:hint="default"/></w:rPr></w:lvl></w:abstractNum><w:num w:numId="901"><w:abstractNumId w:val="901"/></w:num></w:numbering>`;
+    f['word/_rels/document.xml.rels']=f['word/_rels/document.xml.rels'].replace('</Relationships>','<Relationship Id="rNum" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>');
+    f['[Content_Types].xml']=f['[Content_Types].xml'].replace('</Types>','<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>'); }
+  if(lh){ f['word/styles.xml']=oxLhFont(f['word/styles.xml']); oxLhApply(f,{landscape,...(lr?{lr}:{})}); }
   return oxZip(f);
 }
 
@@ -21129,7 +21712,7 @@ function bsWork(t,b){
     <td style="white-space:nowrap">${e.s==='na'?'<span class="sub small">not required</span>':e.auto&&e.s==='ready'?'<span class="chip good" title="Ticked automatically – the document is in the bid library / BoQ">✓ Done</span>':`<label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-bsc="tick" data-i="${i}" id="bss_${i}" ${e.s==='ready'?'checked':''} ${ro?'disabled':''} style="width:18px;height:18px"> <span class="small">Done</span></label>`}</td>
     <td class="r" style="white-space:nowrap">${bsActions(it,i,t,b)}</td></tr>`; };
   return `<div class="toolbar"><button class="btn" data-go="bid">← Bid Studio</button><div class="sp"></div>
-    ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button><button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
+    ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button>${wpEntryBtn({tender_id:t.id,tab:'ms'},'📐 Method statement & programme')}<button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
   ${BSB.log&&BSB.tid===t.id?`<div class="banner"><div>${BSB.busy?'<span class="spin"></span> ':''}${esc(BSB.log)}</div></div>`:''}
   <div class="card"><div class="bd" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
     <div style="flex:1;min-width:240px"><div class="ttl2" style="font-size:16px">${esc(t.title)}</div><div class="sub">${esc(t.client||'')}${t.no?' · Tender No. '+esc(t.no):''}${t.location?' · '+esc(t.location):''}</div>
@@ -21155,6 +21738,8 @@ function bsActions(it,i,t,b){ if(!bsCan()) return '';
   const B=`data-i="${i}"`;
   if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `${s.r&&recFile(s.r)?`<button class="btn" data-bs="libopen" data-k="${it.lib}">Open</button>`:''}<button class="btn" data-bs="libadd" data-k="${it.lib}">${s.r?'Replace':'Add to library'}</button>`; }
   if(it.boq){ const X=bsBoq(t.id,b); return X?`<button class="btn" data-bs="autoprice" ${B}>⚡ Auto-price</button><button class="btn" data-bs="boqopen" data-id="${esc(X.id)}">Open BoQ</button>`:`<button class="btn pri" data-bs="boqgen" data-tid="${esc(t.id)}">🤖 Build BoQ from documents</button><button class="btn" data-bs="boqnew" data-tid="${esc(t.id)}">Empty BoQ</button>`; }
+  if(it.form==='ms'||it.form==='wp'){ const has=it.doc_id&&byId('officedocs',it.doc_id);   // v243: method statement & programme are made in the Works Planner
+    return `${has?`<button class="btn" data-bs="docopen" ${B}>Open Word</button>`:''}${wpEntryBtn({tender_id:t.id,tab:it.form==='ms'?'ms':'pow'},it.form==='ms'?'📐 Method statement':'📐 Programme of works')}`; }
   if(it.form){ const has=it.doc_id&&byId('officedocs',it.doc_id), ai=it.form==='ms'||it.form==='wp';
     return `${has?`<button class="btn" data-bs="docopen" ${B}>Open</button>`:''}<button class="btn ${has?'':'pri'}" data-bs="gen" ${B} ${BSB.busy?'disabled':''}>${ai?(has?'Redraft (AI)':'🤖 Draft with AI'):(has?'Refill':'Fill form')}</button>`; }
   return `<button class="btn" data-bs="up" ${B}>📎 Attach</button>${it.src==='man'||it.src==='ai'?`<button class="btn" data-bs="del" ${B} title="Remove this requirement">✕</button>`:''}`; }
