@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="32d9ba288d3f">
+<meta name="nexus-build" content="bfb7c3ffded2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -8,7 +8,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="config.js?v=188"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=220"></script>
+<script src="nexus-sb.js?v=239"></script>
 <script src="nexus-chat.js?v=232"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
@@ -764,6 +764,8 @@ body.bql-open .main{padding-right:380px}
 .pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:34px 16px;margin:4px 0 14px;border:2px dashed var(--accent);border-radius:14px;background:rgba(255,193,7,.06);cursor:pointer;transition:background .15s,transform .15s}.pf-drop:hover,.pf-drop.over{background:rgba(255,193,7,.14);transform:translateY(-1px)}.pf-drop b{font-size:1.15rem}.pf-drop .pf-ico{font-size:2rem;line-height:1}.pf-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}.pf-step{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card,rgba(255,255,255,.03));flex:1;min-width:150px}.pf-step b{display:block;font-size:.9rem}.pf-step small{opacity:.75}.pf-step.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.pf-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#000;font-weight:700;flex:none}.pf-ar{opacity:.5;font-size:1.3rem}.pf-tl{margin:10px 0 4px;border-left:3px solid var(--line);padding-left:12px;display:grid;gap:6px}.pf-tl>div{opacity:.75}.pf-tl .ok{opacity:1}.pf-tl .no{opacity:1;color:var(--bad)}@media(max-width:700px){.pf-ar{display:none}.pf-step{min-width:45%}}
 .tstar{background:none;border:0;padding:0 6px 0 0;font-size:17px;line-height:1;cursor:pointer;color:var(--muted);vertical-align:-1px}.tstar.on{color:#E0A100}.tstar:hover{color:#E0A100}
 
+/* v239 Support Staff: no tender card on Home */
+body.nx-sup .home-duo{grid-template-columns:1fr!important}body.nx-sup .home-duo>section.card:first-child{display:none}
 /* ===================== v234 · design polish (phone layout, cards, tiles, empty pages, Blueprint) ===================== */
 .side>.hazard{display:none}
 .side-quick{display:none;gap:8px;padding:0 14px 12px}
@@ -918,7 +920,7 @@ if(NX_IN_APP){ const realOpen=window.open.bind(window);
     const doc={ write:(...a)=>{ buf+=a.join(''); }, writeln:(...a)=>{ buf+=a.join('')+'\n'; }, open:()=>{ buf=''; }, close:()=>{ setTimeout(show,30); }, title:'', body:null, images:[] };
     return { document:doc, focus(){}, blur(){}, print(){ show(); }, close(){}, addEventListener(){}, removeEventListener(){}, opener:null, closed:false, location:{href:'about:blank'} }; }; }
 
-let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, isQSRole=false, canWrite=true;
+let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, isQSRole=false, isSupRole=false, canWrite=true;
 let route = 'home', routeArg = null; window.NX_ROUTE=()=>route;
 let drawer = null;           // {type, id, form:bool}
 const UI = {tq:'', tscreen:'Open', tcat:'All', rproj:'All', fproj:'All', ftype:'All', ptab:'board', qtab:'boqs', staffq:'', chat:[], busy:{}};
@@ -1043,6 +1045,11 @@ const PAGES = [
   {k:'about', t:'About NEXUS'}
 ];
 const TABS = ['home','chat','projects','reports','more'];
+/* v239: Support Staff login (drivers, chefs, cleaners, security) – own pages only; the database hides tenders, BoQs, finance, records */
+const isSup=()=>typeof isSupRole!=='undefined'&&!!isSupRole;
+const SUP_PAGES=['home','alerts','chat','tasks','meetings','plant','procure','hse','hr','hub','about'];
+const SUP_TABS=['home','chat','procure','plant','more'];
+const tabsNow=()=>isSup()?SUP_TABS:TABS;
 /* money figures (contract sums, budgets, certificates, variation values) are for administrators and Finance users only */
 const money=()=>isAdmin||(typeof isFin!=='undefined'&&isFin);
 const isProcOff=()=>typeof isProc!=='undefined'&&isProc;   // Procurement Officer role
@@ -1051,7 +1058,7 @@ const isQSr=()=>typeof isQSRole!=='undefined'&&!!isQSRole;
 const certOk=()=>money()||isQSr();
 const canApprovePR=p=>isAdmin||(isProcOff()&&!(p.requested_uid&&p.requested_uid===me.id));
 const MONEY_PAGES=['certs','report','finance'];
-const navPages=()=>{ const L=PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k)||(p.k==='certs'&&isQSr())); return L.filter((p,i)=>!p.g||(L[i+1]&&!L[i+1].g)); };
+const navPages=()=>{ const L=PAGES.filter(p=>!p.k||money()||!MONEY_PAGES.includes(p.k)||(p.k==='certs'&&isQSr())).filter(p=>!p.k||!isSup()||SUP_PAGES.includes(p.k)); return L.filter((p,i)=>!p.g||(L[i+1]&&!L[i+1].g)); };
 const noMoney=t=>`<div class="card empty">${t} is for administrators and Finance users only.</div>`;
 const PROJ_MONEY=['contract_sum','budget'], VO_MONEY=['value_claimed','value_approved'];
 const projFields=()=>PROJECT_FIELDS.filter(f=>money()||!PROJ_MONEY.includes(f.k));
@@ -2662,7 +2669,8 @@ async function exportBoq(b){
 }
 
 /* ===================== PROCUREMENT ===================== */
-const PR_FIELDS=[{k:'item',label:'Item / service',req:1,full:1},{k:'project_id',label:'Project',type:'select'},{k:'qty',label:'Quantity',type:'number'},{k:'unit',label:'Unit'},
+const PR_CATS=['Materials','Fuel','Vehicle maintenance / repair','Vehicle fine / penalty','Transport of materials','Kitchen / catering supplies','Cleaning supplies','Tools & equipment','Office supplies','Other'];
+const PR_FIELDS=[{k:'category',label:'Type of request',type:'select',options:PR_CATS},{k:'item',label:'Item / service',req:1,full:1},{k:'project_id',label:'Project',type:'select'},{k:'qty',label:'Quantity',type:'number'},{k:'unit',label:'Unit'},
   {k:'est_cost',label:'Estimated cost (TZS)',type:'number',req:1},{k:'supplier',label:'Preferred supplier'},{k:'needed_by',label:'Needed on site by',type:'date'},{k:'justification',label:'Justification',type:'textarea'}];
 const PR_STAGES=['Requested','Approved','Ordered','Delivered'];
 // payments recorded in Finance against a purchase request
@@ -2680,7 +2688,7 @@ function pageProcure(){
   ${UI.ptab==='board'?'<button class="btn" data-act="exportProc">Export CSV</button><button class="btn pri" data-act="addPR">New purchase request</button>':UI.ptab==='orders'||UI.ptab==='proformas'?'':'<button class="btn" data-act="supExport">Export Excel</button><button class="btn pri" data-act="addSupplier">Add supplier</button>'}</div>
   ${UI.ptab==='orders'?poTab():UI.ptab==='proformas'?pfTab():UI.ptab==='board'?`<div class="cols">${PR_STAGES.map(s=>`<div class="col"><h3>${s}<span class="num">${S.procurement.filter(p=>p.status===s).length}</span></h3>
     ${(()=>{ const all=S.procurement.filter(p=>p.status===s).sort((a,b)=>s==='Delivered'?(b.delivered_at||b.needed_by||'').localeCompare(a.delivered_at||a.needed_by||''):(a.needed_by||'').localeCompare(b.needed_by||'')); UI.prAll=UI.prAll||{}; UI.prOpen=UI.prOpen||{}; const lim=UI.prAll[s]?all.length:5;
-    return all.slice(0,lim).map(p=>{ const op=!!UI.prOpen[p.id], y=(money()||isProcOff())&&s!=='Requested'?prPay(p):null; return `<div class="tcard prc${op?' open':''}" data-prx="${esc(p.id)}" title="${op?'Click to hide details':'Click for details'}"><div class="toolbar"><span class="mono sub">${esc(p.pr_no||'')}</span>${p.example?'<span class="chip ex">example</span>':''}${p.pf_id&&!byId('proformas',p.pf_id)?.deleted?'<span class="chip good" title="Matches the attached supplier proforma">🧾 proforma</span>':''}${y?`<span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span>`:''}<div class="sp"></div><span class="prx-ar">${op?'▴':'▾'}</span></div><b class="prc-t">${esc(p.item)}${p.qty?`<span> · ${esc(p.qty)} ${esc(p.unit||'')}</span>`:''}</b>${op&&p.project_id?`<span class="sub">${esc(projName(p.project_id))}</span>`:''}<div class="toolbar"><span class="num small">${tzs(p.est_cost)}</span><div class="sp"></div><span class="sub">${s==='Delivered'&&p.delivered_at?'Delivered '+fmtD(p.delivered_at):p.needed_by?'Needed '+fmtD(p.needed_by):''}</span></div>
+    return all.slice(0,lim).map(p=>{ const op=!!UI.prOpen[p.id], y=(money()||isProcOff())&&s!=='Requested'?prPay(p):null; return `<div class="tcard prc${op?' open':''}" data-prx="${esc(p.id)}" title="${op?'Click to hide details':'Click for details'}"><div class="toolbar"><span class="mono sub">${esc(p.pr_no||'')}</span>${p.category&&p.category!=='Materials'?`<span class="chip">${esc(p.category)}</span>`:''}${p.example?'<span class="chip ex">example</span>':''}${p.pf_id&&!byId('proformas',p.pf_id)?.deleted?'<span class="chip good" title="Matches the attached supplier proforma">🧾 proforma</span>':''}${y?`<span class="chip ${y.st==='Paid'?'good':y.st==='Part-paid'?'amb':'bad'}">${y.st}</span>`:''}<div class="sp"></div><span class="prx-ar">${op?'▴':'▾'}</span></div><b class="prc-t">${esc(p.item)}${p.qty?`<span> · ${esc(p.qty)} ${esc(p.unit||'')}</span>`:''}</b>${op&&p.project_id?`<span class="sub">${esc(projName(p.project_id))}</span>`:''}<div class="toolbar"><span class="num small">${tzs(p.est_cost)}</span><div class="sp"></div><span class="sub">${s==='Delivered'&&p.delivered_at?'Delivered '+fmtD(p.delivered_at):p.needed_by?'Needed '+fmtD(p.needed_by):''}</span></div>
       ${op?`${p.supplier?`<span class="sub">Supplier: ${esc(p.supplier)}</span>`:''}${p.pf_id&&byId('proformas',p.pf_id)&&!byId('proformas',p.pf_id).deleted?`<button class="btn sm" data-pfx="o:${esc(p.pf_id)}" style="align-self:flex-start">🧾 View proforma</button>`:''}<span class="sub">By ${esc(p.requested_by||'')}${p.approved_by?' · approved by '+esc(p.approved_by):''}</span>${s!=='Requested'?`<span class="sub">🔒 Locked${p.approved_at?' – '+(s==='Rejected'?'rejected ':'approved ')+fmtD(p.approved_at):''}${p.ordered_at?' · ordered '+fmtD(p.ordered_at):''}${p.delivered_at?' · delivered '+fmtD(p.delivered_at):''}</span>`:p.notified_at?'<span class="sub">✉ Approvers emailed</span>':''}${y&&y.paid?`<span class="sub">${tzs(y.paid)} paid${y.left?' · '+tzs(y.left)+' left':''}</span>`:''}`:''}
       ${op||s!=='Delivered'?`<div class="toolbar">${money()&&s!=='Requested'&&prPay(p).st!=='Paid'?`<button class="btn sm" data-paypr="${esc(p.id)}">Record payment</button>`:''}${s==='Requested'?(canApprovePR(p)?`<button class="btn sm pri" data-pr="${esc(p.id)}:Approved">Approve</button><button class="btn sm danger" data-pr="${esc(p.id)}:Rejected">Reject</button>`:'<span class="sub">Waiting for an approver</span>')+(poForPR(p.id)?`<button class="btn sm" data-p5="open:${esc(poForPR(p.id).id)}" title="Quotations / proformas collected for this request">🧾 ${(poForPR(p.id).quotes||[]).length} proforma${(poForPR(p.id).quotes||[]).length===1?'':'s'}</button>`:poCanQ()?`<button class="btn sm" data-p5="start:${esc(p.id)}" title="Ask suppliers for quotations / proforma invoices now – the PO can be issued once the request is approved">🧾 Get proformas</button>`:''):s==='Approved'?(poForPR(p.id)?`<button class="btn sm pri" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).rfq_no||'RFQ')} · ${(poForPR(p.id).quotes||[]).length} quote${(poForPR(p.id).quotes||[]).length===1?'':'s'}</button>`:poCanQ()?`<button class="btn sm pri" data-p5="start:${esc(p.id)}">Get quotes / proformas</button>${poCan()?`<button class="btn sm" data-pr="${esc(p.id)}:Ordered" title="Already ordered outside NEXUS">Mark ordered</button>`:''}`:''):s==='Ordered'?(poForPR(p.id)?`<button class="btn sm pri" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).po_no||'')} · record delivery</button>`:`<button class="btn sm" data-pr="${esc(p.id)}:Delivered">Mark delivered</button>`):s==='Delivered'&&poForPR(p.id)?`<button class="btn sm" data-p5="open:${esc(poForPR(p.id).id)}">${esc(poForPR(p.id).po_no||'Order')}</button>`:''}${op?`${canDelPR()?`<div class="sp"></div><button class="btn sm danger" data-delpr="${esc(p.id)}" title="Remove this purchase record" aria-label="Remove">✕</button>`:''}`:''}</div>`:''}</div>`; }).join('')+(all.length>5?`<button class="btn sm prmore" data-prmore="${s}">${UI.prAll[s]?'Show fewer':'Show all '+all.length}</button>`:''); })()||'<span class="sub">Empty</span>'}</div>`).join('')}</div>
     ${money()?(()=>{const w=S.procurement.filter(p=>['Approved','Ordered','Delivered'].includes(p.status)&&!p.example&&prPay(p).st!=='Paid');return w.length?`<p class="sub">Awaiting payment: <b>${w.length}</b> approved purchase${w.length>1?'s':''} · ${tzs(w.reduce((a,p)=>a+prPay(p).left,0))} still to pay.</p>`:''})():''}
@@ -6862,7 +6870,7 @@ async function pmApplyReport(){
      trip: from_place, to_place, purpose, odo_start, odo_end · fuel: litres, cost, station, odo, full · service: odo, cost, garage, work, next_km, next_date
      defect: text, severity, photo, fixed, fixed_at}
    Everyone except viewers adds entries in their own name; only the author or an administrator corrects them (DB guard_vlog). */
-const VL_KINDS={trip:['🛣️','Trip'],fuel:['⛽','Fuel'],service:['🔧','Service'],defect:['⚠️','Defect']};
+const VL_KINDS={trip:['🛣️','Trip'],fuel:['⛽','Fuel'],service:['🔧','Service'],defect:['⚠️','Defect'],fine:['🚓','Fine']};
 const fleet=()=>(S.plant||[]).filter(x=>x.category==='Vehicle'||x.log).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 const vlList=()=>(S.vlog||[]).filter(x=>!x.deleted);
 const vlOf=id=>vlList().filter(x=>x.plant_id===id).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
@@ -6891,7 +6899,7 @@ function fleetTab(){
   <div class="toolbar"><select class="inp" id="vlv" style="width:auto" aria-label="Vehicle"><option value="">All vehicles</option>${V.map(v=>`<option value="${esc(v.id)}" ${f===v.id?'selected':''}>${esc(v.name)} ${esc(v.reg_no||'')}</option>`).join('')}</select><input class="inp" id="vlm" type="month" value="${esc(mo)}" style="width:auto" aria-label="Month"><div class="sp"></div><button class="btn" data-vl="csv">Export CSV</button></div>
   <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Vehicle</th><th>Entry</th><th class="hide-m">Driver</th><th class="r">km / L</th><th class="r">TZS</th><th></th></tr></thead><tbody>
   ${L.map(e=>{ const v=byId('plant',e.plant_id)||{}, [i,l]=VL_KINDS[e.kind]||['','']; const km=e.kind==='trip'?Math.max(0,(+e.odo_end||0)-(+e.odo_start||0)):null;
-    const txt=e.kind==='trip'?`${esc(e.from_place||'')} → ${esc(e.to_place||'')}${e.purpose?` · ${esc(e.purpose)}`:''}${e.project_id?` · ${esc(projName(e.project_id))}`:''}`:e.kind==='fuel'?`${esc(e.station||'Fuel')}${e.odo?` · at ${(+e.odo).toLocaleString('en-US')} km`:''}${e.full?' · full tank':''}${lowIds.has(e.id)?' <span class="chip bad">low km/L</span>':''}`:e.kind==='service'?`${esc(e.garage||'')} ${esc(e.work||'')}${e.next_km?` · next ${(+e.next_km).toLocaleString('en-US')} km`:''}`:`${esc(e.text||'')} ${e.fixed?'<span class="chip good">fixed</span>':`<span class="chip ${e.severity==='Unsafe – do not drive'?'bad':'amb'}">${esc(e.severity||'open')}</span>`}`;
+    const txt=e.kind==='trip'?`${esc(e.from_place||'')} → ${esc(e.to_place||'')}${e.purpose?` · ${esc(e.purpose)}`:''}${e.project_id?` · ${esc(projName(e.project_id))}`:''}`:e.kind==='fuel'?`${esc(e.station||'Fuel')}${e.odo?` · at ${(+e.odo).toLocaleString('en-US')} km`:''}${e.full?' · full tank':''}${lowIds.has(e.id)?' <span class="chip bad">low km/L</span>':''}`:e.kind==='service'?`${esc(e.garage||'')} ${esc(e.work||'')}${e.next_km?` · next ${(+e.next_km).toLocaleString('en-US')} km`:''}`:e.kind==='fine'?`${esc(e.text||'')}${e.place?' · '+esc(e.place):''}${e.ref_no?' · No. '+esc(e.ref_no):''} ${e.paid?'<span class="chip good">paid</span>':`<span class="chip bad">not paid${e.due?' · by '+fmtD(e.due):''}</span>`}`:`${esc(e.text||'')} ${e.fixed?'<span class="chip good">fixed</span>':`<span class="chip ${e.severity==='Unsafe – do not drive'?'bad':'amb'}">${esc(e.severity||'open')}</span>`}`;
     return `<tr><td class="small mono">${fmtD(e.date)}</td><td class="small">${esc(v.name||'')}<div class="sub mono">${esc(v.reg_no||'')}</div></td><td><span title="${l}">${i}</span> ${txt}</td><td class="hide-m small">${esc(e.driver||e.by||'')}</td><td class="r num">${km!=null?km.toLocaleString('en-US')+' km':e.kind==='fuel'?esc(e.litres)+' L':''}</td><td class="r num">${+e.cost?Math.round(+e.cost).toLocaleString('en-US'):''}</td>
       <td>${e.photo?`<span class="thumb" style="display:inline-block;width:40px;height:30px;overflow:hidden;border-radius:4px">${photoTag(e.photo)}</span>`:''}${e.kind==='defect'&&!e.fixed&&(isAdmin||isProcOff()||e.by_uid===me.id)?`<button class="btn sm" data-vl="fix:${esc(e.id)}">Fixed</button>`:''}${(isAdmin||e.by_uid===me.id)?`<button class="btn sm" data-vl="del:${esc(e.id)}" aria-label="Delete entry">✕</button>`:''}</td></tr>`; }).join('')||'<tr><td colspan="7"><div class="empty">No entries this month.</div></td></tr>'}
   </tbody></table></div></div>`;
@@ -6901,7 +6909,8 @@ function vlForm(kind,pid){ const v=byId('plant',pid); if(!v) return; const s=vlS
   const F={trip:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'driver',label:'Driver',type:'select',options:drv},{k:'from_place',label:'From',req:1,ph:'Yard / Dar'},{k:'to_place',label:'To',req:1,ph:'Site / supplier'},{k:'purpose',label:'Purpose',ph:'Deliver cement to site'},{k:'project_id',label:'Project',type:'select',options:projOpts('— none / office —')},{k:'odo_start',label:'Odometer at start (km)',type:'number',def:s.odo||'',req:1},{k:'odo_end',label:'Odometer at end (km)',type:'number',req:1}],
     fuel:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'driver',label:'Driver',type:'select',options:drv},{k:'litres',label:'Litres',type:'number',req:1},{k:'cost',label:'Amount paid (TZS)',type:'number',req:1},{k:'odo',label:'Odometer now (km)',type:'number',def:s.odo||'',req:1},{k:'full',label:'Tank filled to full?',type:'select',options:[['1','Yes – full tank'],['','No – part fill']],def:'1'},{k:'station',label:'Filling station',ph:'e.g. Puma Mbezi'},{k:'project_id',label:'Project',type:'select',options:projOpts('— none / office —')}],
     service:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'odo',label:'Odometer (km)',type:'number',def:s.odo||'',req:1},{k:'garage',label:'Garage'},{k:'work',label:'Work done',type:'textarea',ph:'Oil + filters, brake pads…'},{k:'cost',label:'Cost (TZS)',type:'number'},{k:'next_km',label:'Next service at (km)',type:'number',def:s.odo?s.odo+(+v.service_km||5000):''},{k:'next_date',label:'Or next service date',type:'date'}],
-    defect:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'text',label:'What is wrong',req:1,full:1,ph:'e.g. Front left tyre worn, brake light not working'},{k:'severity',label:'How serious',type:'select',options:['Minor','Needs repair soon','Unsafe – do not drive']}]}[kind];
+    defect:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'text',label:'What is wrong',req:1,full:1,ph:'e.g. Front left tyre worn, brake light not working'},{k:'severity',label:'How serious',type:'select',options:['Minor','Needs repair soon','Unsafe – do not drive']}],
+    fine:[{k:'date',label:'Date',type:'date',def:today(),req:1},{k:'driver',label:'Driver',type:'select',options:drv},{k:'text',label:'Offence / reason',req:1,full:1,ph:'e.g. Speeding 72 km/h in 50 zone'},{k:'place',label:'Place',ph:'e.g. Morogoro Road, Kibaha'},{k:'ref_no',label:'Fine / notification no.'},{k:'cost',label:'Amount (TZS)',type:'number',req:1},{k:'paid',label:'Paid?',type:'select',options:[['','Not yet paid'],['1','Paid']]},{k:'due',label:'Pay by',type:'date'}]}[kind];
   UI.vlph=null;
   formDrawer(`${i} ${l} – ${v.name} ${v.reg_no||''}`,F,{},async x=>{
     if(kind==='trip'){ if(+x.odo_end<=+x.odo_start){ toast('The end odometer must be more than the start.'); return false; } if(+x.odo_end-(+x.odo_start)>2000&&!await confirmBox(`${(+x.odo_end-(+x.odo_start)).toLocaleString('en-US')} km in one trip – correct?`,'Yes')) return false; if(s.odo&&+x.odo_start<s.odo-5&&!await confirmBox(`The start odometer (${x.odo_start}) is lower than the last reading (${s.odo}). Save anyway?`,'Save')) return false; }
@@ -6912,7 +6921,7 @@ function vlForm(kind,pid){ const v=byId('plant',pid); if(!v) return; const s=vlS
     if(kind==='service') await patch('plant',pid,{service_due:x.next_date||'',next_service_km:x.next_km||'',status:v.status==='Under repair'?'Working':v.status});
     if(kind==='defect'&&x.severity==='Unsafe – do not drive') await patch('plant',pid,{status:'Under repair'});
     logAct(`${l} logged for ${v.name}${kind==='trip'?` (${(+x.odo_end-(+x.odo_start))} km)`:kind==='fuel'?` (${x.litres} L)`:''}`); return true; },{saveLabel:'Save',sub:kind==='defect'?'Unsafe defects mark the vehicle Under repair and alert the administrators':'Vehicle log'});
-  if(kind==='defect'||kind==='fuel') setTimeout(()=>{ const f=document.querySelector('#overlay .form'); if(f) f.insertAdjacentHTML('beforeend',`<div class="fld full"><label>${kind==='fuel'?'Photo of the receipt (optional)':'Photo (optional)'}</label><label class="btn sm" style="cursor:pointer;width:max-content">📷 Add photo<input type="file" accept="image/*" capture="environment" data-vlph hidden></label><span class="sub" id="vlphs"></span></div>`); },30);
+  if(kind==='defect'||kind==='fuel'||kind==='fine') setTimeout(()=>{ const f=document.querySelector('#overlay .form'); if(f) f.insertAdjacentHTML('beforeend',`<div class="fld full"><label>${kind==='fuel'?'Photo of the receipt (optional)':kind==='fine'?'Photo of the fine notice (optional)':'Photo (optional)'}</label><label class="btn sm" style="cursor:pointer;width:max-content">📷 Add photo<input type="file" accept="image/*" capture="environment" data-vlph hidden></label><span class="sub" id="vlphs"></span></div>`); },30);
 }
 document.addEventListener('change',async e=>{ const el=e.target;
   if(el.id==='vlv'){ UI.vlv=el.value; return renderView(true); } if(el.id==='vlm'){ UI.vlm=el.value; return renderView(true); }
@@ -9488,7 +9497,8 @@ function renderNav(){
   const alerts=nsUnread();
   const setH=(el,h)=>{ if(el&&el.__h!==h){ el.innerHTML=h; el.__h=h; } };   // v162: no rewrite when nothing changed (stops blinking)
   setH($('#nav'),navPages().map(p=>p.g?`<div class="grp">${p.g}</div>`:`<button data-go="${p.k}" ${route===p.k||(p.k==='depts'&&route==='dept')?'aria-current="page"':''}>${ico(p.k==='procure'?'procure':p.k)}${p.t}${p.k==='alerts'&&alerts?`<span class="cnt">${alerts}</span>`:''}${p.k==='tenders'&&nsReady&&route!=='tenders'&&newTenders().length?`<span class="cnt" title="New tenders found since you last opened Tender Radar (not only the last 10-minute check)">${newTenders().length}</span>`:''}${p.k==='chat'&&window.NX_CHAT_UNREAD?`<span class="cnt" style="background:var(--good)">${window.NX_CHAT_UNREAD}</span>`:''}</button>`).join(''));
-  setH($('#tabbar'),TABS.map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join(''));
+  document.body.classList.toggle('nx-sup',isSup());
+  setH($('#tabbar'),tabsNow().map(k=>{const p=PAGES.find(x=>x.k===k); return `<button data-go="${k}" ${route===k?'aria-current="page"':''}>${ico(k)}<span>${k==='more'?'More':p.t.split(' ')[0]}</span>${k==='chat'&&window.NX_CHAT_UNREAD?`<span class="tcnt">${window.NX_CHAT_UNREAD}</span>`:''}</button>`}).join(''));
   const d=$('#bellDot'); d.hidden=!alerts; d.textContent=alerts;
 }
 function renderView(force=false){ try{ if(document.getElementById('bb')) bbPosSave(); }catch(_){}
@@ -9542,7 +9552,7 @@ function renderDrawer(){
 let rq=false;
 ['click','input','change','keydown','submit'].forEach(ev=>document.addEventListener(ev,()=>{ const v=$('#view'), o=$('#overlay'); if(v) v.__h=null; if(o) o.__h=null; },true));
 function renderAll(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; renderNav(); renderView(); renderDrawer(); renderMe(); annMaybePop(); }); }
-function go(k,arg=null,fromHistory=false){ if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
+function go(k,arg=null,fromHistory=false){ if(isSup()&&k&&!SUP_PAGES.includes(k)){ k='home'; arg=null; } if(k==='docs'){ k='records'; UI.rfolder='legal'; } if(k==='tenders'&&route!=='tenders'&&nsReady){ UI.trBase=NS.tr; NS.tr=new Date().toISOString(); nsSave(); } if(!fromHistory && (k!==route || arg!==routeArg)){ try{ history.pushState({nx:1,route:k,arg}, ''); }catch(_){} } route=k; routeArg=arg; closeDrawer(); $('#side').classList.remove('open'); $('.scrim')?.remove(); try{localStorage.setItem('nx_route',k)}catch(_){}; window.scrollTo(0,0); renderNav(); renderView(true); }
 
 function curBoq(){ let b; if(boqDraft&&boqDraft.id===routeArg){ b=boqDraft; clearTimeout(boqTimer); boqDraft=null; } else b=bqClone(routeArg); return b; }
 /* ===================== DEPARTMENTS (v80) ===================== */
@@ -9719,7 +9729,7 @@ document.addEventListener('change',e=>{ if(e.target?.id==='dlk'){ UI.dlk=e.targe
 
 /* ===== v2.12 ROLE HOME ("My day"), GLOBAL SEARCH, QUICK ADD ===== */
 const isFinR=()=>typeof isFin!=='undefined'&&!!isFin;
-const myRole=()=>isAdmin?'admin':isFinR()?'finance':isProcOff()?'procurement':isQSr()?'qs':canWrite===false?'viewer':'staff';
+const myRole=()=>isAdmin?'admin':isFinR()?'finance':isProcOff()?'procurement':isQSr()?'qs':isSup()?'support':canWrite===false?'viewer':'staff';
 const myDept=()=>String(byId('staff',myStaffId())?.department||'');
 const isQS=()=>/quantity|qs|estimat|tender/i.test(myDept());
 function mdCard(title,go,body,count){ return `<div class="card"><div class="hd"><h2>${title}</h2>${count!=null?`<span class="chip ${count?'warn':'good'}">${count}</span>`:''}<div class="sp"></div>${go?`<button class="btn sm" data-go="${go}">Open</button>`:''}</div><div class="list">${body}</div></div>`; }
@@ -9736,16 +9746,18 @@ function myDay(){
   const act=S.projects.filter(p=>/^(active|mobilising)$/i.test(p.status||'')), rep=act.filter(p=>S.reports.some(r=>r.project_id===p.id&&r.date===td));
   const myProj=act.filter(p=>sid&&(p.reporter===sid||p.manager===sid)), myTodo=myProj.filter(p=>!rep.includes(p));
   if(role==='procurement'){ tile(wait.length,'To approve','data-go="procure"',wait.length?'hot':''); tile(PR.filter(p=>p.status==='Approved').length,'To order','data-go="procure"'); tile(PR.filter(p=>p.status==='Ordered').length,'Awaiting delivery','data-go="procure"'); }
-  tile(mine.length,'Due this week','data-go="deadlines"',soon.length?'hot':'');
-  if(role!=='procurement') tile(tasks.length,'My tasks','data-go="tasks"',tasks.some(t=>t.due&&t.due<td)?'hot':'');
+  if(role==='support'){ const myPR=PR.filter(p=>!p.example&&p.requested_uid===me.id&&!/Delivered|Rejected/.test(p.status||'')), defects=(S.vlog||[]).filter(e=>!e.deleted&&e.kind==='defect'&&!e.fixed);
+    tile(myPR.length,'My open requests','data-go="procure"'); tile(tasks.length,'My tasks','data-go="tasks"',tasks.some(t=>t.due&&t.due<td)?'hot':''); tile(defects.length,'Vehicle defects','data-go="plant"',defects.length?'hot':'ok'); }
+  else tile(mine.length,'Due this week','data-go="deadlines"',soon.length?'hot':'');
+  if(role!=='procurement'&&role!=='support') tile(tasks.length,'My tasks','data-go="tasks"',tasks.some(t=>t.due&&t.due<td)?'hot':'');
   if(myProj.length) tile(myTodo.length?'To do':'✓','Site report',myTodo.length?`data-act="newReport" data-proj="${esc(myTodo[0].id)}"`:'data-go="reports"',myTodo.length?'hot':'ok');
   if(role==='admin') tile(wait.length,'To approve','data-go="procure"',wait.length?'hot':'');
   if(role==='admin'||role==='finance'||role==='qs') tile(certs.length,late.length?`Unpaid · ${late.length} late`:'Unpaid IPCs','data-go="certs"',late.length?'hot':'');
   if(role==='admin'||role==='qs'||isQS()) tile(t7.length,'Tenders ≤ 7 days','data-go="tenders"',t7.some(t=>!t.owner)?'hot':'');
   if(role==='admin') tile(`${rep.length}/${act.length}`,'Sites reported','data-go="reports"',rep.length<act.length?'hot':'ok');
   // one short "next up" line list (max 3)
-  const next=mine.slice(0,3);
-  const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',qs:'Quantity Surveyor',staff:'Staff',viewer:'Viewer'};
+  const next=role==='support'?[]:mine.slice(0,3);
+  const RT={admin:'Administrator',finance:'Finance',procurement:'Procurement Officer',qs:'Quantity Surveyor',support:'Support Staff',staff:'Staff',viewer:'Viewer'};
   return `<section class="myday"><div class="toolbar" style="margin-bottom:10px"><div class="label">My day · ${RT[role]}</div><div class="sp"></div>${qaButtons().slice(0,2).map(([a,l])=>`<button class="btn sm ${a==='newReport'?'pri':''}" data-act="${a}">${l}</button>`).join('')}</div>
     <div class="md-tiles">${T.slice(0,6).join('')}</div>
     ${next.length?`<div class="md-next">${next.map(x=>`<button class="md-row" ${x.go.startsWith('go:')?`data-go="${esc(x.go.slice(3))}"`:x.go.startsWith('rec:')?`data-rec="${esc(x.go.slice(4))}"`:`data-open="${esc(x.go)}"`}><span>${DL_KIND[x.kind][0]}</span><span class="grow md-t">${esc(x.title)}</span><span class="chip ${x.n<0?'bad':x.n<=3?'warn':''}">${x.n<0?`${-x.n}d late`:x.n===0?'today':x.n===1?'tomorrow':x.n+' days'}</span></button>`).join('')}</div>`:''}
@@ -9758,6 +9770,7 @@ function qaButtons(){ if(canWrite===false) return []; const role=myRole(), L=[];
   if(role==='qs') L.splice(2,0,['addCert','💰 Payment certificate']);
   L.push(['addTender','🏗️ Tender']); L.push(['addMeeting','📅 Meeting']); L.push(['recAdd','📁 Office record']);
   if(role==='procurement') L.splice(0,3,['addPR','🛒 Purchase request'],['addSupplier','🏪 Supplier'],['newReport','📋 Site report'],['addTask','✅ Task']);
+  if(role==='support') return [['addPR','🛒 Request (fuel, repair, supplies…)'],['addTask','✅ Task'],['addMeeting','📅 Meeting']];
   if(role==='finance') L.unshift(L.splice(L.findIndex(x=>x[0]==='addFin'),1)[0]);
   return L; }
 function qaToggle(anchor){ let m=$('#qaMenu'); if(m){ m.remove(); return; } const L=qaButtons(); if(!L.length){ toast('Your login is read-only.'); return; }
@@ -21332,7 +21345,7 @@ document.addEventListener('change',async e=>{ const el=e.target;
   try{ if(window.NX_READY) await window.NX_READY; }catch(_){ return; }
   const use=n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   [db,user,sample,assets,downloads]=await Promise.all([use('db'),use('user'),use('sample'),use('assets'),use('downloads')]);
-  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); isQSRole=!!(await user.isQS?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
+  if(user){ try{ me=await user.me(); isAdmin=!!(await user.canEdit()); isFin=!!(await user.isFinance?.()); isProc=!!(await user.isProcurement?.()); isQSRole=!!(await user.isQS?.()); isSupRole=!!(await user.isSupport?.()); const cw=await user.can('data.write'); canWrite=cw!==false; }catch(_){}
     $('#meName').textContent=me.name||''; const w=$('#meAv').parentElement; w.style.cursor='pointer'; w.title='My profile'; w.onclick=()=>me.id&&openDrawer('myphoto'); $('#meAv').innerHTML=me.avatarUrl?`<img alt="" src="${esc(me.avatarUrl)}">`:esc(initials(me.name||'You')); }
   loadPeople(); nsLoad(); window.NX_READY?window.NX_READY.then(annInit).catch(()=>{}):annInit();
   $('#syncState').textContent=db?'Live · synced':'Offline preview';
