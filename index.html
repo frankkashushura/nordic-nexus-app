@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="e5344597a891">
+<meta name="nexus-build" content="3a7dceeb1950">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -920,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='245';
+const NX_APP_VER='246';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -5629,6 +5629,27 @@ async function wpPowFromMs(){ const d=WP.doc, M=d.ms.rows; if(!M.length) return 
   T.push(wpTaskNew({name:'Practical completion',lvl:1,dur:{n:0,u:'d'},preds:[{id:prev.id,type:'FS'}]}));
   d.pow.tasks=T; wpTouch(); WP.tab='pow'; wpRender(); toast('Programme made from the method statement – one finish-to-start chain. Overlap work with SS links (e.g. 4SS+5d) where the site allows.'); }
 /* ---------- AI programme: work sections (summary tasks), sub-tasks, durations, real construction links ---------- */
+// v246 · read the AI's predecessors whatever form they come in: "3, 5SS+2d", ["3","5"], [3,5], [{"ref":"3","type":"SS","lag":"2d"}],
+// WBS refs ("1.2"), "#3" / "T3", or task names – and never leave a programme without logic.
+function wpAiLinks(raw,T,refId){ const byName=new Map(T.map(t=>[String(t.name).trim().toLowerCase(),t.id]));
+  const norm=x=>String(x??'').trim().replace(/^(?:task|row|id|ref|t|#)\s*/i,'');
+  const find=k=>{ k=norm(k); if(!k) return null; if(refId.has(k)) return refId.get(k); const n=+k; if(Number.isInteger(n)&&T[n-1]) return T[n-1].id; return byName.get(k.toLowerCase())||null; };
+  raw.forEach((x,i)=>{ const t=T[i]; if(!t) return; let P=x.preds??x.predecessors??x.pred??x.after??x.depends_on??''; const out=[];
+    const one=p=>{ if(p==null||p==='') return; if(typeof p==='object'&&!Array.isArray(p)){ const id=find(p.ref??p.id??p.task??p.row); if(id) out.push({id,type:String(p.type||'FS').toUpperCase().slice(0,2).replace(/[^FS]/g,'')||'FS',lag:p.lag?(WPS.parseDur(String(p.lag).replace(/^\+/,''))?{n:WPS.parseDur(String(p.lag).replace(/^\+/,'')).n,u:WPS.parseDur(String(p.lag).replace(/^\+/,'')).u}:null):null}); return; }
+      String(p).split(/[,;]+/).map(z=>z.trim()).filter(Boolean).forEach(z=>{ const m=z.match(/^(.*?)\s*(FS|SS|FF|SF)?\s*(?:([+-])\s*(\d+(?:\.\d+)?)\s*(ed|d|w|h|days?|wks?|edays?)?)?$/i); if(!m) return; const id=find(m[1]); if(!id) return;
+        let u=(m[5]||'d').toLowerCase(); u=u.startsWith('e')?'ed':u.startsWith('w')?'w':u.startsWith('h')?'h':'d'; out.push({id,type:(m[2]||'FS').toUpperCase(),lag:m[3]?{n:(m[3]==='-'?-1:1)*+m[4],u}:null}); }); };
+    (Array.isArray(P)?P:[P]).forEach(one);
+    const seen=new Set(); t.preds=out.filter(l=>l.id!==t.id&&!seen.has(l.id)&&seen.add(l.id)); }); }
+// safety net: any activity or milestone still without a predecessor follows the previous one in its section (finish-to-start);
+// the first activity of a section follows the end of the previous section. Returns how many links were added.
+function wpAutoLinks(T){ let n=0; const L=i=>+T[i].lvl||1, isSum=i=>i<T.length-1&&L(i+1)>L(i);
+  const anc=i=>{ const o=[]; let lv=L(i); for(let j=i-1;j>=0&&lv>1;j--) if(L(j)<lv){ o.push(j); lv=L(j); } return o; };
+  let prev=-1;
+  T.forEach((t,i)=>{ if(isSum(i)) return;
+    if(!(t.preds||[]).length&&prev>=0){ const A=anc(i), firstInLinkedSection=A.some(j=>(T[j].preds||[]).length&&!T.slice(j+1,i).some((x,k)=>!isSum(j+1+k)));
+      if(!firstInLinkedSection){ t.preds=[{id:T[prev].id,type:'FS'}]; n++; } }
+    prev=i; });
+  return n; }
 // AI programme (WBS, durations, links) for plan d – returns tasks in Works Planner form
 async function wpPowAIGen(d){ const P=WP.doc; WP.doc=d; let X; try{ X=await wpCtx(5000); } finally{ WP.doc=P; } const M=d.ms.rows;
     const msTxt=M.length?M.map((r,i)=>`${i+1}. ${r.op} – ${wpDurTxt(r.dur)||'no duration'}${(r.method||[]).length?'\n   steps: '+r.method.slice(0,8).join(' | ').slice(0,700):''}`).join('\n'):'No method statement yet.';
@@ -5642,13 +5663,15 @@ Build the programme as a work breakdown: level 1 = work sections (summary tasks,
 Durations: whole working days ("5d") or calendar days for curing ("7ed"); milestones "0". Keep each section close to the method statement duration. Mark all durations as estimates by adding "?" (e.g. "5d?").
 Links ("preds", using the "ref" numbers): only real construction logic – FS for sequence, SS with a lag where work can overlap (e.g. "12SS+3d"), FF where finishes must align. Do not link everything in one chain; let independent trades run in parallel where the method allows. No links on summary rows unless the whole section waits for another section.
 Resources: main crew in "res" (e.g. ["4 Masons","Site Foreman"]).
+"ref" MUST be the plain row number 1, 2, 3 … in the order of the list (not WBS numbers like 1.2). "preds" is a text of row numbers, e.g. "3", "3, 5", "4SS+2d", "6FF". EVERY activity and milestone except the first must have at least one predecessor – a programme without links is useless.
+Example: [{"ref":"1","name":"SITE ESTABLISHMENT","lvl":1},{"ref":"2","name":"Hoarding","lvl":2,"dur":"3d?"},{"ref":"3","name":"Site office","lvl":2,"dur":"4d?","preds":"2SS+1d"},{"ref":"4","name":"DEMOLITION","lvl":1},{"ref":"5","name":"Strip out finishes","lvl":2,"dur":"5d?","preds":"3"}]
 Return JSON only: {"tasks":[{"ref":"1","name":"","lvl":1,"dur":"","preds":"","res":[""],"ms":[1]}],"notes":["assumptions"]}`,9000);
     if(!r||!Array.isArray(r.tasks)||!r.tasks.length) throw new Error('the AI did not return a programme – try again');
     const refId=new Map(), T=r.tasks.slice(0,250).map(x=>{ const t=wpTaskNew({name:String(x.name||'Task').slice(0,200),lvl:Math.max(1,Math.min(4,+x.lvl||1)),dur:WPS.parseDur(x.dur)||{n:1,u:'d',est:true},res:(x.res||[]).map(String).slice(0,6),ms_ref:(x.ms||[]).map(n=>M[+n-1]&&M[+n-1].id).filter(Boolean)}); refId.set(String(x.ref),t.id); return t; });
-    T.forEach((t,i)=>{ const p=WPS.parsePreds(r.tasks[i].preds||'',n=>refId.get(String(n))); t.preds=p.links.filter(l=>l.id!==t.id); });
+    wpAiLinks(r.tasks.slice(0,250),T,refId); const auto=wpAutoLinks(T);
     // a link that makes a loop is dropped (and reported), never kept
     let dropped=0; for(let k=0;k<40;k++){ const R=WPS.schedule({start:d.info.start,calendar:d.pow.calendar,tasks:T}); if(!R.errors.length) break; const m=R.errors[0].match(/tasks ([\d, ]+)/); const ids=m?m[1].split(',').map(x=>+x.trim()):[]; const t=T[(ids[ids.length-1]||1)-1]; if(t&&t.preds.length){ t.preds.pop(); dropped++; } else break; }
-    return {T,notes:(r.notes||[]).map(String).slice(0,10),dropped}; }
+    return {T,notes:(r.notes||[]).map(String).slice(0,10),dropped,auto}; }
 async function wpPowAI(){ const d=WP.doc; if(WP.busy) return; if(!d.info.start) return toast('Set the commencement date in Project details first.');
   if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with a new AI programme? (The current one is kept in Revisions.)`,'Write new programme')) return;
   WP.busy='powai'; wpRender();
@@ -5836,7 +5859,7 @@ async function bsxWpBuild(tid,v){ const t=byId('tenders',tid); if(!t) return; co
   d.pow.calendar={...d.pow.calendar,days:/Saturday/.test(v.week)?[1,2,3,4,5,6]:[1,2,3,4,5]};
   bsSetLog(tid,'AI is planning the works (sections, activities, durations, links) – about a minute…','wp'); let note='';
   try{ let T;
-    try{ const r=await wpPowAIGen(d); T=r.T; if(r.dropped) note=` ${r.dropped} AI link${r.dropped>1?'s':''} removed (loop).`; }
+    try{ const r=await wpPowAIGen(d); T=r.T; if(r.dropped) note=` ${r.dropped} AI link${r.dropped>1?'s':''} removed (loop).`; if(r.auto) note+=` ${r.auto} task${r.auto>1?'s':''} had no predecessor from the AI and now follow the task before (finish-to-start) – check them.`; }
     catch(e){ if(!d.ms.rows.length) throw e; note=' AI was not available – one task per method statement operation, linked in order.';
       T=[wpTaskNew({name:'Commencement',lvl:1,dur:{n:0,u:'d'}})]; let prev=T[0]; d.ms.rows.forEach(r=>{ const D=r.dur||{}; const x=wpTaskNew({name:String(r.op||'Operation').replace(/\s+/g,' '),dur:D.n===''||D.n==null||D.txt?{n:1,u:'d',est:true}:{n:+D.n,u:D.u||'d',est:true},preds:[{id:prev.id,type:'FS'}],ms_ref:[r.id]}); T.push(x); prev=x; });
       T.push(wpTaskNew({name:'Practical completion',lvl:1,dur:{n:0,u:'d'},preds:[{id:prev.id,type:'FS'}]})); }
