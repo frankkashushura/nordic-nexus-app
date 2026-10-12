@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="692fbff6555f">
+<meta name="nexus-build" content="32d9ba288d3f">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -5021,12 +5021,19 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-mroom]');
 const XLL={rt:null,doc:'',me:'',peers:new Map(),base:null,timer:0,hb:0,joinAt:0,sel:'',snaps:new Map(),want:false,applying:false,raf:0};
 const XLL_COL=['#E74C3C','#2E86DE','#27AE60','#8E44AD','#E67E22','#16A085','#C0392B','#2C3E50','#D35400','#7F8C8D'];
 const xllColor=u=>{ let h=0; for(const ch of String(u||'')) h=(h*31+ch.charCodeAt(0))>>>0; return XLL_COL[h%XLL_COL.length]; };
-const xllOn=()=>!!(XLL.rt&&typeof OXS!=='undefined'&&OXS&&OXS.xll&&OXS.id===XLL.doc);
+// room per workbook; a BoQ opened in its original Excel layout (bqly) has one room per BoQ, so everybody in that layout works on the same sheets
+const xllKey=()=>typeof OXS==='undefined'||!OXS?'':OXS.bqx?(OXS.bqx.layout&&OXS.boq_id?'boq'+OXS.boq_id:''):(OXS.id||'');
+const xllLay=()=>!!(OXS&&OXS.bqx&&OXS.bqx.layout);
+const xllMapStr=()=>xllLay()?JSON.stringify(bqlyPack(OXS.bqx.layout.items)):'';
+const xllOn=()=>!!(XLL.rt&&typeof OXS!=='undefined'&&OXS&&OXS.xll&&xllKey()===XLL.doc);
+const xllTab=()=>(window.NX_BQL&&NX_BQL.tab)||(window.NX_RT&&NX_RT.tab)||'';
+const xllPeerTab=t=>!!t&&xllOn()&&[...XLL.peers.values()].some(p=>p.tab===t);
+const xllFollower=()=>xllOn()&&[...XLL.peers.values()].some(p=>p.at<XLL.joinAt);
 const xllMetaOf=c=>{ const m={...c}; delete m.cells; return JSON.stringify(m); };
-function xllSnapBase(){ const B={order:JSON.stringify(OXS.sheets.map(s=>s.name)),names:JSON.stringify(OXS.names||[]),sh:new Map()};
+function xllSnapBase(){ const B={order:JSON.stringify(OXS.sheets.map(s=>s.name)),names:JSON.stringify(OXS.names||[]),map:xllMapStr(),sh:new Map()};
   OXS.sheets.forEach(s=>{ const c=oxs3CleanSheet(s), cm=new Map(); for(const k in c.cells) cm.set(k,JSON.stringify(c.cells[k])); B.sh.set(s.name,{meta:xllMetaOf(c),cells:cm}); }); return B; }
-function xllStart(){ xllStop(); if(typeof OXS==='undefined'||!OXS||!OXS.id||OXS.bqx||!window.NX_RT||!me||!me.id) return;
-  OXS.xll=true; XLL.doc=OXS.id; XLL.me=me.id; XLL.joinAt=Date.now(); XLL.base=xllSnapBase(); XLL.peers.clear(); XLL.snaps.clear(); XLL.want=true;
+function xllStart(){ xllStop(); const key=xllKey(); if(!key||!window.NX_RT||!me||!me.id) return;
+  OXS.xll=true; XLL.doc=key; XLL.me=me.id; XLL.joinAt=Date.now(); XLL.base=xllSnapBase(); XLL.peers.clear(); XLL.snaps.clear(); XLL.want=true;
   XLL.rt=NX_RT.open('nx-xl-'+OXS.id,xllMsg); xllSend({t:'hi',at:XLL.joinAt});
   // ask the colleague who has been in the workbook longest for its current state (unsaved changes included)
   setTimeout(()=>{ if(!xllOn()||!XLL.want) return; XLL.want=false; const old=[...XLL.peers.values()].filter(p=>p.at<XLL.joinAt).sort((a,b)=>a.at-b.at)[0]; if(old) xllSend({t:'want',to:old.uid}); },1500);
@@ -5034,7 +5041,8 @@ function xllStart(){ xllStop(); if(typeof OXS==='undefined'||!OXS||!OXS.id||OXS.
   xllBadge(); }
 function xllStop(){ if(XLL.rt){ try{ XLL.rt.send({t:'bye',from:XLL.me}); }catch(_){ } const r=XLL.rt; setTimeout(()=>{ try{ r.close(); }catch(_){ } },400); }
   XLL.rt=null; XLL.doc=''; XLL.peers.clear(); XLL.base=null; XLL.snaps.clear(); clearTimeout(XLL.timer); clearInterval(XLL.hb); XLL.timer=0; XLL.sel=''; }
-function xllSend(p){ if(!XLL.rt) return; try{ XLL.rt.send({...p,from:XLL.me,name:me.name||'',doc:XLL.doc}); }catch(e){ console.warn('xll send',e); } }
+function xllRebase(){ if(xllOn()) XLL.base=xllSnapBase(); }
+function xllSend(p){ if(!XLL.rt) return; try{ XLL.rt.send({...p,from:XLL.me,name:me.name||'',doc:XLL.doc,tab:xllTab()}); }catch(e){ console.warn('xll send',e); } }
 function xllSelNow(){ const sh=OXS&&OXS.sheets[OXS.cur]; return {s:sh?sh.name:'',r:OXS?OXS.sel.r:0,c:OXS?OXS.sel.c:0,ed:!!(OXS3&&OXS3.ed),at:XLL.joinAt}; }
 function xllSelTrack(){ if(!xllOn()) return; const s=xllSelNow(), k=JSON.stringify(s); if(k===XLL.sel) return; XLL.sel=k; xllSend({t:'sel',...s}); }
 /* ---------- my changes → colleagues (diff of the workbook against what everybody already has) ---------- */
@@ -5042,6 +5050,7 @@ function xllQueue(){ if(!xllOn()||XLL.applying) return; clearTimeout(XLL.timer);
 function xllDiff(){ const B=XLL.base, out={cells:[],meta:[],struct:false};
   if(JSON.stringify(OXS.sheets.map(s=>s.name))!==B.order) { out.struct=true; return out; }
   if(JSON.stringify(OXS.names||[])!==B.names) out.names=OXS.names||[];
+  const ms=xllMapStr(); if(ms!==B.map) out.map=JSON.parse(ms||'{}');
   OXS.sheets.forEach(s=>{ const b=B.sh.get(s.name), c=oxs3CleanSheet(s); if(!b){ out.struct=true; return; }
     const mt=xllMetaOf(c); if(mt!==b.meta) out.meta.push([s.name,JSON.parse(mt)]);
     for(const k in c.cells){ const j=JSON.stringify(c.cells[k]); if(b.cells.get(k)!==j) out.cells.push([s.name,k,c.cells[k]]); }
@@ -5049,17 +5058,17 @@ function xllDiff(){ const B=XLL.base, out={cells:[],meta:[],struct:false};
   return out; }
 async function xllFlush(){ clearTimeout(XLL.timer); XLL.timer=0; if(!xllOn()) return; const D=xllDiff();
   if(D.struct){ XLL.base=xllSnapBase(); return xllSendSnap('*'); }
-  if(!D.cells.length&&!D.meta.length&&!D.names) return;
-  const B=XLL.base; D.cells.forEach(([s,k,c])=>{ const m=B.sh.get(s).cells; if(c) m.set(k,JSON.stringify(c)); else m.delete(k); });
+  if(!D.cells.length&&!D.meta.length&&!D.names&&!D.map) return;
+  const B=XLL.base; if(D.map) B.map=JSON.stringify(D.map); D.cells.forEach(([s,k,c])=>{ const m=B.sh.get(s).cells; if(c) m.set(k,JSON.stringify(c)); else m.delete(k); });
   D.meta.forEach(([s,m])=>{ B.sh.get(s).meta=JSON.stringify(m); }); if(D.names) B.names=JSON.stringify(D.names);
   const seq=Date.now()+'.'+Math.random().toString(36).slice(2,6);
-  for(let i=0;i<Math.max(1,D.cells.length);i+=300){ xllSend({t:'ops',seq,cells:D.cells.slice(i,i+300),meta:i?[]:D.meta,names:i?undefined:D.names}); if(D.cells.length>300) await new Promise(r=>setTimeout(r,40)); } }
+  for(let i=0;i<Math.max(1,D.cells.length);i+=300){ const last=i+300>=D.cells.length; xllSend({t:'ops',seq,cells:D.cells.slice(i,i+300),meta:i?[]:D.meta,names:i?undefined:D.names,map:last?D.map:undefined}); if(D.cells.length>300) await new Promise(r=>setTimeout(r,40)); } }
 async function xllSendSnap(to){ if(!xllOn()) return; const sid=Date.now()+'.'+Math.random().toString(36).slice(2,6), order=OXS.sheets.map(s=>s.name), parts=[];
   OXS.sheets.forEach((s,i)=>{ const c=oxs3CleanSheet(s), meta=JSON.parse(xllMetaOf(c)), L=Object.entries(c.cells); for(let j=0;j<Math.max(1,L.length);j+=300) parts.push({i,meta:j?null:meta,cells:L.slice(j,j+300)}); });
-  for(let n=0;n<parts.length;n++){ xllSend({t:'snap',to,sid,order,names:OXS.names||[],n,of:parts.length,...parts[n]}); if(parts.length>3) await new Promise(r=>setTimeout(r,40)); } }
+  for(let n=0;n<parts.length;n++){ xllSend({t:'snap',to,sid,order,names:OXS.names||[],map:n===parts.length-1&&xllLay()?bqlyPack(OXS.bqx.layout.items):undefined,n,of:parts.length,...parts[n]}); if(parts.length>3) await new Promise(r=>setTimeout(r,40)); } }
 /* ---------- colleagues' changes → my sheet ---------- */
 function xllMsg(m){ if(!m||m.from===XLL.me||!xllOn()||(m.doc&&m.doc!==XLL.doc)) return; if(m.to&&m.to!=='*'&&m.to!==XLL.me) return;
-  const P=XLL.peers.get(m.from)||{uid:m.from,name:m.name||'Colleague',color:xllColor(m.from),at:m.at||Date.now()}; P.name=m.name||P.name; P.seen=Date.now();
+  const P=XLL.peers.get(m.from)||{uid:m.from,name:m.name||'Colleague',color:xllColor(m.from),at:m.at||Date.now()}; P.name=m.name||P.name; P.seen=Date.now(); if(m.tab) P.tab=m.tab;
   if(m.t==='bye'){ XLL.peers.delete(m.from); return xllUi(); }
   XLL.peers.set(m.from,P);
   if(m.t==='hi'){ P.at=m.at||Date.now(); xllSend({t:'here',...xllSelNow()}); return xllUi(); }
@@ -5067,30 +5076,39 @@ function xllMsg(m){ if(!m||m.from===XLL.me||!xllOn()||(m.doc&&m.doc!==XLL.doc)) 
   if(m.t==='want'){ xllFlush().then(()=>xllSendSnap(m.from)); return; }
   if(m.t==='ops') return xllApplyOps(m);
   if(m.t==='snap') return xllSnapPart(m); }
-function xllApplyOps(m){ const B=XLL.base; let any=false, mine=false; XLL.applying=true;
+function xllApplyOps(m){ const B=XLL.base; let any=false, mine=false; const touched=new Set(); XLL.applying=true;
   try{ const ed=OXS3.ed, edSh=OXS.sheets[OXS.cur]?.name;
-    for(const [sn,k,c] of m.cells||[]){ const s=OXS.sheets.find(x=>x.name===sn), b=B.sh.get(sn); if(!s||!b) continue;
+    for(const [sn,k,c] of m.cells||[]){ const s=OXS.sheets.find(x=>x.name===sn), b=B.sh.get(sn); if(!s||!b) continue; const pr=oxsParseRef(k); if(pr) touched.add(sn+'!'+pr.r);
       if(c) s.cells[k]=JSON.parse(JSON.stringify(c)); else delete s.cells[k]; if(c) b.cells.set(k,JSON.stringify(c)); else b.cells.delete(k); any=true;
       if(ed&&sn===edSh&&k===oxsRef(ed.r,ed.c)) mine=true; }
     for(const [sn,meta] of m.meta||[]){ const s=OXS.sheets.find(x=>x.name===sn), b=B.sh.get(sn); if(!s||!b) continue; xllSetMeta(s,meta); b.meta=JSON.stringify(meta); any=true; }
     if(m.names){ OXS.names=m.names; B.names=JSON.stringify(m.names); any=true; }
+    if(xllLay()) xllLayAfter(m.map,touched);
+    if(m.map){ B.map=xllMapStr(); any=true; }
   } finally{ XLL.applying=false; }
   if(!any) return; oxsHist=[]; oxsFut=[];   // undo history would bring back a colleague's old values – start it again from here
   if(mine) toast(`${m.name||'A colleague'} also changed the cell you are typing in.`); xllRepaint(); }
 function xllSetMeta(s,meta){ for(const k of ['dcw','merges','hc','hr','cf','dv','af','frz','charts','pics','ps','grid','heads','zoom','showF','prot','tab','hidden']) if(!(k in meta)) delete s[k]; Object.assign(s,JSON.parse(JSON.stringify(meta))); }
 function xllSnapPart(m){ let S=XLL.snaps.get(m.sid); if(!S){ S={got:0,of:m.of,order:m.order,names:m.names,sheets:m.order.map(n=>({name:n,cells:{}}))}; XLL.snaps.set(m.sid,S); }
   const sh=S.sheets[m.i]; if(sh){ if(m.meta) Object.assign(sh,m.meta,{cells:sh.cells}); for(const [k,c] of m.cells||[]) sh.cells[k]=c; } S.got++;
-  if(S.got<S.of) return; XLL.snaps.delete(m.sid);
+  if(m.map) S.map=m.map; if(S.got<S.of) return; XLL.snaps.delete(m.sid);
   const pend=XLL.timer||m.to==='*'?xllDiff():null;   // my own changes not sent yet: keep them on top of the colleague's state
   const curName=OXS.sheets[OXS.cur]?.name; XLL.applying=true;
   try{ OXS.sheets=S.sheets.map(oxs3PrepSheet); OXS.names=S.names||[]; const ci=OXS.sheets.findIndex(s=>s.name===curName); OXS.cur=ci>=0?ci:Math.min(OXS.cur,OXS.sheets.length-1);
+    if(xllLay()&&S.map){ OXS.bqx.layout.items=bqlyUnpack(S.map); oxs3Bump(); bqlySnap(); OXS.bqx.layout.dirty=true; }
     XLL.base=xllSnapBase();
     if(pend&&!pend.struct&&pend.cells.length){ for(const [sn,k,c] of pend.cells){ const s=OXS.sheets.find(x=>x.name===sn); if(!s) continue; if(c) s.cells[k]=c; else delete s.cells[k]; } }
   } finally{ XLL.applying=false; }
-  oxsHist=[]; oxsFut=[]; OXS3.G=null; oxsTabs(); xllRepaint(); if(pend&&!pend.struct&&pend.cells.length){ OXS.dirty=true; xllFlush(); } }
+  oxsHist=[]; oxsFut=[]; OXS3.G=null; oxsTabs(); xllRepaint(); if(pend&&!pend.struct&&pend.cells.length){ OXS.dirty=true; xllFlush(); if(xllLay()) bqxQueue(); } }
+// original-layout BoQ: a colleague's rows/items arrive with the item map → the BoQ is told only once (by the person who typed), never twice
+function xllLayAfter(map,touched){ const L=OXS.bqx.layout; const old=L.items; if(map){ L.items=bqlyUnpack(map); L.dirty=true; }
+  oxs3Bump(); const E=oxsCalc(); for(const [id,it] of Object.entries(L.items)){ if(map&&!old[id]||touched.has(it.s+'!'+it.r)){ const sh=bqlySheet(it.s); if(sh) L.snap[id]=bqlyRead(E,sh,it); } }
+  for(const id of Object.keys(L.snap)) if(!L.items[id]) delete L.snap[id];
+  if(map){ const keep=L.snap; bqlySnap(); Object.assign(L.snap,keep); } }
 function xllRepaint(){ if(XLL.raf) return; XLL.raf=requestAnimationFrame(()=>{ XLL.raf=0; if(!OXS||!$('#oxsWrap')) return; oxs3Bump(); OXS3.G=null; oxs3Paint(); if(!OXS3.ed) oxsBar(); oxsStat(); }); }
 /* ---------- who is here: avatars in the title bar, coloured boxes on their cells ---------- */
-function xllBadge(){ const t=document.querySelector('#oxApp .ox-title'); if(!t||$('#xllOn')) return xllUi(); const sv=t.querySelector('[data-oxa="save"]');
+function xllBadge(){ if(OXS&&OXS.bqx) return;   // BoQ layout: the ● Live bar of the BoQ already shows who is here
+  const t=document.querySelector('#oxApp .ox-title'); if(!t||$('#xllOn')) return xllUi(); const sv=t.querySelector('[data-oxa="save"]');
   const el=document.createElement('span'); el.className='bqx-live'; el.id='xllOn'; if(sv) t.insertBefore(el,sv); else t.appendChild(el); xllUi(); }
 function xllUi(){ const el=$('#xllOn'); if(!el) return; const L=[...XLL.peers.values()];
   el.title=L.length?'Live – editing together with '+L.map(p=>p.name).join(', '):'Live – colleagues who open this workbook edit it with you at the same time';
@@ -7739,7 +7757,7 @@ async function bqlyOpen(b){ let sheets; try{ sheets=await bqlyLoad(b.layout); }c
   const first=Object.values(OXS.bqx.layout.items).sort((a,c)=>a.r-c.r)[0], fi=first?OXS.sheets.findIndex(s=>s.name===first.s):-1;
   if(fi>=0){ OXS.cur=fi; OXS.sel={r:first.r,c:Math.max(0,first.c[1]),r2:first.r,c2:Math.max(0,first.c[1])}; }
   oxsHist=[]; oxsFut=[]; OXS3.G=null; oxs3Bump(); oxsTabs(); oxsRender(); if(first) setTimeout(()=>{ try{ oxs3ScrollTo(first.r,0); }catch(_){ } },50);
-  document.body.classList.add('bqx-xl'); oxSetStatus('Live with the BoQ · original Excel layout'); bqxBar(); return true; }
+  document.body.classList.add('bqx-xl'); oxSetStatus('Live with the BoQ · original Excel layout'); bqxBar(); if(typeof xllRebase==='function') xllRebase(); return true; }
 
 /* ----- my edits → BoQ ----- */
 async function bqlySync(book){ const X=book.bqx, L=X.layout, M=L.items, b=byId('boqs',book.boq_id); if(!b) return; const E=book===OXS?oxsCalc():oxs3Engine(book), ops=[];
@@ -7754,18 +7772,21 @@ async function bqlySync(book){ const X=book.bqx, L=X.layout, M=L.items, b=byId('
       const v=bqlyRead(E,sh,{r,c:t.c,dp:''}); if(!v.desc||!v.unit) continue; const bl=billOf(above[0]); if(!bl) continue;
       const id=bqxNid(), it={id,...v}; if(v.rate!=='') it.p={s:'excel',by:me.name||'',at:today()};
       ops.push({boq_id:b.id,bill_id:bl.id,kind:'add',value:it,pos:above[1].r<r?above[0]:'^'}); M[id]={s,r,c:[...t.c],dp:'',ar:''}; L.snap[id]=v; list.push([id,M[id]]); list.sort((a,c)=>a[1].r-c[1].r); taken.add(r); } }
-  if(ops.length){ L.dirty=true; oxSetStatus('Saving to the BoQ…'); await bqxSend(ops); }
+  if(ops.length){ L.dirty=true; if(book.xll&&typeof xllQueue==='function') xllQueue();   // v238: new item rows → colleagues in the same layout get the item map
+    oxSetStatus('Saving to the BoQ…'); await bqxSend(ops); }
   if(OXS===book) oxSetStatus(ops.length?`Live · saved to the BoQ ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`:'Live with the BoQ · original Excel layout'); }
 
 /* ----- colleagues' changes → the workbook ----- */
-function bqlyRemote(op){ const L=OXS.bqx.layout, M=L.items, who=bqlFirst(op.by_name);
+function bqlyRemote(op){ if(typeof xllPeerTab==='function'&&xllPeerTab(op.client)) return;   // v238: a colleague in the same Excel layout – the change already came cell by cell
+  const L=OXS.bqx.layout, M=L.items, who=bqlFirst(op.by_name);
   if(op.kind==='set'&&BQX_F.includes(op.field)){ const m=M[op.item_id]; if(!m){ BQX.rebuild=Date.now()+300; return; } const sh=bqlySheet(m.s); if(!sh) return;
     const b=byId('boqs',OXS.boq_id), it0=(b?.bills||[]).flatMap(bl=>bl.items||[]).find(x=>x.id===op.item_id); if(!it0) return; const it={...it0,[op.field]:op.value};
     bqlyWrite(sh,m,it,L.snap[op.item_id]||undefined); L.snap[op.item_id]=bqlyRead(oxsCalc(),sh,m); oxsHist=[]; oxsFut=[]; oxs3Bump(); OXS3.G=null; oxsRender();
     oxSetStatus(`Live · ${who} changed ${op.field==='desc'?'a description':op.field==='qty'?'a quantity':op.field==='rate'?'a rate':'an item'}`); return; }
   if(op.kind==='add'||op.kind==='del') BQX.rebuild=Date.now()+300; }
-async function bqlyRebuild(){ const b=byId('boqs',OXS.boq_id); if(!b) return; const r=bqlyProject(b); bqlySnap(); if(r.added) OXS.bqx.layout.dirty=true;
-  oxsHist=[]; oxsFut=[]; OXS3.G=null; oxs3Bump(); oxsTabs(); oxsRender(); oxSetStatus('Live · updated with colleagues\' changes'); }
+async function bqlyRebuild(){ if(typeof xllFollower==='function'&&xllFollower()) return;   // v238: the colleague who opened the layout first rebuilds and sends the rows to the others
+  const b=byId('boqs',OXS.boq_id); if(!b) return; const r=bqlyProject(b); bqlySnap(); if(r.added) OXS.bqx.layout.dirty=true;
+  oxsHist=[]; oxsFut=[]; OXS3.G=null; oxs3Bump(); oxsTabs(); oxsRender(); oxSetStatus('Live · updated with colleagues\' changes'); if(OXS.xll&&typeof xllQueue==='function') xllQueue(); }
 
 /* ----- save the arrangement (rows added / moved, formatting) so everyone opens the same workbook ----- */
 async function bqlySave(manual){ const X=OXS&&OXS.bqx, L=X&&X.layout; if(!L) return; if(!manual&&!L.dirty) return; const id=OXS.boq_id;
@@ -10532,7 +10553,7 @@ function oxsAutoSum(){ const sh=oxsSheet(), s=OXS.sel, E=OXS._E; let r=s.r-1; wh
   if(r===s.r-1){ let c=s.c-1; while(c>=0){ const cell=sh.cells[oxsRef(s.r,c)]; const v=cell?(cell.f!=null?E.val(sh,s.r,c):cell.v):null; if(typeof v!=='number') break; c--; } if(c<s.c-1){ oxsSet(s.r,s.c,`=SUM(${oxsRef(s.r,c+1)}:${oxsRef(s.r,s.c-1)})`); oxsRender(); oxsChanged(); return; } toast('No numbers above or to the left to add up.'); return; }
   oxsSet(s.r,s.c,`=SUM(${oxsRef(r+1,s.c)}:${oxsRef(s.r-1,s.c)})`); oxsRender(); oxsChanged(); }
 let oxsTimer=null;
-function oxsChanged(){ if(!OXS||BQLY.silent) return; if(OXS.bqx){ oxSetStatus('Editing…'); return bqxQueue(); } if(OXS.xll) xllQueue(); OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
+function oxsChanged(){ if(!OXS||BQLY.silent) return; if(OXS.bqx){ oxSetStatus('Editing…'); if(OXS.xll) xllQueue(); return bqxQueue(); } if(OXS.xll) xllQueue(); OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
 function oxsClean(){ return OXS.sheets.map(s=>({name:s.name,rows:s.rows,colsN:s.colsN,cols:s.cols||{},rh:s.rh||{},cells:Object.fromEntries(Object.entries(s.cells).map(([k,c])=>[k,Object.fromEntries(Object.entries({v:c.v,f:c.f,s:c.s&&Object.keys(c.s).length?c.s:undefined}).filter(([,x])=>x!==undefined))]))})); }
 async function oxsSave(auto=false){ if(!OXS) return; if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } OXS.title=$('#oxName')?.value||OXS.title; oxSetStatus('Saving…');
   const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),project_id:OXS.project_id||'',boq_id:OXS.boq_id||'',...(OXS.boq_base?{boq_base:OXS.boq_base}:{})});
