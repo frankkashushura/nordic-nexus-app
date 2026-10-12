@@ -474,7 +474,7 @@
     if (st.root) return;
     const s = document.createElement('style'); s.textContent = CSS; document.head.append(s);
     st.root = document.createElement('div'); st.root.className = 'nxchat';
-    st.root.innerHTML = `<div class="nxc-l"><div class="nxc-lh"><span class="t">Chats</span><button class="nxc-hb" data-c="newgroup" title="New group">${IC.newg}</button><button class="nxc-hb" data-c="listmenu" title="More">${IC.more}</button></div><div class="nxc-sb"><label>${IC.search}<input id="nxcSearch" placeholder="Search or start a new chat" autocomplete="off"></label></div><div class="nxc-items"></div></div>
+    st.root.innerHTML = `<div class="nxc-l"><div class="nxc-lh"><span class="t">Chats</span><button class="nxc-hb" data-c="newgroup" title="New group" aria-label="New group">${IC.newg}</button><button class="nxc-hb" data-c="listmenu" title="More">${IC.more}</button></div><div class="nxc-sb"><label>${IC.search}<input id="nxcSearch" placeholder="Search or start a new chat" autocomplete="off"></label></div><div class="nxc-items"></div></div>
       <div class="nxc-c"><div class="nxc-ch"></div><div class="nxc-m"></div><div class="nxc-k"></div></div>
       <input type="file" id="nxcFile" hidden multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.dwg,.dxf">
       <input type="file" id="nxcCam" hidden accept="image/*" capture="environment">`;
@@ -524,6 +524,7 @@
     else if (a === 'jump') jump(v);
     else if (a === 'vcall' || a === 'vidcall') callChat(a === 'vidcall' ? 'video' : 'audio');
     else if (a === 'info') { if (isG(thr(st.cur))) groupInfo(); else contactInfo(); }
+    else if (a === 'newchat') { closeMenu(); const i = st.root.querySelector('#nxcSearch'); if (i) { i.focus(); i.scrollIntoView({ block: 'nearest' }); } }
     else if (a === 'newgroup') { st.ng = { sel: new Set(), q: '' }; newGroup(1); }
     else if (a === 'ng1') newGroup(1); else if (a === 'ng2') newGroup(2); else if (a === 'ngcreate') createGroup();
     else if (a === 'listmenu') sheet(`<button class="nxc-mi" data-c="newgroup"><span>👥</span>New group</button><button class="nxc-mi" data-c="seenset"><span>👁️</span>Last seen: ${st.meHide ? 'hidden (nobody)' : 'shown to colleagues'}</button>`, b);
@@ -616,11 +617,12 @@
     const withThread = new Set(st.threads.map(other));
     const th = st.threads.filter(t => !q || tName(t).toLowerCase().includes(q));
     const ppl = [...st.people.values()].filter(p => !withThread.has(p.user_id) && (!q || (p.name || '').toLowerCase().includes(q) || (p.job || '').toLowerCase().includes(q)));
-    box.innerHTML = th.map(t => { const g = isG(t), u = st.unread[t.id] || 0, mine = t.last_from === st.me, n = tName(t);
+    const ngRow = q ? '' : `<div class="nxc-it nxc-ng" data-c="newgroup" role="button" tabindex="0"><div class="nxc-av grp" style="background:var(--wa-green)">${IC.group}</div><div class="g"><div class="r1"><span class="n">New group</span></div><div class="r2"><span class="p">Create a group chat with colleagues</span></div></div></div>`;
+    box.innerHTML = ngRow + (th.map(t => { const g = isG(t), u = st.unread[t.id] || 0, mine = t.last_from === st.me, n = tName(t);
       const pre = g && t.last_text && !t.last_sys && t.last_from && !String(t.last_text).startsWith(pName(t.last_from)) ? (mine ? 'You: ' : pName(t.last_from).split(' ')[0] + ': ') : '';
       return `<div class="nxc-it ${st.cur === t.id ? 'on' : ''}" data-c="open" data-v="${t.id}">${g ? gav(n).replace(' sm', '') : av(n)}<div class="g"><div class="r1"><span class="n">${esc(n)}</span><span class="t ${u ? 'u' : ''}">${listTime(t.last_text ? t.last_at : '')}</span></div><div class="r2"><span class="p">${mine && !g && t.last_text ? listTick(t) : ''}${esc(pre + (t.last_text || (g ? 'Group created' : 'Tap to start chatting')))}</span>${u ? `<span class="nxc-u">${u}</span>` : ''}</div></div></div>`; }).join('')
       + (ppl.length ? `<div class="nxc-sec">Start a new chat</div>` + ppl.map(p => `<div class="nxc-it" data-c="person" data-v="${p.user_id}">${av(p.name)}<div class="g"><div class="r1"><span class="n">${esc(p.name)}</span></div><div class="r2"><span class="p">${esc(p.job || (p.role === 'admin' ? 'Administrator' : 'Staff'))}</span></div></div></div>`).join('') : '')
-      || `<div class="nxc-empty">${q ? 'Nobody matches your search.' : 'No other NEXUS users yet. Colleagues appear here once they sign up and an administrator approves them.'}</div>`;
+      || `<div class="nxc-empty">${q ? 'Nobody matches your search.' : 'No other NEXUS users yet. Colleagues appear here once they sign up and an administrator approves them.'}</div>`);
   }
   function renderConv() {
     if (!st.root) return; const h = st.root.querySelector('.nxc-ch');
@@ -674,6 +676,9 @@
   /* ---------- page hooks (called by the NEXUS app) ---------- */
   // open one conversation (used when a chat notification is tapped); false until chat has loaded
   window.NX_CHAT_OPEN = tid => { if (!st.ready || !st.root || !st.root.isConnected || !(st.threads || []).some(t => t.id === tid)) return false; openThread(tid); return true; };
+  // v232: phone ➕ button on the Chat page – New group / New chat
+  window.NX_CHAT_NEW = () => { if (!st.root || !st.root.isConnected) return false; if (st.cur) closeConv();
+    sheet(`<button class="nxc-mi" data-c="newgroup"><span>👥</span>New group</button><button class="nxc-mi" data-c="newchat"><span>💬</span>New chat</button>`, st.root.querySelector('.nxc-lh [data-c="newgroup"]')); return true; };
   window.NX_CHAT_MOUNT = host => {
     if (!host) return; build();
     if (!st.ready) { host.innerHTML = `<div class="card empty">${st.err ? 'Chat could not start: ' + esc(st.err) : '<span class="spin"></span> Loading chat…'}</div>`; return; }

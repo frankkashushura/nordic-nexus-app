@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="3d4cc3a1a3ff">
+<meta name="nexus-build" content="d6fb0b6a8dc9">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -9,7 +9,7 @@
 <script src="config.js?v=188"></script>
 <script src="vendor/supabase.js"></script>
 <script src="nexus-sb.js?v=220"></script>
-<script src="nexus-chat.js?v=221"></script>
+<script src="nexus-chat.js?v=232"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -498,6 +498,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;op
 .main{position:relative;isolation:isolate}
 /* v100: open chat conversation on phones covers everything – hide bottom bar and + button, lift above them */
 body.nx-chatconv .tabbar,body.nx-chatconv .qa-fab,body:has(.nxchat.conv) .tabbar,body:has(.nxchat.conv) .qa-fab{display:none!important}
+body:has(.nxchat .nxc-back-drop) .tabbar,body:has(.nxchat .nxc-back-drop) .qa-fab{display:none!important}
 body.nx-chatconv .main,body:has(.nxchat.conv) .main{z-index:300}
 .pg-bg{position:absolute;left:0;right:0;top:0;height:min(430px,62vh);z-index:-1;pointer-events:none;overflow:hidden}
 .pg-bg i{position:absolute;inset:0;background:var(--pgimg,none) center 38%/cover no-repeat;filter:saturate(.9);transition:opacity .45s;opacity:0}
@@ -9534,7 +9535,7 @@ function qaToggle(anchor){ let m=$('#qaMenu'); if(m){ m.remove(); return; } cons
   m=document.createElement('div'); m.id='qaMenu'; m.className='qa-menu card'; m.innerHTML=`<div class="label" style="padding:6px 10px">Add new</div>`+L.map(([a,l])=>`<button class="qa-it" data-act="${a}">${l}</button>`).join('');
   document.body.appendChild(m); const r=anchor.getBoundingClientRect(); m.style.top=Math.min(r.bottom+6,innerHeight-m.offsetHeight-8)+'px'; m.style.left=Math.max(8,Math.min(r.right-m.offsetWidth,innerWidth-m.offsetWidth-8))+'px';
   if(r.top>innerHeight/2) m.style.top=Math.max(8,r.top-m.offsetHeight-8)+'px'; }
-document.addEventListener('click',e=>{ const q=e.target.closest('#qaBtn,#qaFab'); if(q){ e.stopPropagation(); qaToggle(q); return; } const m=$('#qaMenu'); if(m&&!e.target.closest('#qaMenu')) m.remove(); else if(m&&e.target.closest('.qa-it')) setTimeout(()=>m.remove(),0); },true);
+document.addEventListener('click',e=>{ const q=e.target.closest('#qaBtn,#qaFab'); if(q){ e.stopPropagation(); if(q.id==='qaFab'&&route==='chat'&&window.NX_CHAT_NEW&&window.NX_CHAT_NEW()) return; qaToggle(q); return; } const m=$('#qaMenu'); if(m&&!e.target.closest('#qaMenu')) m.remove(); else if(m&&e.target.closest('.qa-it')) setTimeout(()=>m.remove(),0); },true);
 /* global search: one box for tenders, projects, people, suppliers, purchases, records, reports, tasks, BoQs, certificates, meetings */
 function searchAll(q){ q=q.trim().toLowerCase(); if(q.length<2) return []; const has=(...v)=>v.join(' ').toLowerCase().includes(q), out=[];
   const push=(grp,attr,title,sub)=>out.push({grp,attr,title,sub});
