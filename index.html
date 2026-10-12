@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="ff4f6add9361">
+<meta name="nexus-build" content="692fbff6555f">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -5013,6 +5013,96 @@ function meetRoomOpen(id){ go('meetings'); let k=0; const t=setInterval(()=>{ co
     const a=meetRoomA(m); if(a&&(a.uids||[]).length&&!CALL.cur&&!CALL.ring){ clearInterval(t); const from=(a.uids||[])[0]; CALL.ring={call:meetRoomId(m),ctx:{meet:m.id,title:m.title},kind:'video',from,fromName:(a.names||{})[from]||'A colleague',at:Date.now()}; callTone('in'); callRender(); }
     else if(k>32){ clearInterval(t); toast('Tap “Join video room” on the meeting to join.'); } },250); }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-mroom]'); if(!b) return; e.preventDefault(); meetJoin(b.dataset.mroom); });
+/* ===================== v237 · LIVE NEXUS EXCEL – several people fill the same workbook at the same time ===================== */
+/* Every saved NEXUS Excel workbook is live: changed cells go to colleagues who have the same workbook open (realtime broadcast room
+   nx-xl-<doc id>), they appear in their sheet straight away, coloured boxes show where each colleague is, and a colleague who opens
+   the workbook later gets the current state from someone already in it. Each person's own changes are still saved to NEXUS as before;
+   because everybody holds the same cells, every save contains everyone's work. BoQs opened from QS Studio keep their own live mode (bqx). */
+const XLL={rt:null,doc:'',me:'',peers:new Map(),base:null,timer:0,hb:0,joinAt:0,sel:'',snaps:new Map(),want:false,applying:false,raf:0};
+const XLL_COL=['#E74C3C','#2E86DE','#27AE60','#8E44AD','#E67E22','#16A085','#C0392B','#2C3E50','#D35400','#7F8C8D'];
+const xllColor=u=>{ let h=0; for(const ch of String(u||'')) h=(h*31+ch.charCodeAt(0))>>>0; return XLL_COL[h%XLL_COL.length]; };
+const xllOn=()=>!!(XLL.rt&&typeof OXS!=='undefined'&&OXS&&OXS.xll&&OXS.id===XLL.doc);
+const xllMetaOf=c=>{ const m={...c}; delete m.cells; return JSON.stringify(m); };
+function xllSnapBase(){ const B={order:JSON.stringify(OXS.sheets.map(s=>s.name)),names:JSON.stringify(OXS.names||[]),sh:new Map()};
+  OXS.sheets.forEach(s=>{ const c=oxs3CleanSheet(s), cm=new Map(); for(const k in c.cells) cm.set(k,JSON.stringify(c.cells[k])); B.sh.set(s.name,{meta:xllMetaOf(c),cells:cm}); }); return B; }
+function xllStart(){ xllStop(); if(typeof OXS==='undefined'||!OXS||!OXS.id||OXS.bqx||!window.NX_RT||!me||!me.id) return;
+  OXS.xll=true; XLL.doc=OXS.id; XLL.me=me.id; XLL.joinAt=Date.now(); XLL.base=xllSnapBase(); XLL.peers.clear(); XLL.snaps.clear(); XLL.want=true;
+  XLL.rt=NX_RT.open('nx-xl-'+OXS.id,xllMsg); xllSend({t:'hi',at:XLL.joinAt});
+  // ask the colleague who has been in the workbook longest for its current state (unsaved changes included)
+  setTimeout(()=>{ if(!xllOn()||!XLL.want) return; XLL.want=false; const old=[...XLL.peers.values()].filter(p=>p.at<XLL.joinAt).sort((a,b)=>a.at-b.at)[0]; if(old) xllSend({t:'want',to:old.uid}); },1500);
+  clearInterval(XLL.hb); XLL.hb=setInterval(()=>{ if(!xllOn()) return; xllSend({t:'sel',...xllSelNow()}); const t=Date.now(); let ch=false; XLL.peers.forEach((p,u)=>{ if(t-p.seen>60e3){ XLL.peers.delete(u); ch=true; } }); if(ch) xllUi(); },20e3);
+  xllBadge(); }
+function xllStop(){ if(XLL.rt){ try{ XLL.rt.send({t:'bye',from:XLL.me}); }catch(_){ } const r=XLL.rt; setTimeout(()=>{ try{ r.close(); }catch(_){ } },400); }
+  XLL.rt=null; XLL.doc=''; XLL.peers.clear(); XLL.base=null; XLL.snaps.clear(); clearTimeout(XLL.timer); clearInterval(XLL.hb); XLL.timer=0; XLL.sel=''; }
+function xllSend(p){ if(!XLL.rt) return; try{ XLL.rt.send({...p,from:XLL.me,name:me.name||'',doc:XLL.doc}); }catch(e){ console.warn('xll send',e); } }
+function xllSelNow(){ const sh=OXS&&OXS.sheets[OXS.cur]; return {s:sh?sh.name:'',r:OXS?OXS.sel.r:0,c:OXS?OXS.sel.c:0,ed:!!(OXS3&&OXS3.ed),at:XLL.joinAt}; }
+function xllSelTrack(){ if(!xllOn()) return; const s=xllSelNow(), k=JSON.stringify(s); if(k===XLL.sel) return; XLL.sel=k; xllSend({t:'sel',...s}); }
+/* ---------- my changes → colleagues (diff of the workbook against what everybody already has) ---------- */
+function xllQueue(){ if(!xllOn()||XLL.applying) return; clearTimeout(XLL.timer); XLL.timer=setTimeout(xllFlush,250); }
+function xllDiff(){ const B=XLL.base, out={cells:[],meta:[],struct:false};
+  if(JSON.stringify(OXS.sheets.map(s=>s.name))!==B.order) { out.struct=true; return out; }
+  if(JSON.stringify(OXS.names||[])!==B.names) out.names=OXS.names||[];
+  OXS.sheets.forEach(s=>{ const b=B.sh.get(s.name), c=oxs3CleanSheet(s); if(!b){ out.struct=true; return; }
+    const mt=xllMetaOf(c); if(mt!==b.meta) out.meta.push([s.name,JSON.parse(mt)]);
+    for(const k in c.cells){ const j=JSON.stringify(c.cells[k]); if(b.cells.get(k)!==j) out.cells.push([s.name,k,c.cells[k]]); }
+    b.cells.forEach((_,k)=>{ if(!c.cells[k]) out.cells.push([s.name,k,null]); }); });
+  return out; }
+async function xllFlush(){ clearTimeout(XLL.timer); XLL.timer=0; if(!xllOn()) return; const D=xllDiff();
+  if(D.struct){ XLL.base=xllSnapBase(); return xllSendSnap('*'); }
+  if(!D.cells.length&&!D.meta.length&&!D.names) return;
+  const B=XLL.base; D.cells.forEach(([s,k,c])=>{ const m=B.sh.get(s).cells; if(c) m.set(k,JSON.stringify(c)); else m.delete(k); });
+  D.meta.forEach(([s,m])=>{ B.sh.get(s).meta=JSON.stringify(m); }); if(D.names) B.names=JSON.stringify(D.names);
+  const seq=Date.now()+'.'+Math.random().toString(36).slice(2,6);
+  for(let i=0;i<Math.max(1,D.cells.length);i+=300){ xllSend({t:'ops',seq,cells:D.cells.slice(i,i+300),meta:i?[]:D.meta,names:i?undefined:D.names}); if(D.cells.length>300) await new Promise(r=>setTimeout(r,40)); } }
+async function xllSendSnap(to){ if(!xllOn()) return; const sid=Date.now()+'.'+Math.random().toString(36).slice(2,6), order=OXS.sheets.map(s=>s.name), parts=[];
+  OXS.sheets.forEach((s,i)=>{ const c=oxs3CleanSheet(s), meta=JSON.parse(xllMetaOf(c)), L=Object.entries(c.cells); for(let j=0;j<Math.max(1,L.length);j+=300) parts.push({i,meta:j?null:meta,cells:L.slice(j,j+300)}); });
+  for(let n=0;n<parts.length;n++){ xllSend({t:'snap',to,sid,order,names:OXS.names||[],n,of:parts.length,...parts[n]}); if(parts.length>3) await new Promise(r=>setTimeout(r,40)); } }
+/* ---------- colleagues' changes → my sheet ---------- */
+function xllMsg(m){ if(!m||m.from===XLL.me||!xllOn()||(m.doc&&m.doc!==XLL.doc)) return; if(m.to&&m.to!=='*'&&m.to!==XLL.me) return;
+  const P=XLL.peers.get(m.from)||{uid:m.from,name:m.name||'Colleague',color:xllColor(m.from),at:m.at||Date.now()}; P.name=m.name||P.name; P.seen=Date.now();
+  if(m.t==='bye'){ XLL.peers.delete(m.from); return xllUi(); }
+  XLL.peers.set(m.from,P);
+  if(m.t==='hi'){ P.at=m.at||Date.now(); xllSend({t:'here',...xllSelNow()}); return xllUi(); }
+  if(m.t==='here'||m.t==='sel'){ if(m.at) P.at=m.at; if(m.s!=null){ P.s=m.s; P.r=m.r; P.c=m.c; P.ed=!!m.ed; } return xllUi(); }
+  if(m.t==='want'){ xllFlush().then(()=>xllSendSnap(m.from)); return; }
+  if(m.t==='ops') return xllApplyOps(m);
+  if(m.t==='snap') return xllSnapPart(m); }
+function xllApplyOps(m){ const B=XLL.base; let any=false, mine=false; XLL.applying=true;
+  try{ const ed=OXS3.ed, edSh=OXS.sheets[OXS.cur]?.name;
+    for(const [sn,k,c] of m.cells||[]){ const s=OXS.sheets.find(x=>x.name===sn), b=B.sh.get(sn); if(!s||!b) continue;
+      if(c) s.cells[k]=JSON.parse(JSON.stringify(c)); else delete s.cells[k]; if(c) b.cells.set(k,JSON.stringify(c)); else b.cells.delete(k); any=true;
+      if(ed&&sn===edSh&&k===oxsRef(ed.r,ed.c)) mine=true; }
+    for(const [sn,meta] of m.meta||[]){ const s=OXS.sheets.find(x=>x.name===sn), b=B.sh.get(sn); if(!s||!b) continue; xllSetMeta(s,meta); b.meta=JSON.stringify(meta); any=true; }
+    if(m.names){ OXS.names=m.names; B.names=JSON.stringify(m.names); any=true; }
+  } finally{ XLL.applying=false; }
+  if(!any) return; oxsHist=[]; oxsFut=[];   // undo history would bring back a colleague's old values – start it again from here
+  if(mine) toast(`${m.name||'A colleague'} also changed the cell you are typing in.`); xllRepaint(); }
+function xllSetMeta(s,meta){ for(const k of ['dcw','merges','hc','hr','cf','dv','af','frz','charts','pics','ps','grid','heads','zoom','showF','prot','tab','hidden']) if(!(k in meta)) delete s[k]; Object.assign(s,JSON.parse(JSON.stringify(meta))); }
+function xllSnapPart(m){ let S=XLL.snaps.get(m.sid); if(!S){ S={got:0,of:m.of,order:m.order,names:m.names,sheets:m.order.map(n=>({name:n,cells:{}}))}; XLL.snaps.set(m.sid,S); }
+  const sh=S.sheets[m.i]; if(sh){ if(m.meta) Object.assign(sh,m.meta,{cells:sh.cells}); for(const [k,c] of m.cells||[]) sh.cells[k]=c; } S.got++;
+  if(S.got<S.of) return; XLL.snaps.delete(m.sid);
+  const pend=XLL.timer||m.to==='*'?xllDiff():null;   // my own changes not sent yet: keep them on top of the colleague's state
+  const curName=OXS.sheets[OXS.cur]?.name; XLL.applying=true;
+  try{ OXS.sheets=S.sheets.map(oxs3PrepSheet); OXS.names=S.names||[]; const ci=OXS.sheets.findIndex(s=>s.name===curName); OXS.cur=ci>=0?ci:Math.min(OXS.cur,OXS.sheets.length-1);
+    XLL.base=xllSnapBase();
+    if(pend&&!pend.struct&&pend.cells.length){ for(const [sn,k,c] of pend.cells){ const s=OXS.sheets.find(x=>x.name===sn); if(!s) continue; if(c) s.cells[k]=c; else delete s.cells[k]; } }
+  } finally{ XLL.applying=false; }
+  oxsHist=[]; oxsFut=[]; OXS3.G=null; oxsTabs(); xllRepaint(); if(pend&&!pend.struct&&pend.cells.length){ OXS.dirty=true; xllFlush(); } }
+function xllRepaint(){ if(XLL.raf) return; XLL.raf=requestAnimationFrame(()=>{ XLL.raf=0; if(!OXS||!$('#oxsWrap')) return; oxs3Bump(); OXS3.G=null; oxs3Paint(); if(!OXS3.ed) oxsBar(); oxsStat(); }); }
+/* ---------- who is here: avatars in the title bar, coloured boxes on their cells ---------- */
+function xllBadge(){ const t=document.querySelector('#oxApp .ox-title'); if(!t||$('#xllOn')) return xllUi(); const sv=t.querySelector('[data-oxa="save"]');
+  const el=document.createElement('span'); el.className='bqx-live'; el.id='xllOn'; if(sv) t.insertBefore(el,sv); else t.appendChild(el); xllUi(); }
+function xllUi(){ const el=$('#xllOn'); if(!el) return; const L=[...XLL.peers.values()];
+  el.title=L.length?'Live – editing together with '+L.map(p=>p.name).join(', '):'Live – colleagues who open this workbook edit it with you at the same time';
+  el.innerHTML='● Live'+L.map(p=>`<span class="bql-av" style="background:${esc(p.color)}" title="${esc(p.name)}${p.s?' – '+esc(p.s)+'!'+oxsRef(p.r||0,p.c||0):''}">${esc(String(p.name||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2))}</span>`).join('');
+  if(OXS&&$('#oxsWrap')) xllRepaint(); }
+function xllPaint(main,G){ if(!xllOn()||!main||!G) return; const sh=OXS.sheets[OXS.cur]; if(!sh) return; let h='';
+  XLL.peers.forEach(p=>{ if(p.s!==sh.name||p.r==null||p.r>=G.N||p.c==null||p.c+1>=G.colX.length) return;
+    const x=G.HW+G.colX[p.c], y=G.HH+G.rowY[p.r], w=G.colX[p.c+1]-G.colX[p.c], hh=G.rowY[p.r+1]-G.rowY[p.r]; if(!(w>0&&hh>0)) return;
+    h+=`<div class="bqx-pc" style="left:${x}px;top:${y}px;width:${w}px;height:${hh}px;--bqc:${esc(p.color)}"><span>${esc(String(p.name||'').split(/\s+/)[0])}${p.ed?' ✎':''}</span></div>`; });
+  if(h) main.insertAdjacentHTML('beforeend',h); }
+window.addEventListener('beforeunload',()=>{ if(XLL.rt) try{ XLL.rt.send({t:'bye',from:XLL.me,doc:XLL.doc}); }catch(_){ } });
+/* ===================== LIVE NEXUS EXCEL (end) ===================== */
 /* ===================== PROFILE PHOTOS (v76) ===================== */
 // every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
 const lcE=s=>String(s||'').trim().toLowerCase();
@@ -10006,7 +10096,7 @@ function oxShell(type, title, {tabs, onTab, status='', right=''}){
   document.body.appendChild(el); document.body.style.overflow='hidden';
   el.addEventListener('click',e=>{ const t=e.target.closest('[data-oxt]'); if(!t) return; el.querySelectorAll('[data-oxt]').forEach(x=>x.classList.toggle('on',x===t&&t.dataset.oxt!=='File')); onTab(t.dataset.oxt); });
   return el; }
-function oxCloseApp(){ const a=$('#oxApp'); if(a) a.remove(); document.body.style.overflow=''; if(route==='office') renderView(true); }
+function oxCloseApp(){ if(typeof xllStop==='function'&&XLL.rt){ if(XLL.timer) try{ xllFlush(); }catch(_){ } xllStop(); } const a=$('#oxApp'); if(a) a.remove(); document.body.style.overflow=''; if(route==='office') renderView(true); }
 function oxSetStatus(t){ const s=$('#oxSt'); if(s) s.textContent=t; }
 function oxBackstage(type, items, onPick){ const a=$('#oxApp'); a.querySelector('.ox-back')?.remove(); const b=document.createElement('div'); b.className='ox-back';
   b.innerHTML=`<nav><button data-bk="__close" style="font-size:20px;padding:6px 22px">←</button>${items.map((it,i)=>`<button data-bk="${it.k}" class="${i===0?'on':''}">${it.t}</button>`).join('')}</nav><div class="bb" id="oxBB"></div>`;
@@ -10442,7 +10532,7 @@ function oxsAutoSum(){ const sh=oxsSheet(), s=OXS.sel, E=OXS._E; let r=s.r-1; wh
   if(r===s.r-1){ let c=s.c-1; while(c>=0){ const cell=sh.cells[oxsRef(s.r,c)]; const v=cell?(cell.f!=null?E.val(sh,s.r,c):cell.v):null; if(typeof v!=='number') break; c--; } if(c<s.c-1){ oxsSet(s.r,s.c,`=SUM(${oxsRef(s.r,c+1)}:${oxsRef(s.r,s.c-1)})`); oxsRender(); oxsChanged(); return; } toast('No numbers above or to the left to add up.'); return; }
   oxsSet(s.r,s.c,`=SUM(${oxsRef(r+1,s.c)}:${oxsRef(s.r-1,s.c)})`); oxsRender(); oxsChanged(); }
 let oxsTimer=null;
-function oxsChanged(){ if(!OXS||BQLY.silent) return; if(OXS.bqx){ oxSetStatus('Editing…'); return bqxQueue(); } OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
+function oxsChanged(){ if(!OXS||BQLY.silent) return; if(OXS.bqx){ oxSetStatus('Editing…'); return bqxQueue(); } if(OXS.xll) xllQueue(); OXS.dirty=true; oxSetStatus('Editing…'); clearTimeout(oxsTimer); oxsTimer=setTimeout(()=>oxsSave(true),3000); }
 function oxsClean(){ return OXS.sheets.map(s=>({name:s.name,rows:s.rows,colsN:s.colsN,cols:s.cols||{},rh:s.rh||{},cells:Object.fromEntries(Object.entries(s.cells).map(([k,c])=>[k,Object.fromEntries(Object.entries({v:c.v,f:c.f,s:c.s&&Object.keys(c.s).length?c.s:undefined}).filter(([,x])=>x!==undefined))]))})); }
 async function oxsSave(auto=false){ if(!OXS) return; if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } OXS.title=$('#oxName')?.value||OXS.title; oxSetStatus('Saving…');
   const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),project_id:OXS.project_id||'',boq_id:OXS.boq_id||'',...(OXS.boq_base?{boq_base:OXS.boq_base}:{})});
@@ -12637,7 +12727,7 @@ function oxs3Paint(){ if(!OXS) return; const wrap=$('#oxsWrap'); if(!wrap) retur
   lc.innerHTML=bgL+hdrBgL+(G.fc?oxs3PaneHtml(G,E,CF,r0,r1,0,G.fc-1):'')+oxs3Heads(G,r0,r1,0,-1,false,true)+frzL;
   cc.innerHTML=(G.fr||G.fc?`<div style="position:absolute;left:0;top:0;width:${G.HW+G.fcW}px;height:${G.HH+G.frH}px;background:#fff"></div>`:'')+(G.fr&&G.fc?oxs3PaneHtml(G,E,CF,0,G.fr-1,0,G.fc-1):'')+
     (G.HH?`<div class="oxs3-h corner" data-corner="1" style="left:0;top:0;width:${G.HW}px;height:${G.HH}px"></div>`:'')+oxs3Heads(G,0,G.fr-1,0,G.fc-1,true,true)+(G.fr?frz.replace('z-index:5','z-index:5;width:'+(G.HW+G.fcW)+'px'):'')+(G.fc?frzL:'');
-  if(OXS.bqx) bqxPaintPres(main,G);
+  if(OXS.bqx) bqxPaintPres(main,G); else if(OXS.xll) xllPaint(main,G);
   if(OXS3.objDirty!==false||OXS3.objKey!==oxs3ObjKey()) oxs3Objs();
   if((G.fr||G.fc)&&OXS3.objHtml){ const L=`<div style="position:absolute;left:0;top:0;z-index:3">${OXS3.objHtml}</div>`; if(G.fr) tc.insertAdjacentHTML('beforeend',L); if(G.fc) lc.insertAdjacentHTML('beforeend',L); if(G.fr&&G.fc) cc.insertAdjacentHTML('beforeend',L); } }
 
@@ -13736,7 +13826,7 @@ function oxsOpen(doc){ const names=doc.names||doc.sheets?.names||[];
   $('#oxRib').innerHTML=oxsRibbon('Home');
   $('#oxBody').innerHTML=`<div class="oxs-fbar" id="oxsFbar"><div class="nbw"><input id="oxsName" aria-label="Name box" autocomplete="off" spellcheck="false"><button data-oxa="m:names2" title="Defined names">▼</button></div><button class="fxb" data-oxa="fbx" title="Cancel">✕</button><button class="fxb" data-oxa="fbok" title="Enter">✓</button><button class="fxb" data-oxa="fx" title="Insert Function" style="font:italic 600 14px Cambria,Georgia,serif">fx</button><input id="oxsF" aria-label="Formula bar" autocomplete="off" spellcheck="false"></div><div class="oxs-wrap" id="oxsWrap" tabindex="0" role="grid" aria-label="Worksheet"></div><div class="oxs-tabs" id="oxsTabs"></div>`;
   for(const s of OXS.sheets) if(s.af&&s.af.f&&Object.keys(s.af.f).length){ const k=OXS.cur; OXS.cur=OXS.sheets.indexOf(s); try{ oxs3ApplyFilter(s); }catch(_){ } OXS.cur=k; }
-  oxsTabs(); oxsBind(el); oxsRender(); oxs3SyncRibbonInputs(); $('#oxsWrap').focus(); }
+  oxsTabs(); oxsBind(el); oxsRender(); oxs3SyncRibbonInputs(); $('#oxsWrap').focus(); if(typeof xllStart==='function') xllStart(); }
 function oxsBind(el){ const w=$('#oxsWrap');
   w.addEventListener('scroll',()=>{ if(OXS3.scrollRaf) return; OXS3.scrollRaf=requestAnimationFrame(()=>{ OXS3.scrollRaf=0; if(!OXS) return; oxs3Paint(); oxs3EdPos(); oxs3HideTips(); $('#oxs3Im')?.remove(); if(OXS3.showNotes) oxs3ShowNotes(); }); },{passive:true});
   w.addEventListener('pointerdown',oxs3Down); w.addEventListener('pointermove',oxs3Hover); w.addEventListener('pointerleave',()=>{ if(!OXS3.drag) oxs3HideTips(); }); w.addEventListener('contextmenu',oxs3Ctx); w.addEventListener('keydown',oxs3Key);
@@ -13764,10 +13854,10 @@ function oxsBind(el){ const w=$('#oxsWrap');
     if(t.closest('#oxRib')&&t.tagName==='SELECT') w.focus({preventScroll:true}); });
   el.addEventListener('input',e=>{ if(e.target.id==='oxName') oxsChanged(); if(e.target.id==='oxsZoom'){ oxs3Zoom(+e.target.value/100); } }); }
 window.addEventListener('resize',()=>{ if(OXS&&$('#oxsWrap')){ oxs3Paint(); oxs3EdPos(); } });
-function oxsRender(){ if(!OXS||(typeof BQLY!=='undefined'&&BQLY.silent)) return; const w=$('#oxsWrap'); if(!w) return; const sh=oxsSheet(); sh._sel=OXS.sel; oxs3Paint(); oxsBar(); oxsStat(); if(OXS.bqx) bqxSelTrack(); if(OXS3.showNotes) oxs3ShowNotes(); else document.querySelectorAll('.oxs3-notep').forEach(x=>x.remove()); }
+function oxsRender(){ if(!OXS||(typeof BQLY!=='undefined'&&BQLY.silent)) return; const w=$('#oxsWrap'); if(!w) return; const sh=oxsSheet(); sh._sel=OXS.sel; oxs3Paint(); oxsBar(); oxsStat(); if(OXS.bqx) bqxSelTrack(); else if(OXS.xll) xllSelTrack(); if(OXS3.showNotes) oxs3ShowNotes(); else document.querySelectorAll('.oxs3-notep').forEach(x=>x.remove()); }
 async function oxsSave(auto=false){ if(!OXS) return; if(OXS.bqx&&OXS.bqx.layout){ if(auto) return; await bqxSync(); return bqlySave(true); } if(canWrite===false){ if(!auto) toast('Read-only login – download instead.'); return; } if(OXS3.ed&&!auto) oxsEndEdit(); OXS.title=$('#oxName')?.value||OXS.title; oxSetStatus('Saving…');
   const id=await oxStore({id:OXS.id,type:'xlsx',title:OXS.title,sheets:oxsClean(),names:OXS.names||[],act:OXS.cur,project_id:OXS.project_id||'',boq_id:OXS.boq_id||'',...(OXS.boq_base?{boq_base:OXS.boq_base}:{})});
-  if(!OXS) return; if(id){ const first=!OXS.id; OXS.id=id; OXS.dirty=false; oxSetStatus('Saved to NEXUS '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})); if(first) logAct(`Created Excel workbook "${OXS.title}"`); } else oxSetStatus('Not saved – check connection'); }
+  if(!OXS) return; if(id){ const first=!OXS.id; OXS.id=id; OXS.dirty=false; if(first&&typeof xllStart==='function') xllStart(); oxSetStatus('Saved to NEXUS '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})); if(first) logAct(`Created Excel workbook "${OXS.title}"`); } else oxSetStatus('Not saved – check connection'); }
 
 /* ---------------- File backstage (with Print preview) ---------------- */
 function oxsFile(open){ oxsEndEdit(); oxBackstage('xlsx',[
