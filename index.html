@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="3892e0178521">
+<meta name="nexus-build" content="e5344597a891">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -920,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='244';
+const NX_APP_VER='245';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -5804,8 +5804,11 @@ async function bsxSavePlan(d){ d.updated_at=new Date().toISOString(); await put(
 async function bsxItem(tid,form,ch,ev){ const b=bsBid(tid); if(!b) return; const L=[...(b.items||[])]; const j=L.findIndex(x=>x.form===form); if(j<0) return; L[j]={...L[j],...ch}; if(ch.status===undefined&&L[j].status==='todo'&&(ch.doc_id||ch.prog)) L[j].status='doing'; await bsSave(tid,{items:L},ev); }
 const bsxWeeks=s=>{ const m=String(s||'').match(/(\d+(?:\.\d+)?)\s*(week|wk|month|mon|day)/i); if(!m) return ''; const n=+m[1], u=m[2].toLowerCase(); return Math.round(u.startsWith('m')?n*4.33:u.startsWith('d')?n/7:n)||''; };
 // Method statement: AI writes the 7-column table (operation, duration, method, plant/equipment, labour, S/C), NEXUS saves it as a Word document and opens it in NEXUS Word
-async function bsxMsCreate(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return;
+async function bsxMsCreate(tid,o={}){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return;
   const d=bsxPlan(tid); let ai=true;
+  if(o.redo){ const it=(b.items||[]).find(x=>x.form==='ms'), old=it&&it.doc_id&&byId('officedocs',it.doc_id);
+    if(old&&!await confirmBox(`AI writes a new method statement in the 7-column format (S/N, Operation, Duration, Method, Plant/Equipment, Labour, S/C). The bid will use the new one; "${old.title}" stays in NEXUS Office until you delete it.`,'Write new version')) return;
+    if(d.ms.rows.length){ const P=WP.doc; WP.doc=d; try{ wpSnap('ms','Before new AI version'); } finally{ WP.doc=P; } } d.ms.rows=[]; d.ms.title_edited=false; }
   bsSetLog(tid,'AI is writing the method statement from the tender documents and BoQ – about a minute…','ms');
   try{ if(!d.ms.rows.length){ try{ const r=await wpMsAIGen(d); d.ms.rows=r.rows; if(r.title&&!d.ms.title_edited) d.ms.title=r.title; d.ms.missing=r.missing; d.ms.ai_at=new Date().toISOString(); }
       catch(e){ ai=false; bsSetLog(tid,'',''); if(!await confirmBox(`The AI could not write it (${e.message||e}). Create the empty 7-column method statement in NEXUS Word to fill in yourself?`,'Create empty table')) return; bsSetLog(tid,'Creating the method statement…','ms');
@@ -21805,19 +21808,19 @@ function bsDetail(it,t,b){
     return `<div class="small" style="margin-top:3px"><b>${esc(B.title||'BoQ')}</b> · ${q.n} items · ${q.pct}% priced${q.lib?` · ${q.lib} library`:''}${q.ai?` · ${q.ai} AI`:''}${money()||isQSr()?` · <b>${tzs(T.grand)}</b>`:''}</div>`; }
   if(it.form==='wp'){ const pid=oxjTP(t.id), n=msOf(pid).length, d=it.doc_id&&byId('officedocs',it.doc_id); if(!n&&!d) return '';
     const L=msOf(pid), f=L.reduce((a,m)=>m.planned_finish>a?m.planned_finish:a,''), s0=L.reduce((a,m)=>!a||(m.planned_start&&m.planned_start<a)?m.planned_start:a,'');
-    return `<div class="sub small">${n?`NEXUS Project: ${n} tasks${s0&&f?` · ${fmtD(s0)} – ${fmtD(f)}`:''}`:''}${n&&d?' · ':''}${d?`Old Word copy: ${esc(d.title)}`:''}</div>`; }
-  if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); return d?`<div class="sub small">Word: ${esc(d.title)} · ${fmtD(d.updated_at||d.created_at)}</div>`:''; }
+    return `<div class="sub small">${n?`NEXUS Project: ${n} tasks${s0&&f?` · ${fmtD(s0)} – ${fmtD(f)}`:''}`:''}${n&&d?' · ':''}${d?`Old Word version: ${esc(d.title)}`:''}</div>`; }
+  if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); return d?`<div class="sub small">Word${it.form==='ms'&&d.tpl!=='plan:ms'?' (old format)':''}: ${esc(d.title)} · ${fmtD(d.updated_at||d.created_at)}</div>`:''; }
   if((it.files||[]).length) return `<div class="small">${it.files.map((f,j)=>`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join(' · ')}</div>`;
   return ''; }
 function bsActions(it,i,t,b){ if(!bsCan()) return '';
   const B=`data-i="${i}"`;
   if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `${s.r&&recFile(s.r)?`<button class="btn" data-bs="libopen" data-k="${it.lib}">Open</button>`:''}<button class="btn" data-bs="libadd" data-k="${it.lib}">${s.r?'Replace':'Add to library'}</button>`; }
   if(it.boq){ const X=bsBoq(t.id,b); return X?`<button class="btn" data-bs="autoprice" ${B}>⚡ Auto-price</button><button class="btn" data-bs="boqopen" data-id="${esc(X.id)}">Open BoQ</button>`:`<button class="btn pri" data-bs="boqgen" data-tid="${esc(t.id)}">🤖 Build BoQ from documents</button><button class="btn" data-bs="boqnew" data-tid="${esc(t.id)}">Empty BoQ</button>`; }
-  if(it.form==='ms'){ const has=it.doc_id&&byId('officedocs',it.doc_id);   // v244: method statement = a NEXUS Word document
-    return has?`<button class="btn" data-bs="docopen" ${B}>📝 Open in NEXUS Word</button><button class="btn" data-bs="msdel" ${B} title="Delete this method statement">🗑</button>`
-      :`<button class="btn pri" data-bs="mscreate" ${B} ${BSB.busy?'disabled':''}>${BSB.busy==='ms'?'<span class="spin"></span> ':''}📝 Create in NEXUS Word</button>`; }
-  if(it.form==='wp'){ const n=msOf(oxjTP(t.id)).length, old=it.doc_id&&byId('officedocs',it.doc_id);   // v244: work programme = NEXUS Project
-    return `${n?`<button class="btn" data-bs="wpopen" ${B}>📅 Open in NEXUS Project</button><button class="btn" data-bs="wpdel" ${B} title="Delete this work programme">🗑</button>`:`<button class="btn pri" data-bs="wpcreate" ${B} ${BSB.busy?'disabled':''}>${BSB.busy==='wp'?'<span class="spin"></span> ':''}📅 Create in NEXUS Project</button>`}${old?`<button class="btn" data-bs="docopen" ${B} title="Earlier Word version of the programme">Old Word copy</button><button class="btn" data-bs="wpdocdel" ${B} title="Delete the old Word copy">🗑</button>`:''}`; }
+  if(it.form==='ms'){ const d=it.doc_id&&byId('officedocs',it.doc_id), neu=d&&d.tpl==='plan:ms', sp=BSB.busy==='ms'?'<span class="spin"></span> ':'', dis=BSB.busy?'disabled':'';   // v245: method statement = a NEXUS Word document
+    if(!d) return `<button class="btn pri" data-bs="mscreate" ${B} ${dis}>${sp}🤖 Create with AI in NEXUS Word</button>`;
+    return `<button class="btn ${neu?'':'pri'}" data-bs="msredo" ${B} ${dis} title="AI writes a new method statement in the 7-column format">${sp}🤖 ${neu?'New AI version':'Create in new format (AI)'}</button><button class="btn" data-bs="docopen" ${B}>📝 Open${neu?' in NEXUS Word':' old version'}</button><button class="btn" data-bs="msdel" ${B} title="Delete this Word document">🗑</button>`; }
+  if(it.form==='wp'){ const n=msOf(oxjTP(t.id)).length, old=it.doc_id&&byId('officedocs',it.doc_id), sp=BSB.busy==='wp'?'<span class="spin"></span> ':'', dis=BSB.busy?'disabled':'';   // v245: work programme = NEXUS Project
+    return `${n?`<button class="btn" data-bs="wpcreate" ${B} ${dis} title="AI makes a new programme (replaces this one)">${sp}🤖 New AI version</button><button class="btn" data-bs="wpopen" ${B}>📅 Open in NEXUS Project</button><button class="btn" data-bs="wpdel" ${B} title="Delete this work programme">🗑</button>`:`<button class="btn pri" data-bs="wpcreate" ${B} ${dis}>${sp}🤖 Create with AI in NEXUS Project</button>`}${old?`<button class="btn" data-bs="docopen" ${B} title="Earlier Word version (old format)">Old Word version</button><button class="btn" data-bs="wpdocdel" ${B} title="Delete the old Word version">🗑</button>`:''}`; }
   if(it.form){ const has=it.doc_id&&byId('officedocs',it.doc_id), ai=it.form==='ms'||it.form==='wp';
     return `${has?`<button class="btn" data-bs="docopen" ${B}>Open</button>`:''}<button class="btn ${has?'':'pri'}" data-bs="gen" ${B} ${BSB.busy?'disabled':''}>${ai?(has?'Redraft (AI)':'🤖 Draft with AI'):(has?'Refill':'Fill form')}</button>`; }
   return `<button class="btn" data-bs="up" ${B}>📎 Attach</button>${it.src==='man'||it.src==='ai'?`<button class="btn" data-bs="del" ${B} title="Remove this requirement">✕</button>`:''}`; }
@@ -22059,6 +22062,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bs
   if(a==='pack') return bsPack(tid);
   if(a==='gen') return bsGen(tid,i);
   if(a==='mscreate') return bsxMsCreate(tid);
+  if(a==='msredo') return bsxMsCreate(tid,{redo:true});
   if(a==='msdel') return bsxDocDel(tid,'ms');
   if(a==='wpdocdel') return bsxDocDel(tid,'wp');
   if(a==='wpcreate') return bsxWpCreate(tid);
