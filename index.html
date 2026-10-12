@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="6291f2efbbd6">
+<meta name="nexus-build" content="3892e0178521">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -920,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='243';
+const NX_APP_VER='244';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -993,7 +993,7 @@ const initials = n => String(n||'?').replace(/^(Eng\.|QS\.|Mr\.|Mrs\.|Ms\.|Dr\.)
 const daysLeft = v => { const d=toDate(v); return d ? (d - new Date())/864e5 : null; };
 const safeId = s => String(s||uid()).replace(/[^A-Za-z0-9_\-.~:@+]/g,'-').replace(/^\.+$/,'x').slice(0,120);
 const byId = (col,id) => S[col].find(x=>x.id===id);
-const projName = id => byId('projects',id)?.name || ((S.projectsAll||[]).find(p=>p.id===id)?.name ? (S.projectsAll.find(p=>p.id===id).name+' (removed)') : '—');
+const projName = id => (typeof id==='string'&&id.startsWith('TP:')?(t=>t?'Work Programme – '+(t.title||t.no||''):'Tender programme')(byId('tenders',id.slice(3))):'') || byId('projects',id)?.name || ((S.projectsAll||[]).find(p=>p.id===id)?.name ? (S.projectsAll.find(p=>p.id===id).name+' (removed)') : '—');
 const PROJ_LINKS=[['reports','site reports'],['tasks','tasks'],['procurement','purchases'],['finance','finance entries'],['certificates','payment certificates'],['variations','variations'],['milestones','milestones'],['risks','risks'],['snags','snags'],['plant','plant records'],['boqs','BoQs']];
 const projLinks=id=>PROJ_LINKS.map(([c,l])=>[l,(S[c]||[]).filter(x=>x.project_id===id).length]).filter(x=>x[1]);
 async function removeProject(p){
@@ -5594,9 +5594,9 @@ async function wpCtx(maxDoc=9000){ const d=WP.doc, t=d.tender_id&&byId('tenders'
   return {B,docs,txt:`Project: ${d.info.title}\nLocation: ${d.info.location||'not stated'}\nEmployer: ${d.info.client||'not stated'}\nConsultant: ${d.info.consultant||'not stated'}\nScope: ${String((t&&(t.scope||t.notice))||(p&&p.notes)||'').slice(0,1500)||'not stated'}\nCompletion period: ${f.completion||(d.info.start&&d.info.required_finish?`${d.info.start} to ${d.info.required_finish}`:'not stated')}\nBoQ outline:\n${B&&typeof bsBoqOutline==='function'?bsBoqOutline(B,140):'No BoQ in NEXUS.'}${docs?`\n\nFROM THE TENDER DOCUMENTS (specifications, scope, conditions):\n${docs}`:''}`}; }
 const WP_MS_EX=`Example of the expected style (from a Nordic method statement – do NOT copy its content, only its level of detail):
 {"op":"MOBILISATION AND SITE ESTABLISHMENT","dur":{"n":14,"u":"d"},"method":["Take possession of site on the Date of Possession; agree working zones, access routes, delivery times and restricted areas with the Architect and the Employer.","Confirm police and local authority requirements for access, standing vehicles and off-loading.","Erect 1.80m high close-boarded hoarding with lockable gates; fix safety signage and project name board.","Set up site office, lockable store, welfare and latrine facilities at Architect-approved positions; provide first-aid box and fire extinguishers.","Provide temporary water and metered power with RCD-protected distribution and temporary lighting.","Provide 24-hour watching and site lighting; carry out induction of all operatives, including sub-contractors."],"plant":["Hoarding materials","Signage","Temporary DB & cabling","Hand tools","Pick-up / light truck"],"labour":["Site Foreman","2 Carpenters","1 Electrician","6 General labourers","Security guards"],"sc":["MAIN CONTRACTOR"],"flags":[]}`;
-async function wpMsAI(){ const d=WP.doc; if(WP.busy) return; if(d.ms.rows.length&&!await confirmBox(`Replace the ${d.ms.rows.length} operations with a new AI draft? (The current ones are kept in Revisions.)`,'Write new draft')) return;
-  WP.busy='msai'; wpRender();
-  try{ const X=await wpCtx(); const r=await bgAI(`${typeof companyContext==='function'?companyContext():''}
+// AI draft of the 7-column method statement for plan d (used by the Works Planner and by Bid Studio › Create in NEXUS Word)
+async function wpMsAIGen(d){ const P=WP.doc; WP.doc=d; let X; try{ X=await wpCtx(); } finally{ WP.doc=P; }
+  const r=await bgAI(`${typeof companyContext==='function'?companyContext():''}
 You are a senior construction planner in Tanzania writing a METHOD STATEMENT table for a tender / contract. Columns: OPERATION | DURATION | METHOD | PLANT/EQUIPMENT | LABOUR | S/C.
 ${X.txt}
 
@@ -5610,10 +5610,13 @@ Rules:
 - S/C: MAIN CONTRACTOR, or the right specialist (ELECTRICAL SUBCONTRACTOR, PLUMBING SUBCONTRACTOR, HVAC SUBCONTRACTOR, SPECIALIST FIRE SYSTEM CONTRACTOR, ICT / ELV SUBCONTRACTOR, ALL STAKEHOLDERS) – more than one when shared.
 ${WP_MS_EX}
 Return JSON only: {"title":"METHOD STATEMENT FOR … , <LOCATION>","rows":[{"op":"","dur":{"n":0,"u":"d","est":true},"method":[""],"plant":[""],"labour":[""],"sc":[""],"flags":[""]}],"missing":["information the planner should supply"]}`,9000);
-    if(!r||!Array.isArray(r.rows)||!r.rows.length) throw new Error('the AI did not return any operations – try again');
+  if(!r||!Array.isArray(r.rows)||!r.rows.length) throw new Error('the AI did not return any operations – try again');
+  return {rows:r.rows.slice(0,40).map(x=>({id:uid(),op:String(x.op||'').toUpperCase().slice(0,200),dur:{n:+x.dur?.n||'',u:['d','ed','w'].includes(x.dur?.u)?x.dur.u:'d',est:true},method:(x.method||[]).map(String).filter(Boolean).slice(0,14),plant:(x.plant||[]).map(String).filter(Boolean).slice(0,12),labour:(x.labour||[]).map(String).filter(Boolean).slice(0,12),sc:(x.sc||['MAIN CONTRACTOR']).map(s=>String(s).toUpperCase()).filter(Boolean).slice(0,4),flags:(x.flags||[]).map(String).filter(Boolean).slice(0,6)})),title:r.title?String(r.title).toUpperCase().slice(0,300):'',missing:(r.missing||[]).map(String).slice(0,10)}; }
+async function wpMsAI(){ const d=WP.doc; if(WP.busy) return; if(d.ms.rows.length&&!await confirmBox(`Replace the ${d.ms.rows.length} operations with a new AI draft? (The current ones are kept in Revisions.)`,'Write new draft')) return;
+  WP.busy='msai'; wpRender();
+  try{ const r=await wpMsAIGen(d);
     if(d.ms.rows.length) wpSnap('ms','Before AI redraft');
-    d.ms.rows=r.rows.slice(0,40).map(x=>({id:uid(),op:String(x.op||'').toUpperCase().slice(0,200),dur:{n:+x.dur?.n||'',u:['d','ed','w'].includes(x.dur?.u)?x.dur.u:'d',est:true},method:(x.method||[]).map(String).filter(Boolean).slice(0,14),plant:(x.plant||[]).map(String).filter(Boolean).slice(0,12),labour:(x.labour||[]).map(String).filter(Boolean).slice(0,12),sc:(x.sc||['MAIN CONTRACTOR']).map(s=>String(s).toUpperCase()).filter(Boolean).slice(0,4),flags:(x.flags||[]).map(String).filter(Boolean).slice(0,6)}));
-    if(r.title&&!d.ms.title_edited) d.ms.title=String(r.title).toUpperCase().slice(0,300); d.ms.missing=(r.missing||[]).map(String).slice(0,10); d.ms.ai_at=new Date().toISOString();
+    d.ms.rows=r.rows; if(r.title&&!d.ms.title_edited) d.ms.title=r.title; d.ms.missing=r.missing; d.ms.ai_at=new Date().toISOString();
     wpTouch(); toast(`AI drafted ${d.ms.rows.length} operations – check every duration (marked estimate) and the ⚠ notes.`); }
   catch(e){ toast('AI draft failed: '+(e.message||e)); }
   finally{ WP.busy=''; wpRender(); } }
@@ -5626,10 +5629,8 @@ async function wpPowFromMs(){ const d=WP.doc, M=d.ms.rows; if(!M.length) return 
   T.push(wpTaskNew({name:'Practical completion',lvl:1,dur:{n:0,u:'d'},preds:[{id:prev.id,type:'FS'}]}));
   d.pow.tasks=T; wpTouch(); WP.tab='pow'; wpRender(); toast('Programme made from the method statement – one finish-to-start chain. Overlap work with SS links (e.g. 4SS+5d) where the site allows.'); }
 /* ---------- AI programme: work sections (summary tasks), sub-tasks, durations, real construction links ---------- */
-async function wpPowAI(){ const d=WP.doc; if(WP.busy) return; if(!d.info.start) return toast('Set the commencement date in Project details first.');
-  if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with a new AI programme? (The current one is kept in Revisions.)`,'Write new programme')) return;
-  WP.busy='powai'; wpRender();
-  try{ const X=await wpCtx(5000), M=d.ms.rows;
+// AI programme (WBS, durations, links) for plan d – returns tasks in Works Planner form
+async function wpPowAIGen(d){ const P=WP.doc; WP.doc=d; let X; try{ X=await wpCtx(5000); } finally{ WP.doc=P; } const M=d.ms.rows;
     const msTxt=M.length?M.map((r,i)=>`${i+1}. ${r.op} – ${wpDurTxt(r.dur)||'no duration'}${(r.method||[]).length?'\n   steps: '+r.method.slice(0,8).join(' | ').slice(0,700):''}`).join('\n'):'No method statement yet.';
     const r=await bgAI(`You are a construction planner preparing a PROGRAMME OF WORKS (Microsoft Project style) in Tanzania.
 ${X.txt}
@@ -5647,7 +5648,12 @@ Return JSON only: {"tasks":[{"ref":"1","name":"","lvl":1,"dur":"","preds":"","re
     T.forEach((t,i)=>{ const p=WPS.parsePreds(r.tasks[i].preds||'',n=>refId.get(String(n))); t.preds=p.links.filter(l=>l.id!==t.id); });
     // a link that makes a loop is dropped (and reported), never kept
     let dropped=0; for(let k=0;k<40;k++){ const R=WPS.schedule({start:d.info.start,calendar:d.pow.calendar,tasks:T}); if(!R.errors.length) break; const m=R.errors[0].match(/tasks ([\d, ]+)/); const ids=m?m[1].split(',').map(x=>+x.trim()):[]; const t=T[(ids[ids.length-1]||1)-1]; if(t&&t.preds.length){ t.preds.pop(); dropped++; } else break; }
-    if(d.pow.tasks.length) wpSnap('pow','Before AI programme'); d.pow.tasks=T; d.pow.notes=(r.notes||[]).map(String).slice(0,10); wpTouch();
+    return {T,notes:(r.notes||[]).map(String).slice(0,10),dropped}; }
+async function wpPowAI(){ const d=WP.doc; if(WP.busy) return; if(!d.info.start) return toast('Set the commencement date in Project details first.');
+  if(d.pow.tasks.length&&!await confirmBox(`Replace the ${d.pow.tasks.length} programme tasks with a new AI programme? (The current one is kept in Revisions.)`,'Write new programme')) return;
+  WP.busy='powai'; wpRender();
+  try{ const {T,notes,dropped}=await wpPowAIGen(d);
+    if(d.pow.tasks.length) wpSnap('pow','Before AI programme'); d.pow.tasks=T; d.pow.notes=notes; wpTouch();
     toast(`AI programme: ${T.length} tasks.${dropped?` ${dropped} link${dropped>1?'s were':' was'} removed because ${dropped>1?'they':'it'} made a loop.`:''} Durations with ? are estimates – confirm them.`); }
   catch(e){ toast('AI programme failed: '+(e.message||e)); }
   finally{ WP.busy=''; wpRender(); } }
@@ -5792,6 +5798,65 @@ new MutationObserver(()=>{ const f=document.getElementById('wpMsPrev'); if(f&&!f
 /* ---------- entry points ---------- */
 function wpEntryBtn(o,label){ return `<button class="btn sm" data-wpopen="${o.tender_id?'t:'+esc(o.tender_id):'p:'+esc(o.project_id)}" data-wptab0="${o.tab||'info'}">${label||'📐 Method statement & programme'}</button>`; }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-wpopen]'); if(!b) return; e.preventDefault(); e.stopPropagation(); const [k,id]=b.dataset.wpopen.split(/:(.+)/); wpOpen(k==='t'?{tender_id:id,tab:b.dataset.wptab0}:{project_id:id,tab:b.dataset.wptab0}); },true);
+/* ---------- v244 · Bid Studio: one button per document – Method statement → NEXUS Word, Work programme → NEXUS Project ---------- */
+function bsxPlan(tid){ const id='T_'+safeId(tid); const ex=(S.plans||[]).find(x=>x.id===id); return ex?JSON.parse(JSON.stringify(ex)):wpNew({id,tender_id:tid}); }
+async function bsxSavePlan(d){ d.updated_at=new Date().toISOString(); await put('plans',d.id,JSON.parse(JSON.stringify(d))); const L=S.plans||(S.plans=[]); const j=L.findIndex(x=>x.id===d.id); if(j>=0) L[j]=JSON.parse(JSON.stringify(d)); else L.push(JSON.parse(JSON.stringify(d))); }
+async function bsxItem(tid,form,ch,ev){ const b=bsBid(tid); if(!b) return; const L=[...(b.items||[])]; const j=L.findIndex(x=>x.form===form); if(j<0) return; L[j]={...L[j],...ch}; if(ch.status===undefined&&L[j].status==='todo'&&(ch.doc_id||ch.prog)) L[j].status='doing'; await bsSave(tid,{items:L},ev); }
+const bsxWeeks=s=>{ const m=String(s||'').match(/(\d+(?:\.\d+)?)\s*(week|wk|month|mon|day)/i); if(!m) return ''; const n=+m[1], u=m[2].toLowerCase(); return Math.round(u.startsWith('m')?n*4.33:u.startsWith('d')?n/7:n)||''; };
+// Method statement: AI writes the 7-column table (operation, duration, method, plant/equipment, labour, S/C), NEXUS saves it as a Word document and opens it in NEXUS Word
+async function bsxMsCreate(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return;
+  const d=bsxPlan(tid); let ai=true;
+  bsSetLog(tid,'AI is writing the method statement from the tender documents and BoQ – about a minute…','ms');
+  try{ if(!d.ms.rows.length){ try{ const r=await wpMsAIGen(d); d.ms.rows=r.rows; if(r.title&&!d.ms.title_edited) d.ms.title=r.title; d.ms.missing=r.missing; d.ms.ai_at=new Date().toISOString(); }
+      catch(e){ ai=false; bsSetLog(tid,'',''); if(!await confirmBox(`The AI could not write it (${e.message||e}). Create the empty 7-column method statement in NEXUS Word to fill in yourself?`,'Create empty table')) return; bsSetLog(tid,'Creating the method statement…','ms');
+        d.ms.rows=['MOBILISATION AND SITE ESTABLISHMENT','',''].map(op=>({id:uid(),op,dur:{n:'',u:'d'},method:[''],plant:[''],labour:[''],sc:op?['MAIN CONTRACTOR']:['']})); } }
+    await loadScript(XLSX_URL); const P=WP.doc; WP.doc=d; let body; try{ body=wpMsDocxBody(); } finally{ WP.doc=P; }
+    const html=oxDocxToHtml(oxDocx(body,{landscape:true,lr:720})).html;
+    const doc={type:'docx',title:`Method Statement – ${String(t.title||'').slice(0,70)}`,html,orient:'l',margin:'Narrow',lh:true,tpl:'plan:ms',tender_id:tid};
+    const id=await oxStore(doc); if(!id) throw new Error('could not save the Word document');
+    for(let k=0;k<20&&!byId('officedocs',id);k++) await new Promise(z=>setTimeout(z,150));   // wait for the saved copy to arrive
+    if(!byId('officedocs',id)) (S.officedocs||(S.officedocs=[])).push({id,...doc,owner:me.name||'',owner_uid:me.id||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    d.ms.doc_id=id; await bsxSavePlan(d); await bsxItem(tid,'ms',{doc_id:id,plan_id:d.id},'Method statement created in NEXUS Word');
+    const fl=d.ms.rows.flatMap(r=>(r.flags||[]).map(f=>`${String(r.op||'').slice(0,40)}: ${f}`));
+    bsSetLog(tid,`Method statement is open in NEXUS Word (${d.ms.rows.length} operations).${ai?' Durations are AI estimates – check them.':''}${fl.length?` To confirm: ${fl.slice(0,4).join(' · ')}${fl.length>4?` … (+${fl.length-4})`:''}`:''}`,'');
+    logAct(`Bid Studio: method statement for ${t.title}`); oxOpenDoc(id); }
+  catch(e){ bsSetLog(tid,`Could not create the method statement: ${e.message||e}`,''); } }
+// Work programme: ask commencement + working week, AI builds the programme (WBS, durations, links), NEXUS Project opens with it
+function bsxWpCreate(tid){ const t=byId('tenders',tid), b=bsBid(tid); if(!t||!b||BSB.busy) return; const d=bsxPlan(tid);
+  const nx=new Date(Date.now()+30*864e5); while(nx.getDay()!==1) nx.setDate(nx.getDate()+1);
+  const wk=bsxWeeks((b.facts||{}).completion);
+  formDrawer('Create work programme',[{k:'start',label:'Commencement date',type:'date',req:1},{k:'week',label:'Working week',type:'select',options:['Monday – Friday','Monday – Saturday']},{k:'weeks',label:'Completion period (weeks)',type:'number'}],
+    {start:d.info.start||nx.toISOString().slice(0,10),week:(d.pow.calendar.days||[]).includes(6)?'Monday – Saturday':'Monday – Friday',weeks:wk},
+    async v=>{ if(!v.start) return false; setTimeout(()=>bsxWpBuild(tid,v),50); },{saveLabel:'Create in NEXUS Project',sub:'AI plans the works from the tender documents, BoQ and method statement. Dates are calculated from these settings.'}); }
+async function bsxWpBuild(tid,v){ const t=byId('tenders',tid); if(!t) return; const d=bsxPlan(tid);
+  d.info.start=v.start; if(+v.weeks>0){ const e=new Date(v.start+'T00:00:00Z'); e.setUTCDate(e.getUTCDate()+Math.round(+v.weeks*7)-1); d.info.required_finish=e.toISOString().slice(0,10); }
+  d.pow.calendar={...d.pow.calendar,days:/Saturday/.test(v.week)?[1,2,3,4,5,6]:[1,2,3,4,5]};
+  bsSetLog(tid,'AI is planning the works (sections, activities, durations, links) – about a minute…','wp'); let note='';
+  try{ let T;
+    try{ const r=await wpPowAIGen(d); T=r.T; if(r.dropped) note=` ${r.dropped} AI link${r.dropped>1?'s':''} removed (loop).`; }
+    catch(e){ if(!d.ms.rows.length) throw e; note=' AI was not available – one task per method statement operation, linked in order.';
+      T=[wpTaskNew({name:'Commencement',lvl:1,dur:{n:0,u:'d'}})]; let prev=T[0]; d.ms.rows.forEach(r=>{ const D=r.dur||{}; const x=wpTaskNew({name:String(r.op||'Operation').replace(/\s+/g,' '),dur:D.n===''||D.n==null||D.txt?{n:1,u:'d',est:true}:{n:+D.n,u:D.u||'d',est:true},preds:[{id:prev.id,type:'FS'}],ms_ref:[r.id]}); T.push(x); prev=x; });
+      T.push(wpTaskNew({name:'Practical completion',lvl:1,dur:{n:0,u:'d'},preds:[{id:prev.id,type:'FS'}]})); }
+    d.pow.tasks=T; await bsxSavePlan(d);
+    const P=WP.doc; WP.doc=d; let xml; try{ xml=wpToMspdi(); } finally{ WP.doc=P; }
+    const X=oxj3ParseXml(xml), pid=oxjTP(tid);
+    oxjOpen(pid); await oxj3ImportParsed(X,Object.assign(['replace','file'],{force:true}),'NEXUS AI programme');
+    await bsxItem(tid,'wp',{prog:pid,plan_id:d.id},'Work programme created in NEXUS Project');
+    const R=WPS.schedule({start:d.info.start,required_finish:d.info.required_finish,calendar:d.pow.calendar,tasks:T});
+    bsSetLog(tid,`Work programme is open in NEXUS Project: ${T.length} tasks, ${fmtD(WPS.ds(R.start))} – ${fmtD(WPS.ds(R.finish))}.${R.warnings.length?' '+R.warnings[0]:''}${note} Durations are estimates – adjust them in NEXUS Project.`,'');
+    logAct(`Bid Studio: work programme for ${t.title}`); }
+  catch(e){ bsSetLog(tid,`Could not create the work programme: ${e.message||e}`,''); } }
+async function bsxDocDel(tid,form){ const b=bsBid(tid); const it=(b?.items||[]).find(x=>x.form===form); const d0=it&&it.doc_id&&byId('officedocs',it.doc_id); if(!d0) return;
+  if(!await confirmBox(`Delete "${d0.title}" from NEXUS Office for everyone? You can then create a new one.`,'Delete',true)) return;
+  if(!await remove('officedocs',d0.id)) return; S.officedocs=(S.officedocs||[]).filter(x=>x.id!==d0.id);
+  if(form==='ms'){ const d=(S.plans||[]).find(x=>x.id==='T_'+safeId(tid)); if(d){ const c=JSON.parse(JSON.stringify(d)); c.ms={...c.ms,rows:[],doc_id:'',status:'draft'}; await bsxSavePlan(c); } }
+  await bsxItem(tid,form,{doc_id:'',status:it.status==='ready'?'doing':it.status},`${form==='ms'?'Method statement':'Work programme'} Word document deleted`); logAct(`Deleted document "${d0.title}"`); toast('Deleted.'); }
+async function bsxWpDel(tid){ const pid=oxjTP(tid), L=msOf(pid); if(!L.length) return;
+  if(!await confirmBox(`Delete this work programme (${L.length} tasks) from NEXUS Project? You can then create a new one.`,'Delete',true)) return;
+  for(let i=0;i<L.length;i+=25) await Promise.all(L.slice(i,i+25).map(m=>remove('milestones',m.id))); S.milestones=S.milestones.filter(m=>m.project_id!==pid);
+  await patch('tenders',tid,{prog_mpp:null,prog_baseline_at:''}); const t=byId('tenders',tid); if(t){ t.prog_mpp=null; }
+  const d=(S.plans||[]).find(x=>x.id==='T_'+safeId(tid)); if(d){ const c=JSON.parse(JSON.stringify(d)); c.pow={...c.pow,tasks:[],status:'draft'}; await bsxSavePlan(c); }
+  const b=bsBid(tid), it=(b?.items||[]).find(x=>x.form==='wp'); await bsxItem(tid,'wp',{prog:'',status:it&&it.status==='ready'?'doing':it?.status},'Work programme deleted'); toast('Work programme deleted.'); }
 /* ===================== WORKS PLANNER (end) ===================== */
 /* ===================== PROFILE PHOTOS (v76) ===================== */
 // every login sets its own photo (avatars/<login id>); it shows in the top bar and on the Staff card with the same email
@@ -7405,7 +7470,6 @@ function pmProgrammeTab(p){
     ${isAdmin&&ms.length?`<button class="btn sm" data-act="pmBaseline">${base?'Reset baseline':'Set baseline'}</button>`:''}
     ${canWrite&&ms.length?'<button class="btn sm" data-act="pmShift" title="Move every activity to a new start date, keeping the same durations and sequence">📅 Change start date</button>':''}
     ${isAdmin&&ms.length?'<button class="btn sm danger" data-act="pmDelAll" title="Delete the whole programme of this project">🗑 Delete programme</button>':''}
-    ${wpEntryBtn({project_id:p.id,tab:'pow'},'📐 Programme of Works & method statement')}
     ${canWrite?'<label class="btn sm" title="Import a Gantt chart made outside NEXUS: MS Project XML, Excel / CSV (MS Project, Primavera, consultant), or a PDF / photo of the programme" style="cursor:pointer">⇪ Import programme<input type="file" hidden accept=".xml,.xlsx,.xlsm,.xls,.csv,.ods,.pdf,image/*,.mpp,.xer" data-pmimp="1"></label><button class="btn sm" data-act="pmTpl" title="Excel template for importing a programme">Template</button>':''}<button class="btn sm" data-act="pmProject" title="Open in NEXUS Project (Microsoft Project look, MS Project XML)">▤ Project</button>${ms.length?'<button class="btn sm" data-act="pmPdf" title="Download the Gantt chart as PDF (choose “Save as PDF” in the print window)">⬇ PDF</button><button class="btn sm" data-act="pmExport">Excel</button>':''}<button class="btn pri" data-act="addMs">Add activity</button></div>
   ${view==='gantt'?`<div class="card"><div class="bd" style="padding:8px">${pmGantt(p.id,{fc:f&&f.fc,contract:f&&f.contract})}</div></div>`:''}
   ${view==='ahead'?`<div class="card"><div class="hd"><h2>Look-ahead – next 14 days</h2><span class="sub">for the site meeting · updates itself from the programme</span></div>${pmLookahead([p.id])}</div>`:''}
@@ -7623,7 +7687,7 @@ function plantMain(){
 }
 function pmAlerts(A){
   S.projects.filter(p=>!/complet|closed|cancel|lost/i.test(p.status||'')).forEach(p=>{ const f=pmForecast(p); if(f&&f.status==='late') A.push({lvl:'bad',kind:'Programme late',text:`${p.name} – forecast finish ${fmtD(f.fc)}`,sub:`${f.slip} days after contract completion ${fmtD(f.contract)} · speed ${f.spi!=null?f.spi.toFixed(2):'—'}`,go:['project',p.id],sort:7}); });
-  S.milestones.forEach(m=>{ if((+m.progress||0)<100&&m.planned_finish&&daysLeft(m.planned_finish+'T23:59')<0) A.push({lvl:'warn',kind:'Activity late',text:`${m.name}`,sub:`${projName(m.project_id)} · planned finish ${fmtD(m.planned_finish)} · ${+m.progress||0}% done`,go:['project',m.project_id],sort:12}); });
+  S.milestones.forEach(m=>{ if(String(m.project_id||'').startsWith('TP:')) return; if((+m.progress||0)<100&&m.planned_finish&&daysLeft(m.planned_finish+'T23:59')<0) A.push({lvl:'warn',kind:'Activity late',text:`${m.name}`,sub:`${projName(m.project_id)} · planned finish ${fmtD(m.planned_finish)} · ${+m.progress||0}% done`,go:['project',m.project_id],sort:12}); });
   S.variations.forEach(v=>{ if(v.status==='Instructed'&&v.date_instructed&&daysLeft(v.date_instructed)<-14) A.push({lvl:'warn',kind:'Variation not submitted',text:`${v.ref} – ${v.description}`,sub:`${projName(v.project_id)} · instructed ${fmtD(v.date_instructed)}`,go:['project',v.project_id],sort:14}); });
   S.risks.forEach(r=>{ if(r.status!=='Closed'&&(+r.likelihood||0)*(+r.impact||0)>=15) A.push({lvl:'bad',kind:'High risk',text:r.title,sub:`${projName(r.project_id)} · owner ${staffName(r.owner)}`,go:['project',r.project_id],sort:6}); });
   S.projects.forEach(p=>{ if(!p.pc_date||pPcBad(p)) return; const rel=new Date(new Date(p.pc_date).setMonth(new Date(p.pc_date).getMonth()+(+p.dlp_months||12))); const d=daysLeft(rel); if(d!=null&&d<=30&&d>-60) A.push({lvl:'blue',kind:'Retention release',text:`Apply for retention release – ${p.name}`,sub:`Defects liability period ends ${fmtD(rel)}`,go:['project',p.id],sort:25}); });
@@ -18972,8 +19036,14 @@ const oxj3Ymd=n=>n==null?'':nYmd(n);
 const oxj3Dd=n=>{ if(n==null) return ''; const d=new Date(n*864e5); return `${'Sun Mon Tue Wed Thu Fri Sat'.split(' ')[d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(2)}`; };
 const oxj3Money=n=>(+n||0)?'TZS '+Math.round(+n).toLocaleString('en-US'):'TZS 0';
 const oxj3Today=()=>dayN(today());
-function oxj3Mpp(pid){ const p=byId('projects',pid)||{}; const m=p.mpp&&typeof p.mpp==='object'?p.mpp:{}; return {res:Array.isArray(m.res)?m.res:[],cal:m.cal||null,start:m.start||'',status:m.status||'',tl:m.tl}; }
-async function oxj3SaveMpp(pid,chg){ if(canWrite===false){ toast('Read-only login.'); return false; } const p=byId('projects',pid); if(!p) return false; const mpp={...(p.mpp||{}),...chg}; p.mpp=mpp; await patch('projects',pid,{mpp}); return true; }
+/* v244 · a tender's work programme lives in NEXUS Project before there is a project: pid "TP:<tender id>",
+   tasks are milestones with that project_id, the Project settings (calendar, resources, start) sit on the tender. */
+const oxjTP=tid=>'TP:'+tid;
+function oxjProj(pid){ const p=byId('projects',pid); if(p) return p; if(typeof pid!=='string'||!pid.startsWith('TP:')) return null;
+  const t=byId('tenders',pid.slice(3)); if(!t) return null;
+  return {id:pid,tender_id:t.id,name:`Work Programme – ${t.title||t.no||'tender'}`,client:t.client||'',location:t.location||'',mpp:t.prog_mpp&&typeof t.prog_mpp==='object'?t.prog_mpp:{},baseline_at:t.prog_baseline_at||'',start:(t.prog_mpp&&t.prog_mpp.start)||''}; }
+function oxj3Mpp(pid){ const p=oxjProj(pid)||{}; const m=p.mpp&&typeof p.mpp==='object'?p.mpp:{}; return {res:Array.isArray(m.res)?m.res:[],cal:m.cal||null,start:m.start||'',status:m.status||'',tl:m.tl}; }
+async function oxj3SaveMpp(pid,chg){ if(canWrite===false){ toast('Read-only login.'); return false; } const p=oxjProj(pid); if(!p) return false; const mpp={...(p.mpp||{}),...chg}; p.mpp=mpp; if(p.tender_id){ const t=byId('tenders',p.tender_id); if(t) t.prog_mpp=mpp; await patch('tenders',p.tender_id,{prog_mpp:mpp}); } else await patch('projects',pid,{mpp}); return true; }
 
 /* ---------- working calendar (day numbers = days since 1970-01-01) ---------- */
 function oxj3CalName(wd){ const k=[...wd].sort().join(''); return k==='12345'?'Standard (Mon–Fri)':k==='123456'?'Six-day week (Mon–Sat)':k==='0123456'?'7-day site calendar':'Custom calendar'; }
@@ -19015,7 +19085,7 @@ function oxj3ResMap(pid){ return new Map(oxj3Mpp(pid).res.map(r=>[r.id,r])); }
 function oxj3AsgCost(a,r,dur){ if(!r) return 0; const u=+a.u||0; if(r.type==='Cost') return +a.c||0; if(r.type==='Material') return (+r.rate||0)*u+(+r.use||0); return (+r.rate||0)*u*dur+(+r.use||0); }
 
 /* ---------- the scheduler: forward pass (links, constraints, actuals), roll-up, backward pass (slack, critical path) ---------- */
-function oxj3Calc(M){ const {T,by,C,pid}=M; const leaves=T.filter(t=>!t.sum), R=oxj3ResMap(pid), mpp=oxj3Mpp(pid), p=byId('projects',pid)||{};
+function oxj3Calc(M){ const {T,by,C,pid}=M; const leaves=T.filter(t=>!t.sum), R=oxj3ResMap(pid), mpp=oxj3Mpp(pid), p=oxjProj(pid)||{};
   const PS=dayN(mpp.start)??Math.min(...[dayN(p.start),...T.map(t=>t.s)].filter(x=>x!=null).concat([oxj3Today()]));
   M.PS=PS; const eff=new Map(leaves.map(t=>[t.id,[]])), succ=new Map(leaves.map(t=>[t.id,[]]));
   leaves.forEach(t=>{ const seen=new Set(); for(let a=t;a;a=a.par) a.links.forEach(l=>{ const q=by.get(l.id); if(!q||q===t||oxj3IsAnc(q,t)) return; oxj3Leaves(q).forEach(x=>{ if(x===t||seen.has(x.id+l.type)) return; seen.add(x.id+l.type); eff.get(t.id).push({p:x,type:l.type,lag:l.lag}); succ.get(x.id).push({q:t,type:l.type,lag:l.lag}); }); }); });
@@ -19077,7 +19147,7 @@ function oxj3Diffs(M,extra={}){ const out={};
 
 /* ---------- open ---------- */
 function oxjOpen(pid){
-  const p=byId('projects',pid); if(!p) return toast('Choose a project.');
+  const p=oxjProj(pid); if(!p) return toast('Choose a project.');
   const keep=OXJ&&OXJ.pid===pid?OXJ:null; if(OXJ?.poll) clearInterval(OXJ.poll);
   OXJ={pid,view:keep?.view||'gantt',table:keep?.table||'Entry',filter:'all',dw:keep?.dw||(innerWidth<700?7:9),sel:null,sels:new Set(),crit:true,base:keep?.base??true,tl:innerWidth>=700&&oxj3Mpp(pid).tl!==false,wbs:true,p0:false,coll:new Set(),sig:'',undo:[],gw:keep?.gw||null,M:null};
   const el=oxShell('mpp',p.name,{tabs:['Task','Resource','Project','View','Format'],onTab:t=>{ if(t==='File') return oxjFile(); OXJ.tab=t; $('#oxRib').innerHTML=oxjRibbon(t); },status:'Every change is saved to NEXUS'});
@@ -19092,7 +19162,7 @@ function oxjOpen(pid){
   oxj3Layout(); oxjRender(); oxj3Sync();
   OXJ.poll=setInterval(()=>{ if(!OXJ||!$('#oxBody')||$('#oxApp')?.dataset.type!=='mpp'){ clearInterval(OXJ?.poll); return; } if(OXJ.busy||document.querySelector('#oxApp td input,#oxApp td select,#oxApp .oxj3-dlg,#oxApp .oxj3-drag')) return; if(oxj3Sig()!==OXJ.sig){ oxjRender(); oxj3Sync(); } },900);
   setTimeout(()=>{ if(OXJ?.M?.T.length) oxjAct('scroll',null,OXJ.M.T[0].id); },60); }
-function oxj3Sig(){ const p=byId('projects',OXJ.pid)||{}; return JSON.stringify([msOf(OXJ.pid).map(m=>[m.id,m.name,m.planned_start,m.planned_finish,m.progress,m.preds,m.lag,m.links,m.resp,m.kind,m.seq,m.lvl,m.dur,m.cons,m.asg,m.manual,m.notes,m.fixed,m.baseline_start,m.baseline_finish,m.baseline_cost,m.actual_start,m.actual_finish,m.tl,m.weight]),p.mpp||null]); }
+function oxj3Sig(){ const p=oxjProj(OXJ.pid)||{}; return JSON.stringify([msOf(OXJ.pid).map(m=>[m.id,m.name,m.planned_start,m.planned_finish,m.progress,m.preds,m.lag,m.links,m.resp,m.kind,m.seq,m.lvl,m.dur,m.cons,m.asg,m.manual,m.notes,m.fixed,m.baseline_start,m.baseline_finish,m.baseline_cost,m.actual_start,m.actual_finish,m.tl,m.weight]),p.mpp||null]); }
 function oxj3Layout(){ const v=OXJ.view;
   const tl=OXJ.tl&&v!=='res'?`<div class="oxj3-tl" id="oxjTl"></div>`:'';
   let main;
@@ -19175,7 +19245,7 @@ function oxj3Grid(M){ const R=oxj3ResMap(OXJ.pid), rows=oxj3Visible(M), ro=canWr
     if(k==='Task Name'){ const pad=(t.lvl-1)*16; return `<td class="nm" data-f="Task Name" title="${esc(t.name)}" style="padding-left:${4+pad}px">${t.sum?`<span class="tg" data-tg="${t.id}">${OXJ.coll.has(t.id)?'▶':'◢'}</span>`:'<span class="tg"></span>'}${OXJ.wbs?`<span class="wb">${t.wbs}</span>`:''}${esc(t.name)}</td>`; }
     const val=oxj3Cell(t,k,M,R), num=/Cost|Remaining|Duration|Complete|Var\.|Slack|Dur\./.test(k), editable=OXJ3_EDIT.has(k)&&!(t.sum&&/Duration|Start|Finish|Predecessors|% Complete|Act\./.test(k)&&k!=='Predecessors');
     return `<td class="${num?'num':''} ${editable?'':'ro'}" ${editable?`data-f="${k}"`:''} title="${esc(val)}">${esc(val)}</td>`; };
-  const p0=OXJ.p0&&M.T.length?`<tr class="p0" data-row="__p0"><td class="id">0</td>${cols.slice(1).map(([k])=>{ const fake={...M.T[0],id:'__p0',m:{},name:byId('projects',OXJ.pid)?.name||'Project',S:Math.min(...M.T.map(t=>t.S)),F:M.PF,sum:true,lvl:1,links:[],asg:[],dur:M.C.dur(Math.min(...M.T.map(t=>t.S)),M.PF),cost:M.cost,pct:(()=>{ const L=M.T.filter(t=>!t.par); const w=L.reduce((a,x)=>a+(x.ms?0:x.dur),0); return w?Math.round(L.reduce((a,x)=>a+(x.ms?0:x.dur*x.pct),0)/w):0; })(),fixed:0}; return k==='Task Name'?`<td class="nm">${esc(fake.name)}</td>`:k==='i'||k==='Mode'?'<td></td>':`<td class="${/Cost|Duration|Complete/.test(k)?'num':''}">${esc(oxj3Cell(fake,k,M,R))}</td>`; }).join('')}</tr>`:'';
+  const p0=OXJ.p0&&M.T.length?`<tr class="p0" data-row="__p0"><td class="id">0</td>${cols.slice(1).map(([k])=>{ const fake={...M.T[0],id:'__p0',m:{},name:oxjProj(OXJ.pid)?.name||'Project',S:Math.min(...M.T.map(t=>t.S)),F:M.PF,sum:true,lvl:1,links:[],asg:[],dur:M.C.dur(Math.min(...M.T.map(t=>t.S)),M.PF),cost:M.cost,pct:(()=>{ const L=M.T.filter(t=>!t.par); const w=L.reduce((a,x)=>a+(x.ms?0:x.dur),0); return w?Math.round(L.reduce((a,x)=>a+(x.ms?0:x.dur*x.pct),0)/w):0; })(),fixed:0}; return k==='Task Name'?`<td class="nm">${esc(fake.name)}</td>`:k==='i'||k==='Mode'?'<td></td>':`<td class="${/Cost|Duration|Complete/.test(k)?'num':''}">${esc(oxj3Cell(fake,k,M,R))}</td>`; }).join('')}</tr>`:'';
   g.innerHTML=`<table style="width:${W}px"><colgroup>${cols.map(c=>`<col style="width:${c[1]}px">`).join('')}</colgroup><thead><tr>${cols.map(c=>`<th class="${c[0]==='Task Name'?'nm':''}">${c[0]==='i'?'<span title="Indicators">ⓘ</span>':c[0]==='Mode'?'<span title="Task Mode">↦</span>':esc(c[0])}</th>`).join('')}</tr></thead><tbody>${p0}
     ${rows.map(t=>`<tr data-row="${t.id}" class="${OXJ.sel===t.id?'sel':''} ${OXJ.sels.has(t.id)&&OXJ.sel!==t.id?'msel':''} ${t.sum?'sum':''} ${t.ms?'ms':''} ${OXJ.crit&&t.crit?'crit':''}">${cols.map(([k,w])=>td(t,k,w)).join('')}</tr>`).join('')}
     ${ro?'':`<tr data-row="__new">${cols.map(([k])=>k==='ID'?`<td class="id">${M.T.length+1}</td>`:k==='Task Name'?`<td class="nm new" data-f="Task Name">Type a new task name</td>`:'<td></td>').join('')}</tr>`}
@@ -19405,7 +19475,7 @@ async function oxjAct(a,v,id){ if(!OXJ) return; const M=OXJ.M||oxj3Calc(oxj3Mode
   if(a==='save'){ oxSetStatus('Saved to NEXUS'); return toast('Every change in Project is saved to NEXUS straight away.'); }
   if(a==='download') return oxjDownload();
   if(a==='excel') return oxj3Excel();
-  if(a==='report'){ try{ await loadScript(XLSX_URL); }catch(_){} return pmExcel([OXJ.pid],safeId(projName(OXJ.pid))+'-programme'); }
+  if(a==='report'){ if(oxjProj(OXJ.pid)?.tender_id) return oxj3Excel(); try{ await loadScript(XLSX_URL); }catch(_){} return pmExcel([OXJ.pid],safeId(projName(OXJ.pid))+'-programme'); }
   if(a==='importxml') return $('#oxjXml').click();
   if(a==='undo') return oxj3Undo();
   if(a==='view'||a==='setview'||a==='vres'||a==='vgantt'){ OXJ.view=a==='vres'?'res':a==='vgantt'?'gantt':v; oxj3Layout(); reRib(); oxjRender(); return; }
@@ -19512,7 +19582,7 @@ function oxj3TaskInfo(t,start){ const M=OXJ.M, C=M.C, m=t.m, R=oxj3Mpp(OXJ.pid).
     const all={...extra}; if(Object.keys(ch).length) all[t.id]={...(all[t.id]||{}),...ch}; if(!Object.keys(all).length) return;
     await oxj3Commit(all,{label:'Task information'}); },{start});
   d.addEventListener('click',e=>{ const rm=e.target.closest('[data-rmrow]'); if(rm){ rm.closest('tr').remove(); return; } const ad=e.target.closest('[data-addrow]'); if(ad){ const tb=d.querySelector(ad.dataset.addrow==='p'?'#oxj3PB':'#oxj3RB'); tb.insertAdjacentHTML('beforeend',ad.dataset.addrow==='p'?predRow():resRow()); } }); }
-function oxj3ProjInfo(){ const p=byId('projects',OXJ.pid)||{}, M=OXJ.M, mpp=oxj3Mpp(OXJ.pid), f=pmForecast(p), ro=canWrite===false;
+function oxj3ProjInfo(){ const p=oxjProj(OXJ.pid)||{}, M=OXJ.M, mpp=oxj3Mpp(OXJ.pid), f=pmForecast(p), ro=canWrite===false;
   oxj3Dlg(`Project Information for '${p.name||''}'`,[['General',`<div class="fr"><label class="l">Start date<input data-k="start" type="date" value="${esc(mpp.start||oxj3Ymd(M.PS))}"></label><label class="l">Finish date<input value="${esc(oxj3Dd(M.PF))}" disabled></label>
     <label class="l">Schedule from<select disabled><option>Project Start Date</option></select></label><label class="l">Current date<input value="${esc(fmtD(today()))}" disabled></label>
     <label class="l">Status date<input data-k="status" type="date" value="${esc(mpp.status||'')}"></label><label class="l">Calendar<input value="${esc(M.C.name)}" disabled></label>
@@ -19545,11 +19615,11 @@ function oxj3CalDlg(){ const C=OXJ.M.C, ro=canWrite===false; let hol=C.hol.map(h
 function oxj3BaselineDlg(){ const M=OXJ.M, ro=canWrite===false, has=M.T.some(t=>t.m.baseline_finish);
   oxj3Dlg('Set Baseline',[['Baseline',`<label class="chk" style="margin-bottom:8px"><input type="radio" name="bl" value="set" checked> Set baseline</label><label class="chk"><input type="radio" name="bl" value="clear" ${has?'':'disabled'}> Clear baseline</label>
     <div style="margin:14px 0 0 22px"><div style="font-size:12px;color:#605E5C;margin-bottom:4px">For:</div><label class="chk"><input type="radio" name="for" value="all" checked> Entire project</label><label class="chk"><input type="radio" name="for" value="sel" ${OXJ.sels.size?'':'disabled'}> Selected tasks (${OXJ.sels.size})</label></div>
-    <p style="font-size:12px;color:#605E5C;margin-top:14px">${has?`Current baseline saved ${(byId('projects',OXJ.pid)||{}).baseline_at?fmtDT(byId('projects',OXJ.pid).baseline_at):''}. `:''}The baseline keeps the planned start, finish, duration and cost so slippage (variance) can be measured. Grey bars on the Gantt chart show it.</p>`]],async d=>{ if(ro){ toast('Read-only login.'); return; }
+    <p style="font-size:12px;color:#605E5C;margin-top:14px">${has?`Current baseline saved ${(oxjProj(OXJ.pid)||{}).baseline_at?fmtDT(oxjProj(OXJ.pid).baseline_at):''}. `:''}The baseline keeps the planned start, finish, duration and cost so slippage (variance) can be measured. Grey bars on the Gantt chart show it.</p>`]],async d=>{ if(ro){ toast('Read-only login.'); return; }
       const clear=d.querySelector('[name=bl]:checked').value==='clear', sel=d.querySelector('[name=for]:checked').value==='sel'; const L=sel?M.T.filter(t=>OXJ.sels.has(t.id)):M.T;
       if(!clear&&has&&!sel&&!await confirmBox('Replace the existing baseline for the entire project?','Replace')) return false;
       const ch={}; L.forEach(t=>{ ch[t.id]=clear?{baseline_start:'',baseline_finish:'',baseline_dur:'',baseline_cost:''}:{baseline_start:oxj3Ymd(t.S),baseline_finish:oxj3Ymd(t.F),baseline_dur:t.ms?0:t.dur,baseline_cost:Math.round(t.cost||0)}; });
-      const ok=await oxj3Commit(ch,{label:clear?'Clear baseline':'Set baseline'}); if(ok&&!sel){ await patch('projects',OXJ.pid,{baseline_at:clear?'':new Date().toISOString(),baseline_by:clear?'':(me.name||'')}); logAct(`Programme baseline ${clear?'cleared':'set'} – ${projName(OXJ.pid)}`); } toast(clear?'Baseline cleared.':'Baseline saved.'); },{okLabel:'OK'}); }
+      const ok=await oxj3Commit(ch,{label:clear?'Clear baseline':'Set baseline'}); if(ok&&!sel){ { const bl={baseline_at:clear?'':new Date().toISOString(),baseline_by:clear?'':(me.name||'')}; const pp=oxjProj(OXJ.pid); if(pp&&pp.tender_id) await patch('tenders',pp.tender_id,{prog_baseline_at:bl.baseline_at}); else await patch('projects',OXJ.pid,bl); } logAct(`Programme baseline ${clear?'cleared':'set'} – ${projName(OXJ.pid)}`); } toast(clear?'Baseline cleared.':'Baseline saved.'); },{okLabel:'OK'}); }
 function oxj3ResEdit(td){ if(canWrite===false) return; const tr=td.closest('tr'), id=tr.dataset.res, k=td.dataset.rf; if(!k) return; const R=[...oxj3Mpp(OXJ.pid).res], r=id==='__new'?null:R.find(x=>x.id===id); if(id!=='__new'&&!r) return;
   const val=!r?'':k==='Resource Name'?r.name:k==='Type'?(r.type||'Work'):k==='Material Label'?(r.label||''):k==='Initials'?(r.ini||''):k==='Group'?(r.group||''):k==='Max. Units'?Math.round((+r.max||1)*100)+'%':k==='Std. Rate (/day)'?(+r.rate||0):k==='Ovt. Rate'?(+r.ot||0):k==='Cost/Use'?(+r.use||0):'';
   td.innerHTML=k==='Type'?`<select>${['Work','Material','Cost'].map(x=>`<option ${x===val?'selected':''}>${x}</option>`).join('')}</select>`:`<input value="${esc(val)}" ${/Rate|Use/.test(k)?'type="number" min="0"':''}>`; const inp=td.firstChild; inp.focus(); inp.select?.(); let done=false;
@@ -19562,11 +19632,11 @@ function oxj3ResEdit(td){ if(canWrite===false) return; const tr=td.closest('tr')
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); fin(true); } if(e.key==='Escape'){ e.preventDefault(); fin(false); } e.stopPropagation(); }); inp.addEventListener('blur',()=>fin(true)); if(inp.tagName==='SELECT') inp.addEventListener('change',()=>fin(true)); }
 
 /* ---------- print / Excel ---------- */
-function oxjPrint(){ const w=window.open('','_blank'); if(!w) return toast('Allow pop-ups to print.'); const p=byId('projects',OXJ.pid)||{}; const g=$('#oxjGrid'), c=$('#oxjGantt'), n=$('#oxj3Net'), r=$('#oxj3Res'), tl=$('#oxjTl');
+function oxjPrint(){ const w=window.open('','_blank'); if(!w) return toast('Allow pop-ups to print.'); const p=oxjProj(OXJ.pid)||{}; const g=$('#oxjGrid'), c=$('#oxjGantt'), n=$('#oxj3Net'), r=$('#oxj3Res'), tl=$('#oxjTl');
   const css=[...document.querySelectorAll('#oxCss,#oxj3Css')].map(s=>s.textContent).join('\n').replace(/#oxApp /g,'');
   const body=OXJ.view==='net'?`<div class="oxj3-net" style="overflow:visible">${n?.innerHTML||''}</div>`:OXJ.view==='res'?`<div class="oxj3-res" style="overflow:visible">${r?.innerHTML||''}</div>`:`<div class="oxj-main" style="display:flex;align-items:flex-start"><div class="oxj-grid" style="width:auto;overflow:visible;flex:none">${g?.innerHTML.replace(/<tr class="fill">[\s\S]*?<\/tr>/g,'').replace(/<tr data-row="__new">[\s\S]*?<\/tr>/,'')||''}</div>${c?`<div class="oxj-gantt" style="overflow:hidden;flex:1;min-width:0"><div style="margin-left:-${c.scrollLeft}px">${c.innerHTML}</div></div>`:''}</div>`;
   w.document.write(`<!doctype html><html><head><title>${esc(p.name)} – ${OXJ.view==='res'?'resources':'programme'}</title><style>@page{size:A3 landscape;margin:8mm}body{font:11px 'Segoe UI',Arial;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}${css}.oxj-grid,.oxj-gantt{overflow:visible!important;height:auto}.oxj-body{height:auto!important;min-height:${(oxj3Visible(OXJ.M).length+1)*OXJ3_H}px}h1{font-size:16px;margin:0 0 6px}.ft{margin-top:8px;color:#605E5C;font-size:10px;display:flex;justify-content:space-between}.oxj-grid td{cursor:default}</style></head><body><h1>${esc(company().name)} – ${esc(p.name)} – ${OXJ.view==='res'?'Resource Sheet':OXJ.view==='net'?'Network Diagram':'Programme'}</h1>${OXJ.tl&&tl&&OXJ.view!=='res'?`<div class="oxj3-tl" style="position:relative;height:${tl.offsetHeight}px;width:${tl.offsetWidth}px">${tl.innerHTML}</div>`:''}${body}<div class="ft"><span>${esc(OXJ.M.C.name)} · ${OXJ.M.T.length} tasks · Cost ${oxj3Money(OXJ.M.cost)}</span><span>Printed ${new Date().toLocaleString('en-GB')} · NORDIC NEXUS</span></div></body></html>`); w.document.close(); setTimeout(()=>{ w.focus(); w.print(); },600); }
-async function oxj3Excel(){ try{ await loadScript(XLSX_URL); }catch(e){ return toast('Excel export is not available.'); } const M=OXJ.M, R=oxj3ResMap(OXJ.pid), p=byId('projects',OXJ.pid)||{};
+async function oxj3Excel(){ try{ await loadScript(XLSX_URL); }catch(e){ return toast('Excel export is not available.'); } const M=OXJ.M, R=oxj3ResMap(OXJ.pid), p=oxjProj(OXJ.pid)||{};
   const rows=[[`${company().name||''} – ${p.name||''} – programme`],[`Exported ${new Date().toLocaleString('en-GB')} · ${M.C.name}`],[],['ID','WBS','Task Name','Duration (days)','Start','Finish','Predecessors','Resource Names','% Complete','Cost (TZS)','Baseline Start','Baseline Finish','Finish Variance (days)','Total Slack (days)','Critical','Constraint','Notes']];
   M.T.forEach(t=>{ const bf=dayN(t.m.baseline_finish); rows.push([t.no,t.wbs,'    '.repeat(t.lvl-1)+t.name,t.ms?0:t.dur,oxj3Ymd(t.S),oxj3Ymd(t.F),oxj3PredTxt(t,M),oxj3ResTxt(t,R),t.pct/100,Math.round(t.cost||0),t.m.baseline_start||'',t.m.baseline_finish||'',bf!=null?M.C.diff(t.F,bf):'',t.sum?'':t.TF,t.crit?'Yes':'',t.cons?(OXJ3_CONS.find(c=>c[0]===t.cons.t)||[])[1]+(t.cons.d?' '+t.cons.d:''):'',t.m.notes||'']); });
   const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[6,8,46,10,11,11,14,26,10,14,12,12,10,10,8,26,40].map(w=>({wch:w})); for(let i=4;i<rows.length;i++){ const c=ws['I'+(i+1)]; if(c) c.z='0%'; const k=ws['J'+(i+1)]; if(k) k.z='#,##0'; }
@@ -19574,14 +19644,14 @@ async function oxj3Excel(){ try{ await loadScript(XLSX_URL); }catch(e){ return t
   const rr=[['Resource Name','Type','Material Label','Max Units','Std Rate (TZS/day or per unit)','Overtime Rate','Cost/Use']].concat(oxj3Mpp(OXJ.pid).res.map(r=>[r.name,r.type||'Work',r.label||'',(+r.max||1),+r.rate||0,+r.ot||0,+r.use||0]));
   const ws2=XLSX.utils.aoa_to_sheet(rr); ws2['!cols']=[28,10,12,10,22,14,12].map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws2,'Resources');
   if(await oxSave(projName(OXJ.pid)+' – programme',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),'xlsx')) logAct(`Exported programme to Excel – ${projName(OXJ.pid)}`); }
-function oxjFile(){ const p=byId('projects',OXJ.pid)||{}; oxBackstage('mpp',[
+function oxjFile(){ const p=oxjProj(OXJ.pid)||{}; oxBackstage('mpp',[
   {k:'info',t:'Info',html:()=>`<h2>Info</h2><p><b>${esc(p.name)}</b></p><p style="color:#605E5C">${OXJ.M.T.length} tasks · ${oxj3Mpp(OXJ.pid).res.length} resources · ${esc(OXJ.M.C.name)} · the programme of this NEXUS project (Projects → Programme). Every change is saved immediately and everybody sees it.</p><p style="color:#605E5C;max-width:600px">To work in Microsoft Project on the PC: <b>Save as Project XML</b> and open the .xml file in Microsoft Project (File → Open → XML format). Outline, links (FS/SS/FF/SF with lag), constraints, calendar, resources, assignments, costs and the baseline are all included. To bring it back: in Project use File → Save As → XML, then <b>Import Project XML</b> here.</p>`},
   {k:'open',t:'Open',html:()=>`<h2>Open</h2><div>${S.projects.filter(x=>msOf(x.id).length||x.id===OXJ.pid).map(x=>`<div data-bkact="openprj" data-id="${esc(x.id)}" style="display:flex;gap:10px;align-items:center;padding:8px;cursor:pointer;border-bottom:1px solid #EDEBE9">${oxIco('mpp',22)}<span style="flex:1">${esc(x.name)}</span><span style="color:#605E5C;font-size:12px">${msOf(x.id).length} tasks</span></div>`).join('')}</div><p><button class="ox-b" style="border:1px solid #8A8886;height:32px;padding:0 14px;margin-top:12px" data-bkact="openother">All projects…</button></p>`},
   {k:'download',t:'Save as Project XML'},{k:'excel',t:'Export to Excel'},{k:'report',t:'Programme report (Excel)'},{k:'importxml',t:'Import Project XML'},{k:'print',t:'Print / PDF'},{k:'close',t:'Close'}],
   async (k,ds)=>{ if(k==='openprj'){ clearInterval(OXJ.poll); document.removeEventListener('keydown',oxjKey); return oxjOpen(ds.id); } if(k==='openother') return oxjAct('openprj'); return oxjAct(k); }); }
 
 /* ---------- Microsoft Project XML (MSPDI) – export ---------- */
-function oxjToXml(pid){ const p=byId('projects',pid)||{}; const M=oxj3Calc(oxj3Model(pid)), C=M.C, T=M.T, R=oxj3Mpp(pid).res, mpp=oxj3Mpp(pid), hpd=C.hpd, mpd=hpd*60;
+function oxjToXml(pid){ const p=oxjProj(pid)||{}; const M=oxj3Calc(oxj3Model(pid)), C=M.C, T=M.T, R=oxj3Mpp(pid).res, mpp=oxj3Mpp(pid), hpd=C.hpd, mpd=hpd*60;
   const now=new Date().toISOString().slice(0,19), dt=(n,tm)=>`${oxj3Ymd(n)}T${tm}`, st='08:00:00', ft=`${String(8+hpd+(hpd>4?1:0)).padStart(2,'0')}:00:00`;
   const PT=days=>`PT${Math.round(days*hpd)}H0M0S`, uidOf=new Map(T.map((t,i)=>[t.id,i+1])), ruid=new Map(R.map((r,i)=>[r.id,i+1]));
   const ps=T.length?Math.min(M.PS,...T.map(t=>t.S)):dayN(p.start)??oxj3Today(), pf=T.length?M.PF:ps;
@@ -19635,12 +19705,8 @@ function oxj3ParseXml(text){ const doc=new DOMParser().parseFromString(text,'app
       links:all(t,'PredecessorLink').map(l=>{ const lf=+g(l,'LagFormat')||7, raw=+g(l,'LinkLag')||0; return {uid:g(l,'PredecessorUID'),type:OXJ3_LT[+g(l,'Type')]||'FS',lag:lf===19||lf===20?{pct:raw/10}:Math.round(raw/(mpd*10))}; }),
       bs:bl?g(bl,'Start').slice(0,10):'',bf:bl?g(bl,'Finish').slice(0,10):'',bd:bl?Math.round(dur(g(bl,'Duration'))):'',bc:bl?+g(bl,'Cost')||0:'',asg:asg[g(t,'UID')]||[]}); });
   return {T,RES,cal:wd?{wd,hol,hpd}:null,start:g(P,'StartDate').slice(0,10),status:g(P,'StatusDate').slice(0,10),title:g(P,'Title')||g(P,'Name')}; }
-async function oxjImportXml(file){ if(canWrite===false) return toast('Read-only login.'); let X; try{ X=oxj3ParseXml(await file.text()); }catch(e){ return toast(e.message||'Not a Project XML file.'); }
-  if(!X.T.length) return toast('No tasks found in this file.');
-  const have=msOf(OXJ.pid).length; const v=await oxDialog(`Import ${X.T.length} tasks${X.RES.length?` and ${X.RES.length} resources`:''} into ${projName(OXJ.pid)}`,[{label:'How',options:have?[['add','Add them after the current programme ('+have+' tasks)'],...(isAdmin?[['replace','Replace the current programme (admin)']]:[])]:[['add','Create the programme']]},{label:'Working calendar',options:X.cal?[['file',`Use the calendar in the file (${oxj3CalName(X.cal.wd)}${X.cal.hol.length?`, ${X.cal.hol.length} exceptions`:''})`],['keep','Keep the NEXUS calendar']]:[['keep','Keep the NEXUS calendar']]}],'Import'); if(!v) return;
-  OXJ.busy=true; oxSetStatus('Importing…');
-  try{
-    if(v[0]==='replace'&&isAdmin){ await Promise.all(msOf(OXJ.pid).map(m=>remove('milestones',m.id))); S.milestones=S.milestones.filter(m=>m.project_id!==OXJ.pid); }
+async function oxj3ImportParsed(X,v,fileName){ const have=msOf(OXJ.pid).length;
+    if(v[0]==='replace'&&(isAdmin||v.force)){ await Promise.all(msOf(OXJ.pid).map(m=>remove('milestones',m.id))); S.milestones=S.milestones.filter(m=>m.project_id!==OXJ.pid); }
     const mpp=oxj3Mpp(OXJ.pid), byName=new Map(mpp.res.map(r=>[r.name.toLowerCase(),r])), R=[...mpp.res], rmap={};
     X.RES.forEach(r=>{ const ex=byName.get(r.name.toLowerCase()); if(ex) rmap[r.id]=ex.id; else { R.push(r); rmap[r.id]=r.id; } });
     const chg={res:R}; if(v[1]==='file'&&X.cal) chg.cal={...X.cal,name:oxj3CalName(X.cal.wd)}; if(v[0]==='replace'||!have){ if(X.start) chg.start=X.start; if(X.status) chg.status=X.status; }
@@ -19650,12 +19716,18 @@ async function oxjImportXml(file){ if(canWrite===false) return toast('Read-only 
     const recs=X.T.map((t,i)=>{ const links=t.links.filter(l=>idOf[l.uid]).map(l=>({id:idOf[l.uid],type:l.type,lag:typeof l.lag==='object'?Math.round(l.lag.pct/100*(durOf[l.uid]||0)):l.lag}));
       const keep=have&&v[0]!=='replace'&&!links.length&&t.cons.t==='ASAP'&&!t.sum;
       const r={name:t.name,kind:t.ms?'milestone':'activity',planned_start:t.s,planned_finish:t.ms?t.s:t.f,progress:t.pct,weight:t.sum?0:t.weight,seq:base+i+1,lvl:t.lvl,dur:t.ms?0:t.dur,dur_est:t.est,manual:t.manual,cons:keep?{t:'SNET',d:t.s}:t.cons,...oxj3LinkFields(links),
-        asg:t.asg.map(a=>({...a,r:rmap[a.r]||a.r})),resp:t.asg.map(a=>X.RES.find(x=>x.id===a.r)?.name).filter(Boolean).join(', '),fixed:t.fixed,notes:t.notes,actual_start:t.as||'',actual_finish:t.af||'',summary:t.sum,imported_from:file.name,created_at:new Date().toISOString(),project_id:OXJ.pid};
+        asg:t.asg.map(a=>({...a,r:rmap[a.r]||a.r})),resp:t.asg.map(a=>X.RES.find(x=>x.id===a.r)?.name).filter(Boolean).join(', '),fixed:t.fixed,notes:t.notes,actual_start:t.as||'',actual_finish:t.af||'',summary:t.sum,imported_from:fileName,created_at:new Date().toISOString(),project_id:OXJ.pid};
       if(t.bs&&t.bf&&isAdmin){ r.baseline_start=t.bs; r.baseline_finish=t.bf; r.baseline_dur=t.bd; r.baseline_cost=t.bc; } return {id:idOf[t.uid],...r}; });
     for(let i=0;i<recs.length;i+=25) await Promise.all(recs.slice(i,i+25).map(({id,...r})=>put('milestones',id,r)));
     recs.forEach(r=>{ if(!byId('milestones',r.id)) S.milestones.push({...r}); });
     OXJ.busy=false; await oxj3Commit({},{label:'Import',noUndo:true});
     logAct(`Imported ${X.T.length} tasks from Microsoft Project – ${projName(OXJ.pid)}`); toast(`${X.T.length} tasks imported${X.RES.length?` with ${X.RES.length} resources`:''}.${X.T.some(t=>t.bs)&&!isAdmin?' The baseline was not imported (admin only).':''}`);
+}
+async function oxjImportXml(file){ if(canWrite===false) return toast('Read-only login.'); let X; try{ X=oxj3ParseXml(await file.text()); }catch(e){ return toast(e.message||'Not a Project XML file.'); }
+  if(!X.T.length) return toast('No tasks found in this file.');
+  const have=msOf(OXJ.pid).length; const v=await oxDialog(`Import ${X.T.length} tasks${X.RES.length?` and ${X.RES.length} resources`:''} into ${projName(OXJ.pid)}`,[{label:'How',options:have?[['add','Add them after the current programme ('+have+' tasks)'],...(isAdmin?[['replace','Replace the current programme (admin)']]:[])]:[['add','Create the programme']]},{label:'Working calendar',options:X.cal?[['file',`Use the calendar in the file (${oxj3CalName(X.cal.wd)}${X.cal.hol.length?`, ${X.cal.hol.length} exceptions`:''})`],['keep','Keep the NEXUS calendar']]:[['keep','Keep the NEXUS calendar']]}],'Import'); if(!v) return;
+  OXJ.busy=true; oxSetStatus('Importing…');
+  try{ await oxj3ImportParsed(X,v,file.name);
   }catch(e){ OXJ.busy=false; toast('Import failed: '+(e.message||e)); oxSetStatus('Not saved'); } }
 
 /* =====================================================================================================================
@@ -21712,7 +21784,7 @@ function bsWork(t,b){
     <td style="white-space:nowrap">${e.s==='na'?'<span class="sub small">not required</span>':e.auto&&e.s==='ready'?'<span class="chip good" title="Ticked automatically – the document is in the bid library / BoQ">✓ Done</span>':`<label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-bsc="tick" data-i="${i}" id="bss_${i}" ${e.s==='ready'?'checked':''} ${ro?'disabled':''} style="width:18px;height:18px"> <span class="small">Done</span></label>`}</td>
     <td class="r" style="white-space:nowrap">${bsActions(it,i,t,b)}</td></tr>`; };
   return `<div class="toolbar"><button class="btn" data-go="bid">← Bid Studio</button><div class="sp"></div>
-    ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button>${wpEntryBtn({tender_id:t.id,tab:'ms'},'📐 Method statement & programme')}<button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
+    ${bsCan()?`<button class="btn" data-bs="req" ${BSB.busy?'disabled':''}>${BSB.busy==='req'?'<span class="spin"></span>':''}📖 Read requirements (AI)</button><button class="btn" data-bs="pack" ${BSB.busy?'disabled':''}>${BSB.busy==='pack'?'<span class="spin"></span>':''}📦 Download bid pack</button>${b.submitted_at?'':`<button class="btn pri" data-bs="submit">✅ Mark submitted</button>`}`:''}</div>
   ${BSB.log&&BSB.tid===t.id?`<div class="banner"><div>${BSB.busy?'<span class="spin"></span> ':''}${esc(BSB.log)}</div></div>`:''}
   <div class="card"><div class="bd" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
     <div style="flex:1;min-width:240px"><div class="ttl2" style="font-size:16px">${esc(t.title)}</div><div class="sub">${esc(t.client||'')}${t.no?' · Tender No. '+esc(t.no):''}${t.location?' · '+esc(t.location):''}</div>
@@ -21731,6 +21803,9 @@ function bsDetail(it,t,b){
   if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `<div class="small" style="margin-top:3px"><span class="chip ${s.cls}">${esc(s.text)}</span>${s.r?` <span class="sub">${esc(s.r.title)}</span>`:''}</div>`; }
   if(it.boq){ const B=bsBoq(t.id,b); if(!B) return '<div class="sub small">No BoQ yet for this tender.</div>'; const q=bqStats(B), T=boqTotals(B);
     return `<div class="small" style="margin-top:3px"><b>${esc(B.title||'BoQ')}</b> · ${q.n} items · ${q.pct}% priced${q.lib?` · ${q.lib} library`:''}${q.ai?` · ${q.ai} AI`:''}${money()||isQSr()?` · <b>${tzs(T.grand)}</b>`:''}</div>`; }
+  if(it.form==='wp'){ const pid=oxjTP(t.id), n=msOf(pid).length, d=it.doc_id&&byId('officedocs',it.doc_id); if(!n&&!d) return '';
+    const L=msOf(pid), f=L.reduce((a,m)=>m.planned_finish>a?m.planned_finish:a,''), s0=L.reduce((a,m)=>!a||(m.planned_start&&m.planned_start<a)?m.planned_start:a,'');
+    return `<div class="sub small">${n?`NEXUS Project: ${n} tasks${s0&&f?` · ${fmtD(s0)} – ${fmtD(f)}`:''}`:''}${n&&d?' · ':''}${d?`Old Word copy: ${esc(d.title)}`:''}</div>`; }
   if(it.form){ const d=it.doc_id&&byId('officedocs',it.doc_id); return d?`<div class="sub small">Word: ${esc(d.title)} · ${fmtD(d.updated_at||d.created_at)}</div>`:''; }
   if((it.files||[]).length) return `<div class="small">${it.files.map((f,j)=>`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join(' · ')}</div>`;
   return ''; }
@@ -21738,8 +21813,11 @@ function bsActions(it,i,t,b){ if(!bsCan()) return '';
   const B=`data-i="${i}"`;
   if(it.lib){ const s=bsLibState(it.lib,t.deadline); return `${s.r&&recFile(s.r)?`<button class="btn" data-bs="libopen" data-k="${it.lib}">Open</button>`:''}<button class="btn" data-bs="libadd" data-k="${it.lib}">${s.r?'Replace':'Add to library'}</button>`; }
   if(it.boq){ const X=bsBoq(t.id,b); return X?`<button class="btn" data-bs="autoprice" ${B}>⚡ Auto-price</button><button class="btn" data-bs="boqopen" data-id="${esc(X.id)}">Open BoQ</button>`:`<button class="btn pri" data-bs="boqgen" data-tid="${esc(t.id)}">🤖 Build BoQ from documents</button><button class="btn" data-bs="boqnew" data-tid="${esc(t.id)}">Empty BoQ</button>`; }
-  if(it.form==='ms'||it.form==='wp'){ const has=it.doc_id&&byId('officedocs',it.doc_id);   // v243: method statement & programme are made in the Works Planner
-    return `${has?`<button class="btn" data-bs="docopen" ${B}>Open Word</button>`:''}${wpEntryBtn({tender_id:t.id,tab:it.form==='ms'?'ms':'pow'},it.form==='ms'?'📐 Method statement':'📐 Programme of works')}`; }
+  if(it.form==='ms'){ const has=it.doc_id&&byId('officedocs',it.doc_id);   // v244: method statement = a NEXUS Word document
+    return has?`<button class="btn" data-bs="docopen" ${B}>📝 Open in NEXUS Word</button><button class="btn" data-bs="msdel" ${B} title="Delete this method statement">🗑</button>`
+      :`<button class="btn pri" data-bs="mscreate" ${B} ${BSB.busy?'disabled':''}>${BSB.busy==='ms'?'<span class="spin"></span> ':''}📝 Create in NEXUS Word</button>`; }
+  if(it.form==='wp'){ const n=msOf(oxjTP(t.id)).length, old=it.doc_id&&byId('officedocs',it.doc_id);   // v244: work programme = NEXUS Project
+    return `${n?`<button class="btn" data-bs="wpopen" ${B}>📅 Open in NEXUS Project</button><button class="btn" data-bs="wpdel" ${B} title="Delete this work programme">🗑</button>`:`<button class="btn pri" data-bs="wpcreate" ${B} ${BSB.busy?'disabled':''}>${BSB.busy==='wp'?'<span class="spin"></span> ':''}📅 Create in NEXUS Project</button>`}${old?`<button class="btn" data-bs="docopen" ${B} title="Earlier Word version of the programme">Old Word copy</button><button class="btn" data-bs="wpdocdel" ${B} title="Delete the old Word copy">🗑</button>`:''}`; }
   if(it.form){ const has=it.doc_id&&byId('officedocs',it.doc_id), ai=it.form==='ms'||it.form==='wp';
     return `${has?`<button class="btn" data-bs="docopen" ${B}>Open</button>`:''}<button class="btn ${has?'':'pri'}" data-bs="gen" ${B} ${BSB.busy?'disabled':''}>${ai?(has?'Redraft (AI)':'🤖 Draft with AI'):(has?'Refill':'Fill form')}</button>`; }
   return `<button class="btn" data-bs="up" ${B}>📎 Attach</button>${it.src==='man'||it.src==='ai'?`<button class="btn" data-bs="del" ${B} title="Remove this requirement">✕</button>`:''}`; }
@@ -21980,6 +22058,12 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-bs
   if(a==='req') return bsReadReq(tid);
   if(a==='pack') return bsPack(tid);
   if(a==='gen') return bsGen(tid,i);
+  if(a==='mscreate') return bsxMsCreate(tid);
+  if(a==='msdel') return bsxDocDel(tid,'ms');
+  if(a==='wpdocdel') return bsxDocDel(tid,'wp');
+  if(a==='wpcreate') return bsxWpCreate(tid);
+  if(a==='wpopen') return oxjOpen(oxjTP(tid));
+  if(a==='wpdel') return bsxWpDel(tid);
   if(a==='docopen'){ const id=b.items[i]?.doc_id; if(id) oxOpenDoc(id); return; }
   if(a==='boqgen') return bgOpen(tid);
   if(a==='boqnew'){ const T=byId('tenders',tid); const id=await put('boqs',null,{title:'BoQ – '+(T?.title||''),tender_id:tid,bills:[],vat:18,contingency:0,scope:T?.scope||'',owner:me.name||'',owner_uid:me.id||''}); if(id){ await bsSave(tid,{boq_id:id}); go('qs',id); } return; }
