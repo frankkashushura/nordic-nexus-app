@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="50d7935dc9b8">
+<meta name="nexus-build" content="3d4cc3a1a3ff">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -798,6 +798,37 @@ COLS.forEach(c => S[c] = []);
 const AC_BIG={vouchers:20000,ledgers:5000,finance:10000,procurement:10000,po:10000,certificates:5000,valuations:5000,paystat:5000,tenders:5000,records:5000};
 const loaded = new Set();
 let db=null, assets=null, sample=null, user=null, downloads=null;
+/* v232 · phone app: print / Save as PDF of NEXUS forms and reports. The Android app cannot open print windows, so NEXUS shows the page in a
+   full-screen preview with Print (app v1.4: Android print screen, which also offers "Save as PDF") and Save file. */
+const NX_IN_APP=/NordicNexusAndroid/.test(navigator.userAgent);
+function nxAppPrint(html,title){
+  html=String(html||''); const m=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i); title=String(title||(m&&m[1])||'NEXUS document').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').trim()||'NEXUS document';
+  document.getElementById('nxPrv')?.remove();
+  const A=window.NexusAndroid, canPrint=!!(A&&typeof A.printHtml==='function');
+  const d=document.createElement('div'); d.id='nxPrv';
+  d.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#525659;display:flex;flex-direction:column';
+  d.innerHTML=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;background:#182340;color:#fff;font:600 14px system-ui,Arial,sans-serif">
+    <span style="flex:1 1 140px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span>
+    <button data-nxprv="print" style="border:0;border-radius:8px;padding:9px 12px;background:#539FDC;color:#0E1830;font:700 13px system-ui,Arial">🖨 Print / Save as PDF</button>
+    <button data-nxprv="save" style="border:0;border-radius:8px;padding:9px 12px;background:#fff;color:#182340;font:700 13px system-ui,Arial">⬇ Save file</button>
+    <button data-nxprv="close" aria-label="Close" style="border:0;border-radius:8px;padding:9px 12px;background:#E74C3C;color:#fff;font:700 13px system-ui,Arial">✕</button></div>
+    ${canPrint?'':'<div style="padding:7px 10px;background:#FFF4CE;color:#5C4400;font:12.5px system-ui,Arial">To print or save as PDF here, update the NEXUS app to version 1.4 (Downloads page). Until then use <b>Save file</b> and open it with Chrome to print.</div>'}
+    <iframe sandbox="allow-same-origin" style="flex:1;border:0;background:#fff;width:100%"></iframe>`;
+  document.body.appendChild(d); d.querySelector('iframe').srcdoc=html;
+  d.addEventListener('click',e=>{ const b=e.target.closest('[data-nxprv]'); if(!b) return; const a=b.dataset.nxprv;
+    if(a==='close') return d.remove();
+    if(a==='print'){ if(canPrint){ try{ A.printHtml(html,title); }catch(x){ toast('Could not print: '+(x.message||x)); } } else toast('Update the NEXUS app to version 1.4 to print or save as PDF.'); return; }
+    if(a==='save'){ const fn=title.replace(/[\\/:*?"<>|]+/g,'_').slice(0,90)+'.html'; if(downloads) downloads.save({filename:fn,data:html,type:'text/html;charset=utf-8'}); else toast('Please wait – NEXUS is still starting.'); } });
+  return true; }
+window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
+if(NX_IN_APP){ const realOpen=window.open.bind(window);
+  window.open=function(url,name,feat){
+    if(url&&String(url)!=='about:blank') return realOpen(url,name,feat);
+    if(name&&name!=='_blank') return null;   // named windows (presenter view) – NEXUS uses its own fallback
+    let buf='', shown=false; const show=()=>{ if(shown||!buf) return; shown=true; nxAppPrint(buf); };
+    const doc={ write:(...a)=>{ buf+=a.join(''); }, writeln:(...a)=>{ buf+=a.join('')+'\n'; }, open:()=>{ buf=''; }, close:()=>{ setTimeout(show,30); }, title:'', body:null, images:[] };
+    return { document:doc, focus(){}, blur(){}, print(){ show(); }, close(){}, addEventListener(){}, removeEventListener(){}, opener:null, closed:false, location:{href:'about:blank'} }; }; }
+
 let me = {id:null, name:'', avatarUrl:''}, isAdmin=false, isFin=false, isProc=false, isQSRole=false, canWrite=true;
 let route = 'home', routeArg = null; window.NX_ROUTE=()=>route;
 let drawer = null;           // {type, id, form:bool}
@@ -8936,7 +8967,7 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-hx
       if(await put('hse_cfg','req',v)){ logAct('Updated HSE compliance requirements'); toast('Requirements saved – compliance recalculated.'); } return; }
     case 'cfgreset': if(await confirmBox('Restore the default requirements?','Restore')){ await remove('hse_cfg','req'); toast('Defaults restored.'); } return;
     case 'qrpng': return hxQrPng(x,y);
-    case 'gps': { if(!navigator.geolocation) return toast('Location is not available on this device.'); toast('Getting your location…'); navigator.geolocation.getCurrentPosition(p=>{ const i=document.getElementById('f_'+x); if(i) i.value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6); },()=>toast('Location permission was refused.'),{enableHighAccuracy:true,timeout:15000}); return; }
+    case 'gps': { if(!navigator.geolocation) return toast('Location is not available on this device.'); toast('Getting your location…'); navigator.geolocation.getCurrentPosition(p=>{ const i=document.getElementById('f_'+x); if(i) i.value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6); },e=>toast(NX_IN_APP&&!(window.NexusAndroid&&window.NexusAndroid.version)?'Update the NEXUS app to version 1.4 to use the GPS position.':e&&e.code===1?'Location permission was refused – allow Location for NEXUS.':'Could not get your location – switch on Location (GPS) and try again.'),{enableHighAccuracy:true,timeout:15000}); return; }
   } });
 document.addEventListener('change',e=>{ const el=e.target; if(!el||!el.matches) return;
   if(el.matches('[data-hxf]')){ UI.hxF={...hxF(),[el.dataset.hxf]:el.value}; return renderView(true); }
@@ -15503,7 +15534,7 @@ function oxw3PrintHtml(preview){ const p=oxwPage(); if(OXW.view!=='print'){ cons
 @media screen{body{background:#E6E6E6;padding:${preview?'12px':'0'}}.pr{margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,.2)}.pr .oxw3-sheet.pg{box-shadow:inset 0 -1px 0 #bbb}}
 </style></head><body><div class="pr">${ov}${c.outerHTML.replace(/ id="oxwPage"/,' id="oxwPage"')}</div></body></html>`;
   if(OXW._restoreView){ OXW.view=OXW._restoreView; OXW._restoreView=null; oxwLayout(); } return html; }
-function oxwPrint(){ const p=oxwPage(); if(!p) return; if(OXW.hf) oxw3HfExit(); const html=oxw3PrintHtml(false); document.getElementById('oxw3PrintF')?.remove(); const f=document.createElement('iframe'); f.id='oxw3PrintF'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
+function oxwPrint(){ const p=oxwPage(); if(!p) return; if(OXW.hf) oxw3HfExit(); const html=oxw3PrintHtml(false); if(window.NX_APP_PRINT) return window.NX_APP_PRINT(html,OXW.title||'Document'); document.getElementById('oxw3PrintF')?.remove(); const f=document.createElement('iframe'); f.id='oxw3PrintF'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
   f.onload=()=>{ const w=f.contentWindow; const imgs=[...w.document.images]; Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{ i.onload=i.onerror=r; }))).then(()=>setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ toast('Printing failed: '+e.message); } },150)); };
   f.srcdoc=html; }
 function oxw3FillPreview(){ const f=document.getElementById('oxw3PrevF'); if(!f) return; const html=oxw3PrintHtml(true); f.srcdoc=html; f.onload=()=>{ try{ const d=f.contentDocument; d.body.style.zoom=Math.min(1,(f.clientWidth-30)/OXW.g.W); }catch(_){ } }; }
@@ -20131,7 +20162,8 @@ const OXH_CSS=`
 
 .oxh-apps{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 4px}.oxh-apps button{display:flex;flex-direction:column;align-items:center;gap:6px;width:86px;padding:10px 4px;border:1px solid transparent;background:none;border-radius:6px;cursor:pointer;font:12.5px 'Segoe UI',system-ui,Arial,sans-serif;color:#252423}.oxh-apps button:hover{background:#F3F2F1;border-color:#E1DFDD}
 .oxh-fill{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.oxh-fill button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;padding:10px 12px;cursor:pointer;font:13px 'Segoe UI',Arial;color:#252423}.oxh-fill button:hover{border-color:#03787C}.oxh-fill b{display:block}.oxh-fc{display:flex;flex-direction:column;border:1px solid #E1DFDD;background:#F0F8F8;border-radius:6px;overflow:hidden}.oxh-fc>button{border:0!important;border-radius:0!important;background:transparent!important}.oxh-fa{display:flex;justify-content:flex-end;gap:6px;padding:0 10px 8px}.oxh-fa button{border:1px solid #C8C6C4!important;background:#fff!important;border-radius:4px!important;padding:3px 10px!important;font:12px 'Segoe UI',Arial!important;color:#323130!important;cursor:pointer}.oxh-fa button.del{color:#A4262C!important;border-color:#E8B4B6!important}.oxh-fa button:hover{border-color:#605E5C!important}.oxh-fill small{color:#605E5C}
-@media (max-width:700px){.oxh-apps button{width:calc(33% - 8px)}.oxh-rail{display:none}.oxh-main{padding:14px}.oxh-list .hm{display:none}.oxh-new button{width:calc(50% - 7px)}}
+.oxh-phopen{display:none;margin:12px 0 0;border:1px solid #C8C6C4;background:#fff;border-radius:6px;padding:10px 14px;font:600 13.5px 'Segoe UI',system-ui,Arial,sans-serif;color:#252423;cursor:pointer}
+@media (max-width:700px){.oxh-phopen{display:block;width:100%}.oxh-apps button{width:calc(33% - 8px)}.oxh-rail{display:none}.oxh-main{padding:14px}.oxh-list .hm{display:none}.oxh-new button{width:calc(50% - 7px)}}
 `;
 function pageOffice(){
   if(!document.getElementById('oxhCss')){ const s=document.createElement('style'); s.id='oxhCss'; s.textContent=OXH_CSS; document.head.appendChild(s); oxEnsureCss(); }
@@ -20145,7 +20177,7 @@ function pageOffice(){
   const APPS=[['docx','newdoc'],['xlsx','newxls'],['pptx','newppt'],['mpp','newprj'],['eml','newmail'],['form','newform']];
   const sub=d=>d.type==='eml'?(d.sent_at?'Sent to '+esc(String(d.to||'').split(/[;,]/)[0])+(String(d.to||'').split(/[;,]/).length>1?' +':''):'Draft'):d.type==='form'?`${d.open===false?'Closed':'Open'} · ${(d.qs||[]).length} questions`:'';
   return `<div class="oxh"><div class="oxh-rail"><button data-oxh="home"><span class="ic">⌂</span>Home</button>${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t)}${OXA[t].name}</button>`).join('')}<button data-oxh="openpc"><span class="ic">📂</span>Open</button><button data-go="records"><span class="ic">🗄</span>Records</button></div>
-  <div class="oxh-main"><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">Word, Excel, PowerPoint, Project, Outlook and Forms – inside NEXUS. Everything is saved in NEXUS; <b>Download</b> gives a real Office file for use outside.</div>
+  <div class="oxh-main"><h1>${greet}${me.name?', '+esc(me.name.split(' ')[0]):''}</h1><div class="sub">Word, Excel, PowerPoint, Project, Outlook and Forms – inside NEXUS. Everything is saved in NEXUS; <b>Download</b> gives a real Office file for use outside.</div><button class="oxh-phopen" data-oxh="openpc">📂 Open a file from this phone</button>
    <div class="oxh-apps">${APPS.map(([t,a])=>`<button data-oxh="${a}">${oxIco(t,36)}<span>${OXA[t].name}</span></button>`).join('')}</div>
    ${toFill.length?`<div class="oxh-sec"><h2>Forms to fill in</h2></div><div class="oxh-fill">${toFill.slice(0,8).map(d=>`<div class="oxh-fc"><button data-oxopen="${esc(d.id)}">${oxIco('form',30)}<span><b>${esc(d.title)}</b><small>${esc(d.owner||'')}${d.project_id?' · '+esc(projName(d.project_id)):''}${answered.has(d.id)?' · <span style="color:#107C41">✔ answered</span>':''}</small></span></button><div class="oxh-fa"><button data-oxhide="${esc(d.id)}" title="Hide from my list">Hide</button>${isAdmin?`<button data-oxdel="${esc(d.id)}" title="Delete this form for everyone" class="del">Delete</button>`:''}</div></div>`).join('')}</div>`:''}
    <div class="oxh-sec"><h2>Start new</h2></div>
