@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="398019e06e63">
+<meta name="nexus-build" content="0a2f6ee65389">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -920,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='247';
+const NX_APP_VER='248';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -2420,19 +2420,31 @@ function bgSheetBills(rows, sheetName, off){   // off={r0,c0}: Excel sheet origi
   let hi=-1,cD=-1,cU=-1,cQ=-1,cR=-1,cP=-1,cA=-1;
   for(let i=0;i<Math.min(rows.length,60);i++){ const s=(rows[i]||[]).map(x=>String(x??'').toLowerCase().trim()); const d=s.findIndex(x=>/^desc|description|particulars|item description/.test(x)); const u=s.findIndex(x=>/^unit|^uom/.test(x)&&!/price|rate/.test(x)); if(d>=0&&u>=0){ hi=i;cD=d;cU=u; cQ=s.findIndex(x=>/^qty|quantit/.test(x)); cR=s.findIndex(x=>/^item|^ref|^no\.?$|^s\/?n/.test(x)); cP=s.findIndex(x=>/^(unit )?rate|^unit price|^price|^bei/.test(x)&&!/amount|total/.test(x)); cA=s.findIndex(x=>/amount|^total|jumla|^tzs$|^tshs?$/.test(x)&&!/unit|rate/.test(x)); break; } }
   if(hi<0) return [];
-  const bills=[]; let cur=null, head=''; const newBill=n=>{ cur={name:String(n).replace(/\s+/g,' ').trim().slice(0,120),items:[]}; bills.push(cur); };
+  // v248: smarter reading – bill rows in any column, section headings kept as heading rows, wrapped description lines joined,
+  // rates kept from priced BoQs (rate = amount ÷ qty when only the amount is filled, e.g. lump sums)
+  const bills=[]; let cur=null, head='', last=null, lastRi=-9; const newBill=n=>{ cur={name:String(n).replace(/\s+/g,' ').trim().slice(0,120),items:[]}; bills.push(cur); last=null; };
   const title=(rows.slice(0,hi).flat().find(x=>typeof x==='string'&&/bill/i.test(x)))||sheetName; newBill(title);
-  for(let ri=hi+1;ri<rows.length;ri++){ const r=rows[ri]; if(!r) continue; const d=typeof r[cD]==='string'?r[cD].replace(/\s+/g,' ').trim():(r[cD]!=null?String(r[cD]):''); const u=cU>=0&&r[cU]!=null?String(r[cU]).trim():''; const q=cQ>=0?bqNum(r[cQ]):null; const ref=cR>=0&&cR!==cD&&r[cR]!=null?String(r[cR]).trim():'';
+  const C=c=>c>=0&&off?off.c0+c:-1, txt=v=>v==null?'':String(v).replace(/\s+/g,' ').trim(), SRC=(ri,dp)=>off?{_src:{s:sheetName,r:off.r0+ri,c:[cR>=0&&cR!==cD?C(cR):-1,C(cD),C(cU),C(cQ),C(cP),C(cA)],dp}}:{};
+  const BILL=/^(bill|element|section)\s*(no\.?|number)?\s*[:.]?\s*[0-9ivxlc]+\b/i, TOT=/^(total|sub-?total|collection|carried|brought|summary|page total|to collection|grand total|amount carried)/i;
+  for(let ri=hi+1;ri<rows.length;ri++){ const r=rows[ri]; if(!r){ last=null; continue; } const d=txt(r[cD]); const u=cU>=0?txt(r[cU]):''; const q=cQ>=0?bqNum(r[cQ]):null; const ref=cR>=0&&cR!==cD?txt(r[cR]):'';
+    const rowTxt=r.map(txt).filter(Boolean); if(!rowTxt.length){ last=null; continue; }
+    const billCell=rowTxt.find(x=>BILL.test(x));
+    if(billCell&&!u){ const nm=d&&d!==billCell?`${billCell} – ${d}`:(d||billCell); if(cur.items.some(x=>x.unit)) newBill(nm); else { cur.name=nm.slice(0,120); cur.items=[]; } head=''; continue; }
     if(!d) continue;
-    if(/^bill\s*(no\.?)?\s*[0-9ivx]+/i.test(d)&&!u){ if(cur.items.length) newBill(d); else cur.name=d.slice(0,120); head=''; continue; }
-    if(/^(total|sub-?total|collection|carried|brought|summary|page total|to collection)/i.test(d)) continue;
-    if(!u){ head=d.length<160?d:head; continue; }
-    const prev=cur.items.length?cur.items[cur.items.length-1].desc:'';
+    if(TOT.test(d)||TOT.test(ref)){ last=null; continue; }
+    let rt=cP>=0?bqNum(r[cP]):null; const am=cA>=0?bqNum(r[cA]):null;
+    if(!u){ // no unit: a wrapped line of the item above, or a section heading / note
+      const caps=d===d.toUpperCase()&&/[A-Z]{3}/.test(d);
+      const cont=last&&ri===lastRi+1&&!ref&&!caps&&am==null&&(/^[a-z(,;&–-]/.test(d)||!/[.:;]$/.test(last.desc));
+      if(cont){ last.desc=(last.desc+' '+d).trim(); if(last._src) last._src.n=ri-(last._src.r-(off?off.r0:0))+1; lastRi=ri; continue; }
+      head=d.length<160?d:head; cur.items.push({ref,desc:d,unit:'',qty:'',rate:'',...SRC(ri,'')}); last=null; continue; }
+    const prev=[...cur.items].reverse().find(x=>x.unit)?.desc||'';
     const dp=/^(ditto|a\.?b\.?|as (above|before|item))/i.test(d)&&prev?prev+' – ':(d.length<40||/^extra over/i.test(d))&&head?head+' – ':'', desc=dp+d;
-    const rt=cP>=0?bqNum(r[cP]):null, C=c=>c>=0&&off?off.c0+c:-1;
-    cur.items.push({ref,desc,unit:u,qty:q??'',rate:rt!=null&&rt>0?rt:'',...(off?{_src:{s:sheetName,r:off.r0+ri,c:[cR>=0&&cR!==cD?C(cR):-1,C(cD),C(cU),C(cQ),C(cP),C(cA)],dp}}:{})}); }
+    if(!(rt>0)&&am>0){ const qq=q>0?q:1; rt=Math.round(am/qq*100)/100; }
+    const it={ref,desc,unit:u,qty:q??'',rate:rt>0?rt:'',...SRC(ri,dp)}; cur.items.push(it); last=it; lastRi=ri; }
+  bills.forEach(bl=>{ while(bl.items.length&&!bl.items[bl.items.length-1].unit) bl.items.pop(); });   // headings with nothing under them
   return bills.filter(b=>b.items.length); }
-function bgMerge(into, bills, src){ for(const bl of bills||[]){ const name=String(bl.name||'Bill').trim(); const items=(bl.items||[]).filter(i=>i&&String(i.desc||'').trim()).map(i=>{ const rt=src?bqNum(i.rate):null; return {ref:String(i.ref||''),desc:String(i.desc).trim(),unit:String(i.unit||'').trim(),qty:bqNum(i.qty)??'',rate:rt!=null&&rt>0?rt:'',...(rt!=null&&rt>0?{p:{s:'file',src,at:today()}}:{}),...(i._src?{_src:i._src}:{})}; });
+function bgMerge(into, bills, src){ for(const bl of bills||[]){ const name=String(bl.name||'Bill').trim(); const items=(bl.items||[]).filter(i=>i&&String(i.desc||'').trim()).map(i=>{ let rt=src?bqNum(i.rate):null; const am=src?bqNum(i.amount):null; if(!(rt>0)&&am>0&&String(i.unit||'').trim()){ const q=bqNum(i.qty); rt=Math.round(am/(q>0?q:1)*100)/100; } return {ref:String(i.ref||''),desc:String(i.desc).trim(),unit:String(i.unit||'').trim(),qty:bqNum(i.qty)??'',rate:rt!=null&&rt>0?rt:'',...(rt!=null&&rt>0?{p:{s:'file',src,at:today()}}:{}),...(i._src?{_src:i._src}:{})}; });
     const last=into[into.length-1]; if(last&&last.name.toLowerCase()===name.toLowerCase()) last.items.push(...items); else if(items.length) into.push({name,items}); } }
 async function bgRun(){
   const g=drawer.g; g.step='working'; g.log=[]; bgRedraw();
@@ -2440,15 +2452,15 @@ async function bgRun(){
   if(!files.length){ bgLog('No documents chosen. Pick tender documents or upload files.','bad'); g.step='setup'; setTimeout(bgRedraw,1500); return; }
   const bills=[], scope=[]; let usedAI=false;
   try{
-    const imp=g.mode==='import', src=n=>imp&&g.keepRates?n:null;
+    const imp=g.mode==='import', src=n=>!imp||g.keepRates?n:null;   // v248: a priced BoQ keeps its rates (Import: only when “keep rates” is ticked)
     // read text (PDF pages, Word text) with AI, part by part
     const readText=async(fname,pages,withRate)=>{ const chunks=[]; let cur=''; pages.forEach((p,i)=>{ const t=`\n--- page ${i+1} ---\n`+p; if(cur.length+t.length>7000&&cur){ chunks.push(cur); cur=''; } if(t.length>7000){ for(let q=0;q<t.length;q+=7000) chunks.push(t.slice(q,q+7000)); } else cur+=t; }); if(cur) chunks.push(cur);
       const n0=bills.reduce((a,x)=>a+x.items.length,0);
       for(let c=0;c<chunks.length;c++){ bgLog(`AI reading part ${c+1} of ${chunks.length}…`); usedAI=true;
         const lastBill=bills.length?bills[bills.length-1].name:'';
         const res=await bgAI(`You extract measured items from a Tanzanian Bill of Quantities. Below is part ${c+1} of ${chunks.length} of the text taken from the document (table columns are separated by spaces and may be out of order).${lastBill?` The bill in progress at the start of this part is "${lastBill}".`:''}
-Rules: extract EVERY measured item exactly as written – item reference, full description (if an item only says "Ditto", "a.b." or is a short sub-item, prefix it with its heading so it can be priced on its own), unit and quantity${withRate?', and the unit RATE when the BoQ is priced (not the amount)':''}. Keep the bill headings (e.g. "BILL No. 2 – SUBSTRUCTURE"). Ignore ${withRate?'amount columns':'rate/amount columns'}, page totals, collections, summaries and preambles without a unit. Never invent items, quantities or rates; use null when a value is not given.
-Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5${withRate?',"rate":null':''}}]}]}
+Rules: extract EVERY measured item exactly as written – item reference, full description (if an item only says "Ditto", "a.b." or is a short sub-item, prefix it with its heading so it can be priced on its own), unit and quantity${withRate?', and the unit RATE when the BoQ is priced (not the amount)':''}. Keep the bill headings (e.g. "BILL No. 2 – SUBSTRUCTURE") as bill names, and keep each section heading inside a bill (e.g. "ACCESS TO THE SITE", "EXCAVATION AND EARTHWORKS") as an item with unit null, in its place, so the bill reads like the original. A description that runs over several lines is ONE item. ${withRate?'When the rate column is empty but an amount is given (lump sums), give that amount in "amount". ':'Ignore rate/amount columns. '}Ignore page totals, collections and summaries. Never invent items, quantities or rates; use null when a value is not given.
+Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"","desc":"SECTION HEADING","unit":null,"qty":null},{"ref":"A","desc":"...","unit":"m3","qty":12.5${withRate?',"rate":null,"amount":null':''}}]}]}
 TEXT:\n${chunks[c]}`,5000);
         bgMerge(bills,res?.bills,withRate?src(fname):null); }
       const n=bills.reduce((a,x)=>a+x.items.length,0)-n0; bgLog(`${fname}: ${n} items extracted.`,n?'ok':'bad'); return n; };
@@ -2458,8 +2470,8 @@ TEXT:\n${chunks[c]}`,5000);
           const fl=[]; for(const x of grp){ const up=await window.NX_ASKF.upload(x.blob,'boq-'+x.label.replace(/\W+/g,'-')+'.jpg','image/jpeg'); paths.push(up.path); fl.push({path:up.path,mime:'image/jpeg',name:x.label}); }
           const lastBill=bills.length?bills[bills.length-1].name:'';
           const res=await bgAIfiles(`The attached pictures are pages of a Tanzanian Bill of Quantities (${grp.map(x=>x.label).join(', ')} of "${fname}").${lastBill?` The bill in progress before these pages is "${lastBill}".`:''}
-Read the tables carefully and extract EVERY measured item exactly as written: item reference, full description (prefix short sub-items or "Ditto" with their heading), unit, quantity${imp&&g.keepRates?' and the unit RATE if the BoQ is priced (not the amount)':''}. Keep bill headings. Ignore page totals, collections and summaries. Never guess a number you cannot read clearly – use null.
-Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A","desc":"...","unit":"m3","qty":12.5,"rate":null}]}]}`,fl);
+Read the tables carefully and extract EVERY measured item exactly as written: item reference, full description (prefix short sub-items or "Ditto" with their heading), unit, quantity${!imp||g.keepRates?' and the unit RATE if the BoQ is priced (when the rate is empty but an amount is given, put it in "amount")':''}. Keep bill headings as bill names and section headings inside a bill (e.g. "ACCESS TO THE SITE") as items with unit null, in their place. A description over several lines is ONE item. Ignore page totals, collections and summaries. Never guess a number you cannot read clearly – use null.
+Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"","desc":"SECTION HEADING","unit":null,"qty":null},{"ref":"A","desc":"...","unit":"m3","qty":12.5,"rate":null,"amount":null}]}]}`,fl);
           bgMerge(bills,res?.bills,src(fname)); } }
       finally{ window.NX_ASKF.remove(paths).catch(()=>{}); }
       const n=bills.reduce((a,x)=>a+x.items.length,0)-n0; bgLog(`${fname}: ${n} items read from the pictures.`,n?'ok':'bad'); return n; };
@@ -2469,10 +2481,10 @@ Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A
       let buf; try{ buf=await f.get(); }catch(e){ bgLog(`${f.name}: could not be opened (${e.message||e}).`,'bad'); continue; }
       try{
       if(/^(xlsx|xls|xlsm|ods|csv)$/.test(ext)){ await loadScript(XLSX_URL); const wb=XLSX.read(buf.slice(0),{cellDates:false}); let n=0;
-        for(const sn of wb.SheetNames){ const ws=wb.Sheets[sn], rg=XLSX.utils.decode_range(ws['!ref']||'A1'); const bb=bgSheetBills(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}),sn,ext==='csv'?null:{r0:rg.s.r,c0:rg.s.c}); bb.forEach(bl=>bl.items.forEach(it=>{ if(it._src) it._src.f=f.name; })); n+=bb.reduce((a,x)=>a+x.items.length,0); bgMerge(bills,bb,src(f.name)); }
+        for(const sn of wb.SheetNames){ const ws=wb.Sheets[sn], rg=XLSX.utils.decode_range(ws['!ref']||'A1'); const bb=bgSheetBills(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}),sn,ext==='csv'?null:{r0:rg.s.r,c0:rg.s.c}); bb.forEach(bl=>bl.items.forEach(it=>{ if(it._src) it._src.f=f.name; })); n+=bb.reduce((a,x)=>a+x.items.filter(i=>i.unit).length,0); bgMerge(bills,bb,src(f.name)); }
         if(n&&ext!=='csv') (g.lay=g.lay||[]).push({name:f.name,buf:buf.slice(0),type:ext});
         bgLog(n?`${f.name}: ${n} items read from the Excel BoQ.`:`${f.name}: no BoQ table found (needs Description and Unit columns).`,n?'ok':'bad'); continue; }
-      if(ext==='docx'){ await loadScript(XLSX_URL); const html=oxDocxToHtml(new Uint8Array(buf)).html; let n=0; nxfHtmlTables(html).forEach((rows,ti)=>{ const bb=bgSheetBills(rows,rows.title||`${f.name} – table ${ti+1}`); n+=bb.reduce((a,x)=>a+x.items.length,0); bgMerge(bills,bb,src(f.name)); });
+      if(ext==='docx'){ await loadScript(XLSX_URL); const html=oxDocxToHtml(new Uint8Array(buf)).html; let n=0; nxfHtmlTables(html).forEach((rows,ti)=>{ const bb=bgSheetBills(rows,rows.title||`${f.name} – table ${ti+1}`); n+=bb.reduce((a,x)=>a+x.items.filter(i=>i.unit).length,0); bgMerge(bills,bb,src(f.name)); });
         if(n){ bgLog(`${f.name}: ${n} items read from the Word tables.`,'ok'); continue; }
         const text=nxfHtmlText(html); if(text.length<150){ bgLog(`${f.name}: no BoQ found in this Word file.`,'bad'); continue; }
         if(imp) await readText(f.name,[text],!!g.keepRates); else scope.push({name:f.name,pages:[text],text}); continue; }
@@ -2484,7 +2496,7 @@ Reply with only JSON: {"bills":[{"name":"BILL No. x – NAME","items":[{"ref":"A
         const max=Math.min(pdf.n,60); bgLog(`${f.name}: scanned PDF (${pdf.n} pages) – turning ${max} pages into pictures for Gemini…`); const imgs=await bgPdfImages(buf.slice(0),max); await readPictures(f.name,imgs); if(pdf.n>max) bgLog(`Only the first ${max} pages were read – split the PDF to import the rest.`,'bad'); continue; }
       if(!imp&&!bgLooksBoq(all)){ scope.push({name:f.name,pages:pdf.pages,text:all}); bgLog(`${f.name}: ${pdf.n} pages – no priced-table layout found; used as scope/specification.`,'ok'); continue; }
       bgLog(`${f.name}: ${pdf.n}-page Bill of Quantities – AI is reading it part by part…`);
-      await readText(f.name,pdf.pages,imp&&!!g.keepRates);
+      await readText(f.name,pdf.pages,!imp||!!g.keepRates);
       }catch(e){ if(e?.code==='rate_limited'||e?.code==='too_large') throw e; bgLog(`${f.name}: ${e.message||e}`,'bad'); } }
     let mode='';
     if(!bills.length&&scope.length){ bgLog('No Bill of Quantities in the documents – AI is drafting bills and items from the scope/specification…'); usedAI=true;
@@ -2507,7 +2519,7 @@ DOCUMENTS:\n${parts[c]}`,4500);
     else mode=bills.length?(g.mode==='import'?(usedAI?'Imported BoQ (read by AI – spot-check quantities and rates against the document)':'Imported BoQ (read directly from the file)'):usedAI?'Items extracted from the tender BoQ (PDF read by AI – spot-check against the document)':'Items read from the Excel BoQ'):'';
     if(!bills.length){ bgLog('Nothing could be read from these documents.','bad'); g.step='setup'; setTimeout(bgRedraw,2500); return; }
     // number the refs if missing
-    bills.forEach(bl=>{ let k=0; bl.items.forEach(it=>{ if(!it.ref){ it.ref=String.fromCharCode(65+(k%26))+(k>=26?Math.floor(k/26):''); if(it._src) it._src.ar=it.ref; } k++; }); });
+    bills.forEach(bl=>{ let k=0; bl.items.forEach(it=>{ if(!String(it.unit||'').trim()) return; if(!it.ref){ it.ref=String.fromCharCode(65+(k%26))+(k>=26?Math.floor(k/26):''); if(it._src) it._src.ar=it.ref; } k++; }); });   // headings get no letter
     // price from the library
     const reg=g.region||'General'; let lib=0,old=0; const miss=[];
     const useLib=g.mode!=='import'||g.libRates!==false, fromFile=bills.reduce((a,bl)=>a+bl.items.filter(it=>it.rate!==''&&it.rate!=null).length,0);
@@ -8450,8 +8462,8 @@ async function bqxApplyBills(b,bills){ const srv=byId('boqs',b.id)||b; if(bqxNee
    removed items lose their row. "⬇ .xlsx" downloads the same arrangement; "Update from Excel" reads it back. */
 const BQLY={silent:false};
 const BQLY_F=['ref','desc','unit','qty','rate'];
-const bqlyPack=M=>Object.fromEntries(Object.entries(M).map(([id,m])=>[id,[m.s,m.r,...m.c,m.dp||'',m.ar||'']]));
-const bqlyUnpack=P=>Object.fromEntries(Object.entries(P||{}).map(([id,a])=>[id,{s:a[0],r:a[1],c:a.slice(2,8),dp:a[8]||'',ar:a[9]||''}]));
+const bqlyPack=M=>Object.fromEntries(Object.entries(M).map(([id,m])=>[id,[m.s,m.r,...m.c,m.dp||'',m.ar||'',...((m.n||1)>1?[m.n]:[])]]));   // v248: n = rows the description runs over
+const bqlyUnpack=P=>Object.fromEntries(Object.entries(P||{}).map(([id,a])=>[id,{s:a[0],r:a[1],c:a.slice(2,8),dp:a[8]||'',ar:a[9]||'',n:+a[10]||1}]));
 const bqlySheet=s=>OXS.sheets.find(x=>x.name===s);
 const bqlyOn=()=>!!(typeof OXS!=='undefined'&&OXS&&OXS.bqx&&OXS.bqx.layout);
 
@@ -8459,7 +8471,7 @@ const bqlyOn=()=>!!(typeof OXS!=='undefined'&&OXS&&OXS.bqx&&OXS.bqx.layout);
 function bqlyFromImport(g){ const L=g.lay||[]; if(L.length!==1) return null; const f=L[0]; const bills=g.res.bills;
   const all=bills.flatMap(bl=>bl.items); if(!all.length||!all.every(it=>it._src&&it._src.f===f.name)) return null;
   const ib=bqEnsureIds(bills), M={};
-  ib.forEach(bl=>bl.items.forEach(it=>{ const x=it._src; M[it.id]={s:x.s,r:x.r,c:x.c,dp:x.dp||'',ar:x.ar||''}; }));
+  ib.forEach(bl=>bl.items.forEach(it=>{ const x=it._src; M[it.id]={s:x.s,r:x.r,c:x.c,dp:x.dp||'',ar:x.ar||'',n:x.n||1}; }));
   return {bills:ib.map(bl=>({...bl,items:bl.items.map(({_src,...it})=>it)})),file:f,map:M}; }
 async function bqlyKeep(id,lay){ try{ if(!window.NX_PF) throw new Error('needs the online NEXUS');
     const type=lay.file.type==='xls'?'application/vnd.ms-excel':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -8469,12 +8481,12 @@ async function bqlyKeep(id,lay){ try{ if(!window.NX_PF) throw new Error('needs t
 
 /* ----- read / write one item's cells ----- */
 function bqlyRead(E,sh,m){ const gv=c=>{ if(c==null||c<0) return ''; const cl=sh.cells[oxsRef(m.r,c)]; if(!cl) return ''; const v=cl.f!=null?E.val(sh,m.r,c):cl.v; return v==null?'':v; };
-  const d=String(gv(m.c[1])).replace(/\s+/g,' ').trim(), ref=String(gv(m.c[0])).trim();
+  let d=String(gv(m.c[1])); for(let k=1;k<(m.n||1);k++){ const cl=m.c[1]>=0?sh.cells[oxsRef(m.r+k,m.c[1])]:null; if(cl&&cl.v!=null&&cl.v!=='') d+=' '+cl.v; } d=d.replace(/\s+/g,' ').trim(); const ref=String(gv(m.c[0])).trim();
   return {ref:ref||m.ar||'',desc:d?(m.dp||'')+d:'',unit:String(gv(m.c[2])).trim(),qty:bqXNum(gv(m.c[3])),rate:bqXNum(gv(m.c[4]))}; }
 function bqlyPut(sh,r,c,v){ if(c==null||c<0) return; const ref=oxsRef(r,c), cl=sh.cells[ref]||{}, n={...cl}; delete n.f; n.v=v===''||v==null?'':v; if(n.v===''&&!n.s) delete sh.cells[ref]; else sh.cells[ref]=n; }
 function bqlyWrite(sh,m,it,cur){ const v=bqxV(it); cur=cur||bqlyRead(oxsCalc(),sh,m); let ch=false;
   if(v.ref!==cur.ref&&!(m.ar&&v.ref===m.ar)) { bqlyPut(sh,m.r,m.c[0],v.ref); ch=true; }
-  if(v.desc!==cur.desc&&m.c[1]>=0){ let t=v.desc; if(m.dp&&t.startsWith(m.dp)) t=t.slice(m.dp.length); else m.dp=''; bqlyPut(sh,m.r,m.c[1],t); ch=true; }
+  if(v.desc!==cur.desc&&m.c[1]>=0){ let t=v.desc; if(m.dp&&t.startsWith(m.dp)) t=t.slice(m.dp.length); else m.dp=''; bqlyPut(sh,m.r,m.c[1],t); for(let k=1;k<(m.n||1);k++) bqlyPut(sh,m.r+k,m.c[1],''); ch=true; }
   if(v.unit!==cur.unit){ bqlyPut(sh,m.r,m.c[2],v.unit); ch=true; }
   if(v.qty!==cur.qty){ bqlyPut(sh,m.r,m.c[3],v.qty); ch=true; }
   if(v.rate!==cur.rate&&!(v.rate===''&&cur.rate===0)){ bqlyPut(sh,m.r,m.c[4],v.rate); ch=true; }
@@ -8499,11 +8511,11 @@ function bqlyCopyRow(sh,from,to){ for(const [ref,cl] of Object.entries(sh.cells)
 /* ----- put the current BoQ into the workbook (open, rebuild, download) ----- */
 function bqlyProject(b){ const L=OXS.bqx.layout, M=L.items; const cur=new Map(), order=[];
   (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if(!it||!it.id) return; cur.set(it.id,{bl,it}); order.push(it.id); }));
-  Object.entries(M).filter(([id,m])=>!cur.has(id)||!bqlySheet(m.s)).sort((a,b2)=>b2[1].r-a[1].r).forEach(([id,m])=>{ if(bqlySheet(m.s)) bqlyStruct(m.s,'dr',m.r,1); delete M[id]; });
+  Object.entries(M).filter(([id,m])=>!cur.has(id)||!bqlySheet(m.s)).sort((a,b2)=>b2[1].r-a[1].r).forEach(([id,m])=>{ if(bqlySheet(m.s)) bqlyStruct(m.s,'dr',m.r,m.n||1); delete M[id]; });
   let added=0;
   order.forEach((id,k)=>{ if(M[id]) return; let prev=null; for(let j=k-1;j>=0;j--) if(M[order[j]]){ prev=M[order[j]]; break; }
     const next=prev?null:order.slice(k+1).map(x=>M[x]).find(Boolean), t=prev||next; if(!t) return;
-    const at=prev?prev.r+1:next.r; bqlyStruct(t.s,'ir',at,1); const sh=bqlySheet(t.s); bqlyCopyRow(sh,t.r,at);
+    const at=prev?prev.r+(prev.n||1):next.r; bqlyStruct(t.s,'ir',at,1); const sh=bqlySheet(t.s); bqlyCopyRow(sh,t.r,at);
     M[id]={s:t.s,r:at,c:[...t.c],dp:'',ar:''}; added++; });
   const E=oxsCalc(); let changed=0; for(const id of order){ const m=M[id]; if(!m) continue; const sh=bqlySheet(m.s); if(sh&&bqlyWrite(sh,m,cur.get(id).it)) changed++; }
   return {added,changed}; }
@@ -8515,13 +8527,16 @@ async function bqlyLoad(layout){ await loadScript(XLSX_URL); const blob=await NX
 function bqlyState(b){ return {items:bqlyUnpack(b.layout.items),snap:{},skip:{},pendDel:[],path:b.layout.path,file:b.layout.file,dirty:false}; }
 
 /* ----- open live in NEXUS Excel ----- */
-async function bqlyOpen(b){ let sheets; try{ sheets=await bqlyLoad(b.layout); }catch(e){ console.warn(e); toast('The original Excel file could not be opened – showing the NEXUS layout.'); return false; }
-  try{ const st=bqlyState(b), by={}; Object.values(st.items).forEach(m=>{ (by[m.s]=by[m.s]||[]).push(m); });   // v247: readable layout every time
+function bqlyTidy(sheets,b){   // v247/v248: readable layout (also after NEXUS writes rates into empty cells)
+  try{ const st={items:(OXS&&OXS.bqx&&OXS.bqx.layout&&sheets===OXS.sheets)?OXS.bqx.layout.items:bqlyState(b).items}, by={}; Object.values(st.items).forEach(m=>{ (by[m.s]=by[m.s]||[]).push(m); });   // v247: readable layout every time
     sheets.forEach(sh=>{ const L=by[sh.name]; if(!L||!L.length) return; const mode=i=>{ const f={}; L.forEach(m=>{ const c=m.c[i]; if(c!=null&&c>=0) f[c]=(f[c]||0)+1; }); const e=Object.entries(f).sort((a,b)=>b[1]-a[1])[0]; return e?+e[0]:null; };
       const det=oxsRoleCols(sh)||{}, firstR=Math.min(...L.map(m=>m.r));
       oxsReadable(sh,{ref:mode(0)??det.ref??null,desc:mode(1)??det.desc,unit:mode(2)??det.unit??null,qty:mode(3)??det.qty??null,rate:mode(4)??det.rate??null,amt:mode(5)??det.amt??null,head:det.head!=null&&det.head<firstR?det.head:Math.max(0,firstR-1)}); }); }catch(e){ console.warn('readable',e); }
+}
+async function bqlyOpen(b){ let sheets; try{ sheets=await bqlyLoad(b.layout); }catch(e){ console.warn(e); toast('The original Excel file could not be opened – showing the NEXUS layout.'); return false; }
+  bqlyTidy(sheets,b);
   oxsOpen({title:b.title+' (original layout)',sheets,names:sheets.names||[],boq_id:b.id,project_id:b.project_id||'',bqx:{map:{},sum:null,only:null,layout:bqlyState(b)}});
-  const r=bqlyProject(byId('boqs',b.id)||b); bqlySnap(); if(r.added) OXS.bqx.layout.dirty=true;
+  const r=bqlyProject(byId('boqs',b.id)||b); bqlyTidy(OXS.sheets,b); bqlySnap(); if(r.added) OXS.bqx.layout.dirty=true;
   const first=Object.values(OXS.bqx.layout.items).sort((a,c)=>a.r-c.r)[0], fi=first?OXS.sheets.findIndex(s=>s.name===first.s):-1;
   if(fi>=0){ OXS.cur=fi; OXS.sel={r:first.r,c:Math.max(0,first.c[1]),r2:first.r,c2:Math.max(0,first.c[1])}; }
   oxsHist=[]; oxsFut=[]; OXS3.G=null; oxs3Bump(); oxsTabs(); oxsRender(); if(first) setTimeout(()=>{ try{ oxs3ScrollTo(first.r,0); }catch(_){ } },50);
@@ -8576,7 +8591,7 @@ async function bqlyDownload(b){ if(typeof OXS!=='undefined'&&OXS) return toast('
 /* ----- "Update from Excel" with a file in the original arrangement: read it like Import BoQ, keep item ids ----- */
 async function bqlyUpdate(b,file,wb,buf){ const bills=[];
   for(const sn of wb.SheetNames){ const ws=wb.Sheets[sn], rg=XLSX.utils.decode_range(ws['!ref']||'A1'); const bb=bgSheetBills(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}),sn,{r0:rg.s.r,c0:rg.s.c}); bgMerge(bills,bb,file.name); }
-  bills.forEach(bl=>{ let k=0; bl.items.forEach(it=>{ if(!it.ref){ it.ref=String.fromCharCode(65+(k%26))+(k>=26?Math.floor(k/26):''); if(it._src) it._src.ar=it.ref; } k++; }); });
+  bills.forEach(bl=>{ let k=0; bl.items.forEach(it=>{ if(!String(it.unit||'').trim()) return; if(!it.ref){ it.ref=String.fromCharCode(65+(k%26))+(k>=26?Math.floor(k/26):''); if(it._src) it._src.ar=it.ref; } k++; }); });   // headings get no letter
   const srv=byId('boqs',b.id)||b, S=srv.bills||[];
   if(!bills.length) return toast('No BoQ table found in this file (needs Description and Unit columns).');
   if(bills.length!==S.length) return toast(`This file has ${bills.length} bills and the BoQ has ${S.length} – use "Import BoQ" for a different BoQ.`);
