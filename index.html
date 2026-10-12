@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="9130cf886d12">
+<meta name="nexus-build" content="f92d9c74e20f">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -19870,7 +19870,11 @@ const TT_LIB=[
   ['mep','🌍','Worldwide','Traps stop smells','Every sanitary fitting needs a water-sealed trap and the drain system needs vents, or the seals get sucked dry.',TT_W('Trap_(plumbing)')],
   ['safety','🇺🇸','USA','Lock out, tag out','Before maintaining plant or electrical equipment, isolate it, lock it and tag it – so nobody switches it on while you work.',TT_W('Lockout–tagout')],
   ['safety','🌍','Worldwide','Beat heat stress','Water, rest and shade; schedule heavy work in the cool morning; let new workers build up to full hours over a week.',TT_W('Occupational_heat_stress')]];
-const TT={i:0,cat:'all',kind:'all',paused:false,el:0,last:0,timer:null,dur:12000};
+const TT={i:0,cat:'all',kind:'all',paused:false,el:0,last:0,timer:null,dur:12000,keep:null,resume:null};
+// v226: the board continues where it stopped – after a restart it shows the NEXT tip (and keeps the chosen topic / type)
+const ttKey=x=>x?(x.link||x.title):'';
+(()=>{ try{ const p=JSON.parse(localStorage.getItem('nx_tt_pos')||'null'); if(p){ TT.cat=p.cat||'all'; TT.kind=p.kind||'all'; TT.resume={k:p.k||'',i:+p.i||0}; } }catch(_){ } })();
+function ttSave(x){ try{ localStorage.setItem('nx_tt_pos',JSON.stringify({k:ttKey(x),i:TT.i,cat:TT.cat,kind:TT.kind,at:Date.now()})); }catch(_){ } }
 function ttItems(){
   const live=((S.tech&&S.tech.items)||[]).filter(x=>x&&x.title&&safeUrl(x.link)).map(x=>({k:x.kind==='video'?'video':'article',cat:TT_CAT[x.cat]?x.cat:'site',title:x.title,sum:x.sum||'',img:safeUrl(x.img||''),src:x.source||x.feed||'',link:x.link,at:x.at}));
   const day=new Date().getDate()+new Date().getMonth()*31, lib=TT_LIB.map((x,i)=>({k:'lib',cat:x[0],flag:x[1],where:x[2],title:x[3],sum:x[4],link:x[5],src:x[2]})), libR=[...lib.slice((day*7)%lib.length),...lib.slice(0,(day*7)%lib.length)];
@@ -19879,8 +19883,13 @@ function ttItems(){
   else { L=[]; let j=0; live.forEach((x,i)=>{ L.push(x); if(i%2===1&&libR[j]) L.push(libR[j++]); }); while(j<libR.length) L.push(libR[j++]); }
   return TT.cat==='all'?L:L.filter(x=>x.cat===TT.cat); }
 function ttPic(x,cls){ const c=TT_CAT[x.cat]||TT_CAT.site; return `<div class="${cls}" style="--tc:${c[2]}"><span class="tt-phi">${x.k==='lib'?x.flag:c[0]}</span>${x.img?`<img src="${esc(x.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-bbimg="1">`:''}${x.k==='video'?'<span class="tt-play">▶</span>':''}</div>`; }
-function ttCard(){ const L=ttItems(); if(!L.length) return `<div class="tt-empty">Nothing in this view yet – choose another topic.</div>`; if(TT.i>=L.length) TT.i=0;
-  const x=L[TT.i], c=TT_CAT[x.cat]||TT_CAT.site, lab=x.k==='video'?'🎬 Video':x.k==='lib'?`${x.flag} ${esc(x.where)}`:'📰 Article';
+function ttCard(){ const L=ttItems(); if(!L.length) return `<div class="tt-empty">Nothing in this view yet – choose another topic.</div>`;
+  if(TT.resume){ const k=L.findIndex(x=>ttKey(x)===TT.resume.k);
+    if(k>=0){ TT.i=(k+1)%L.length; TT.resume=null; TT.keep=null; }
+    else { TT.i=(TT.resume.i+1)%L.length; TT.resume.t0=TT.resume.t0||Date.now(); if(S.tech||Date.now()-TT.resume.t0>15e3) TT.resume=null; } }   // live items may still be loading – try again when they arrive
+  else if(TT.keep){ const k=L.findIndex(x=>ttKey(x)===TT.keep); if(k>=0) TT.i=k; TT.keep=null; }
+  if(TT.i>=L.length) TT.i=0;
+  const x=L[TT.i]; ttSave(x); const c=TT_CAT[x.cat]||TT_CAT.site, lab=x.k==='video'?'🎬 Video':x.k==='lib'?`${x.flag} ${esc(x.where)}`:'📰 Article';
   return `<article class="tt-card" style="--tc:${c[2]}">${ttPic(x,'tt-pic')}
     <div class="tt-body"><div class="tt-meta"><span class="tt-cat">${c[0]} ${esc(c[1])}</span><span class="tt-k">${lab}</span><span class="tt-n">${TT.i+1}/${L.length}</span></div>
       <h3 class="tt-h">${esc(x.title)}</h3>${x.sum?`<p class="tt-s">${esc(x.sum)}</p>`:''}
@@ -19902,7 +19911,7 @@ function ttHtml(){
     <div class="tt-next" id="ttNext">${ttNext()}</div></section>`; }
 function ttShow(dir,abs){ const L=ttItems(); if(!L.length) return; TT.i=abs!=null?abs:((TT.i||0)+dir+L.length)%L.length; TT.el=0; const sc=document.getElementById('ttScreen'); if(!sc) return;
   sc.classList.remove('tt-in'); void sc.offsetWidth; sc.innerHTML=ttCard(); sc.classList.add('tt-in'); const nx=document.getElementById('ttNext'); if(nx) nx.innerHTML=ttNext(); }
-function ttRedraw(){ const el=document.getElementById('tt'); if(el) el.outerHTML=ttHtml(); }
+function ttRedraw(keep){ const el=document.getElementById('tt'); if(!el) return; if(keep!==false&&!TT.resume){ const L=ttItems(); TT.keep=ttKey(L[TT.i]); } el.outerHTML=ttHtml(); }
 function ttTick(){ if(TT.timer) return; TT.last=Date.now(); TT.timer=setInterval(()=>{ const el=document.getElementById('tt'), now=Date.now(), dt=now-TT.last; TT.last=now;
     if(!el){ clearInterval(TT.timer); TT.timer=null; return; }
     if(TT.paused||document.hidden||el.matches(':hover')||el.contains(document.activeElement)&&document.activeElement.tagName==='SELECT') return;
@@ -19911,7 +19920,7 @@ function ttTick(){ if(TT.timer) return; TT.last=Date.now(); TT.timer=setInterval
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-tt],[data-ttjump]'); if(!b||!b.closest('#tt')) return; e.preventDefault();
   if(b.dataset.ttjump!=null) return ttShow(0,+b.dataset.ttjump);
   const a=b.dataset.tt; if(a==='next') ttShow(1); else if(a==='prev') ttShow(-1); else if(a==='pause'){ TT.paused=!TT.paused; b.textContent=TT.paused?'▶':'❚❚'; b.setAttribute('aria-label',TT.paused?'Play':'Pause'); } });
-document.addEventListener('change',e=>{ const t=e.target; if(t.id==='ttCat'||t.id==='ttKind'){ if(t.id==='ttCat') TT.cat=t.value; else TT.kind=t.value; TT.i=0; TT.el=0; ttRedraw(); }
+document.addEventListener('change',e=>{ const t=e.target; if(t.id==='ttCat'||t.id==='ttKind'){ if(t.id==='ttCat') TT.cat=t.value; else TT.kind=t.value; TT.i=0; TT.el=0; TT.resume=null; ttRedraw(false); }
   if(t.id==='bbTheme'){ const el=document.getElementById('tt'); if(el) el.className='tt th-'+t.value; } });
 /* swipe on phones */
 document.addEventListener('touchstart',e=>{ const s=e.target.closest&&e.target.closest('#ttScreen'); TT.tx=s?e.touches[0].clientX:null; },{passive:true});
