@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="3a7dceeb1950">
+<meta name="nexus-build" content="398019e06e63">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -920,7 +920,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='246';
+const NX_APP_VER='247';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -8412,7 +8412,7 @@ async function bqxRebuild(){ if(!bqxOn()) return; if(OXS3.ed) { BQX.rebuild=Date
 
 /* ----- open a BoQ in NEXUS Excel, live ----- */
 async function bqxOpen(b,only){ if(b.layout&&b.layout.path&&!only&&window.NX_PF&&await bqlyOpen(b)) return true; if(bqxNeedsIds(b)){ await patch('boqs',b.id,{bills:bqEnsureIds(b.bills)}); b=byId('boqs',b.id)||b; if(bqxNeedsIds(b)) return false; }
-  const R=bqxBuild(b,only);
+  const R=bqxBuild(b,only); R.sheets.forEach(sh=>{ try{ if(oxsRoleCols(sh)) oxsReadable(sh); }catch(e){ console.warn('readable',e); } });   // v247
   oxsOpen({title:b.title+(only?' (my bills)':' (BoQ)'),sheets:R.sheets,boq_id:b.id,project_id:b.project_id||'',boq_base:bqXlBase(b,only),bqx:{map:R.map,sum:R.sum,only:only?[...only]:null}});
   const f=OXS.sheets.findIndex(s=>/^bill/i.test(s.name)); if(f>=0){ OXS.cur=f; OXS.sel={r:3,c:1,r2:3,c2:1}; OXS3.G=null; oxsTabs(); oxsRender(); }
   document.body.classList.add('bqx-xl'); oxSetStatus('Live with the BoQ – changes save themselves'); bqxBar(); return true; }
@@ -8516,6 +8516,10 @@ function bqlyState(b){ return {items:bqlyUnpack(b.layout.items),snap:{},skip:{},
 
 /* ----- open live in NEXUS Excel ----- */
 async function bqlyOpen(b){ let sheets; try{ sheets=await bqlyLoad(b.layout); }catch(e){ console.warn(e); toast('The original Excel file could not be opened – showing the NEXUS layout.'); return false; }
+  try{ const st=bqlyState(b), by={}; Object.values(st.items).forEach(m=>{ (by[m.s]=by[m.s]||[]).push(m); });   // v247: readable layout every time
+    sheets.forEach(sh=>{ const L=by[sh.name]; if(!L||!L.length) return; const mode=i=>{ const f={}; L.forEach(m=>{ const c=m.c[i]; if(c!=null&&c>=0) f[c]=(f[c]||0)+1; }); const e=Object.entries(f).sort((a,b)=>b[1]-a[1])[0]; return e?+e[0]:null; };
+      const det=oxsRoleCols(sh)||{}, firstR=Math.min(...L.map(m=>m.r));
+      oxsReadable(sh,{ref:mode(0)??det.ref??null,desc:mode(1)??det.desc,unit:mode(2)??det.unit??null,qty:mode(3)??det.qty??null,rate:mode(4)??det.rate??null,amt:mode(5)??det.amt??null,head:det.head!=null&&det.head<firstR?det.head:Math.max(0,firstR-1)}); }); }catch(e){ console.warn('readable',e); }
   oxsOpen({title:b.title+' (original layout)',sheets,names:sheets.names||[],boq_id:b.id,project_id:b.project_id||'',bqx:{map:{},sum:null,only:null,layout:bqlyState(b)}});
   const r=bqlyProject(byId('boqs',b.id)||b); bqlySnap(); if(r.added) OXS.bqx.layout.dirty=true;
   const first=Object.values(OXS.bqx.layout.items).sort((a,c)=>a.r-c.r)[0], fi=first?OXS.sheets.findIndex(s=>s.name===first.s):-1;
@@ -14179,7 +14183,7 @@ function oxs3MenuItems(name,btn){ const I=OXS3I, sh=oxsSheet(), g=oxs3Norm(OXS.s
     case 'cst': return [{html:Object.entries(OXS3_CST).map(([grp,list])=>`<div class="hdr">${esc(grp)}</div><div class="gal" style="grid-template-columns:repeat(4,96px)">${list.map(([n,s],i)=>`<button data-g="${esc(grp)}" data-i="${i}" style="height:26px;font-size:12px;${oxs3StyleCss(s)}">${esc(n)}</button>`).join('')}</div>`).join(''),bind:(el,close)=>el.addEventListener('click',e=>{ const b=e.target.closest('[data-g]'); if(!b) return; close(); const s=OXS3_CST[b.dataset.g][+b.dataset.i][1]; oxs3ApplyCellStyle(s); })}];
     case 'ins': return [{t:'Insert Cells…',ic:'⊞',act:oxs3InsertDlg},{t:'Insert Sheet Rows',ic:'⇣',act:()=>oxsStructural('ir',g.r1,g.r2-g.r1+1)},{t:'Insert Sheet Columns',ic:'⇢',act:()=>oxsStructural('ic',g.c1,g.c2-g.c1+1)},{t:'Insert Sheet',ic:'⊕',act:oxs3AddSheet}];
     case 'del': return [{t:'Delete Cells…',ic:'⊟',act:oxs3DeleteDlg},{t:'Delete Sheet Rows',act:()=>oxsStructural('dr',g.r1,g.r2-g.r1+1)},{t:'Delete Sheet Columns',act:()=>oxsStructural('dc',g.c1,g.c2-g.c1+1)},{t:'Delete Sheet',act:()=>oxs3DeleteSheet(OXS.cur)}];
-    case 'fmt': return [{hdr:'Cell Size'},{t:'Row Height…',ic:'↕',act:oxs3RowHeight},{t:'AutoFit Row Height',act:()=>oxs3AutoFitRows(Array.from({length:Math.min(5000,g.r2-g.r1+1)},(_,i)=>g.r1+i))},{t:'Column Width…',ic:'↔',act:()=>oxs3ColWidth()},{t:'AutoFit Column Width',act:()=>oxs3AutoFitCols(Array.from({length:Math.min(500,g.c2-g.c1+1)},(_,i)=>g.c1+i))},{t:'Default Width…',act:()=>oxs3ColWidth(true)},{hdr:'Visibility'},{t:'Hide & Unhide',sub:[{t:'Hide Rows',k:'Ctrl+9',act:()=>oxs3HideRows(true)},{t:'Hide Columns',k:'Ctrl+0',act:()=>oxs3HideCols(true)},{t:'Hide Sheet',act:()=>oxs3TabAction('hide')},'-',{t:'Unhide Rows',act:()=>oxs3HideRows(false)},{t:'Unhide Columns',act:()=>oxs3HideCols(false)},{t:'Unhide Sheet…',act:()=>oxs3TabAction('unhide')}]},{hdr:'Organize Sheets'},{t:'Rename Sheet',act:()=>oxs3RenameSheet(OXS.cur)},{t:'Move or Copy Sheet…',act:()=>oxs3MoveCopySheet(OXS.cur)},{t:'Tab Colour',sub:[{html:oxs3PalHtml('No Colour'),bind:(el,close)=>el.addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; close(); oxsSnap(); if(b.dataset.c==='none') delete sh.tab; else sh.tab=b.dataset.c; oxsTabs(); oxsChanged(); })}]},{hdr:'Protection'},{t:sh.prot?'Unprotect Sheet…':'Protect Sheet…',ic:'🔒',act:oxs3Protect},{t:'Lock Cell',ic:'🔐',on:oxs3Active().lock!==false,act:()=>oxs3LockToggle()},{t:'Format Cells…',ic:'⚙',k:'Ctrl+1',act:()=>oxs3FormatCells()}];
+    case 'fmt': return [{hdr:'Readable'},{t:'Readable layout (auto-arrange)',ic:'▤',act:()=>oxs3Readable()},{hdr:'Cell Size'},{t:'Row Height…',ic:'↕',act:oxs3RowHeight},{t:'AutoFit Row Height',act:()=>oxs3AutoFitRows(Array.from({length:Math.min(5000,g.r2-g.r1+1)},(_,i)=>g.r1+i))},{t:'Column Width…',ic:'↔',act:()=>oxs3ColWidth()},{t:'AutoFit Column Width',act:()=>oxs3AutoFitCols(Array.from({length:Math.min(500,g.c2-g.c1+1)},(_,i)=>g.c1+i))},{t:'Default Width…',act:()=>oxs3ColWidth(true)},{hdr:'Visibility'},{t:'Hide & Unhide',sub:[{t:'Hide Rows',k:'Ctrl+9',act:()=>oxs3HideRows(true)},{t:'Hide Columns',k:'Ctrl+0',act:()=>oxs3HideCols(true)},{t:'Hide Sheet',act:()=>oxs3TabAction('hide')},'-',{t:'Unhide Rows',act:()=>oxs3HideRows(false)},{t:'Unhide Columns',act:()=>oxs3HideCols(false)},{t:'Unhide Sheet…',act:()=>oxs3TabAction('unhide')}]},{hdr:'Organize Sheets'},{t:'Rename Sheet',act:()=>oxs3RenameSheet(OXS.cur)},{t:'Move or Copy Sheet…',act:()=>oxs3MoveCopySheet(OXS.cur)},{t:'Tab Colour',sub:[{html:oxs3PalHtml('No Colour'),bind:(el,close)=>el.addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; close(); oxsSnap(); if(b.dataset.c==='none') delete sh.tab; else sh.tab=b.dataset.c; oxsTabs(); oxsChanged(); })}]},{hdr:'Protection'},{t:sh.prot?'Unprotect Sheet…':'Protect Sheet…',ic:'🔒',act:oxs3Protect},{t:'Lock Cell',ic:'🔐',on:oxs3Active().lock!==false,act:()=>oxs3LockToggle()},{t:'Format Cells…',ic:'⚙',k:'Ctrl+1',act:()=>oxs3FormatCells()}];
     case 'sum': return [['SUM','Sum'],['AVERAGE','Average'],['COUNT','Count Numbers'],['MAX','Max'],['MIN','Min']].map(([f,t])=>({t,ic:f==='SUM'?'Σ':'',act:()=>oxs3AutoSumFn(f)})).concat([{t:'More Functions…',act:()=>oxs3InsertFn()}]);
     case 'fill2': return [{t:'Down',ic:'⬇',k:'Ctrl+D',act:()=>oxs3FillDir('down')},{t:'Right',ic:'➡',k:'Ctrl+R',act:()=>oxs3FillDir('right')},{t:'Up',ic:'⬆',act:()=>oxs3FillDir('up')},{t:'Left',ic:'⬅',act:()=>oxs3FillDir('left')},'-',{t:'Series…',act:()=>oxs3SeriesDlg()}];
     case 'clear': return [{t:'Clear All',ic:'⌫',act:()=>oxs3Clear('all')},{t:'Clear Formats',ic:'🖌',act:()=>oxs3Clear('formats')},{t:'Clear Contents',k:'Delete',act:()=>oxs3Clear('contents')},{t:'Clear Notes',act:()=>oxs3Clear('notes')},{t:'Clear Hyperlinks',act:()=>oxs3Clear('links')}];
@@ -14979,6 +14983,61 @@ function oxsFromSheetJS(wb){ let X=null; const B=wb&&wb.__bytes; if(B&&!(B[0]===
   if(X&&X.names&&X.names.length){ const kept=out.map(s=>s.name); out.names=X.names.map(nm=>{ if(nm.sc!=null){ const sn=X.meta[nm.sc]?.name; const i=kept.indexOf(sn); if(i<0) return null; return {...nm,sc:i}; } return nm; }).filter(Boolean); }
   if(!out.length) out.push({name:'Sheet1',cells:{},dcw:64});
   return out; }
+
+/* ===================== v247 · READABLE LAYOUT – BoQ and table sheets arranged so nothing overlaps or hides =====================
+   Applied every time a BoQ opens in NEXUS Excel (NEXUS layout and original Excel layout), and on any sheet from
+   Home › Format › "Readable layout". Columns get widths that fit their content (description wide and wrapped, unit/qty
+   narrow, rate/amount wide enough for the biggest figure), every item row aligns to the top, and row heights are
+   recalculated from the wrapped text – no more huge empty rows or text cut off. Cell values are never changed. */
+function oxsRoleCols(sh){ // find the BoQ header row and its columns: ref, desc, unit, qty, rate, amount
+  const txt=(r,c)=>{ const cl=sh.cells[oxsRef(r,c)]; return cl&&typeof cl.v==='string'?cl.v.trim().toLowerCase():''; };
+  const N=Math.min(60,sh.rows||60), M=Math.min(30,sh.colsN||30);
+  for(let r=0;r<N;r++){ const R={}; for(let c=0;c<M;c++){ const t=txt(r,c); if(!t||t.length>40) continue;
+      if(R.desc==null&&/descr|particular|item of work|works? item/.test(t)) R.desc=c;
+      else if(R.unit==null&&/^(unit|units|uom|unit of measure)\b/.test(t)) R.unit=c;
+      else if(R.qty==null&&/^(qty|quantity|quantities)\b/.test(t)) R.qty=c;
+      else if(R.rate==null&&/^(unit )?rate|^price/.test(t)) R.rate=c;
+      else if(R.amt==null&&/^(amount|total|cost|sum)\b/.test(t)) R.amt=c;
+      else if(R.ref==null&&/^(item|code|s\/?n|ref|no\.?|bill|sn|#)/.test(t)) R.ref=c; }
+    if(R.desc!=null&&(R.unit!=null||R.qty!=null||R.rate!=null)) return {...R,head:r}; }
+  return null; }
+function oxsReadable(sh,roles){ if(!sh||!sh.cells) return false; const R=roles||oxsRoleCols(sh); if(!R||R.desc==null) return oxsReadableGeneric(sh);
+  const keys=Object.keys(sh.cells), rows=new Set(); let maxR=0;
+  const font=s=>{ try{ return oxs3Font(s||{}); }catch(_){ return '11pt Calibri'; } };
+  const meas=(t,s)=>{ try{ return oxs3Measure(String(t),font(s)); }catch(_){ return String(t).length*7.5; } };
+  const fit=(c,min,max,num)=>{ if(c==null||c<0) return; let w=0; for(const k of keys){ const p=oxsParseRef(k); if(!p||p.c!==c||p.r<=(R.head??-1)) continue; const cl=sh.cells[k]; let v=cl.v; if(v==null||v===''||cl.f!=null&&typeof v!=='number') continue;
+      const t=num&&typeof v==='number'?v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):String(v); w=Math.max(w,meas(t,cl.s)+16); }
+    sh.cols=sh.cols||{}; sh.cols[c]=Math.round(Math.max(min,Math.min(max,w||min))); if(sh.hc) delete sh.hc[c]; };
+  fit(R.ref,44,80); fit(R.unit,54,96); fit(R.qty,72,120,true); fit(R.rate,104,170,true); fit(R.amt,120,190,true);
+  if(R.amt!=null&&R.qty!=null&&R.rate!=null){ let mx=0; const num=v=>typeof v==='number'?v:+String(v??'').replace(/,/g,'')||0; const rowsQ=new Set(keys.map(k=>oxsParseRef(k)).filter(p=>p&&p.c===R.qty).map(p=>p.r));
+    rowsQ.forEach(r=>{ const q=num(sh.cells[oxsRef(r,R.qty)]?.v), rt=num(sh.cells[oxsRef(r,R.rate)]?.v); if(q*rt>mx) mx=q*rt; });
+    if(mx) sh.cols[R.amt]=Math.max(sh.cols[R.amt],Math.min(200,Math.round(meas(mx.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}))+18))); }
+  if(R.amt!=null) sh.cols[R.amt]=Math.max(sh.cols[R.amt],(sh.cols[R.rate]||104)+20);
+  // description: wide enough to read, never so wide the figures scroll off – about 60–75 characters per line
+  let longest=0; for(const k of keys){ const p=oxsParseRef(k); if(p&&p.c===R.desc&&p.r>(R.head??-1)){ const v=sh.cells[k].v; if(typeof v==='string') longest=Math.max(longest,v.length); } }
+  sh.cols[R.desc]=longest>70?460:Math.max(300,Math.min(460,Math.round(longest*7.4+20))); if(sh.hc) delete sh.hc[R.desc];
+  const roleCols=[R.ref,R.desc,R.unit,R.qty,R.rate,R.amt].filter(c=>c!=null&&c>=0);
+  if(R.head!=null) roleCols.forEach(c=>{ const cl=sh.cells[oxsRef(R.head,c)]; if(!cl||typeof cl.v!=='string') return; const wmax=Math.max(...cl.v.split(/\s+/).map(w=>meas(w,{...(cl.s||{}),b:1})))+18; if(wmax>(sh.cols[c]||0)) sh.cols[c]=Math.round(Math.min(220,wmax)); });   // a heading word is never split
+  for(const k of keys){ const p=oxsParseRef(k); if(!p||p.r<(R.head??0)) continue; const cl=sh.cells[k]; if(cl.v==null||cl.v==='') continue;
+    if(!roleCols.includes(p.c)) continue; rows.add(p.r); if(p.r>maxR) maxR=p.r;
+    const s={...(cl.s||{})};
+    if(p.r===R.head){ s.wr=1; s.va='center'; if(!s.al) s.al='center'; }
+    else { s.va='top'; if(p.c===R.desc||p.c===R.unit) s.wr=1; if((p.c===R.rate||p.c===R.amt)&&typeof cl.v==='number'&&!s.nf) s.nf='#,##0.00'; if(p.c===R.unit&&!s.al) s.al='center'; }
+    cl.s=s; }
+  // formulas in the amount column: format them too
+  if(R.amt!=null) for(const k of keys){ const p=oxsParseRef(k); if(p&&p.c===R.amt&&p.r>(R.head??0)){ const cl=sh.cells[k]; if(cl.f!=null){ cl.s={...(cl.s||{}),va:'top'}; if(!cl.s.nf) cl.s.nf='#,##0.00'; } } }
+  // heights come from the text again (the source file's fixed heights caused the empty bands and cut text)
+  sh.rh=sh.rh||{}; rows.forEach(r=>{ delete sh.rh[r]; });
+  if(!sh.frz&&R.head!=null&&R.head<15) sh.frz={r:R.head+1,c:0};
+  return true; }
+function oxsReadableGeneric(sh){ const keys=Object.keys(sh.cells); if(!keys.length) return false; const per={};
+  for(const k of keys){ const p=oxsParseRef(k); if(!p) continue; const v=sh.cells[k].v; if(v==null||v==='') continue; const L=String(typeof v==='number'?v.toLocaleString('en-US',{maximumFractionDigits:2}):v).length; const o=per[p.c]||(per[p.c]={n:0,sum:0,max:0}); o.n++; o.sum+=L; o.max=Math.max(o.max,L); }
+  sh.cols=sh.cols||{}; const wrapC=new Set();
+  for(const [c,o] of Object.entries(per)){ const avg=o.sum/o.n; if(o.max>45&&avg>20){ sh.cols[c]=Math.min(460,Math.max(260,Math.round(avg*7.4+40))); wrapC.add(+c); } else sh.cols[c]=Math.max(48,Math.min(220,Math.round(o.max*7.6+18))); if(sh.hc) delete sh.hc[c]; }
+  sh.rh=sh.rh||{}; for(const k of keys){ const p=oxsParseRef(k); if(!p) continue; const cl=sh.cells[k]; if(wrapC.has(p.c)&&typeof cl.v==='string'&&cl.v.length>20){ cl.s={...(cl.s||{}),wr:1,va:'top'}; delete sh.rh[p.r]; } }
+  return true; }
+function oxs3Readable(){ if(canWrite===false) return toast('Read-only.'); const sh=oxsSheet(); oxsSnap(); const ok=oxsReadable(sh); oxs3Bump(); oxsRender(); oxsChanged(); toast(ok?'Columns and rows arranged for reading – nothing hidden or overlapping. Ctrl+Z to undo.':'Nothing to arrange on this sheet.'); }
+/* ===================== READABLE LAYOUT (end) ===================== */
 /* office3_wd.js – NEXUS Office · WORD, upgraded to work like Microsoft Word.
    Pasted after the existing Office code: the oxw* functions and the DOCX writer/reader are redeclared here (last declaration wins).
    Document = HTML in a contenteditable page + settings (paper, margins, header/footer, notes, comments, styles…) kept in an
