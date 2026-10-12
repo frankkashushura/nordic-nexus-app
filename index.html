@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="11e93491887b">
+<meta name="nexus-build" content="d423e4502005">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -6930,6 +6930,8 @@ document.addEventListener('click',async e=>{ const el=e.target.closest('[data-hs
     el.disabled=true; const r=await put('hse_insp',null,{project_id:pid,date:$('#hiD').value||today(),items:items.map(({owner,...i})=>i),score:yes+no?Math.round(yes/(yes+no)*100):100,notes:$('#hiN').value.trim(),actions,by:me.name||'',by_uid:me.id||''}); el.disabled=false;
     if(r){ closeDrawer(); logAct(`Site inspection – ${projName(pid)}`); toast(no?`Saved – ${no} action${no>1?'s':''} created.`:'Saved – all OK.'); } return; }
   if(a==='newtbt'||a==='tbt') return hxTbtOpen(a==='tbt'?byId('hse_tbt',x):null);
+  if(a==='tbtprint'){ e.stopPropagation(); const t=byId('hse_tbt',x); if(t) hxTbtPrint(t); return; }
+  if(a==='tbtblank') return hxTbtPrint(null);
   if(a==='permit'){ const T=HSE_PERMITS[x]; if(!T) return; const now=new Date(), end=new Date(now.getTime()+8*36e5), loc=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16);
     return formDrawer('Permit to work – '+x,[{k:'project_id',label:'Project',type:'select',options:projOpts('— choose —'),req:1},{k:'location',label:'Location',req:1},{k:'desc',label:'Work to be done',type:'textarea',req:1,full:1},{k:'issued_to',label:'Issued to (person in charge of the work)',type:'select',options:hseStaffOpts(),req:1},{k:'from',label:'Valid from',type:'datetime-local',req:1},{k:'to',label:'Valid until',type:'datetime-local',req:1},{k:'checks',label:'Precautions in place (all required)',type:'checks',options:T.p.map(p=>[p,p]),req:1}],{from:loc(now),to:loc(end)},async v=>{
       if((v.checks||[]).length<T.p.length&&!await confirmBox('Not all precautions are ticked. Issue the permit anyway?','Issue anyway',true)) return false;
@@ -8453,29 +8455,83 @@ const hxActiveProj=()=>S.projects.filter(p=>!p.example&&!p.deleted&&/^(active|mo
 const hxTbtCount=x=>(x.attendees||[]).length+(x.workers||[]).length+(+x.casual||0);
 function hxParseNewWorkers(txt){ return String(txt||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{ const [name,trade,phone,idno]=l.split(/\s*[,;|]\s*/); const tr=HX_TRADES.find(t=>t.toLowerCase()===String(trade||'').toLowerCase())||HX_TRADES.find(t=>trade&&t.toLowerCase().startsWith(String(trade).toLowerCase()));
   return {name:String(name||'').trim(),trade:tr||(trade?'Other':'Labourer'),position:tr?'':String(trade||''),phone:phone||'',id_no:idno||''}; }).filter(w=>w.name.length>1); }
+/* v228 · TOOLBOX MEETING FORM – same sections as the company paper form (bilingual):
+   header (Location/Eneo, Date/Tarehe, Duration/Muda, Department/Idara) · 1 Topic · 2 Work activity · 3 Hazards · 4 Control measures · 5 PPE · 6 Attendance (SN, Name, Position, Signature) */
+const TBT_DUR=['5 minutes','10 minutes','15 minutes','20 minutes','30 minutes','45 minutes','1 hour'];
+const TBT_DEPT=['HSE','Site / Construction','Civil works','Electrical','Plumbing / MEP','Finishing works','Plant & equipment','Office / Administration'];
+const TBT_HAZ=['Fall from height','Falling objects','Use of chemicals','Dust','Noise','Electrical shock','Manual handling / heavy lifting','Car / vehicle accident','Moving plant & machinery','Excavation collapse','Slips, trips & falls','Sharp tools & cuts','Hot work / fire','Heat stress','Confined space','Unstable scaffold / ladder','Cement & concrete burns'];
+const TBT_CTRL=['Wearing safety harness','Wearing dust mask','Using Safety Data Sheet (SDS)','Wearing proper PPE','Using traffic signs / banksman','Barricades & warning signs','Inspect scaffold / ladder before use','Tool lanyards & toe boards','Good housekeeping','Isolate power (lock-out / tag-out)','Correct lifting / team lift','Drinking water & rest breaks','Fire extinguisher at the work area','Competent supervisor present','Shore or slope trenches'];
+const TBT_PPE=['Safety harness','Safety helmet','Safety shoes / boots','Coverall','Reflective vest','Gloves','Dust mask / respirator','Safety goggles','Ear protection','Face shield','Rubber boots'];
+const tbtSplit=(arr,known)=>{ const a=Array.isArray(arr)?arr:[]; return [a.filter(x=>known.includes(x)),a.filter(x=>!known.includes(x)).join('\n')]; };
+const tbtLines=t=>String(t||'').split(/\n+/).map(x=>x.replace(/^[\s\-–•*>]+/,'').trim()).filter(Boolean);
 function hxTbtOpen(r,pid0){ const H=isHSE(); if(r&&!(H||r.by_uid===me.id)) return toast('Only the person who recorded it or the HSE team can change it.');
-  const pid=r?.project_id||pid0||hxF().pid||'', W=hxWorkers().sort((a,b)=>((b.project_id===pid)-(a.project_id===pid))||String(a.name).localeCompare(String(b.name)));
+  const pid=r?.project_id||pid0||hxF().pid||'', P=pid?byId('projects',pid):null, W=hxWorkers().sort((a,b)=>((b.project_id===pid)-(a.project_id===pid))||String(a.name).localeCompare(String(b.name)));
   const now=new Date(), hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  return formDrawer(r?'Toolbox talk':'Daily toolbox talk',[{k:'date',label:'Date',type:'date',req:1},{k:'time',label:'Start time',type:'time'},{k:'project_id',label:'Project / site',type:'select',options:projOpts('— office / other —'),req:1},{k:'topic',label:'Topic',req:1,ph:HSE_TBT_TOPICS.slice(0,4).join(', ')+'…'},{k:'presenter',label:'Given by (site foreman / supervisor)'},
-    {k:'workers',label:`Site workers present (${W.length} registered${pid?' – this site first':''})`,type:'checks',full:1,options:W.map(w=>[w.id,`${w.name}${w.trade?' – '+w.trade:''}${w.project_id&&w.project_id!==pid?' · '+projName(w.project_id):''}`]),empty:'No site workers registered yet – add them in the box below.'},
-    {k:'new_workers',label:'New workers present (not registered yet)',type:'textarea',full:1,ph:'One worker per line: Full name, trade, phone, ID number\nJuma Hassan, Mason, 0712 345 678, 19900101-12345-00001-21',help:'Each line is added to the Workers register of this site, so next time you just tick the name.'},
-    {k:'attendees',label:'Nordic staff who attended',type:'checks',full:1,options:S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,s.name]),empty:'No staff on the Staff page yet.'},{k:'casual',label:'Other casual workers (number, not named)',type:'number'},
-    {k:'notes',label:'Key points / questions raised',type:'textarea',full:1},{k:'photos',label:'Photos – the talk and the signed attendance sheet',type:'photos'}],
-    r||{date:today(),time:hm,project_id:pid,presenter:me.name||''},async v=>{ const nw=hxParseNewWorkers(v.new_workers); delete v.new_workers;
+  const [hz,hzo]=tbtSplit(r?.hazards,TBT_HAZ), [ct,cto]=tbtSplit(r?.controls,TBT_CTRL), [pp,ppo]=tbtSplit(r?.ppe,TBT_PPE);
+  const vals=r?{...r,hazards:hz,hazards_other:hzo,controls:ct,controls_other:cto,ppe:pp,ppe_other:ppo}:{date:today(),time:hm,project_id:pid,location:P?(P.location?P.name+' – '+P.location:P.name):'',duration:'10 minutes',department:'HSE',presenter:me.name||''};
+  return formDrawer(r?'Toolbox meeting form':'Toolbox meeting form – new',[
+    {k:'project_id',label:'Project / site',type:'select',options:projOpts('— office / other —'),req:1},
+    {k:'location',label:'Location / Eneo',ph:'e.g. Bagamoyo Service Station'},
+    {k:'date',label:'Date / Tarehe',type:'date',req:1},{k:'time',label:'Start time / Saa',type:'time'},
+    {k:'duration',label:'Duration / Muda',type:'select',options:TBT_DUR},{k:'department',label:'Department / Idara',type:'select',options:TBT_DEPT},
+    {k:'topic',label:'1. Topic of discussion / Mada ya mazungumzo',req:1,full:1,ph:HSE_TBT_TOPICS.slice(0,4).join(', ')+'…'},
+    {k:'activity',label:'2. Description of work activity / Maelezo ya kazi inayofanyika',type:'textarea',full:1,ph:'e.g. Painting works at Shell building'},
+    {k:'hazards',label:'3. Identified hazards / Hatari zilizobainishwa',type:'checks',full:1,options:TBT_HAZ.map(x=>[x,x])},
+    {k:'hazards_other',label:'Other hazards (one per line)',type:'textarea',full:1},
+    {k:'controls',label:'4. Control measures / Safety precautions – Njia za kujikinga',type:'checks',full:1,options:TBT_CTRL.map(x=>[x,x])},
+    {k:'controls_other',label:'Other control measures (one per line)',type:'textarea',full:1},
+    {k:'ppe',label:'5. PPE required / Vifaa vya kujikinga',type:'checks',full:1,options:TBT_PPE.map(x=>[x,x])},
+    {k:'ppe_other',label:'Other PPE (one per line)',type:'textarea',full:1},
+    {k:'workers',label:`6. Attendance / Majina ya washiriki – site workers (${W.length} registered${pid?' – this site first':''})`,type:'checks',full:1,options:W.map(w=>[w.id,`${w.name}${w.trade?' – '+w.trade:''}${w.project_id&&w.project_id!==pid?' · '+projName(w.project_id):''}`]),empty:'No site workers registered yet – add them in the box below.'},
+    {k:'new_workers',label:'New workers present (not registered yet)',type:'textarea',full:1,ph:'One worker per line: Full name, position / trade, phone, ID number\nJuma Hassan, Painter, 0712 345 678',help:'Each line is added to the Workers register of this site, so next time you just tick the name.'},
+    {k:'attendees',label:'Nordic staff who attended',type:'checks',full:1,options:S.staff.filter(s=>s.status!=='Left').map(s=>[s.id,`${s.name}${s.position?' – '+s.position:''}`]),empty:'No staff on the Staff page yet.'},
+    {k:'casual',label:'Other casual workers (number, not named)',type:'number'},
+    {k:'presenter',label:'Conducted by (HSE / site supervisor)'},{k:'notes',label:'Key points / questions raised',type:'textarea',full:1},
+    {k:'photos',label:'Photos – the signed form / attendance sheet and the talk',type:'photos'}],
+    vals,async v=>{ const nw=hxParseNewWorkers(v.new_workers); delete v.new_workers;
       if(!v.project_id){ toast('Choose the project / site.'); return false; }
+      v.hazards=[...(v.hazards||[]),...tbtLines(v.hazards_other)]; v.controls=[...(v.controls||[]),...tbtLines(v.controls_other)]; v.ppe=[...(v.ppe||[]),...tbtLines(v.ppe_other)]; delete v.hazards_other; delete v.controls_other; delete v.ppe_other;
       const ids=[]; for(const w of nw){ const ex=hxWorkers().find(x=>String(x.name).toLowerCase()===w.name.toLowerCase()&&(x.project_id||'')===v.project_id); if(ex){ ids.push(ex.id); continue; }
         const id=await put('hse_worker',null,{...w,project_id:v.project_id,status:'Active',nationality:'Tanzanian',id_checked:w.id_no?'Yes':'No',id_type:w.id_no?'NIDA':'',company:'',added_by:me.name||'',added_via:'Toolbox talk'}); if(id) ids.push(id); }
       v.workers=[...new Set([...(v.workers||[]),...ids])];
       const ok=r?(await patch('hse_tbt',r.id,v),true):await put('hse_tbt',null,{...v,by:me.name||'',by_uid:me.id||''});
       if(ok){ logAct(`Toolbox talk: ${v.topic} – ${projName(v.project_id)} (${hxTbtCount(v)} attended${nw.length?', '+nw.length+' new worker'+(nw.length>1?'s':'')+' registered':''})`); if(nw.length) toast(`${nw.length} new worker${nw.length>1?'s':''} added to the Workers register.`); }
-      return !!ok; },{delOk:H,onDelete:r?async()=>remove('hse_tbt',r.id):null,saveLabel:r?'Save':'Save toolbox talk',sub:'Health & Safety · daily toolbox talk before site work starts'}); }
+      return !!ok; },{delOk:H,onDelete:r?async()=>remove('hse_tbt',r.id):null,saveLabel:r?'Save':'Save toolbox meeting',sub:'Health & Safety · toolbox meeting before site work starts'}); }
+/* print / PDF in the paper-form layout (blank form when r is null) */
+function hxTbtPrint(r){ const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print.'); return; } const c=company(), x=r||{};
+  const ppl=[...(x.workers||[]).map(id=>{ const k=hxWorkers().find(z=>z.id===id)||byId('hse_worker',id)||{}; return [k.name||'',k.position||k.trade||'']; }),
+    ...(x.attendees||[]).map(id=>{ const s=S.staff.find(z=>z.id===id)||{}; return [s.name||'',s.position||'Nordic staff']; })].filter(p=>p[0]);
+  const rows=Math.max(12,ppl.length+(+x.casual?1:0)+2), L=a=>{ const l=(a||[]).filter(Boolean); return l.length?l.map(t=>`<div class="ln">➝ ${esc(t)}</div>`).join(''):'<div class="ln"></div><div class="ln"></div><div class="ln"></div>'; };
+  const att=Array.from({length:rows},(_,i)=>{ const p=ppl[i]; const cas=!p&&i===ppl.length&&+x.casual?[`+ ${x.casual} other casual worker${+x.casual>1?'s':''}`,'Casual']:null; const q=p||cas;
+    return `<tr><td class="sn">${i+1}</td><td>${q?esc(q[0]):''}</td><td>${q?esc(q[1]):''}</td><td></td></tr>`; }).join('');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Toolbox meeting form${x.date?' – '+x.date:''}</title><style>
+    @page{size:A4;margin:14mm} *{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{font:12.5px Arial,Helvetica,sans-serif;color:#111;margin:0}
+    .top{display:flex;align-items:center;gap:12px;border-bottom:3px solid #F2A900;padding-bottom:8px} .top img{height:46px} .top b{font-size:14px} .top small{display:block;color:#555}
+    h1{text-align:center;font-size:16px;letter-spacing:1px;margin:14px 0 10px}
+    table{border-collapse:collapse;width:100%} td,th{border:1px solid #333;padding:5px 7px;vertical-align:top} th{background:#eee;text-align:left;font-size:12px}
+    .hdr td:first-child{width:45%;font-weight:bold} h2{font-size:13px;margin:14px 0 4px} h2 span{font-weight:normal;color:#444}
+    .ln{border-bottom:1px dotted #777;min-height:20px;padding:3px 2px 1px} .sn{width:36px;text-align:center} .att td{height:22px} .att th:nth-child(3){width:28%} .att th:nth-child(4){width:22%}
+    .sig{display:flex;gap:30px;margin-top:18px} .sig div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:11.5px;color:#444} .pb{page-break-inside:avoid}
+  </style></head><body>
+  <div class="top"><img src="${LOGO}" alt=""><div><b>${esc(c.name||'Nordic Construction Company Ltd')}</b><small>${esc(c.address||'')}${c.phone?' · '+esc(c.phone):''}</small></div></div>
+  <h1>TOOLBOX MEETING FORM</h1>
+  <table class="hdr"><tr><td>LOCATION / ENEO</td><td>${esc(x.location||(x.project_id?projName(x.project_id):''))}</td></tr><tr><td>DATE / TAREHE</td><td>${x.date?esc(fmtD(x.date))+(x.time?' · '+esc(x.time):''):''}</td></tr><tr><td>DURATION / MUDA</td><td>${esc(x.duration||'')}</td></tr><tr><td>DEPARTMENT / IDARA</td><td>${esc(x.department||'')}</td></tr></table>
+  <h2>1. Topic of discussion <span>(Mada ya mazungumzo)</span></h2><div class="ln">${esc(x.topic||'')}</div>${x.topic?'':'<div class="ln"></div>'}
+  <h2>2. Description of work activity <span>(Maelezo ya kazi inayofanyika)</span></h2>${x.activity?tbtLines(x.activity).map(t=>`<div class="ln">${esc(t)}</div>`).join(''):'<div class="ln"></div><div class="ln"></div>'}
+  <h2>3. Identified hazards <span>(Hatari zilizobainishwa)</span></h2>${L(x.hazards)}
+  <h2>4. Control measures / Safety precautions <span>(Njia za kujikinga)</span></h2>${L(x.controls)}
+  <h2>5. PPE required <span>(Vifaa vya kujikinga)</span></h2>${L(x.ppe)}
+  ${x.notes?`<h2>Key points / questions raised</h2>${tbtLines(x.notes).map(t=>`<div class="ln">${esc(t)}</div>`).join('')}`:''}
+  <div class="pb"><h2>6. Attendance <span>(Majina ya washiriki)</span></h2><table class="att"><tr><th class="sn">SN</th><th>Name</th><th>Position</th><th>Signature</th></tr>${att}</table></div>
+  <div class="sig"><div>Conducted by: <b>${esc(x.presenter||'')}</b></div><div>Signature</div><div>Site supervisor signature</div></div>
+  </body></html>`); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } },500); }
 function hseTbtTab(){ const F=hxF(), L=hL('hse_tbt').filter(x=>!F.pid||x.project_id===F.pid).sort((a,b)=>String(b.date+(b.time||'')).localeCompare(String(a.date+(a.time||'')))), td=today();
   const P=hxActiveProj().filter(p=>!F.pid||p.id===F.pid), done=P.filter(p=>L.some(x=>x.project_id===p.id&&x.date===td)).length, wk=ymd(new Date(Date.now()-6*864e5));
-  const today_=P.length?`<div class="card hx-tbtd"><div class="hx-tbth"><b>Today's toolbox talks</b><span class="sub">${fmtD(td)} · ${done} of ${P.length} active site${P.length>1?'s':''} done</span><div class="sp"></div>${canWrite?'<button class="btn sm pri" data-hx="newtbt">＋ Record today\'s talk</button>':''}</div>
+  const today_=P.length?`<div class="card hx-tbtd"><div class="hx-tbth"><b>Today's toolbox talks</b><span class="sub">${fmtD(td)} · ${done} of ${P.length} active site${P.length>1?'s':''} done</span><div class="sp"></div><button class="btn sm" data-hse="tbtblank:1" title="Print an empty toolbox meeting form for paper use">🖨 Blank form</button>${canWrite?'<button class="btn sm pri" data-hx="newtbt">＋ Record today\'s talk</button>':''}</div>
     <div class="hx-tbtg">${P.map(p=>{ const t=L.find(x=>x.project_id===p.id&&x.date===td), n7=new Set(L.filter(x=>x.project_id===p.id&&x.date>=wk).map(x=>x.date)).size;
       return t?`<button class="hx-tbtc ok" data-hse="tbt:${esc(t.id)}"><b>${esc(p.name)}</b><span>✓ ${esc(t.time||'')} · ${hxTbtCount(t)} attended${(t.photos||[]).length?' · 📷 '+t.photos.length:''}</span><small>${esc(t.topic||'')}</small></button>`
         :`<button class="hx-tbtc no" data-hx="tbtfor:${esc(p.id)}"><b>${esc(p.name)}</b><span>✕ Not recorded yet</span><small>${n7}/7 days recorded this week · tap to record</small></button>`; }).join('')}</div></div>`:'';
-  return `${hxFilterBar()}${today_}${L.length?`<div class="card hse-list">${L.map(x=>`<div class="hse-row" data-hse="tbt:${esc(x.id)}">${(x.photos||[])[0]?photoTag(x.photos[0],'hx-tbtph'):`<span class="hse-ic good">${hxTbtCount(x)}</span>`}<div class="d"><b>${esc(x.topic||'Toolbox talk')}</b><small>${[fmtD(x.date)+(x.time?' '+esc(x.time):''),esc(projName(x.project_id)),x.presenter?'by '+esc(x.presenter):'',`${hxTbtCount(x)} attended`,(x.photos||[]).length?'📷 '+x.photos.length:''].filter(Boolean).join(' · ')}</small></div></div>`).join('')}</div>`:hseEmpty('No toolbox talks recorded yet. Record the talk every morning before site work starts – who attended and a photo of the talk / attendance sheet.')}`; }
+  return `${hxFilterBar()}${today_||`<div class="toolbar"><div class="sp"></div><button class="btn sm" data-hse="tbtblank:1">🖨 Blank form</button>${canWrite?'<button class="btn sm pri" data-hx="newtbt">＋ Record toolbox meeting</button>':''}</div>`}${L.length?`<div class="card hse-list">${L.map(x=>`<div class="hse-row" data-hse="tbt:${esc(x.id)}">${(x.photos||[])[0]?photoTag(x.photos[0],'hx-tbtph'):`<span class="hse-ic good">${hxTbtCount(x)}</span>`}<div class="d"><b>${esc(x.topic||'Toolbox talk')}</b><small>${[fmtD(x.date)+(x.time?' '+esc(x.time):''),esc(x.location||projName(x.project_id)),x.duration?esc(x.duration):'',x.presenter?'by '+esc(x.presenter):'',`${hxTbtCount(x)} attended`,(x.hazards||[]).length?`⚠ ${x.hazards.length} hazard${x.hazards.length>1?'s':''}`:'',(x.photos||[]).length?'📷 '+x.photos.length:''].filter(Boolean).join(' · ')}</small></div><button class="btn sm ghost" data-hse="tbtprint:${esc(x.id)}" title="Print / PDF in the toolbox meeting form layout">🖨 Form</button></div>`).join('')}</div>`:hseEmpty('No toolbox talks recorded yet. Record the talk every morning before site work starts – who attended and a photo of the talk / attendance sheet.')}`; }
 
 /* OSHA registration of projects (certificates, licences, credentials) with renewal alerts */
 const OSHA_TYPES=['Workplace registration certificate','Compliance licence','Notification of construction work','Workplace inspection / compliance report','Medical examination of workers','Fire & rescue compliance certificate','Other OSHA credential'];
