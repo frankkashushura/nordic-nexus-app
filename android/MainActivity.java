@@ -17,6 +17,12 @@ import android.util.Base64;
 import android.view.View;
 import android.view.Window;
 import android.webkit.CookieManager;
+import android.webkit.GeolocationPermissions;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
+import android.provider.MediaStore;
+import androidx.core.content.FileProvider;
+import java.util.ArrayList;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -33,18 +39,25 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
-/** NORDIC NEXUS for Android – opens the live NEXUS web app full screen; receives push notifications; in-app browser for the Digital Hub (v1.3). */
+/** NORDIC NEXUS for Android – opens the live NEXUS web app full screen; receives push notifications; in-app browser for the Digital Hub (v1.3);
+ *  v1.4: camera for video calls and photos, GPS position for HSE forms, print / Save as PDF of NEXUS forms and reports. */
 public class MainActivity extends Activity {
     static final String HOME = "https://frankkashushura.github.io/nordic-nexus-app/";
     static final String APP_HOST = "frankkashushura.github.io";
     static final int FILE_REQ = 41;
     static final int MIC_REQ = 42;
     static final int NOTIF_REQ = 43;
+    static final int LOC_REQ = 44;
+    static final int CAM_REQ = 45;
     static volatile boolean visible = false;
     static MainActivity current;
     volatile String pushToken = "";
     boolean pageReady = false;
     PermissionRequest pendingMic;
+    GeolocationPermissions.Callback pendingGeo; String pendingGeoOrigin;
+    WebChromeClient.FileChooserParams pendingChooser;
+    Uri camUri; File camFile;
+    WebView printView;
 
     WebView web;
     ValueCallback<Uri[]> fileCallback;
@@ -67,7 +80,8 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setSupportZoom(false);
-        s.setUserAgentString(s.getUserAgentString() + " NordicNexusAndroid/1.3");
+        s.setGeolocationEnabled(true);
+        s.setUserAgentString(s.getUserAgentString() + " NordicNexusAndroid/1.4");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
 
@@ -107,39 +121,46 @@ public class MainActivity extends Activity {
         });
 
         web.setWebChromeClient(new WebChromeClient() {
-            // voice notes in NEXUS chat: let the page use the microphone (asks the user once)
+            // voice notes, voice and video calls: let NEXUS use the microphone and camera (Android asks once)
             @Override
             public void onPermissionRequest(final PermissionRequest req) {
                 runOnUiThread(new Runnable() { public void run() {
-                    boolean audio = false;
-                    for (String r : req.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) audio = true;
                     Uri o = req.getOrigin();
-                    if (!audio || o == null || !APP_HOST.equals(o.getHost())) { req.deny(); return; }
-                    if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                        req.grant(new String[]{ PermissionRequest.RESOURCE_AUDIO_CAPTURE });
-                    } else {
-                        if (pendingMic != null) pendingMic.deny();
-                        pendingMic = req;
-                        requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, MIC_REQ);
+                    if (o == null || !APP_HOST.equals(o.getHost())) { req.deny(); return; }
+                    ArrayList<String> need = new ArrayList<>();
+                    for (String r : req.getResources()) {
+                        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r) && !has(Manifest.permission.RECORD_AUDIO)) need.add(Manifest.permission.RECORD_AUDIO);
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r) && !has(Manifest.permission.CAMERA)) need.add(Manifest.permission.CAMERA);
                     }
+                    if (need.isEmpty()) { grantMedia(req); return; }
+                    if (pendingMic != null) pendingMic.deny();
+                    pendingMic = req;
+                    requestPermissions(need.toArray(new String[0]), MIC_REQ);
                 }});
+            }
+
+            // GPS position for HSE forms (only for NEXUS itself)
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
+                Uri o = Uri.parse(origin);
+                if (o == null || !APP_HOST.equals(o.getHost())) { cb.invoke(origin, false, false); return; }
+                if (has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION)) { cb.invoke(origin, true, false); return; }
+                pendingGeo = cb; pendingGeoOrigin = origin;
+                requestPermissions(new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }, LOC_REQ);
             }
 
             @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = cb;
-                Intent pick = params.createIntent();
-                if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE)
-                    pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                try {
-                    startActivityForResult(Intent.createChooser(pick, "Choose file"), FILE_REQ);
-                } catch (ActivityNotFoundException e) {
-                    fileCallback = null;
-                    Toast.makeText(MainActivity.this, "No app found to pick files.", Toast.LENGTH_LONG).show();
-                    return false;
+                // photos: offer the camera too (asks for camera permission once)
+                if (wantsImages(params) && !has(Manifest.permission.CAMERA) && !getPreferences(MODE_PRIVATE).getBoolean("askedCam", false)) {
+                    getPreferences(MODE_PRIVATE).edit().putBoolean("askedCam", true).apply();
+                    pendingChooser = params;
+                    requestPermissions(new String[]{ Manifest.permission.CAMERA }, CAM_REQ);
+                    return true;
                 }
-                return true;
+                return launchChooser(params);
             }
         });
 
@@ -217,6 +238,50 @@ public class MainActivity extends Activity {
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
     }
 
+    boolean has(String p) { return Build.VERSION.SDK_INT < 23 || checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
+
+    void grantMedia(PermissionRequest req) {
+        ArrayList<String> ok = new ArrayList<>();
+        for (String r : req.getResources()) {
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r) && has(Manifest.permission.RECORD_AUDIO)) ok.add(r);
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r) && has(Manifest.permission.CAMERA)) ok.add(r);
+        }
+        if (ok.isEmpty()) req.deny(); else req.grant(ok.toArray(new String[0]));
+    }
+
+    boolean wantsImages(WebChromeClient.FileChooserParams p) {
+        String[] t = p.getAcceptTypes();
+        if (t == null || t.length == 0) return true;
+        for (String a : t) if (a == null || a.isEmpty() || a.contains("image") || a.equals("*/*")) return true;
+        return false;
+    }
+
+    boolean launchChooser(WebChromeClient.FileChooserParams params) {
+        Intent pick = params.createIntent();
+        if (params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        Intent chooser = Intent.createChooser(pick, "Choose file");
+        camUri = null; camFile = null;
+        if (wantsImages(params) && has(Manifest.permission.CAMERA)) {
+            try {
+                File dir = new File(getCacheDir(), "cam"); dir.mkdirs();
+                camFile = new File(dir, "NEXUS_" + System.currentTimeMillis() + ".jpg");
+                camUri = FileProvider.getUriForFile(this, getPackageName() + ".files", camFile);
+                Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, camUri)
+                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{ cam });
+            } catch (Exception e) { camUri = null; camFile = null; }
+        }
+        try {
+            startActivityForResult(chooser, FILE_REQ);
+            return true;
+        } catch (ActivityNotFoundException e) {
+            if (fileCallback != null) fileCallback.onReceiveValue(null);
+            fileCallback = null;
+            Toast.makeText(this, "No app found to pick files.", Toast.LENGTH_LONG).show();
+            return false;
+        }
+    }
+
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         if (req != FILE_REQ || fileCallback == null) { super.onActivityResult(req, res, data); return; }
@@ -230,6 +295,7 @@ public class MainActivity extends Activity {
                 result = new Uri[]{ data.getData() };
             }
         }
+        if (result == null && res == RESULT_OK && camFile != null && camFile.length() > 0) result = new Uri[]{ camUri };   // photo taken with the camera
         fileCallback.onReceiveValue(result);
         fileCallback = null;
     }
@@ -237,9 +303,17 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
         if (code == NOTIF_REQ) { refreshToken(); return; }
+        if (code == LOC_REQ) {
+            boolean ok = false; for (int r : res) if (r == PackageManager.PERMISSION_GRANTED) ok = true;
+            if (pendingGeo != null) pendingGeo.invoke(pendingGeoOrigin, ok, false);
+            if (!ok) Toast.makeText(this, "Location not allowed – the GPS position needs it.", Toast.LENGTH_LONG).show();
+            pendingGeo = null; return;
+        }
+        if (code == CAM_REQ) { if (pendingChooser != null) launchChooser(pendingChooser); pendingChooser = null; return; }
         if (code != MIC_REQ || pendingMic == null) return;
-        if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) pendingMic.grant(new String[]{ PermissionRequest.RESOURCE_AUDIO_CAPTURE });
-        else { pendingMic.deny(); Toast.makeText(this, "Microphone not allowed – voice notes need it.", Toast.LENGTH_LONG).show(); }
+        grantMedia(pendingMic);
+        boolean all = true; for (int r : res) if (r != PackageManager.PERMISSION_GRANTED) all = false;
+        if (!all) Toast.makeText(this, "Microphone / camera not allowed – calls and voice notes need them.", Toast.LENGTH_LONG).show();
         pendingMic = null;
     }
 
@@ -270,6 +344,31 @@ public class MainActivity extends Activity {
                 catch (Exception e) { openOutside(url); }
             });
         }
+
+        /** v1.4: print a NEXUS form or report – Android's print screen also offers "Save as PDF" and sharing. */
+        @JavascriptInterface
+        public void printHtml(final String html, final String title) {
+            if (html == null) return;
+            runOnUiThread(() -> {
+                final WebView pv = new WebView(MainActivity.this);
+                pv.getSettings().setJavaScriptEnabled(false);
+                pv.setWebViewClient(new WebViewClient() {
+                    @Override public void onPageFinished(WebView v, String url) {
+                        try {
+                            String name = (title == null || title.trim().isEmpty() ? "NEXUS document" : title.trim()).replaceAll("[\\\\/:*?\"<>|]", "_");
+                            PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                            pm.print(name, v.createPrintDocumentAdapter(name), new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build());
+                        } catch (Exception e) { Toast.makeText(MainActivity.this, "Could not print: " + e.getMessage(), Toast.LENGTH_LONG).show(); }
+                    }
+                });
+                printView = pv;   // keep it alive while Android prepares the document
+                pv.loadDataWithBaseURL(HOME, html, "text/html", "utf-8", null);
+            });
+        }
+
+        /** App version, so NEXUS knows which phone features are available. */
+        @JavascriptInterface
+        public String version() { return "1.4"; }
 
         /** This phone's push address ("" until Firebase has given one). */
         @JavascriptInterface
