@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="9e93d47efbde">
+<meta name="nexus-build" content="a760c922dc06">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -215,6 +215,7 @@ td.r,th.r{text-align:right}
 .staff .ph img{width:100%;height:100%;object-fit:cover}
 .ai{border:1px solid var(--accent);background:linear-gradient(0deg,var(--panel),var(--panel)),var(--accent-soft);border-radius:var(--r)}
 .ai .hd{border-bottom-color:var(--accent-soft)}
+.pa-kpis{display:flex;flex-wrap:wrap;gap:10px}.pa-kpis>div{flex:1 1 150px;background:var(--bg2,rgba(127,127,127,.08));border-radius:10px;padding:10px 12px}.pa-kpis b{display:block;font-size:20px}.pa-kpis span{font-size:12px;color:var(--muted)}.pa-kpis .bad b{color:var(--bad)}.pa-kpis .good b{color:var(--good,#2E9D5B)}.pa-adv{white-space:pre-wrap;margin-top:8px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--bg2,rgba(127,127,127,.06));border-radius:6px}
 .ai-tag{font:600 10.5px var(--f-mono);letter-spacing:.08em;background:var(--accent);color:var(--accent-ink);padding:2px 6px;border-radius:3px}
 .prose{white-space:pre-wrap;line-height:1.6}
 .verdict{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
@@ -920,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='249';
+const NX_APP_VER='250';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -1810,7 +1811,7 @@ function reportForm(r={}, projId){
     <div class="fld full"><label for="f_visitors">Visitors</label><input class="inp" id="f_visitors" value="${esc(v.visitors||'')}" placeholder="e.g. Consultant QS – measurement of substructure"></div>
     <div class="fld full"><label for="f_hse">Safety</label><div class="toolbar" style="gap:6px;margin-bottom:6px"><button type="button" class="chip rpchip good" data-act="rpNoHse" aria-pressed="${/^none\b/i.test(v.hse||'')}">✓ No incidents today</button></div><textarea class="inp" id="f_hse" rows="2" placeholder="Incident, near miss or toolbox talk topic">${esc(v.hse||'')}</textarea></div>
     ${ta('next_day','Plan for tomorrow')}
-    <div class="fld full"><label>Programme progress <span class="sub">– update the % of activities worked on</span></label><div id="rpProg">${pmReportRows(pid, d)}</div></div>
+    <div class="fld full"><label>Programme progress <span class="sub">– update the % of activities worked on, or leave it: NEXUS AI reads your report and updates the programme</span></label><div class="toolbar" style="margin:4px 0 6px"><button type="button" class="btn sm" id="paFill" data-pa="fill">🤖 Fill % from what I wrote</button></div><div id="rpProg">${pmReportRows(pid, d)}</div></div>
     <div class="fld full"><label for="rphotos">Photos</label><input class="inp" id="rphotos" type="file" accept="image/*" multiple><span class="sub">Resized before upload so they send quickly over mobile data.</span></div></div>
     ${(r.photos||[]).length?`<div class="photos">${r.photos.map(p=>photoTag(p)).join('')}</div>`:''}`;
   setTimeout(()=>rpShowDeliveries(),0);
@@ -1854,7 +1855,7 @@ function reportDrawer(r){
   const kv=[['Project',projName(r.project_id)],['Date',fmtD(r.date)],['Reported by',r.author],['Weather',r.weather],['Workers',r.workforce!=null&&r.workforce!==''?r.workforce+(rpLabTxt(r)?' ('+rpLabTxt(r)+')':''):''],['Work done',r.work_done],['Materials received',r.materials],['Plant',r.plant],['Issues / delays',r.issues],['Instructions received',r.instructions],['Visitors',r.visitors],['HSE',r.hse],['Next day',r.next_day]].filter(x=>x[1]!=null&&x[1]!=='');
   const body=`<dl class="kv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd class="prose">${esc(v)}</dd>`).join('')}</dl>
   ${(r.photos||[]).length?`<div class="card"><div class="hd"><h2>Photos</h2><span class="sub">${r.photos.length}</span></div><div class="bd photos">${r.photos.map(p=>photoTag(p)).join('')}</div></div>`:''}
-  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}${r.ai_summary?'<br>'+aiPanelBadge(r.ai_panel):''}</div></div>`;
+  <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Summary & risk flags</h2><div class="sp"></div><button class="btn pri sm" data-act="aiReport" ${UI.busy.report?'disabled':''}>${spin('report')}${r.ai_summary?'Refresh':'Summarise'}</button></div><div class="bd prose small">${esc(r.ai_summary||'NEXUS writes a two-line summary for management and flags delay, cost, quality or safety risks.')}${r.ai_summary?'<br>'+aiPanelBadge(r.ai_panel):''}</div></div>${paReportCard(r)}`;
   return drawerShell(`${projName(r.project_id)} · ${fmtD(r.date)}`, 'Site report', body, `<button class="btn dark" data-act="editReport">Edit</button><button class="btn" data-act="rpDownloadOne">Download (Word)</button><div style="flex:1"></div>${isAdmin?'<button class="btn danger" data-act="delReport">Delete</button>':''}`);
 }
 
@@ -7234,6 +7235,7 @@ function pageProject(){
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
       <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
+    ${paCard(p)}
     ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
     <div class="grid g2">
       <div class="card"><div class="hd"><h2>Latest site reports</h2></div><div class="list">${S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div></div>`).join('')||'<div class="empty">No site reports yet.</div>'}</div></div>
@@ -7511,7 +7513,7 @@ function pmKpis(p){
 function pmProgrammeTab(p){
   const ms=msOf(p.id).sort((a,b)=>(a.planned_start||'').localeCompare(b.planned_start||'')), pr=programme(p.id), f=pmForecast(p), view=UI.pmView||'gantt', cpm=pmCpm(p.id).res, t=today0();
   const base=ms.some(m=>m.baseline_finish);
-  return `${pmKpis(p)}
+  return `${pmKpis(p)}${paCard(p)}
   <div class="toolbar" style="flex-wrap:wrap"><div class="seg" role="group" aria-label="View"><button data-act="pmView" data-v="gantt" aria-pressed="${view==='gantt'}">Gantt chart</button><button data-act="pmView" data-v="table" aria-pressed="${view==='table'}">Table</button><button data-act="pmView" data-v="ahead" aria-pressed="${view==='ahead'}">2-week look-ahead</button></div>
     <span class="muted small">${ms.length} activities${pr?` · weights ${pr.weight}%${pr.weight!==100?' (should be 100)':''}`:''}${base?` · baseline ${fmtD(p.baseline_at)}`:''}</span><div class="sp"></div>
     ${pr?`<button class="btn sm" data-act="useProgress">Use ${pr.actual.toFixed(0)}% as project progress</button>`:''}
@@ -7632,13 +7634,125 @@ function pmReportRows(pid, rDate){
   return `<div style="display:grid;gap:6px">${L.map(m=>`<label style="display:flex;align-items:center;gap:10px"><span class="grow small">${esc(m.name)} <span class="sub">(plan ${fmtD(m.planned_finish)})</span></span><input class="inp" type="number" min="0" max="100" step="5" style="width:86px" data-rpms="${esc(m.id)}" value="${msPg(m)}"> %</label>`).join('')}</div>`;
 }
 async function pmApplyReport(){
-  const ins=[...document.querySelectorAll('[data-rpms]')]; let n=0;
+  const ins=[...document.querySelectorAll('[data-rpms]')]; let n=0; window.__rpTouched=new Set();
   for(const el of ins){ const m=byId('milestones',el.dataset.rpms); if(!m) continue; const v=Math.max(0,Math.min(100,+el.value||0)); if(v===msPg(m)) continue;
     const rd=document.querySelector('#f_date')?.value||today();   // the report's date, not the day it is typed
-    const up={progress:v}; if(v>0&&!m.actual_start) up.actual_start=msPg(m)>0&&m.planned_start&&m.planned_start<rd?m.planned_start:rd; if(v>=100&&!m.actual_finish) up.actual_finish=rd; await patch('milestones',m.id,up); n++; }
+    const up={progress:v}; if(v>0&&!m.actual_start) up.actual_start=msPg(m)>0&&m.planned_start&&m.planned_start<rd?m.planned_start:rd; if(v>=100&&!m.actual_finish) up.actual_finish=rd; await patch('milestones',m.id,up); window.__rpTouched.add(m.id); n++; }
   if(n) logAct(`Programme progress updated from a site report (${n} activit${n>1?'ies':'y'})`);
   return n;
 }
+
+/* ===================== v250 · PROGRESS FROM SITE REPORTS + WHAT TO DO NEXT =====================
+   1. After a daily site report is saved, NEXUS AI reads "work done" (with issues / plan for tomorrow) against the project's
+      programme activities and estimates each activity's cumulative % complete. Clear (medium / high confidence) readings
+      update the programme automatically – marked "AI · site report", with the evidence and an Undo; unclear ones stay as
+      suggestions. Activities the reporter typed a % for are never overwritten. The overall % complete then follows the
+      programme weights (S-curve "actual").
+   2. "What to do next": NEXUS ranks the activities that decide whether the work finishes on time – overdue, behind plan,
+      should have started, critical and starting soon – with the rate needed to meet the latest finish date, and AI writes
+      the recovery advice for the site team. */
+const PA={busy:{},adv:{}};
+const paActs=pid=>msOf(pid).filter(m=>!m.summary);
+async function paAsk(r,acts){ const recent=S.reports.filter(x=>x.project_id===r.project_id&&x.id!==r.id&&(x.date||'')<=(r.date||'')).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,4);
+  const list=acts.map((m,i)=>`${i+1}. ${m.name} | planned ${m.planned_start||'?'} → ${m.planned_finish||m.planned_start||'?'} | now ${msPg(m)}%${m.kind==='milestone'?' | MILESTONE':''}`).join('\n');
+  return await sample.json(`You are the planning engineer of a Tanzanian building contractor. Read today's DAILY SITE REPORT and estimate the CUMULATIVE % complete of the programme activities it reports work on.
+Project: ${projName(r.project_id)} · report date ${r.date}
+PROGRAMME ACTIVITIES (number | name | planned dates | % complete before this report):
+${list}
+TODAY'S REPORT
+Work done: ${String(r.work_done||'').slice(0,2500)}
+Issues / delays: ${String(r.issues||'').slice(0,600)}
+Plan for next day: ${String(r.next_day||'').slice(0,400)}
+Workers: ${r.workforce||'?'}${typeof rpLabTxt==='function'&&rpLabTxt(r)?' ('+rpLabTxt(r)+')':''}
+${recent.length?'EARLIER REPORTS (context only):\n'+recent.map(x=>`${x.date}: ${String(x.work_done||'').slice(0,300)}`).join('\n'):''}
+Rules:
+- Only activities the report clearly worked on. Match by meaning (e.g. "cast columns" → reinforced concrete columns / frame). Never guess an activity that is not mentioned.
+- Give the CUMULATIVE % after today, never lower than "now" unless the report says work was removed or redone.
+- Use quantities when given (e.g. "8 of 20 columns cast" → about 40% of that activity; "completed", "finished" → 100%).
+- A day of work on a long activity moves it a little, not to 100%.
+- "conf": high = quantities or clear completion stated; medium = clear progress but no quantity; low = unclear.
+- "why": the words from the report that show it (max 15 words).
+Reply with JSON only: {"updates":[{"n":1,"pct":35,"conf":"medium","why":"..."}],"unmatched":["work in the report that fits no activity"]}`,{max_tokens:1500,panel:false}); }
+// read one report; apply=true writes clear readings to the programme
+async function paRead(rid,{apply=true,skip=new Set(),quiet=false}={}){ const r=byId('reports',rid); if(!r||!r.project_id||!r.work_done||typeof sample==='undefined'||!sample) return null; const acts=paActs(r.project_id).filter(m=>msPg(m)<100||m.kind!=='milestone'); if(!acts.length) return null;
+  if(PA.busy[rid]) return null; PA.busy[rid]=true;
+  try{ const res=await paAsk(r,acts); const U=[];
+    for(const u of (res&&Array.isArray(res.updates)?res.updates:[])){ const m=acts[(+u.n||0)-1]; if(!m) continue; let pct=Math.round(Math.max(0,Math.min(100,+u.pct||0))); const prev=msPg(m), conf=['high','medium','low'].includes(u.conf)?u.conf:'low';
+      if(pct<prev&&!/remov|redo|demolish|reject|broke|collaps/i.test(String(u.why||''))) pct=prev;
+      const x={id:m.id,name:m.name,prev,pct,conf,why:String(u.why||'').slice(0,160),applied:false};
+      if(apply&&pct>prev&&conf!=='low'&&!skip.has(m.id)&&canWrite){ const rd=r.date||today(); const up={progress:pct,prog_src:{s:'ai',report:r.id,date:rd,prev,why:x.why,conf,at:new Date().toISOString()},prog_log:[...((m.prog_log||[]).slice(-19)),{at:new Date().toISOString(),date:rd,from:prev,to:pct,src:'AI · site report',report:r.id}]};
+        if(pct>0&&!m.actual_start) up.actual_start=rd; if(pct>=100&&!m.actual_finish) up.actual_finish=rd;
+        try{ await patch('milestones',m.id,up); x.applied=true; }catch(e){ console.warn('pa apply',e); } }
+      U.push(x); }
+    const out={at:new Date().toISOString(),updates:U,unmatched:(res&&Array.isArray(res.unmatched)?res.unmatched:[]).map(String).slice(0,6)};
+    try{ await patch('reports',rid,{ai_prog:out}); }catch(_){ }
+    const n=U.filter(x=>x.applied).length; if(n){ logAct(`AI read the site report of ${fmtD(r.date)} – programme progress updated (${n} activit${n>1?'ies':'y'})`); if(!quiet) toast(`AI read the site report: ${n} activit${n>1?'ies':'y'} updated on the programme.`); }
+    return out; }
+  catch(e){ console.warn('pa read',e); if(!quiet) toast('AI could not read the report: '+(e.message||e)); return null; }
+  finally{ PA.busy[rid]=false; } }
+// in the report form: fill the % boxes from what was typed (the reporter checks them, then saves)
+async function paFillForm(){ const pid=$('#f_project_id')?.value, wd=$('#f_work_done')?.value; if(!pid||!wd||wd.trim().length<8) return toast('Choose the project and write the work done first.');
+  const acts=paActs(pid).filter(m=>msPg(m)<100); if(!acts.length) return toast('This project has no running programme activities.');
+  const b=$('#paFill'); if(b){ b.disabled=true; b.innerHTML='<span class="spin"></span> Reading…'; }
+  try{ const res=await paAsk({project_id:pid,date:$('#f_date')?.value||today(),work_done:wd,issues:$('#f_issues')?.value,next_day:$('#f_next_day')?.value,workforce:$('#f_workforce')?.value},acts); let n=0;
+    for(const u of (res?.updates||[])){ const m=acts[(+u.n||0)-1]; if(!m) continue; let el=document.querySelector(`[data-rpms="${m.id}"]`);
+      if(!el){ const box=$('#rpProg'); if(box){ box.insertAdjacentHTML('beforeend',`<label style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="grow small">${esc(m.name)} <span class="sub">(plan ${fmtD(m.planned_finish)})</span></span><input class="inp" type="number" min="0" max="100" step="5" style="width:86px" data-rpms="${esc(m.id)}" value="${msPg(m)}"> %</label>`); el=document.querySelector(`[data-rpms="${m.id}"]`); } }
+      if(el){ const v=Math.max(msPg(m),Math.min(100,Math.round(+u.pct||0))); el.value=v; el.title=`AI: ${u.why||''} (${u.conf||''})`; el.style.outline='2px solid #FFB400'; n++; } }
+    toast(n?`AI filled ${n} activit${n>1?'ies':'y'} (highlighted) – check the % before saving.`:'AI found no programme activity in the text.'); }
+  catch(e){ toast('AI could not read it: '+(e.message||e)); }
+  finally{ if(b){ b.disabled=false; b.innerHTML='🤖 Fill % from what I wrote'; } } }
+async function paUndo(rid,mid){ const r=byId('reports',rid), m=byId('milestones',mid); if(!r||!m||!r.ai_prog) return; const u=(r.ai_prog.updates||[]).find(x=>x.id===mid&&x.applied); if(!u) return;
+  if(msPg(m)!==u.pct) return toast(`The progress of “${m.name}” was changed after the AI update – change it on the programme.`);
+  if(!await confirmBox(`Undo the AI update of “${m.name}” (${u.prev}% → ${u.pct}%)?`,'Undo')) return;
+  const up={progress:u.prev,prog_src:{s:'undo',by:me.name||'',at:new Date().toISOString()},prog_log:[...((m.prog_log||[]).slice(-19)),{at:new Date().toISOString(),from:u.pct,to:u.prev,src:'Undo AI · '+(me.name||''),report:rid}]}; if(u.pct>=100&&m.actual_finish===r.date) up.actual_finish=''; if(u.prev===0&&m.actual_start===r.date) up.actual_start='';
+  await patch('milestones',mid,up); await patch('reports',rid,{ai_prog:{...r.ai_prog,updates:r.ai_prog.updates.map(x=>x.id===mid?{...x,applied:false,undone:true}:x)}}); toast('Undone.'); renderDrawer&&renderDrawer(); }
+function paReportCard(r){ const A=r.ai_prog; if(!A&&!paActs(r.project_id).length) return '';
+  const can=canWrite&&(isAdmin||r.author_uid===me.id||pfIsPM(byId('projects',r.project_id)));
+  return `<div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Programme progress from this report</h2><div class="sp"></div>${canWrite?`<button class="btn sm" data-pa="read:${esc(r.id)}" ${PA.busy[r.id]?'disabled':''}>${PA.busy[r.id]?'<span class="spin"></span> Reading…':A?'Read again':'Read now'}</button>`:''}</div>
+    <div class="bd small">${A?(A.updates.length?`<table class="kv">${A.updates.map(u=>`<tr><th>${esc(u.name)}</th><td>${u.prev}% → <b>${u.pct}%</b> <span class="chip ${u.applied?'good':u.undone?'':'amb'}">${u.applied?'applied':u.undone?'undone':u.pct<=u.prev?'no change':u.conf==='low'?'unclear – not applied':'suggestion'}</span><div class="sub">“${esc(u.why)}” · ${esc(u.conf)} confidence</div>${u.applied&&can?`<button class="btn sm" data-pa="undo:${esc(r.id)}:${esc(u.id)}">Undo</button>`:''}${!u.applied&&!u.undone&&u.pct>u.prev&&can?`<button class="btn sm" data-pa="apply:${esc(r.id)}:${esc(u.id)}">Apply</button>`:''}</td></tr>`).join('')}</table>`:'<p>No programme activity matched this report.</p>')+((A.unmatched||[]).length?`<p class="sub">Not on the programme: ${A.unmatched.map(esc).join(' · ')}</p>`:'')+`<p class="sub">Read ${fmtDT(A.at)}</p>`:'<p>NEXUS reads the work done and updates the % complete of the programme activities.</p>'}</div></div>`; }
+async function paApplyOne(rid,mid){ const r=byId('reports',rid), m=byId('milestones',mid); if(!r||!m) return; const u=(r.ai_prog?.updates||[]).find(x=>x.id===mid); if(!u||u.pct<=msPg(m)) return toast('Nothing to apply.');
+  const rd=r.date||today(); const up={progress:u.pct,prog_src:{s:'ai',report:rid,date:rd,prev:msPg(m),why:u.why,conf:u.conf,by:me.name||'',at:new Date().toISOString()},prog_log:[...((m.prog_log||[]).slice(-19)),{at:new Date().toISOString(),date:rd,from:msPg(m),to:u.pct,src:'AI suggestion applied by '+(me.name||''),report:rid}]}; if(!m.actual_start) up.actual_start=rd; if(u.pct>=100&&!m.actual_finish) up.actual_finish=rd;
+  await patch('milestones',mid,up); await patch('reports',rid,{ai_prog:{...r.ai_prog,updates:r.ai_prog.updates.map(x=>x.id===mid?{...x,applied:true,prev:msPg(m)}:x)}}); toast('Applied to the programme.'); renderDrawer&&renderDrawer(); }
+
+/* ---------- what to do next ---------- */
+function paNext(pid){ const t=today0(), cpm=pmCpm(pid).res, all=paActs(pid), by=new Map(all.map(m=>[m.id,m])), out=[];
+  for(const m of all){ const pg=msPg(m); if(pg>=100) continue; const s=msStart(m), f=msFinish(m); if(!s) continue; const c=cpm.get(m.id)||{}, pl=planned(m,t)*100, gap=Math.max(0,pl-pg);
+    const late=f&&f<t, should=s<=t, soon=s<=addD(t,14), ready=msPreds(m).every(id=>!by.get(id)||msPg(by.get(id))>=100), crit=!!c.crit, lf=c.lf||f, left=lf?dDiff(lf,t)+1:null;
+    const waiting=all.filter(x=>msPreds(x).includes(m.id)&&msPg(x)<100).length;   // activities held up by this one
+    let why=''; if(late) why=`Overdue – planned to finish ${fmtD(f)}`; else if(should&&pg===0) why=`Should have started ${fmtD(s)}`; else if(gap>=5) why=`Behind plan: ${pg}% done, ${pl.toFixed(0)}% planned`; else if(crit&&soon) why=`Critical – ${should?'running':'starts '+fmtD(s)}`; else if(ready&&soon&&!should) why=`Ready – starts ${fmtD(s)}`; else continue;
+    if(waiting) why+=` · holds up ${waiting} activit${waiting>1?'ies':'y'}`;
+    const w=Math.max(1,+m.weight||1), score=(crit?3:1)*w*(1+.5*waiting)*((late?4:0)+(should&&pg===0?2.5:0)+gap/10+(soon&&ready?1:0)+(crit?1:0));
+    const need=left>0?(100-pg)/left:null, plan=f&&s?100/Math.max(1,dDiff(f,s)+1):null;
+    out.push({m,why,crit,late,ready,score,pg,pl,lf,left,need,plan,float:c.float}); }
+  return out.sort((a,b)=>b.score-a.score); }
+function paCard(p){ const acts=paActs(p.id); if(!acts.length) return ''; const pr=programme(p.id), f=pmForecast(p), N=paNext(p.id), top=N.slice(0,8);
+  const ai=acts.filter(m=>m.prog_src&&m.prog_src.s==='ai').sort((a,b)=>String(b.prog_src.at||'').localeCompare(String(a.prog_src.at||''))).slice(0,5);
+  const adv=p.ai_next&&p.ai_next.text?p.ai_next:PA.adv[p.id];
+  const kp=pr?`<div class="pa-kpis"><div><b>${pr.actual.toFixed(0)}%</b><span>complete (from site reports & programme)</span></div><div><b>${pr.planned.toFixed(0)}%</b><span>planned by today</span></div><div class="${pr.actual+5<pr.planned?'bad':pr.actual>=pr.planned?'good':''}"><b>${(pr.actual-pr.planned>=0?'+':'')+(pr.actual-pr.planned).toFixed(0)}</b><span>points ${pr.actual>=pr.planned?'ahead':'behind'}</span></div>${f?`<div class="${f.slip>0?'bad':''}"><b>${fmtD(f.fc)}</b><span>forecast finish${f.contract?` · contract ${fmtD(f.contract)}`:''}${f.slip>0?` · <b>${f.slip} days late</b>`:''}</span></div>`:''}</div>`:'<p class="sub">Give the activities weights (%) so NEXUS can work out the overall % complete.</p>';
+  return `<div class="card pa"><div class="hd"><h2>🧭 Progress & what to do next</h2><span class="sub">from the daily site reports and the programme</span></div><div class="bd">${kp}
+    <div class="label" style="margin-top:10px">Do next – to finish on time</div>
+    ${top.length?`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Activity</th><th>Why now</th><th class="r">Done</th><th>Must finish by</th><th class="r hide-m">Needed pace</th></tr></thead><tbody>${top.map((x,i)=>`<tr class="click" data-editms="${esc(x.m.id)}"><td class="num">${i+1}</td><td><div class="ttl2">${x.crit?'<span class="chip bad" title="On the critical path – any delay delays completion">critical</span> ':''}${esc(x.m.name)}</div>${x.m.resp?`<div class="sub">${esc(x.m.resp)}</div>`:''}</td><td class="small">${esc(x.why)}</td><td class="r num">${x.pg}%</td><td class="small">${x.lf?fmtD(x.lf):'—'}${x.left!=null&&x.left<=0?' <span class="chip bad">passed</span>':x.left!=null?` <span class="sub">(${x.left} d)</span>`:''}</td><td class="r small hide-m">${x.need!=null?`${x.need.toFixed(1)}%/day${x.plan&&x.need>x.plan*1.3?` <span class="chip amb" title="Faster than planned – add labour / plant or overtime">↑ ${(x.need/x.plan).toFixed(1)}×</span>`:''}`:'—'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="good">✓ Nothing urgent – all running activities are on plan.</p>'}
+    <div class="toolbar" style="margin-top:8px"><button class="btn pri sm" data-pa="adv:${esc(p.id)}" ${PA.busy['a'+p.id]?'disabled':''}>${PA.busy['a'+p.id]?'<span class="spin"></span> AI is planning…':adv?'🤖 Advise again':'🤖 AI advice: how to finish on time'}</button>${adv?`<span class="sub">${fmtDT(adv.at)}</span>`:''}</div>
+    ${adv?`<div class="prose small pa-adv">${esc(adv.text)}</div>`:''}
+    ${ai.length?`<div class="label" style="margin-top:12px">Latest progress read from site reports</div><div class="list">${ai.map(m=>`<div class="li small"><div class="grow"><b>${esc(m.name)}</b> ${m.prog_src.prev}% → ${msPg(m)}% <span class="sub">· report ${fmtD(m.prog_src.date)} · “${esc(m.prog_src.why||'')}”</span></div>${m.prog_src.report?`<button class="btn sm" data-open="report:${esc(m.prog_src.report)}">Report</button>`:''}</div>`).join('')}</div>`:''}
+  </div></div>`; }
+async function paAdvise(pid){ const p=byId('projects',pid); if(!p||PA.busy['a'+pid]) return; PA.busy['a'+pid]=true; renderView(true);
+  try{ const N=paNext(pid).slice(0,12), pr=programme(pid), f=pmForecast(p), rep=S.reports.filter(r=>r.project_id===pid).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,7);
+    const out=await sample(`You are the construction planning manager of Nordic Construction (Tanzania). Advise the site team what to do NEXT so the project finishes within the programme.
+Project: ${p.name}${p.location?' · '+p.location:''}
+Progress: ${pr?pr.actual.toFixed(0)+'% complete vs '+pr.planned.toFixed(0)+'% planned today':'unknown'} · forecast finish ${f?ymd(f.fc):'?'} · contract completion ${f&&f.contract?ymd(f.contract):p.end||'?'}${f&&f.spi?' · SPI '+f.spi.toFixed(2):''}
+PRIORITY ACTIVITIES (ranked by NEXUS from the programme and critical path):
+${N.map((x,i)=>`${i+1}. ${x.m.name} – ${x.why}; ${x.pg}% done; must finish by ${x.lf?ymd(x.lf):'?'}${x.need!=null?`; needs ${x.need.toFixed(1)}%/day${x.plan?' (plan '+x.plan.toFixed(1)+'%/day)':''}`:''}${x.crit?'; CRITICAL':''}${x.m.resp?'; by '+x.m.resp:''}`).join('\n')||'none'}
+LAST SITE REPORTS: ${rep.map(r=>`${r.date}: ${r.workforce||'?'} workers; done: ${String(r.work_done||'').slice(0,200)}${r.issues?'; issues: '+String(r.issues).slice(0,150):''}`).join('\n')||'none'}
+Write 4–7 short numbered actions for THIS WEEK in order of importance: which activity to push first and why, what resources to add (gangs, plant, overtime, materials to order now), what can run in parallel, what to ask the consultant / client (drawings, instructions, EOT if delay is not ours). Be specific to the activities above; no general advice. End with one line: "Finish on time: likely / at risk / not without recovery".`);
+    const txt=String(out?.text||'').trim(); if(!txt) throw new Error('no answer');
+    const a={text:txt,at:new Date().toISOString(),by:me.name||''}; PA.adv[pid]=a; try{ await patch('projects',pid,{ai_next:a}); }catch(_){ } }
+  catch(e){ toast('AI advice failed: '+(e.message||e)); }
+  finally{ PA.busy['a'+pid]=false; renderView(true); } }
+document.addEventListener('click',async e=>{ const b=e.target.closest('[data-pa]'); if(!b) return; e.stopPropagation(); const [a,x,y]=b.dataset.pa.split(':');
+  if(a==='read'){ await paRead(x,{apply:true}); return renderDrawer&&renderDrawer(); }
+  if(a==='undo') return paUndo(x,y); if(a==='apply') return paApplyOne(x,y); if(a==='adv') return paAdvise(x); if(a==='fill') return paFillForm(); },true);
+/* ===================== PROGRESS FROM SITE REPORTS (end) ===================== */
 
 /* ===================== PLANT & EQUIPMENT ===================== */
 /* ===================== PHASE 5 · VEHICLE LOG (v111): trips, fuel, service, defects =====================
@@ -21527,7 +21641,8 @@ async function saveReport(){
     if(!ex){ try{ localStorage.removeItem(rpDraftKey()); }catch(_){} }
     if(nid&&!ex) setTimeout(()=>rpAutoSummary(nid),1500);
     logAct(`${ex?'Updated':'Filed'} site report for ${projName(v.project_id)} (${v.date}, ${photos.length} photos)`);
-    const nProg=await pmApplyReport();
+    const nProg=await pmApplyReport(); const touched=window.__rpTouched||new Set();
+    if(nid&&(!ex||String(ex.work_done||'')!==String(v.work_done||''))) setTimeout(()=>paRead(nid,{apply:true,skip:touched}),2500);   // v250
     UI.busy.saveReport=false; closeDrawer(); toast('Site report saved.'+(nProg?` Programme updated (${nProg}).`:''));
   }finally{ UI.busy.saveReport=false; }
 }
