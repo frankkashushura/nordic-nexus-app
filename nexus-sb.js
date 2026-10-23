@@ -37,10 +37,11 @@
   const colSnap = cache => ({ docs: [...cache.values()].map(r => ({ id: r.id, data: () => r.data })) });
   const docSnap = (id, r) => ({ id, exists: !!r, data: () => (r ? r.data : undefined) });
 
-  function applyRow(col, id, data /* null = deleted */) {
+  function applyRow(col, id, data /* null = deleted */, u /* server updated_at (ms) – undefined: keep the old one */) {
     const subs = colSubs.get(col);
     if (subs) for (const s of subs) {
-      if (data === null) s.cache.delete(id); else s.cache.set(id, { id, data });
+      if (data === null) s.cache.delete(id); else { const o = s.cache.get(id); s.cache.set(id, { id, data, u: u !== undefined ? u : (o ? o.u : 0) }); }
+      saveSoon(col, s);
       try { s.cb(colSnap(s.cache)); } catch (e) { console.warn(e); }
     }
     if (col === 'system' && id === 'sync') lastSyncSeen = data?.last_sync || '';
@@ -52,7 +53,7 @@
     const T = 'docs';
     const onDoc = p => {
       if (p.eventType === 'DELETE') { const o = p.old || {}; if (o.col) applyRow(o.col, o.id, null); }
-      else { const n = p.new || {}; if (n.col) applyRow(n.col, n.id, n.data); }
+      else { const n = p.new || {}; if (n.col) applyRow(n.col, n.id, n.data, n.updated_at ? Date.parse(n.updated_at) : undefined); }
     };
     channel = sb.channel('nexus-docs');
     if (BQL.avail) {   // v218: a BoQ change arrives as a small cell change (boq_ops) instead of the whole BoQ
@@ -64,8 +65,8 @@
     } else channel.on('postgres_changes', { event: '*', schema: 'public', table: T }, onDoc);
     channel
       .subscribe(status => {
-        if (status === 'SUBSCRIBED') { if (wasDown) { wasDown = false; resyncAll(); } setLive(true); }
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { wasDown = true; setLive(false); }
+        if (status === 'SUBSCRIBED') { chLive = true; if (wasDown) { wasDown = false; resyncAll(); } setLive(true); }
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { chLive = false; wasDown = true; setLive(false); }
       });
   }
   function setLive(ok) { const el = document.getElementById('syncState'); if (el) el.textContent = ok ? 'Live · synced' : 'Reconnecting…'; }
@@ -75,11 +76,68 @@
     const max = limit || 1000, out = [], PG = 1000;
     for (let from = 0; from < max; from += PG) {
       const to = Math.min(from + PG, max) - 1;
-      const { data, error } = await sb.from('docs').select('id,data').eq('col', col).order('updated_at', { ascending: false }).order('id', { ascending: true }).range(from, to);
+      const { data, error } = await sb.from('docs').select('id,data,updated_at').eq('col', col).order('updated_at', { ascending: false }).order('id', { ascending: true }).range(from, to);
+      if (error) throw mapErr(error);
+      out.push(...(data || []).map(r => ({ id: r.id, data: r.data, u: r.updated_at ? Date.parse(r.updated_at) : 0 })));
+      if (!data || data.length < to - from + 1) break;
+    }
+    return out;
+  }
+  /* ---------------- v253 DATA SAVER ----------------
+     Before: every start, every return to the app after 2 min and every reconnect downloaded ALL records again (~4 MB).
+     Now each device keeps a copy of the records it has (IndexedDB, per user) and asks the server only for the list of
+     record ids + last-changed times (small), then downloads just the new / changed records and drops deleted ones.
+     The server stays the master: anything that differs is taken from the server. The copy is erased on sign-out. */
+  let chLive = false;
+  const IDB = (() => {
+    let p = null;
+    const open = () => p || (p = new Promise((res, rej) => { try { const r = indexedDB.open('nexus-cache', 1); r.onupgradeneeded = () => r.result.createObjectStore('cols'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+    const run = (mode, fn) => open().then(d => new Promise(res => { const tx = d.transaction('cols', mode); const st = tx.objectStore('cols'); let out = null; const q = fn(st); if (q) q.onsuccess = () => { out = q.result; }; tx.oncomplete = () => res(out); tx.onerror = () => res(null); tx.onabort = () => res(null); })).catch(() => null);
+    return { get: k => run('readonly', st => st.get(k)), put: (k, v) => run('readwrite', st => st.put(v, k)), clear: () => run('readwrite', st => st.clear()) };
+  })();
+  window.NX_CACHE_CLEAR = () => IDB.clear();
+  const ckey = (col, limit) => [CFG.url || '', session?.user?.id || '-', col, limit || 1000].join('|');
+  const saveT = new Map();
+  function saveSoon(col, s) {
+    if (!session || !s || !s.limit) return;
+    clearTimeout(saveT.get(s)); saveT.set(s, setTimeout(() => { saveT.delete(s); IDB.put(ckey(col, s.limit), { v: 1, at: Date.now(), rows: [...s.cache.values()].map(r => [r.id, r.u || 0, r.data]) }); }, 4000));
+  }
+  async function loadSaved(col, limit) {
+    const v = await IDB.get(ckey(col, limit)); if (!v || v.v !== 1 || !Array.isArray(v.rows)) return null;
+    return new Map(v.rows.map(([id, u, data]) => [id, { id, u, data }]));
+  }
+  async function idList(col, max) {
+    const out = [];
+    for (let from = 0; from < max; from += 1000) {
+      const to = Math.min(from + 1000, max) - 1;
+      const { data, error } = await sb.from('docs').select('id,updated_at').eq('col', col).order('updated_at', { ascending: false }).order('id', { ascending: true }).range(from, to);
       if (error) throw mapErr(error);
       out.push(...(data || []));
       if (!data || data.length < to - from + 1) break;
     }
+    return out;
+  }
+  async function fetchIds(col, ids) {
+    const out = [];
+    for (let i = 0; i < ids.length; i += 60) {
+      const { data, error } = await sb.from('docs').select('id,data,updated_at').eq('col', col).in('id', ids.slice(i, i + 60));
+      if (error) throw mapErr(error);
+      out.push(...(data || []));
+    }
+    return out;
+  }
+  const NXDS = window.NX_DATASAVER = { full: 0, light: 0, rows: 0, saved: 0 };
+  // bring one collection up to date; old = what this device already has (Map) or null
+  async function syncCol(col, limit, old) {
+    if (!old || !old.size) { NXDS.full++; const rows = await fetchCol(col, limit); NXDS.rows += rows.length; return new Map(rows.map(r => [r.id, r])); }
+    const L = await idList(col, limit || 1000);
+    const need = L.filter(r => { const c = old.get(r.id); return !c || !c.u || c.u !== Date.parse(r.updated_at); }).map(r => r.id);
+    if (need.length > 40 && need.length > L.length * 0.6) { NXDS.full++; const rows = await fetchCol(col, limit); NXDS.rows += rows.length; return new Map(rows.map(r => [r.id, r])); }
+    NXDS.light++; NXDS.rows += need.length; NXDS.saved += L.length - need.length;
+    const got = need.length ? await fetchIds(col, need) : [];
+    const gm = new Map(got.map(r => [r.id, r]));
+    const out = new Map();
+    for (const r of L) { const g = gm.get(r.id); if (g) out.set(r.id, { id: r.id, data: g.data, u: g.updated_at ? Date.parse(g.updated_at) : 0 }); else if (!need.includes(r.id)) out.set(r.id, old.get(r.id)); }
     return out;
   }
   async function fetchDoc(col, id) {
@@ -89,7 +147,7 @@
   }
   async function resyncAll() {
     for (const [col, subs] of colSubs) for (const s of subs) {
-      try { const rows = await fetchCol(col, s.limit); s.cache = new Map(rows.map(r => [r.id, r])); s.cb(colSnap(s.cache)); } catch (e) { console.warn(e); }
+      try { s.cache = await syncCol(col, s.limit, s.cache); saveSoon(col, s); s.cb(colSnap(s.cache)); } catch (e) { console.warn(e); }
     }
     for (const [key, cbs] of docSubs) {
       const [col, id] = splitPath(key);
@@ -204,7 +262,8 @@
         if (!colSubs.has(col)) colSubs.set(col, new Set());
         colSubs.get(col).add(s);
         ensureChannel();
-        fetchCol(col, q._limit).then(rows => { s.cache = new Map(rows.map(r => [r.id, r])); cb(colSnap(s.cache)); })
+        // v253: start from this device's saved copy, download only what changed (the app sees the data only after the server check)
+        loadSaved(col, q._limit).then(old => syncCol(col, q._limit, old)).then(m => { s.cache = m; saveSoon(col, s); cb(colSnap(s.cache)); })
           .catch(e => onErr && onErr(e));
         return () => colSubs.get(col)?.delete(s);
       };
@@ -225,8 +284,11 @@
           const patch = clean(obj);
           const { error } = await sb.rpc('doc_merge', { c: col, i: id, patch });
           if (error) throw mapErr(error);
-          const r = await fetchDoc(col, id).catch(() => null);
-          if (r) applyRow(col, id, r.data);
+          // v253: the server does data || patch – apply the same here; the live update then brings the server copy.
+          // Only re-download when the live connection is down or the record is not on this device.
+          let cur = null; for (const s of colSubs.get(col) || []) { const r = s.cache.get(id); if (r) { cur = r.data; break; } }
+          if (cur && chLive && col !== 'boqs') applyRow(col, id, { ...cur, ...patch }, 0);
+          else { const r = await fetchDoc(col, id).catch(() => null); if (r) applyRow(col, id, r.data); }
         },
         async delete() {
           const { error } = await sb.from('docs').delete().eq('col', col).eq('id', id);
@@ -480,7 +542,7 @@
           options: { data: { name: v('name'), position: v('position'), phone: v('phone') } } });
         b.disabled = false; b.textContent = 'Sign up';
         if (error) { er.textContent = /registered|exists/i.test(error.message) ? 'This email is already signed up. Sign in, or ask an administrator.' : /signups? not allowed|disabled/i.test(error.message) ? 'Self-registration is switched off. Ask an administrator.' : error.message; return; }
-        if (data.session) await sb.auth.signOut({ scope: 'local' });
+        if (data.session) { await IDB.clear(); await sb.auth.signOut({ scope: 'local' }); }
         waitingScreen(v('name'));
       };
     });
@@ -489,7 +551,7 @@
     const f = screen(`<p><b>${name ? 'Thank you, ' + h(name.split(' ')[0]) + '.' : 'Sign-up received.'}</b></p>
       <p>Your sign-up has been sent to the administrators. You will be able to sign in with your email and password as soon as it is approved.</p>
       <button class="pri" type="button">Back to sign in</button>`);
-    f.querySelector('button').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); };
+    f.querySelector('button').onclick = async () => { await IDB.clear(); await sb.auth.signOut({ scope: 'local' }); location.reload(); };
   }
   function newPasswordScreen(first) {
     return new Promise(res => {
@@ -514,7 +576,7 @@
   }
   function blockedScreen(text) {
     const f = screen(`<p>${h(text)}</p><button class="pri" type="button">Sign out</button>`);
-    f.querySelector('button').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); };
+    f.querySelector('button').onclick = async () => { await IDB.clear(); await sb.auth.signOut({ scope: 'local' }); location.reload(); };
   }
 
   async function loadProfile() {
@@ -529,7 +591,7 @@
     screen('<p>Connecting…</p>');
     let { data: { session: s } } = await sb.auth.getSession();
     if (s) { // a login ended elsewhere (signed out, switched off) must not leave a half-working page
-      try { const { error: ge } = await sb.auth.getUser(); if (ge && [401, 403].includes(ge.status)) { await sb.auth.signOut({ scope: 'local' }); s = null; } } catch (_) {}
+      try { const { error: ge } = await sb.auth.getUser(); if (ge && [401, 403].includes(ge.status)) { await IDB.clear(); await sb.auth.signOut({ scope: 'local' }); s = null; } } catch (_) {}
     }
     if (!s) s = await loginScreen();
     session = s;
@@ -807,7 +869,7 @@
         <button data-m="pw">Change my password</button><button data-m="out">Sign out</button>`;
       m.onclick = async ev => {
         const k = ev.target.closest('[data-m]')?.dataset.m; if (!k) return; m.remove();
-        if (k === 'out') { await sb.auth.signOut({ scope: 'local' }); location.reload(); }
+        if (k === 'out') { await IDB.clear(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }
         if (k === 'pw') { if (await newPasswordScreen(false)) window.toast?.('Password changed.'); }
         if (k === 'users') openUsers();
       };

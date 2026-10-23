@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="49306add7c96">
+<meta name="nexus-build" content="cf85755fb86e">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -8,8 +8,8 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="config.js?v=188"></script>
 <script src="vendor/supabase.js"></script>
-<script src="nexus-sb.js?v=239"></script>
-<script src="nexus-chat.js?v=232"></script>
+<script src="nexus-sb.js?v=253"></script>
+<script src="nexus-chat.js?v=253"></script>
 </head><body>
 <title>NORDIC NEXUS</title>
 <meta name="theme-color" content="#182340">
@@ -921,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='252';
+const NX_APP_VER='253';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -5033,7 +5033,10 @@ document.head.insertAdjacentHTML('beforeend',`<style>.ac-yrs{display:inline-flex
     document.body.append(b); b.querySelector('#nxUpdGo').onclick=go; b.querySelector('#nxUpdLater').onclick=()=>b.remove(); };
   const tryApply=()=>{ if(!next) return; if(document.hidden||(!busy()&&Date.now()-last>120000)) return go(); bar(); };
   async function check(){ if(checking||!navigator.onLine) return; checking=true;
-    try{ const r=await fetch(location.pathname+'?nxv='+Date.now(),{cache:'reload',credentials:'same-origin'}); if(r.ok){ const t=await r.text(), b=(t.match(/<meta name="nexus-build" content="([^"]+)"/)||[])[1]; if(b&&b!==cur){ next=b; tryApply(); } } }
+    try{ const u=location.pathname+'?nxv='+Date.now(), rx=/<meta name="nexus-build" content="([^"]+)"/;   // v253: ask only for the first 4 KB (the build mark) – full page only if the server ignores that
+      let t=''; try{ const r=await fetch(u,{cache:'reload',credentials:'same-origin',headers:{Range:'bytes=0-4095'}}); if(r.ok) t=await r.text(); }catch(_){}
+      if(!rx.test(t)){ const r=await fetch(u+'1',{cache:'reload',credentials:'same-origin'}); if(r.ok) t=await r.text(); }
+      const b=(t.match(rx)||[])[1]; if(b&&b!==cur){ next=b; tryApply(); } }
     catch(_){} finally{ checking=false; } }
   window.nxCheckUpdate=check;
   setTimeout(check,60000); setInterval(check,300000); setInterval(tryApply,30000);

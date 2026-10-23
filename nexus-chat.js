@@ -89,10 +89,13 @@
     await sb.from('chat_messages').update({ read_at: now }).eq('thread_id', tid).neq('sender', st.me).is('read_at', null);
   }
   // safety net: while a chat is open, re-check it every few seconds (new messages, ✓✓ read ticks, deletions)
-  async function poll() {
+  // v253 data saver: new messages, ticks, groups and members arrive live. While the live connection works the checks below
+  // run rarely (open chat ~30 s, chat list 2 min on screen / 10 min in the background); without it, as before (4 s / 16 s).
+  async function catchUp() { try { st.tick = 0; await loadThreads(); await loadUnread(); if (st.root) renderList(); if (st.cur && st.msgs[st.cur]) await poll(true); } catch (_) {} }
+  async function poll(force) {
     try {
-      const tid = st.cur;
-      if (tid && visible() && st.msgs[tid]) {
+      const tid = st.cur, live = !!st.live, onScreen = document.visibilityState === 'visible'; st.tick = (st.tick || 0) + 1;
+      if (tid && visible() && st.msgs[tid] && (force === true || !live || st.tick % 8 === 0)) {
         const { data } = await sb.from('chat_messages').select('*').eq('thread_id', tid).order('created_at', { ascending: false }).limit(40);
         const list = st.msgs[tid]; let changed = false;
         for (const m of (data || []).reverse()) {
@@ -104,8 +107,9 @@
         if (changed) { list.sort((a, b) => a.created_at.localeCompare(b.created_at)); renderMsgs(false); }
         if (list.some(m => m.sender !== st.me && !m.read_at)) markRead(tid).catch(() => {});
       }
-      if (++st.slow % 4 === 0) { await loadThreads(); await loadUnread(); if (st.cur && !thr(st.cur)) { say('You are no longer in this group.'); closeConv(); } else renderList(); }
-      if (st.slow % 15 === 0 && visible()) { await loadPeople().catch(() => {}); headStatus(); }
+      if (force === true) return;
+      if (++st.slow % (live ? (onScreen ? 30 : 150) : 4) === 0) { await loadThreads(); await loadUnread(); if (st.cur && !thr(st.cur)) { say('You are no longer in this group.'); closeConv(); } else renderList(); }
+      if (st.slow % (live ? 75 : 15) === 0 && visible()) { await loadPeople().catch(() => {}); headStatus(); }
       seen();
     } catch (_) {}
   }
@@ -123,8 +127,8 @@
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, p => onUpd(p.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_threads' }, async () => { await loadThreads().catch(() => {}); badge(); if (st.cur && isG(thr(st.cur))) { renderConv(); } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_members' }, p => onMem(p.new && p.new.thread_id ? p.new : p.old))
-      .subscribe();
-    document.addEventListener('visibilitychange', () => { seen(true); if (document.visibilityState === 'visible') markDelivered(); if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
+      .subscribe(s => { const was = st.live; st.live = s === 'SUBSCRIBED'; if (st.live && was === false) catchUp(); });
+    document.addEventListener('visibilitychange', () => { seen(true); if (document.visibilityState === 'visible') { markDelivered(); if (Date.now() - (st.hidAt || Date.now()) > 60e3) catchUp(); } else st.hidAt = Date.now(); if (visible() && st.cur) markRead(st.cur).catch(() => {}); });
   }
   let memT = {}; function onMem(r) { if (!r || !r.thread_id) return; clearTimeout(memT[r.thread_id]); memT[r.thread_id] = setTimeout(async () => {
       if (!thr(r.thread_id) || r.user_id === st.me) { await loadThreads().catch(() => {}); await loadUnread().catch(() => {}); } else await loadMembers([r.thread_id]).catch(() => {});
