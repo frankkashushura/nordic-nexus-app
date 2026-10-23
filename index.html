@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="cf85755fb86e">
+<meta name="nexus-build" content="8d0648060868">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -921,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='253';
+const NX_APP_VER='254';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -2803,13 +2803,16 @@ const pfCanAp=x=>{ const s=pfA(x); return isAdmin?['Pending','Finance approved']
    If the proforma became a quotation in an RFQ / PO, the PO carries ordering and deliveries instead. */
 const pfStage=x=>pfA(x)!=='Approved'?'':x.stage||'To order';
 const pfStCl=st=>st==='Delivered'?'good':st==='Part-delivered'?'amb':st==='Ordered'?'blue':'amb';
-const pfViaPO=x=>!!(x.po_id&&byId('po',x.po_id));
+const pfViaPO=x=>{ const o=x.po_id&&byId('po',x.po_id); return !!(o&&o.po_no&&o.status!=='Cancelled'); };   // v254: only an ISSUED purchase order takes over – an RFQ still collecting quotes does not
 const pfCanOrd=x=>canWrite&&(isAdmin||isProcOff())&&pfA(x)==='Approved'&&!x.stage&&!pfViaPO(x);
 const pfCanRcv=x=>canWrite&&!isViewer()&&pfA(x)==='Approved'&&['Ordered','Part-delivered'].includes(x.stage)&&!pfViaPO(x);
 function pfOrder(id){ const x=byId('proformas',id); if(!x||!pfCanOrd(x)) return; const nm=x.supplier||(x.files||[])[0]?.name||'proforma';
   formDrawer(`Mark ordered – ${nm}`,[{k:'order_date',label:'Date ordered',type:'date',req:1},{k:'order_ref',label:'Order / LPO no.',ph:'optional'},{k:'expected',label:'Expected delivery date',type:'date'},{k:'deliver_to',label:'Deliver to'},{k:'order_note',label:'Note',type:'textarea',ph:'e.g. supplier confirmed by phone, advance paid by Finance'}],
     {order_date:today(),deliver_to:x.project_id?projName(x.project_id)+' site':''},async v=>{ const cur=byId('proformas',id); if(!cur||!pfCanOrd(cur)){ toast('This proforma was changed meanwhile.'); return true; }
+      const rfq=x.po_id?byId('po',x.po_id):null, openRfq=rfq&&rfq.status==='RFQ'&&!rfq.po_no;
+      if(openRfq&&!await confirmBox(`This proforma is also in ${rfq.rfq_no||'an RFQ'} (still collecting quotations). Ordering directly from the approved proforma closes that RFQ – no separate purchase order will be issued. Continue?`,'Order from proforma')) return false;
       await patch('proformas',id,{stage:'Ordered',ordered_by:me.name||'',ordered_uid:me.id||'',ordered_at:new Date().toISOString(),order_date:v.order_date,order_ref:v.order_ref||'',expected:v.expected||'',deliver_to:v.deliver_to||'',order_note:v.order_note||''});
+      if(openRfq){ try{ await poPatch(rfq.id,{status:'Cancelled',cancelled_by:me.name||'',cancelled_at:new Date().toISOString(),cancel_note:`Ordered directly against approved proforma ${x.pf_no||''} ${nm}`.trim()}); }catch(e){ console.warn('rfq close',e); } }
       const pr=x.pr_id?byId('procurement',x.pr_id):null; if(pr&&pr.status==='Approved'){ try{ await patch('procurement',pr.id,{status:'Ordered',ordered_by:me.name||'',ordered_at:new Date().toISOString()}); }catch(e){ console.warn('pr ordered',e); } }
       logAct(`Proforma ${x.pf_no||''} ${nm} marked ordered`); toast('Marked ordered – record the delivery when the goods arrive.'); window.NX_NOTIFY_PR&&window.NX_NOTIFY_PR(); },{sub:`${x.item||''}${+x.amount?' · '+tzs(+x.amount):''}`,saveLabel:'Mark ordered'}); }
 function pfReceive(id){ const x=byId('proformas',id); if(!x||!pfCanRcv(x)) return; const nm=x.supplier||(x.files||[])[0]?.name||'proforma', n=(x.deliveries||[]).length;
