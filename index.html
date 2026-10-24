@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="5d77159e2a5a">
+<meta name="nexus-build" content="488453eb86e2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -921,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='256';
+const NX_APP_VER='257';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -1729,7 +1729,7 @@ const PROJECT_FIELDS=[
 function pageProjects(){
   const st=['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed'];
   const ps=[...S.projects].sort((a,b)=>st.indexOf(a.status)-st.indexOf(b.status));
-  return `<div class="toolbar"><span class="muted">${S.projects.length} projects</span><div class="sp"></div>${canWrite&&(isAdmin||S.projects.some(pgCan))?`<button class="btn" data-pg="all:" ${PG.all?'disabled':''} title="AI reads the site reports, programme, valuations, cost and time of every project and writes its overall progress %">${PG.all?`<span class="spin"></span> Estimating ${esc(PG.all)}…`:'🤖 Estimate progress of all projects'}</button>`:''}<button class="btn pri" data-act="addProject">New project</button></div>
+  return `<div class="toolbar"><span class="muted">${S.projects.length} projects</span><div class="sp"></div>${PG.bgNow?`<span class="sub"><span class="spin"></span> 🤖 AI is updating the progress of ${esc(PG.bgNow)}…</span>`:''}<button class="btn pri" data-act="addProject">New project</button></div>
   <div class="grid g3">${ps.map(p=>{
     const reps=S.reports.filter(r=>r.project_id===p.id), last=reps.sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
     const spent=finRows().filter(f=>f.project_id===p.id&&f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
@@ -7827,7 +7827,7 @@ document.addEventListener('click',async e=>{ const b=e.target.closest('[data-pa]
    lower a value set from the programme by a person. */
 const PG={busy:{},queue:[],ran:0};
 const pgLive=p=>p&&!p.deleted&&!p.example&&!['Estimating'].includes(p.status||'');
-const pgCan=p=>canWrite&&(isAdmin||pfIsPM(p)||S.reports.some(r=>r.project_id===p.id&&r.author_uid===me.id));
+const pgCan=p=>!!canWrite;   // v257: any signed-in user who can write keeps the estimates up to date (automatic)
 function pgEvidence(p){
   const t=today(), reps=S.reports.filter(r=>r.project_id===p.id&&!r.example).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const pr=typeof programme==='function'?programme(p.id):null, acts=(typeof paActs==='function'?paActs(p.id):[]);
@@ -7880,14 +7880,17 @@ async function pgEstimate(pid,{auto=false,quiet=false}={}){
   catch(e){ console.warn('pg',e); if(!quiet) toast('AI could not estimate the progress: '+(e.message||e)); return null; }
   finally{ PG.busy[pid]=false; renderView(true); } }
 // background: projects whose estimate is missing / older than the latest evidence / older than 3 days
-function pgStale(p){ const a=p.ai_pg; if(!a||!a.at) return true; const E=pgEvidence(p); if(!E.reps.length&&!E.pr&&!E.valued) return false;
+function pgStale(p){ const a=p.ai_pg, E=pgEvidence(p); if(!E.reps.length&&!E.pr&&!E.valued) return false; if(!a||!a.at) return true;
   return a.sig!==E.sig||Date.now()-Date.parse(a.at)>3*864e5; }
 async function pgBackground(){ if(PG.bg||typeof sample==='undefined'||!sample||!canWrite) return; PG.bg=true;
-  try{ for(const p of [...S.projects]){ if(PG.ran>=8) break; if(!pgLive(p)||!pgCan(p)||!pgStale(p)) continue;
-      const a=p.ai_pg; if(a&&a.at&&Date.now()-Date.parse(a.at)<20*60e3) continue;   // another computer just did it
-      PG.ran++; await pgEstimate(p.id,{auto:true,quiet:true}); await new Promise(r=>setTimeout(r,15000)); } }
-  finally{ PG.bg=false; } }
-setTimeout(function pgTick(){ try{ if(typeof loaded!=='undefined'&&loaded.has&&loaded.has('projects')&&loaded.has('reports')) pgBackground(); }catch(_){} setTimeout(pgTick,30*60e3); },90e3);
+  try{ for(const p of [...S.projects]){ if(PG.ran>=25) break; if(!pgLive(p)||!pgStale(p)) continue;
+      const a=p.ai_pg, run=p.ai_pg_run; if(a&&a.at&&Date.now()-Date.parse(a.at)<20*60e3) continue;   // another computer just did it
+      if(run&&run.at&&Date.now()-Date.parse(run.at)<4*60e3&&run.by!==me.id) continue;               // another computer is doing it now
+      try{ await patch('projects',p.id,{ai_pg_run:{by:me.id||'',at:new Date().toISOString()}}); }catch(_){ continue; }
+      PG.ran++; PG.bgNow=p.name; renderView(true); await pgEstimate(p.id,{auto:true,quiet:true}); PG.bgNow=''; renderView(true); await new Promise(r=>setTimeout(r,8000)); } }
+  finally{ PG.bg=false; PG.bgNow=''; } }
+// v257: automatic – starts 20 s after NEXUS has its data, then checks every 10 minutes (no button needed)
+setTimeout(function pgTick(){ try{ if(typeof loaded!=='undefined'&&loaded.has&&loaded.has('projects')&&loaded.has('reports')&&!document.hidden) pgBackground(); }catch(_){} setTimeout(pgTick,10*60e3); },20e3);
 function pgChip(p){ const a=p.ai_pg; return p.progress_src==='ai'&&a?`<span class="chip blue" title="${esc(`AI estimate ${fmtD(a.at)} · ${a.conf} confidence – ${a.why||''}`)}">🤖 AI</span>`:''; }
 function pgCard(p){ const a=p.ai_pg, busy=PG.busy[p.id], can=canWrite;
   if(!a&&!can) return '';
@@ -7897,7 +7900,7 @@ function pgCard(p){ const a=p.ai_pg, busy=PG.busy[p.id], can=canWrite;
       <div class="prose small pa-adv">${esc(a.why)}</div>
       ${a.basis.length?`<table class="kv" style="margin-top:8px">${a.basis.map(b=>`<tr><th>${esc(b.f)}</th><td>${esc(b.v)}</td></tr>`).join('')}</table>`:''}
       ${a.done.length?`<div class="sub" style="margin-top:6px">Work done / in progress: ${a.done.map(esc).join(' · ')}</div>`:''}
-      <p class="sub" style="margin-top:6px">Estimated ${fmtDT(a.at)}${a.by?' on '+esc(a.by)+'\'s NEXUS':''} · ${a.n_reports} site report${a.n_reports===1?'':'s'} read. Updated after each site report.</p>`
+      <p class="sub" style="margin-top:6px">Estimated ${fmtDT(a.at)}${a.by?' on '+esc(a.by)+'\'s NEXUS':''} · ${a.n_reports} site report${a.n_reports===1?'':'s'} read. Updated automatically after each site report and whenever the evidence changes.</p>`
     :`<p class="small">NEXUS AI reads the daily site reports, the programme, valuations, money spent and time used, and writes the overall % complete of this project.</p>`}
   </div></div>`; }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-pg]'); if(!b) return; e.stopPropagation(); const [a,id]=b.dataset.pg.split(':'); if(a==='est') pgEstimate(id); if(a==='all') pgAll(); },true);
