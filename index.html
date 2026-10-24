@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="e2ab0fa7f77c">
+<meta name="nexus-build" content="5d77159e2a5a">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -921,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='255';
+const NX_APP_VER='256';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -1729,7 +1729,7 @@ const PROJECT_FIELDS=[
 function pageProjects(){
   const st=['Active','Mobilising','Estimating','Final account','Close-out','On hold','Completed'];
   const ps=[...S.projects].sort((a,b)=>st.indexOf(a.status)-st.indexOf(b.status));
-  return `<div class="toolbar"><span class="muted">${S.projects.length} projects</span><div class="sp"></div><button class="btn pri" data-act="addProject">New project</button></div>
+  return `<div class="toolbar"><span class="muted">${S.projects.length} projects</span><div class="sp"></div>${canWrite&&(isAdmin||S.projects.some(pgCan))?`<button class="btn" data-pg="all:" ${PG.all?'disabled':''} title="AI reads the site reports, programme, valuations, cost and time of every project and writes its overall progress %">${PG.all?`<span class="spin"></span> Estimating ${esc(PG.all)}…`:'🤖 Estimate progress of all projects'}</button>`:''}<button class="btn pri" data-act="addProject">New project</button></div>
   <div class="grid g3">${ps.map(p=>{
     const reps=S.reports.filter(r=>r.project_id===p.id), last=reps.sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
     const spent=finRows().filter(f=>f.project_id===p.id&&f.type==='Expense').reduce((a,f)=>a+(+f.amount||0),0);
@@ -1738,7 +1738,7 @@ function pageProjects(){
     return `<div class="card" style="cursor:pointer" data-open="project:${esc(p.id)}"><div class="bd" style="display:flex;flex-direction:column;gap:9px">
       <div class="toolbar"><span class="chip ${sc}">${esc(p.status||'')}</span><span class="sub">${esc(p.type||'')}</span></div>
       <h3>${esc(p.name)}</h3><div class="sub">${esc(p.client||'')}${p.location?' · '+esc(p.location):''}</div>
-      <div><div class="toolbar small"><span>Progress</span><div class="sp"></div><span class="num">${prog}%</span></div><div class="bar"><i style="width:${prog}%"></i></div>
+      <div><div class="toolbar small"><span>Progress</span>${pgChip(p)}<div class="sp"></div><span class="num">${prog}%</span></div><div class="bar"><i style="width:${prog}%"></i></div>
       ${tl!=null?`<div class="sub" style="margin-top:3px">Time elapsed ${tl.toFixed(0)}% ${tl-prog>15?'<span class="chip bad">behind</span>':''}</div>`:''}</div>
       <div class="small muted">${reps.length} site reports${last?' · last '+fmtD(last.date):''}${money()&&p.budget?` · spent ${tzsShort(spent)} of ${tzsShort(p.budget)}`:''}</div>
     </div></div>`}).join('')||'<div class="empty card">No projects yet.</div>'}</div>
@@ -7297,7 +7297,7 @@ function pageProject(){
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
       <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
-    ${paCard(p)}
+    ${pgCard(p)}${paCard(p)}
     ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
     <div class="grid g2">
       <div class="card"><div class="hd"><h2>Latest site reports</h2></div><div class="list">${S.reports.filter(r=>r.project_id===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5).map(r=>`<div class="li" style="cursor:pointer" data-open="report:${esc(r.id)}"><div class="grow"><div class="ttl2">${fmtD(r.date)} · ${esc(r.author||'')}</div><div class="sub">${esc((r.work_done||'').slice(0,140))}</div></div></div>`).join('')||'<div class="empty">No site reports yet.</div>'}</div></div>
@@ -7815,6 +7815,96 @@ document.addEventListener('click',async e=>{ const b=e.target.closest('[data-pa]
   if(a==='read'){ await paRead(x,{apply:true}); return renderDrawer&&renderDrawer(); }
   if(a==='undo') return paUndo(x,y); if(a==='apply') return paApplyOne(x,y); if(a==='adv') return paAdvise(x); if(a==='fill') return paFillForm(); },true);
 /* ===================== PROGRESS FROM SITE REPORTS (end) ===================== */
+
+/* ===================== v256 · OVERALL PROGRESS – AI ESTIMATE FOR EVERY PROJECT =====================
+   The project's overall % complete (projects.progress – shown on the project cards, dashboards and reports) is now estimated
+   by NEXUS AI from everything the system knows about the project:
+     daily site reports (work done, issues, workforce, plan), the programme (weighted actual / planned, activity %),
+     valuations / IPCs certified against the contract sum, cost spent against the budget, the time elapsed, variations.
+   It runs after a site report is saved and, for projects whose estimate is out of date, in the background on the
+   computers of directors / the project manager (one project at a time). Every estimate keeps its reasons and evidence
+   (projects.ai_pg) and can be run again with a button. It never drops more than 10 points in one step and does not
+   lower a value set from the programme by a person. */
+const PG={busy:{},queue:[],ran:0};
+const pgLive=p=>p&&!p.deleted&&!p.example&&!['Estimating'].includes(p.status||'');
+const pgCan=p=>canWrite&&(isAdmin||pfIsPM(p)||S.reports.some(r=>r.project_id===p.id&&r.author_uid===me.id));
+function pgEvidence(p){
+  const t=today(), reps=S.reports.filter(r=>r.project_id===p.id&&!r.example).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const pr=typeof programme==='function'?programme(p.id):null, acts=(typeof paActs==='function'?paActs(p.id):[]);
+  const vos=(S.variations||[]).filter(x=>x.project_id===p.id&&x.status==='Approved').reduce((a,x)=>a+(+x.value_approved||0),0), rev=(+p.contract_sum||0)+vos;
+  let valued=0, lastVal=null; try{ lastVal=valOfProj(p.id).slice(-1)[0]; valued=lastVal?valCalc(lastVal).gross:0; }catch(_){}
+  const certs=(S.certificates||[]).filter(c=>c.project_id===p.id&&!c.example), certified=certs.length?Math.max(0,...certs.filter(c=>['Certified','Paid'].includes(c.status)).map(c=>+c.gross||0)):0;
+  const spent=finRows().filter(f=>f.project_id===p.id&&f.type==='Expense'&&!f.example).reduce((a,f)=>a+(+f.amount||0),0);
+  const end=p.end?pEnd(p):'', tl=p.start&&end?Math.max(0,Math.min(100,(dayN(t)-dayN(p.start))/Math.max(1,dayN(end)-dayN(p.start))*100)):null;
+  return {reps,pr,acts,rev,valued:Math.max(valued,certified),lastVal,spent,tl,end,
+    last:reps.length?reps[reps.length-1].date:'', sig:[reps.length,reps.length?reps[reps.length-1].date+'/'+String(reps[reps.length-1].work_done||'').length:'',pr?pr.actual.toFixed(0):'',Math.round(Math.max(valued,certified)),Math.round(spent),(p.status||'')].join('|')};
+}
+async function pgAsk(p,E){
+  const W=E.acts.reduce((a,m)=>a+(+m.weight||0),0);
+  const rep=E.reps.slice(-14).map(r=>`${r.date}: ${r.workforce||'?'} workers${r.weather?' · '+r.weather:''}; done: ${String(r.work_done||'').slice(0,450)}${r.issues?'; issues: '+String(r.issues).slice(0,200):''}${r.next_day?'; next: '+String(r.next_day).slice(0,150):''}`).join('\n');
+  const first=E.reps.length>14?`(${E.reps.length-14} earlier reports, first ${E.reps[0].date}: ${String(E.reps[0].work_done||'').slice(0,200)})\n`:'';
+  const act=E.acts.slice(0,40).map(m=>`${m.name} | ${m.planned_start||'?'}→${m.planned_finish||'?'} | weight ${+m.weight||0} | ${msPg(m)}%`).join('\n');
+  return await sample.json(`You are the senior quantity surveyor / planning engineer of Nordic Construction (Tanzania). Estimate the OVERALL PHYSICAL PROGRESS (% complete of the whole contract works) of this project from all the evidence. Be realistic – a contractor's honest figure, not optimistic.
+PROJECT: ${p.name} · ${p.type||''} · client ${p.client||'?'} · ${p.location||''} · status ${p.status||'?'}
+Contract period: ${p.start||'?'} → ${E.end||'?'}${E.tl!=null?` · ${E.tl.toFixed(0)}% of the time used`:''}
+Contract sum incl. approved variations: ${E.rev?Math.round(E.rev).toLocaleString('en-US')+' TZS':'unknown'}
+Valued / certified to date (IPC / valuation): ${E.valued?Math.round(E.valued).toLocaleString('en-US')+' TZS'+(E.rev?` = ${(E.valued/E.rev*100).toFixed(0)}% of contract`:''):'none'}
+Cost spent so far: ${E.spent?Math.round(E.spent).toLocaleString('en-US')+' TZS':'none recorded'}${p.budget?` of budget ${Math.round(+p.budget).toLocaleString('en-US')}`:''}
+Programme: ${E.pr?`weighted actual ${E.pr.actual.toFixed(0)}% vs planned ${E.pr.planned.toFixed(0)}% today`:E.acts.length?`${E.acts.length} activities, weights ${W?'incomplete ('+W+')':'not set'}`:'no programme in NEXUS'}
+${act?'ACTIVITIES (name | dates | weight | % done):\n'+act+'\n':''}DAILY SITE REPORTS (${E.reps.length}):
+${first}${rep||'none'}
+Rules:
+- Weigh the evidence: a weighted programme kept up to date and certified valuations are the strongest; site reports show what was really done (count the trades / elements reported as done against the whole scope of this type of project); time and cost used are only a cross-check (never progress by themselves).
+- Typical shares for ${p.type||'building'} works: preliminaries & mobilisation small; e.g. fit-out: strip-out/demolition, partitions & ceilings, MEP first fix, finishes, joinery & fittings, MEP second fix, testing & handover.
+- If the works started but evidence is thin, give a low cautious figure (not 0) and say confidence low.
+- Reply JSON only: {"pct":12,"lo":8,"hi":18,"conf":"low|medium|high","method":"programme|valuation|reports|mixed","why":"2-3 short sentences","basis":[{"f":"factor","v":"what the evidence says"}],"done":["main work packages done or in progress"],"status":"ahead|on time|behind|unknown"}`,{max_tokens:1200,panel:false});
+}
+async function pgEstimate(pid,{auto=false,quiet=false}={}){
+  const p=byId('projects',pid); if(!p||!pgLive(p)||typeof sample==='undefined'||!sample||!canWrite) return null;
+  if(PG.busy[pid]) return null; const E=pgEvidence(p);
+  if(!E.reps.length&&!E.pr&&!E.valued){ if(!quiet) toast('No site reports, programme or valuation yet – nothing to estimate from.'); return null; }
+  PG.busy[pid]=true; if(!auto) renderView(true);
+  try{ const r=await pgAsk(p,E); let pct=Math.round(+r?.pct); if(!isFinite(pct)) throw new Error('no estimate');
+    pct=Math.max(0,Math.min(100,pct)); const cur=Math.max(0,Math.min(100,+p.progress||0)), src=p.progress_src||'';
+    let set=pct;
+    if(pct<cur){ if(src==='ai') set=Math.max(pct,cur-10); else set=cur; }   // never a big drop; a person's programme value is not lowered
+    if(/complet/i.test(p.status||'')&&set<100&&pct>=95) set=100;
+    const est={pct,lo:Math.round(+r.lo||pct),hi:Math.round(+r.hi||pct),conf:['low','medium','high'].includes(r.conf)?r.conf:'low',method:String(r.method||'mixed'),why:String(r.why||'').slice(0,600),
+      basis:(Array.isArray(r.basis)?r.basis:[]).slice(0,8).map(b=>({f:String(b.f||'').slice(0,60),v:String(b.v||'').slice(0,200)})),done:(Array.isArray(r.done)?r.done:[]).slice(0,10).map(x=>String(x).slice(0,80)),
+      status:String(r.status||'unknown'),at:new Date().toISOString(),by:me.name||'',sig:E.sig,applied:set,prev:cur,n_reports:E.reps.length};
+    const up={ai_pg:est}; if(set!==cur||src!=='ai'&&set===pct){ up.progress=set; up.progress_src='ai'; up.progress_at=est.at; }
+    await patch('projects',pid,up);
+    if(up.progress!=null&&up.progress!==cur) logAct(`AI estimated overall progress of ${p.name}: ${cur}% → ${set}% (${est.conf} confidence)`);
+    if(!quiet) toast(`${p.name}: overall progress ${set}% (AI estimate, ${est.conf} confidence).`);
+    return est; }
+  catch(e){ console.warn('pg',e); if(!quiet) toast('AI could not estimate the progress: '+(e.message||e)); return null; }
+  finally{ PG.busy[pid]=false; renderView(true); } }
+// background: projects whose estimate is missing / older than the latest evidence / older than 3 days
+function pgStale(p){ const a=p.ai_pg; if(!a||!a.at) return true; const E=pgEvidence(p); if(!E.reps.length&&!E.pr&&!E.valued) return false;
+  return a.sig!==E.sig||Date.now()-Date.parse(a.at)>3*864e5; }
+async function pgBackground(){ if(PG.bg||typeof sample==='undefined'||!sample||!canWrite) return; PG.bg=true;
+  try{ for(const p of [...S.projects]){ if(PG.ran>=8) break; if(!pgLive(p)||!pgCan(p)||!pgStale(p)) continue;
+      const a=p.ai_pg; if(a&&a.at&&Date.now()-Date.parse(a.at)<20*60e3) continue;   // another computer just did it
+      PG.ran++; await pgEstimate(p.id,{auto:true,quiet:true}); await new Promise(r=>setTimeout(r,15000)); } }
+  finally{ PG.bg=false; } }
+setTimeout(function pgTick(){ try{ if(typeof loaded!=='undefined'&&loaded.has&&loaded.has('projects')&&loaded.has('reports')) pgBackground(); }catch(_){} setTimeout(pgTick,30*60e3); },90e3);
+function pgChip(p){ const a=p.ai_pg; return p.progress_src==='ai'&&a?`<span class="chip blue" title="${esc(`AI estimate ${fmtD(a.at)} · ${a.conf} confidence – ${a.why||''}`)}">🤖 AI</span>`:''; }
+function pgCard(p){ const a=p.ai_pg, busy=PG.busy[p.id], can=canWrite;
+  if(!a&&!can) return '';
+  return `<div class="card"><div class="hd"><h2>🤖 Overall progress</h2><span class="sub">AI estimate from site reports, programme, valuations, cost &amp; time</span><div class="sp"></div>${can?`<button class="btn sm${a?'':' pri'}" data-pg="est:${esc(p.id)}" ${busy?'disabled':''}>${busy?'<span class="spin"></span> Estimating…':a?'Estimate again':'Estimate now'}</button>`:''}</div><div class="bd">
+    ${a?`<div class="pa-kpis"><div><b>${+p.progress||0}%</b><span>overall progress${p.progress_src==='ai'?' (AI)':''}</span></div><div><b>${a.lo}–${a.hi}%</b><span>likely range</span></div><div class="${a.conf==='low'?'bad':a.conf==='high'?'good':''}"><b>${esc(a.conf)}</b><span>confidence · ${esc(a.method)}</span></div><div class="${/behind/.test(a.status)?'bad':/ahead|on time/.test(a.status)?'good':''}"><b>${esc(a.status)}</b><span>against time</span></div></div>
+      ${a.pct!==a.applied?`<p class="sub" style="margin-top:6px">AI read ${a.pct}% – shown ${a.applied}% (NEXUS does not drop progress by more than 10 points at once or lower a value set from the programme).</p>`:''}
+      <div class="prose small pa-adv">${esc(a.why)}</div>
+      ${a.basis.length?`<table class="kv" style="margin-top:8px">${a.basis.map(b=>`<tr><th>${esc(b.f)}</th><td>${esc(b.v)}</td></tr>`).join('')}</table>`:''}
+      ${a.done.length?`<div class="sub" style="margin-top:6px">Work done / in progress: ${a.done.map(esc).join(' · ')}</div>`:''}
+      <p class="sub" style="margin-top:6px">Estimated ${fmtDT(a.at)}${a.by?' on '+esc(a.by)+'\'s NEXUS':''} · ${a.n_reports} site report${a.n_reports===1?'':'s'} read. Updated after each site report.</p>`
+    :`<p class="small">NEXUS AI reads the daily site reports, the programme, valuations, money spent and time used, and writes the overall % complete of this project.</p>`}
+  </div></div>`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-pg]'); if(!b) return; e.stopPropagation(); const [a,id]=b.dataset.pg.split(':'); if(a==='est') pgEstimate(id); if(a==='all') pgAll(); },true);
+async function pgAll(){ if(PG.all) return; const L=S.projects.filter(p=>pgLive(p)&&pgCan(p)); let n=0;
+  try{ for(const [i,p] of L.entries()){ PG.all=`${i+1}/${L.length}`; renderView(true); const r=await pgEstimate(p.id,{auto:true,quiet:true}); if(r) n++; } }
+  finally{ PG.all=''; renderView(true); } toast(n?`Overall progress estimated for ${n} project${n===1?'':'s'}.`:'No project has site reports, a programme or a valuation yet.'); }
+/* ===================== OVERALL PROGRESS (end) ===================== */
 
 /* ===================== PLANT & EQUIPMENT ===================== */
 /* ===================== PHASE 5 · VEHICLE LOG (v111): trips, fuel, service, defects =====================
@@ -21691,7 +21781,7 @@ document.addEventListener('click', async e=>{
     case 'addSnag': formDrawer('Add snag',SNAG_FIELDS,{status:'Open'},async v=>{ await put('snags',null,{...v,project_id:routeArg,found:today()}); },{sub:'Snags & close-out'}); break;
     case 'addPlant': formDrawer('Add plant or equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),{ownership:'Owned',status:'Working'},async v=>{ await put('plant',null,v); logAct(`Plant added: ${v.name}`); },{sub:'Plant & equipment'}); break;
     case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
-    case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual)}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
+    case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual),progress_src:'programme',progress_at:new Date().toISOString()}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
     case 'aiProject': aiProject(byId('projects',routeArg)); break;
     case 'delForm': if(drawer?.onDelete && await confirmBox(drawer.delMsg||'Delete this record? This cannot be undone.',drawer.delLabel||'Delete',true)){ const lbl=drawer.delLabel; if(await drawer.onDelete()!==false){ closeDrawer(); toast(lbl==='Remove'?'Removed.':'Deleted.'); } } break;
     case 'downloadWeekly': downloadWeekly(); break;
@@ -21710,7 +21800,7 @@ async function saveReport(){
     if(nid&&!ex) setTimeout(()=>rpAutoSummary(nid),1500);
     logAct(`${ex?'Updated':'Filed'} site report for ${projName(v.project_id)} (${v.date}, ${photos.length} photos)`);
     const nProg=await pmApplyReport(); const touched=window.__rpTouched||new Set();
-    if(nid&&(!ex||String(ex.work_done||'')!==String(v.work_done||''))) setTimeout(()=>paRead(nid,{apply:true,skip:touched}),2500);   // v250
+    if(nid&&(!ex||String(ex.work_done||'')!==String(v.work_done||''))) setTimeout(()=>paRead(nid,{apply:true,skip:touched}).catch(()=>null).then(()=>setTimeout(()=>pgEstimate(v.project_id,{auto:true,quiet:true}),3000)),2500);   // v250 + v256 overall progress
     UI.busy.saveReport=false; closeDrawer(); toast('Site report saved.'+(nProg?` Programme updated (${nProg}).`:''));
   }finally{ UI.busy.saveReport=false; }
 }
