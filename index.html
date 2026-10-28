@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="nexus-build" content="488453eb86e2">
+<meta name="nexus-build" content="a97a9366d5e1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; media-src 'self' blob: https://*.supabase.co; frame-src 'none'; object-src 'none'">
 <link rel="manifest" href="manifest.webmanifest">
@@ -921,7 +921,7 @@ function nxAppPrint(html,title){
   return true; }
 window.NX_APP_PRINT=NX_IN_APP?nxAppPrint:null;
 /* v234 · design polish: phone tables → cards, swipe tabs, one page-top layout, empty pages with the main button */
-const NX_APP_VER='257';
+const NX_APP_VER='258';
 const NX_SHORT={'Alerts & Notifications':'Alerts','Executive Dashboard':'Dashboard','Payment Certificates':'Payments','Finance & Accounts':'Finance','Management Report':'MD Report','Programme Overview':'Programme','Plant & Equipment':'Plant','Company & Security':'Settings'};
 function nxTitle(t){ return innerWidth<=700&&NX_SHORT[t]||t; }   // short page names on phones (one-line title)
 function nxPolish(){ const V=document.getElementById('view'); if(!V) return; const phone=innerWidth<=700;
@@ -2276,10 +2276,10 @@ ${lst}`,{max_tokens:3000});
     toast(UI.bqRun.found?`AI found library rates for ${UI.bqRun.found} of ${todo.length} items – check them and tap Use.`:'AI found no library rate that is the same work. Try “Market rates (web)”.'); }
   catch(e){ toast(e?.code==='rate_limited'?'AI is busy – try again in a minute.':'AI matching stopped: '+(e?.message||e)); try{ await patch('boqs',b.id,{bills:b.bills}); }catch(_){} }
   UI.bqRun=null; renderView(true); }
-async function bqMarket(only,fresh){ const b=curBoq(); if(!b||UI.bqRun) return; const reg=rtBoqRegion(b);
-  let list=only?[only]:bqUnpricedList(b).filter(x=>!(x.it.aim&&!x.it.aim.none)&&!(x.it.mkt&&!x.it.mkt.none));
+async function bqMarket(only,fresh,auto){ const b=curBoq(); if(!b||UI.bqRun) return; const reg=rtBoqRegion(b);
+  let list=only?[only]:auto?bqUnpricedList(b).filter(x=>!(x.it.mkt&&!x.it.mkt.none)):bqUnpricedList(b).filter(x=>!(x.it.aim&&!x.it.aim.none)&&!(x.it.mkt&&!x.it.mkt.none));
   if(!list.length) return toast('Every unpriced item already has a library match or a market range.');
-  if(!only&&list.length>5&&!(await confirmBox(`Search Tanzanian web sources for ${list.length} items? Each item uses about 3 of the 1,000 free web searches per month (repeat searches within 30 days are free).`,'Search the web'))) return;
+  if(!only&&!auto&&list.length>5&&!(await confirmBox(`Search Tanzanian web sources for ${list.length} items? Each item uses about 3 of the 1,000 free web searches per month (repeat searches within 30 days are free).`,'Search the web'))) return;
   UI.bqRun={k:'web',n:list.length,done:0,found:0}; renderView(true);
   try{ for(let s=0;s<list.length;s+=5){ const grp=list.slice(s,s+5);
       const r=await supAICall({mode:'rates',region:reg,...(fresh?{fresh:true}:{}),items:grp.map((x,i)=>({i,desc:x.it.desc,unit:x.it.unit}))});
@@ -2290,6 +2290,61 @@ async function bqMarket(only,fresh){ const b=curBoq(); if(!b||UI.bqRun) return; 
     toast(UI.bqRun.found?`Market ranges found for ${UI.bqRun.found} of ${list.length} items – open the sources and choose a rate.`:'No usable Tanzanian prices were found on the web for these items.'); }
   catch(e){ toast('Web search stopped: '+(e?.message||e)); try{ await patch('boqs',b.id,{bills:b.bills}); }catch(_){} }
   UI.bqRun=null; renderView(true); }
+/* ===================== v258 · PRICE EVERYTHING AUTOMATICALLY – no BoQ item left without a rate =====================
+   1) Rate library (exact) → 2) company past BoQs (AI, high/medium) → 3) AI match with the library (high/medium) →
+   4) current market prices from Tanzanian web sources (average of the sources) → 5) AI estimate for anything still empty,
+   anchored on the priced items of the same bill and the nearest library rates. New web / AI rates are added to the Rate
+   library (existing library rates are never overwritten). Every rate keeps its source mark (Library / Past BoQ / Market /
+   AI estimate) so the QS can check it. */
+const bqToPrice=b=>{ const L=[]; (b.bills||[]).forEach((bl,bi)=>(bl.items||[]).forEach((it,ii)=>{ if(!String(it.desc||'').trim()||(it.rate!==''&&it.rate!=null&&+it.rate>0)) return; if(!String(it.unit||'').trim()&&!(+it.qty>0)) return; L.push({bi,ii,it,bill:bl.name||''}); })); return L; };
+async function bqApplyMatches(){ const b=curBoq(); if(!b) return 0; let n=0;
+  (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if(it.rate!==''&&it.rate!=null&&+it.rate>0) return;
+    if(it.pbm&&!it.pbm.none&&['high','medium'].includes(it.pbm.conf)&&+it.pbm.rate>0){ pbApply(it); n++; return; }
+    if(it.aim&&!it.aim.none&&['high','medium'].includes(it.aim.conf)&&+it.aim.rate>0){ const r=byId('rates',it.aim.id); it.rate=it.aim.rate; it.p={...(r?bqLibP(rtN(r)):{s:'lib',id:it.aim.id}),ai:true,why:it.aim.why,factor:it.aim.factor}; n++; return; }
+    const m=it.mkt; if(m&&!m.none){ const v=+m.typ||((+m.low||0)&&(+m.high||0)?((+m.low)+(+m.high))/2:(+m.low||+m.high||0)); if(v>0){ it.rate=Math.round(v); it.p={s:'web',low:m.low,high:m.high,typ:m.typ,pick:m.typ?'typical':'average',basis:String(m.basis||'').slice(0,200),src:(m.src||[])[0]?.u||'',n:(m.src||[]).length,at:today()}; n++; } } }));
+  if(n) await patch('boqs',b.id,{bills:b.bills}); return n; }
+async function bqAIEstimate(){ const b=curBoq(); if(!b) return 0; const reg=rtBoqRegion(b), P=b.project_id?byId('projects',b.project_id):null; let n=0;
+  const priced=new Map(); (b.bills||[]).forEach((bl,bi)=>priced.set(bi,(bl.items||[]).filter(it=>+it.rate>0&&String(it.unit||'').trim()).slice(0,40)));
+  const sub=(b.bills||[]).reduce((a,bl)=>a+(bl.items||[]).reduce((s,it)=>s+(+it.qty||0)*(+it.rate||0),0),0);
+  for(let pass=0;pass<2;pass++){ const todo=bqToPrice(b); if(!todo.length) break;
+    for(let s=0;s<todo.length;s+=10){ const grp=todo.slice(s,s+10); UI.bqAuto&&(UI.bqAuto.sub=`${Math.min(todo.length,s+10)} of ${todo.length}`); renderView(true);
+      const lst=grp.map((x,i)=>{ const anc=(priced.get(x.bi)||[]).slice(0,6).map(it=>`${String(it.desc).slice(0,70)} | ${it.unit} | ${Math.round(+it.rate)}`).join(' ; ');
+        const lib=(typeof bqCands==='function'?bqCands(x.it,reg):[]).slice(0,3).map(r=>`${String(r.desc).slice(0,70)} | ${r.unit} | ${Math.round(+r.rate)} (${r.price_date||'no date'})`).join(' ; ');
+        const mk=x.it.mkt&&!x.it.mkt.none?`market ${Math.round(+x.it.mkt.low||0)}–${Math.round(+x.it.mkt.high||0)} per ${x.it.mkt.unit||x.it.unit}`:'';
+        return `#${i} ${String(x.it.desc).replace(/\s+/g,' ').slice(0,260)} [unit: ${x.it.unit||'Item'}, qty ${x.it.qty??'?'}] (bill: ${x.bill})${anc?`\n   priced items in this bill: ${anc}`:''}${lib?`\n   nearest library rates: ${lib}`:''}${mk?`\n   ${mk}`:''}`; }).join('\n');
+      let res=null; try{ window.NX_AI_KIND='ask'; res=await sample.json(`You are a senior Tanzanian quantity surveyor pricing a Bill of Quantities for Nordic Construction in ${reg} (${P?.location||'Tanzania'}), ${new Date().getFullYear()}. Give the CURRENT all-in contractor's unit rate in TZS for EACH item: materials delivered to site, labour, plant, wastage, overheads and profit, as priced in Tanzanian BoQs today.
+Keep consistent with the priced items of the same bill and the library rates shown (adjust for size, grade, thickness and unit). Use the market range when given. For Sum / Item / LS items (preliminaries, provisional items, testing, insurance, signboard…) give the full amount for the item, sized to this project (priced BoQ value so far about ${Math.round(sub).toLocaleString('en-US')} TZS). Never return 0 or leave an item out.
+Reply JSON only: {"rates":[{"i":0,"rate":12345,"conf":"high | medium | low","basis":"how you got it, max 15 words"}]}
+ITEMS:
+${lst}`,{max_tokens:2500}); }catch(e){ console.warn('ai est',e); if(e?.code==='rate_limited') await new Promise(r=>setTimeout(r,20000)); }
+      (res?.rates||[]).forEach(m=>{ const x=grp[+m?.i]; const v=Math.round(+m?.rate); if(!x||!(v>0)) return; x.it.rate=v; x.it.p={s:'ai',basis:String(m.basis||'').slice(0,200),conf:['high','medium','low'].includes(m.conf)?m.conf:'low',at:today()}; n++; });
+      await patch('boqs',b.id,{bills:b.bills}); } }
+  return n; }
+async function bqSaveAutoLib(){ const b=curBoq(); if(!b) return {a:0}; const reg=rtBoqRegion(b), date=today(); let a=0;
+  for(const bl of (b.bills||[])) for(const it of (bl.items||[])){ const k=it.p?.s; if(!['web','ai'].includes(k)||!(+it.rate>0)) continue; const u=String(it.unit||'').trim(); if(!u||BQ_LUMP.test(u)||!(it.desc||'').trim()) continue;
+    if(S.rates.some(r=>rtKey(r.desc,r.unit,rtN(r).region)===rtKey(it.desc,u,reg))) continue;
+    await put('rates',null,{desc:it.desc.trim(),unit:u,rate:+it.rate,kind:'item',trade:(()=>{ const t=rtGuessTrade(it.desc,'item'); return t!=='Other'?t:rtGuessTrade(bl.name||'','item'); })(),region:reg,price_date:date,
+      source:k==='web'?`Market average of ${it.p.n||'several'} web sources`:`AI estimate – ${b.title||'BoQ'}`,note:String(it.p.basis||'').slice(0,200),auto:k,bu:null,hist:[],created_at:new Date().toISOString()}); a++; }
+  return {a}; }
+async function bqAutoPrice(){ const b0=curBoq(); if(!b0||UI.bqRun||UI.bqAuto) return; const n0=bqToPrice(b0).length;
+  if(!n0) return toast('Every item already has a rate.');
+  if(!await confirmBox(`Price all ${n0} unpriced items automatically?\n\n1) Rate library  2) company past BoQs  3) AI match with the library  4) current market prices from Tanzanian web sources (average)  5) AI estimate for anything still empty.\n\nNew market and AI rates are added to the Rate library. Every rate is marked with its source so you can check it.`,'Price everything')) return;
+  UI.bqAuto={step:'Rate library',n0}; renderView(true); const done={};
+  const step=async(name,fn)=>{ UI.bqAuto.step=name; UI.bqAuto.sub=''; renderView(true); try{ await fn(); }catch(e){ console.warn('auto price',name,e); } while(UI.bqRun) await new Promise(r=>setTimeout(r,300)); };
+  try{
+    await step('Rate library',()=>bqFillLib());
+    await step('Company past BoQs',async()=>{ if(typeof pbIndex==='function'&&pbIndex(curBoq().id).length) await pbMatch(); });
+    await step('AI match with the Rate library',()=>bqAIMatch());
+    await step('Using the matches',async()=>{ done.match=await bqApplyMatches(); });
+    await step('Market prices on the web',()=>bqMarket(null,false,true));
+    await step('Using the market prices',async()=>{ done.web=await bqApplyMatches(); });
+    await step('AI estimate for the rest',async()=>{ done.ai=await bqAIEstimate(); });
+    await step('Saving new rates to the Rate library',async()=>{ done.lib=(await bqSaveAutoLib()).a; });
+  } finally { const left=bqToPrice(curBoq()).length; UI.bqAuto=null; renderView(true);
+    logAct(`Priced BoQ "${b0.title||''}" automatically: ${n0-left} of ${n0} items (${done.web||0} from web averages, ${done.ai||0} AI estimates), ${done.lib||0} new library rates`);
+    toast(left?`Priced ${n0-left} of ${n0} items – ${left} could not be priced (AI busy?). Run it again to finish.`:`All ${n0} items priced${done.lib?` · ${done.lib} new rates added to the Rate library`:''}. Check the AI estimate and Market rates.`); } }
+/* ===================== PRICE EVERYTHING (end) ===================== */
+
 async function bqAIUse(bi,ii){ const b=curBoq(); const it=b?.bills?.[bi]?.items?.[ii]; if(!it?.aim||it.aim.none) return; const r=byId('rates',it.aim.id);
   it.rate=it.aim.rate; it.p={...(r?bqLibP(rtN(r)):{s:'lib',id:it.aim.id,src:'',date:it.aim.date,reg:it.aim.reg,old:it.aim.old}),ai:true,why:it.aim.why,factor:it.aim.factor}; await patch('boqs',b.id,{bills:b.bills}); }
 async function bqAIUseAll(){ const b=curBoq(); if(!b) return; let n=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.aim&&!it.aim.none&&it.aim.conf==='high'){ const r=byId('rates',it.aim.id); it.rate=it.aim.rate; it.p={...(r?bqLibP(rtN(r)):{s:'lib',id:it.aim.id}),ai:true,why:it.aim.why,factor:it.aim.factor}; n++; } }));
@@ -2314,10 +2369,11 @@ function bqPriceView(b){
     <div class="toolbar small"><b>Priced ${s.priced} of ${s.n} items</b><span class="sub">· region ${esc(reg)}</span><div class="sp"></div><span class="num">${s.pct}%</span></div><div class="bar"><i style="width:${s.pct}%"></i></div>
     <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;gap:6px"><span class="chip good">Library ${s.lib}</span><span class="chip amb">AI estimate ${s.ai}</span><span class="chip blue">QS rate ${s.man}</span><span class="chip bad">Unpriced ${s.n-s.priced}</span>${s.noqty?`<span class="chip">${s.noqty} without quantity</span>`:''}</div>
     <p class="sub" style="margin:8px 0 0">Type your current rate in <b>Your rate</b> – it is marked <b>QS rate</b>. <b>Library</b> shows the best matching library rate for this region (tap <b>Use</b> to take it). <b>✨ AI match</b> finds library rates for the same work written in different words. <b>🗂 Past BoQ</b> finds the same work priced in the company's past BoQs. <b>🌐 Market</b> gives a price range from Tanzanian web sources – always open the sources and judge before using. <b>AI estimate</b> rates were proposed from similar library rates and must be checked.</p>
+    ${UI.bqAuto?`<div class="bq-run"><span class="spin sm"></span> <b>Pricing everything</b> – ${esc(UI.bqAuto.step)}${UI.bqAuto.sub?' · '+esc(UI.bqAuto.sub):''}…</div>`:''}
     ${UI.bqRun?`<div class="bq-run"><span class="spin sm"></span> ${UI.bqRun.k==='ai'?'AI is comparing unpriced items with the Rate library':UI.bqRun.k==='past'?'AI is comparing unpriced items with past BoQs':'Searching Tanzanian web sources for prices'}… ${UI.bqRun.done} of ${UI.bqRun.n} items${UI.bqRun.found?` · ${UI.bqRun.found} found`:''}</div>`:''}
     ${(()=>{ let hi=0; (b.bills||[]).forEach(bl=>(bl.items||[]).forEach(it=>{ if((it.rate===''||it.rate==null)&&it.aim&&!it.aim.none&&it.aim.conf==='high') hi++; })); return hi&&canWrite&&!UI.bqRun?`<div class="bq-run"><b>${hi}</b> unpriced item${hi===1?' has':'s have'} a high-confidence AI library match. <button class="btn sm pri" data-bx="aiuseall">Use all ${hi}</button></div>`:''; })()}</div></div>
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><div class="seg" style="flex-wrap:wrap">${segs.map(([k,l])=>`<button data-bx="filter" data-v="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div><div class="sp"></div>
-    ${canWrite?`<button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="pbmatch" ${UI.bqRun?'disabled':''} title="AI finds the same work in the company's past BoQs and proposes their rates">🗂 AI match from past BoQs</button><button class="btn" data-bx="aimatch" ${UI.bqRun?'disabled':''} title="AI compares the unpriced items with the Rate library and finds rates for the same work written differently">✨ AI match from library</button><button class="btn" data-bx="web" ${UI.bqRun?'disabled':''} title="Price ranges for the remaining unpriced items from Tanzanian web sources">🌐 Market rates (web)</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
+    ${canWrite?`<button class="btn pri" data-bx="autoprice" ${UI.bqRun||UI.bqAuto?'disabled':''} title="Library → past BoQs → AI match → web market average → AI estimate: no item left empty; new rates saved to the Rate library">🤖 Price everything automatically</button><button class="btn" data-bx="filllib">Fill empty from library</button><button class="btn" data-bx="pbmatch" ${UI.bqRun?'disabled':''} title="AI finds the same work in the company's past BoQs and proposes their rates">🗂 AI match from past BoQs</button><button class="btn" data-bx="aimatch" ${UI.bqRun?'disabled':''} title="AI compares the unpriced items with the Rate library and finds rates for the same work written differently">✨ AI match from library</button><button class="btn" data-bx="web" ${UI.bqRun?'disabled':''} title="Price ranges for the remaining unpriced items from Tanzanian web sources">🌐 Market rates (web)</button><button class="btn" data-bx="savelib" ${s.man?'':'disabled'} title="Adds or updates these rates in the Rate library (old price kept in history)">Save my QS rates to library (${s.man})</button>`:''}</div>`;
   const bills=(b.bills||[]).map((bl,bi)=>{ const rows=(bl.items||[]).map((it,ii)=>({it,ii})).filter(x=>keep(x.it)); if(!rows.length) return '';
     return `<div class="card" data-bid="${esc(bqId(bl,bi))}"><div class="hd"><span class="label mono">Bill ${bi+1}</span><h2 style="font-size:16px">${esc(bl.name||'')}</h2><div class="sp"></div><span class="num">${tzs(boqTotals(b).bills[bi].total)}</span></div><div class="tbl-wrap"><table><thead><tr><th style="width:52px">Item</th><th>Description</th><th style="width:56px">Unit</th><th class="r" style="width:80px">Qty</th><th class="r" style="width:230px">Library / AI / market</th><th class="r" style="width:130px">Your rate</th><th class="r" style="width:130px">Amount</th><th style="width:96px">Source</th></tr></thead><tbody>
       ${rows.map(({it,ii})=>{ const m=matchRate(it.desc,it.unit,reg); const sug0=m?`<span class="num">${rtFmt(m.rate)}</span>${rtCheck(m)?' <span class="chip amb" style="font-size:10px">old</span>':''}<div class="sub" style="font-size:11px">${esc((m.region||'')+' · '+(m.price_date||'no date'))}</div>${canWrite&&Math.round(+m.rate)!==Math.round(+it.rate||0)?`<button class="btn sm" data-bx="use" data-i="${bi}.${ii}" style="margin-top:3px">Use</button>`:''}`:'<span class="sub">no match</span>', sug=sug0+bqSugHtml(it,bi,ii);
@@ -2678,6 +2734,7 @@ document.addEventListener('click', async e=>{ const el=e.target.closest('[data-b
   if(a==='filter'){ UI.bqf=el.dataset.v; renderView(true); return; }
   if(a==='use'){ const [bi,ii]=el.dataset.i.split('.').map(Number); await bqUse(bi,ii); return; }
   if(a==='filllib'){ await bqFillLib(); return; }
+  if(a==='autoprice'){ await bqAutoPrice(); return; }
   if(a==='aimatch'){ await bqAIMatch(); return; }
   if(a==='web'){ await bqMarket(); return; }
   if(a==='aiuseall'){ await bqAIUseAll(); return; }
@@ -6297,7 +6354,7 @@ function projectDocsTab(p){ const F=pfFiles(p.id), q=(UI.pfq||'').toLowerCase().
   ${selF.length?`<div class="pf-selbar"><b>${selF.length} selected</b><button class="btn sm" data-pf="zipsel" data-pid="${esc(p.id)}">⬇ Download (.zip)</button>${canWrite?`<select class="inp sm" data-pfmove aria-label="Move to folder"><option value="">Move to folder…</option>${PF_CATS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select>`:''}${canDelSel?`<button class="btn sm danger" data-pf="delsel" data-pid="${esc(p.id)}">Delete</button>`:''}<div class="sp"></div><button class="btn sm ghost" data-pf="clear">Clear</button></div>`:''}
   <div class="pf-list">${L.length?L.map(f=>{ const c=pfCat(f.cat), nv=(f.versions||[]).length;
     return `<div class="pf-row${sel.has(f.id)?' on':''}"><input type="checkbox" data-pfsel="${esc(f.id)}" ${sel.has(f.id)?'checked':''} aria-label="Select ${esc(f.name)}">
-      <button class="pf-main" data-pf="open:${esc(f.id)}" title="Open ${esc(f.name)}">${pfIcon(f)}<span class="pf-txt"><b>${esc(f.name)}</b><span class="sub">${c[2]} ${esc(c[1])} · ${nxfSize(f.size)}${nv?` · <a href="#" data-pf="vers:${esc(f.id)}">version ${nv+1}</a>`:''} · ${esc(f.by||'')} · ${pfWhen(f.at)}</span>${f.note?`<span class="sub pf-note">${esc(f.note)}</span>`:''}</span></button>
+      <button class="pf-main" data-pf="open:${esc(f.id)}" title="Open ${esc(f.name)}">${pfIcon(f)}<span class="pf-txt"><b>${esc(f.name)}</b><span class="sub">${c[2]} ${esc(c[1])} · ${nxfSize(f.size)}${nv?` · <a href="#" data-pf="vers:${esc(f.id)}">version ${nv+1}</a>`:''} · ${esc(f.by||'')} · ${pfWhen(f.at)}${pkDocChip(f)}</span>${f.note?`<span class="sub pf-note">${esc(f.note)}</span>`:''}</span></button>
       <div class="pf-act"><button class="btn sm" data-pf="dl:${esc(f.id)}" title="Download">⬇<span class="t"> Download</span></button>${canWrite?`<button class="btn sm ghost" data-pf="ver:${esc(f.id)}" title="Upload a newer version (the old one is kept)">⤴<span class="t"> New version</span></button><button class="btn sm ghost" data-pf="edit:${esc(f.id)}" title="Rename, move or add a note">✎</button>`:''}${pfCanDel(f,p)?`<button class="btn sm ghost" data-pf="del:${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.name)}">🗑</button>`:''}</div></div>`; }).join('')
     :`<div class="empty">${F.length?'No files match.':canWrite?'No files yet – upload the contract, drawings, letters and photos of this project.':'No files yet.'}</div>`}</div>
   ${tdocs.length||boqs.length?`<div class="card pf-linked"><div class="hd"><h2>Also linked to this project</h2></div><div class="bd">${tdocs.length?`<div class="small"><b>Tender documents</b> (${esc(T.title||'')}): ${tdocs.map(f=>`<a href="${esc(f.url)}" data-dhopen="${esc(f.url)}" data-dhname="${esc(f.name||'Document')}">${esc(f.name||'Document')}</a>`).join(' · ')}</div>`:''}${boqs.length?`<div class="small"><b>BoQs:</b> ${boqs.map(b=>`<a href="#" data-boq="${esc(b.id)}">${esc(b.title||'BoQ')}</a>`).join(' · ')}</div>`:''}</div></div>`:''}
@@ -6322,7 +6379,7 @@ async function pfUpload(){ const up=UI.pfup; if(!up) return; if(!window.NX_PF) r
       if(ex){ const vers=[...(ex.versions||[]),{path:ex.path,name:ex.name,size:ex.size,type:ex.type,at:ex.at,by:ex.by}];
         await patch('projfiles',ex.id,{path:r.path,name:x.file.name,size:x.file.size,type:x.file.type||'',at:now,by:me.name||'',versions:vers,...(thumb?{thumb}:{}),...(up.note?{note:up.note}:{}),cat:x.cat}); }
       else await put('projfiles',null,{project_id:p.id,cat:x.cat,name:x.file.name,path:r.path,size:x.file.size,type:x.file.type||'',note:up.note,by:me.name||'',at:now,versions:[],...(thumb?{thumb}:{}),...(x.from?{from:x.from}:{})});
-      x.st='ok'; ok++; }
+      x.st='ok'; ok++; setTimeout(()=>{ try{ pkBackground(); }catch(_){} },6000); }
     catch(e){ x.st='err'; x.msg=String(e?.message||e).slice(0,120); }
     renderView(true); }
   if(ok) logAct(`Uploaded ${ok} file${ok===1?'':'s'} to project ${p.name}`); toast(ok?`${ok} file${ok===1?'':'s'} saved to ${p.name}.`:'No file was uploaded.'); }
@@ -7296,7 +7353,7 @@ function pageProject(){
       <div class="card kpi ${F.revEnd&&dLeft(pEnd(p))<0&&!(p.pc_date&&!pPcBad(p))&&!/complet|close/i.test(p.status||'')?'hot':'amb'}" title="${esc(pEotTrail(p))}"><span class="label">${F.eot?'Revised completion':'Completion date'}</span><span class="v num" style="font-size:22px">${F.revEnd?fmtD(pEnd(p)):'—'}</span><span class="s">${F.eot?(()=>{ const v=pLastEot(p); return v&&v.date_instructed?`last EOT ${esc(v.ref||'')}: ${fmtD(v.date_instructed)} + ${v.days_granted} days`:`${fmtD(p.end)} + ${F.eot} days EOT`; })():'original date'}${F.revEnd?' · '+pEndState(p):''}</span>${pPcBad(p)?`<span class="s" style="color:var(--bad)">⚠ Handover date ${fmtD(p.pc_date)} is before the approved EOTs – correct it in Edit project</span>`:''}</div>
       <div class="card kpi ${F.high.length?'hot':'grn'}"><span class="label">Open risks & issues</span><span class="v num">${F.risks.length}</span><span class="s">${F.high.length} high · ${F.pending.length} variations pending · ${F.openSn.length} snags open</span></div></div>
     <div class="ai"><div class="hd"><span class="ai-tag">AI</span><h2>Project health review</h2><div class="sp"></div><button class="btn pri sm" data-act="aiProject" ${UI.busy.proj?'disabled':''}>${spin('proj')}${p.ai_health?'Review again':'Review this project'}</button></div>
-      <div class="bd prose small">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}</span>`:'NEXUS reads the programme, site reports, variations, risks, payments and snags, then gives a RAG status (red / amber / green) with the three actions that matter most this week.'}</div></div>
+      <div class="bd prose small" style="white-space:pre-wrap">${p.ai_health?esc(p.ai_health.text)+`\n\n${aiPanelBadge(p.ai_health.panel)} <span class="sub">Reviewed ${esc(fmtDT(p.ai_health.at))}${p.ai_health.boq!=null?` · BoQ: ${esc(p.ai_health.boq||'none')} · ${p.ai_health.docs||0} document${p.ai_health.docs===1?'':'s'} read`:''}</span>`:'NEXUS reads the BoQ, the drawings and documents of this project, the site reports and the programme. It checks the work done against the BoQ and drawings, explains the next activities step by step with the manpower and equipment needed, and gives the actions that matter this week.'}</div></div>
     ${pgCard(p)}${paCard(p)}
     ${pr?`<div class="card"><div class="hd"><h2>S-curve</h2></div><div class="bd chart">${sCurve(p.id)}</div></div>`:''}
     <div class="grid g2">
@@ -7787,17 +7844,22 @@ function paNext(pid){ const t=today0(), cpm=pmCpm(pid).res, all=paActs(pid), by=
     const need=left>0?(100-pg)/left:null, plan=f&&s?100/Math.max(1,dDiff(f,s)+1):null;
     out.push({m,why,crit,late,ready,score,pg,pl,lf,left,need,plan,float:c.float}); }
   return out.sort((a,b)=>b.score-a.score); }
-function paCard(p){ const acts=paActs(p.id); if(!acts.length) return ''; const pr=programme(p.id), f=pmForecast(p), N=paNext(p.id), top=N.slice(0,8);
+function paCard(p){ const acts=paActs(p.id); if(!acts.length) return paCardLite(p); const pr=programme(p.id), f=pmForecast(p), N=paNext(p.id), top=N.slice(0,8);
   const ai=acts.filter(m=>m.prog_src&&m.prog_src.s==='ai').sort((a,b)=>String(b.prog_src.at||'').localeCompare(String(a.prog_src.at||''))).slice(0,5);
   const adv=p.ai_next&&p.ai_next.text?p.ai_next:PA.adv[p.id];
   const kp=pr?`<div class="pa-kpis"><div><b>${pr.actual.toFixed(0)}%</b><span>complete (from site reports & programme)</span></div><div><b>${pr.planned.toFixed(0)}%</b><span>planned by today</span></div><div class="${pr.actual+5<pr.planned?'bad':pr.actual>=pr.planned?'good':''}"><b>${(pr.actual-pr.planned>=0?'+':'')+(pr.actual-pr.planned).toFixed(0)}</b><span>points ${pr.actual>=pr.planned?'ahead':'behind'}</span></div>${f?`<div class="${f.slip>0?'bad':''}"><b>${fmtD(f.fc)}</b><span>forecast finish${f.contract?` · contract ${fmtD(f.contract)}`:''}${f.slip>0?` · <b>${f.slip} days late</b>`:''}</span></div>`:''}</div>`:'<p class="sub">Give the activities weights (%) so NEXUS can work out the overall % complete.</p>';
   return `<div class="card pa"><div class="hd"><h2>🧭 Progress & what to do next</h2><span class="sub">from the daily site reports and the programme</span></div><div class="bd">${kp}
     <div class="label" style="margin-top:10px">Do next – to finish on time</div>
     ${top.length?`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Activity</th><th>Why now</th><th class="r">Done</th><th>Must finish by</th><th class="r hide-m">Needed pace</th></tr></thead><tbody>${top.map((x,i)=>`<tr class="click" data-editms="${esc(x.m.id)}"><td class="num">${i+1}</td><td><div class="ttl2">${x.crit?'<span class="chip bad" title="On the critical path – any delay delays completion">critical</span> ':''}${esc(x.m.name)}</div>${x.m.resp?`<div class="sub">${esc(x.m.resp)}</div>`:''}</td><td class="small">${esc(x.why)}</td><td class="r num">${x.pg}%</td><td class="small">${x.lf?fmtD(x.lf):'—'}${x.left!=null&&x.left<=0?' <span class="chip bad">passed</span>':x.left!=null?` <span class="sub">(${x.left} d)</span>`:''}</td><td class="r small hide-m">${x.need!=null?`${x.need.toFixed(1)}%/day${x.plan&&x.need>x.plan*1.3?` <span class="chip amb" title="Faster than planned – add labour / plant or overtime">↑ ${(x.need/x.plan).toFixed(1)}×</span>`:''}`:'—'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="good">✓ Nothing urgent – all running activities are on plan.</p>'}
-    <div class="toolbar" style="margin-top:8px"><button class="btn pri sm" data-pa="adv:${esc(p.id)}" ${PA.busy['a'+p.id]?'disabled':''}>${PA.busy['a'+p.id]?'<span class="spin"></span> AI is planning…':adv?'🤖 Advise again':'🤖 AI advice: how to finish on time'}</button>${adv?`<span class="sub">${fmtDT(adv.at)}</span>`:''}</div>
+    <div class="toolbar" style="margin-top:8px"><button class="btn pri sm" data-pa="adv:${esc(p.id)}" ${PA.busy['a'+p.id]?'disabled':''}>${PA.busy['a'+p.id]?'<span class="spin"></span> AI is planning…':adv?'🤖 Advise again':'🤖 AI advice: what to do next (BoQ, drawings, materials & suppliers)'}</button>${adv?`<span class="sub">${fmtDT(adv.at)}</span>`:''}</div>
     ${adv?`<div class="prose small pa-adv">${esc(adv.text)}</div>`:''}
     ${ai.length?`<div class="label" style="margin-top:12px">Latest progress read from site reports</div><div class="list">${ai.map(m=>`<div class="li small"><div class="grow"><b>${esc(m.name)}</b> ${m.prog_src.prev}% → ${msPg(m)}% <span class="sub">· report ${fmtD(m.prog_src.date)} · “${esc(m.prog_src.why||'')}”</span></div>${m.prog_src.report?`<button class="btn sm" data-open="report:${esc(m.prog_src.report)}">Report</button>`:''}</div>`).join('')}</div>`:''}
   </div></div>`; }
+// v258: projects without a programme still get the BoQ / drawing based advice
+function paCardLite(p){ const adv=p.ai_next&&p.ai_next.text?p.ai_next:PA.adv[p.id]; if(!adv&&!canWrite) return '';
+  return `<div class="card pa"><div class="hd"><h2>🧭 What to do next</h2><span class="sub">from the BoQ, drawings and site reports${pkBoqOf(p.id)?'':' – no BoQ linked yet'}</span></div><div class="bd">
+    <div class="toolbar"><button class="btn pri sm" data-pa="adv:${esc(p.id)}" ${PA.busy['a'+p.id]?'disabled':''}>${PA.busy['a'+p.id]?'<span class="spin"></span> AI is planning…':adv?'🤖 Advise again':'🤖 AI advice: what to do next'}</button>${adv?`<span class="sub">${fmtDT(adv.at)}</span>`:''}</div>
+    ${adv?`<div class="prose small pa-adv">${esc(adv.text)}</div>`:'<p class="sub">Add a programme (Programme tab) for priorities by critical path – NEXUS already advises from the BoQ, drawings and site reports.</p>'}</div></div>`; }
 async function paAdvise(pid){ const p=byId('projects',pid); if(!p||PA.busy['a'+pid]) return; PA.busy['a'+pid]=true; renderView(true);
   try{ const N=paNext(pid).slice(0,12), pr=programme(pid), f=pmForecast(p), rep=S.reports.filter(r=>r.project_id===pid).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,7);
     const out=await sample(`You are the construction planning manager of Nordic Construction (Tanzania). Advise the site team what to do NEXT so the project finishes within the programme.
@@ -7813,7 +7875,7 @@ Write 4–7 short numbered actions for THIS WEEK in order of importance: which a
   finally{ PA.busy['a'+pid]=false; renderView(true); } }
 document.addEventListener('click',async e=>{ const b=e.target.closest('[data-pa]'); if(!b) return; e.stopPropagation(); const [a,x,y]=b.dataset.pa.split(':');
   if(a==='read'){ await paRead(x,{apply:true}); return renderDrawer&&renderDrawer(); }
-  if(a==='undo') return paUndo(x,y); if(a==='apply') return paApplyOne(x,y); if(a==='adv') return paAdvise(x); if(a==='fill') return paFillForm(); },true);
+  if(a==='undo') return paUndo(x,y); if(a==='apply') return paApplyOne(x,y); if(a==='adv') return pkAdvise(x); if(a==='fill') return paFillForm(); },true);
 /* ===================== PROGRESS FROM SITE REPORTS (end) ===================== */
 
 /* ===================== v256 · OVERALL PROGRESS – AI ESTIMATE FOR EVERY PROJECT =====================
@@ -7837,7 +7899,7 @@ function pgEvidence(p){
   const spent=finRows().filter(f=>f.project_id===p.id&&f.type==='Expense'&&!f.example).reduce((a,f)=>a+(+f.amount||0),0);
   const end=p.end?pEnd(p):'', tl=p.start&&end?Math.max(0,Math.min(100,(dayN(t)-dayN(p.start))/Math.max(1,dayN(end)-dayN(p.start))*100)):null;
   return {reps,pr,acts,rev,valued:Math.max(valued,certified),lastVal,spent,tl,end,
-    last:reps.length?reps[reps.length-1].date:'', sig:[reps.length,reps.length?reps[reps.length-1].date+'/'+String(reps[reps.length-1].work_done||'').length:'',pr?pr.actual.toFixed(0):'',Math.round(Math.max(valued,certified)),Math.round(spent),(p.status||'')].join('|')};
+    last:reps.length?reps[reps.length-1].date:'', sig:[reps.length,reps.length?reps[reps.length-1].date+'/'+String(reps[reps.length-1].work_done||'').length:'',pr?pr.actual.toFixed(0):'',Math.round(Math.max(valued,certified)),Math.round(spent),(p.status||''),(()=>{ const b=typeof pkBoqOf==='function'?pkBoqOf(p.id):null; return b?(b.bills||[]).reduce((a,bl)=>a+(bl.items||[]).length,0):0; })(),typeof pkFresh==='function'?pfFiles(p.id).filter(pkFresh).length:0].join('|')};
 }
 async function pgAsk(p,E){
   const W=E.acts.reduce((a,m)=>a+(+m.weight||0),0);
@@ -7851,7 +7913,7 @@ Contract sum incl. approved variations: ${E.rev?Math.round(E.rev).toLocaleString
 Valued / certified to date (IPC / valuation): ${E.valued?Math.round(E.valued).toLocaleString('en-US')+' TZS'+(E.rev?` = ${(E.valued/E.rev*100).toFixed(0)}% of contract`:''):'none'}
 Cost spent so far: ${E.spent?Math.round(E.spent).toLocaleString('en-US')+' TZS':'none recorded'}${p.budget?` of budget ${Math.round(+p.budget).toLocaleString('en-US')}`:''}
 Programme: ${E.pr?`weighted actual ${E.pr.actual.toFixed(0)}% vs planned ${E.pr.planned.toFixed(0)}% today`:E.acts.length?`${E.acts.length} activities, weights ${W?'incomplete ('+W+')':'not set'}`:'no programme in NEXUS'}
-${act?'ACTIVITIES (name | dates | weight | % done):\n'+act+'\n':''}DAILY SITE REPORTS (${E.reps.length}):
+${E.bw?`BoQ-WEIGHTED PROGRESS (per bill % × the bill's share of the works value): ${E.bw.pct}%\n${E.bw.rows.map(x=>`  ${x.name}: ${x.pct}% of a ${x.share}% bill${x.why?' – '+x.why:''}`).join('\n')}\n`:''}${E.docs?'PROJECT DOCUMENTS (drawings, specifications) READ BY AI:\n'+E.docs+'\n':''}${act?'ACTIVITIES (name | dates | weight | % done):\n'+act+'\n':''}DAILY SITE REPORTS (${E.reps.length}):
 ${first}${rep||'none'}
 Rules:
 - Weigh the evidence: a weighted programme kept up to date and certified valuations are the strongest; site reports show what was really done (count the trades / elements reported as done against the whole scope of this type of project); time and cost used are only a cross-check (never progress by themselves).
@@ -7864,14 +7926,16 @@ async function pgEstimate(pid,{auto=false,quiet=false}={}){
   if(PG.busy[pid]) return null; const E=pgEvidence(p);
   if(!E.reps.length&&!E.pr&&!E.valued){ if(!quiet) toast('No site reports, programme or valuation yet – nothing to estimate from.'); return null; }
   PG.busy[pid]=true; if(!auto) renderView(true);
-  try{ const r=await pgAsk(p,E); let pct=Math.round(+r?.pct); if(!isFinite(pct)) throw new Error('no estimate');
+  try{ let bw=null; try{ bw=await pkBillPct(p,E); }catch(e){ console.warn('pk bills',e); } E.bw=bw; E.docs=pkDocsText(p.id,8000);
+    const r=await pgAsk(p,E); let pct=Math.round(+r?.pct); if(!isFinite(pct)) throw new Error('no estimate');
+    if(bw&&isFinite(bw.pct)){ pct=Math.round(bw.pct); r.method='BoQ-weighted'; }   // v258: weighed by the value of each BoQ bill
     pct=Math.max(0,Math.min(100,pct)); const cur=Math.max(0,Math.min(100,+p.progress||0)), src=p.progress_src||'';
     let set=pct;
     if(pct<cur){ if(src==='ai') set=Math.max(pct,cur-10); else set=cur; }   // never a big drop; a person's programme value is not lowered
     if(/complet/i.test(p.status||'')&&set<100&&pct>=95) set=100;
     const est={pct,lo:Math.round(+r.lo||pct),hi:Math.round(+r.hi||pct),conf:['low','medium','high'].includes(r.conf)?r.conf:'low',method:String(r.method||'mixed'),why:String(r.why||'').slice(0,600),
       basis:(Array.isArray(r.basis)?r.basis:[]).slice(0,8).map(b=>({f:String(b.f||'').slice(0,60),v:String(b.v||'').slice(0,200)})),done:(Array.isArray(r.done)?r.done:[]).slice(0,10).map(x=>String(x).slice(0,80)),
-      status:String(r.status||'unknown'),at:new Date().toISOString(),by:me.name||'',sig:E.sig,applied:set,prev:cur,n_reports:E.reps.length};
+      status:String(r.status||'unknown'),at:new Date().toISOString(),by:me.name||'',sig:E.sig,applied:set,prev:cur,n_reports:E.reps.length,bills:bw?bw.rows:null,boq:bw?bw.boq:'',docs:pfFiles(p.id).filter(pkFresh).length};
     const up={ai_pg:est}; if(set!==cur||src!=='ai'&&set===pct){ up.progress=set; up.progress_src='ai'; up.progress_at=est.at; }
     await patch('projects',pid,up);
     if(up.progress!=null&&up.progress!==cur) logAct(`AI estimated overall progress of ${p.name}: ${cur}% → ${set}% (${est.conf} confidence)`);
@@ -7894,11 +7958,12 @@ setTimeout(function pgTick(){ try{ if(typeof loaded!=='undefined'&&loaded.has&&l
 function pgChip(p){ const a=p.ai_pg; return p.progress_src==='ai'&&a?`<span class="chip blue" title="${esc(`AI estimate ${fmtD(a.at)} · ${a.conf} confidence – ${a.why||''}`)}">🤖 AI</span>`:''; }
 function pgCard(p){ const a=p.ai_pg, busy=PG.busy[p.id], can=canWrite;
   if(!a&&!can) return '';
-  return `<div class="card"><div class="hd"><h2>🤖 Overall progress</h2><span class="sub">AI estimate from site reports, programme, valuations, cost &amp; time</span><div class="sp"></div>${can?`<button class="btn sm${a?'':' pri'}" data-pg="est:${esc(p.id)}" ${busy?'disabled':''}>${busy?'<span class="spin"></span> Estimating…':a?'Estimate again':'Estimate now'}</button>`:''}</div><div class="bd">
+  return `<div class="card"><div class="hd"><h2>🤖 Overall progress</h2><span class="sub">AI estimate from site reports, BoQ, drawings, programme, valuations, cost &amp; time</span><div class="sp"></div>${can?`<button class="btn sm${a?'':' pri'}" data-pg="est:${esc(p.id)}" ${busy?'disabled':''}>${busy?'<span class="spin"></span> Estimating…':a?'Estimate again':'Estimate now'}</button>`:''}</div><div class="bd">
     ${a?`<div class="pa-kpis"><div><b>${+p.progress||0}%</b><span>overall progress${p.progress_src==='ai'?' (AI)':''}</span></div><div><b>${a.lo}–${a.hi}%</b><span>likely range</span></div><div class="${a.conf==='low'?'bad':a.conf==='high'?'good':''}"><b>${esc(a.conf)}</b><span>confidence · ${esc(a.method)}</span></div><div class="${/behind/.test(a.status)?'bad':/ahead|on time/.test(a.status)?'good':''}"><b>${esc(a.status)}</b><span>against time</span></div></div>
       ${a.pct!==a.applied?`<p class="sub" style="margin-top:6px">AI read ${a.pct}% – shown ${a.applied}% (NEXUS does not drop progress by more than 10 points at once or lower a value set from the programme).</p>`:''}
       <div class="prose small pa-adv">${esc(a.why)}</div>
       ${a.basis.length?`<table class="kv" style="margin-top:8px">${a.basis.map(b=>`<tr><th>${esc(b.f)}</th><td>${esc(b.v)}</td></tr>`).join('')}</table>`:''}
+      ${a.bills&&a.bills.length?`<div class="label" style="margin-top:10px">Weighted by the BoQ${a.boq?' “'+esc(a.boq)+'”':''} – % done per bill × its share of the value</div><div class="tbl-wrap"><table><thead><tr><th>Bill</th><th class="r">Share</th><th class="r">Done</th><th class="hide-m">Evidence</th></tr></thead><tbody>${a.bills.map(x=>`<tr><td class="small">${esc(x.name)}</td><td class="r num">${x.share}%</td><td class="r num">${x.pct}%</td><td class="hide-m sub">${esc(x.why||'')}</td></tr>`).join('')}</tbody></table></div>`:''}
       ${a.done.length?`<div class="sub" style="margin-top:6px">Work done / in progress: ${a.done.map(esc).join(' · ')}</div>`:''}
       <p class="sub" style="margin-top:6px">Estimated ${fmtDT(a.at)}${a.by?' on '+esc(a.by)+'\'s NEXUS':''} · ${a.n_reports} site report${a.n_reports===1?'':'s'} read. Updated automatically after each site report and whenever the evidence changes.</p>`
     :`<p class="small">NEXUS AI reads the daily site reports, the programme, valuations, money spent and time used, and writes the overall % complete of this project.</p>`}
@@ -7908,6 +7973,159 @@ async function pgAll(){ if(PG.all) return; const L=S.projects.filter(p=>pgLive(p
   try{ for(const [i,p] of L.entries()){ PG.all=`${i+1}/${L.length}`; renderView(true); const r=await pgEstimate(p.id,{auto:true,quiet:true}); if(r) n++; } }
   finally{ PG.all=''; renderView(true); } toast(n?`Overall progress estimated for ${n} project${n===1?'':'s'}.`:'No project has site reports, a programme or a valuation yet.'); }
 /* ===================== OVERALL PROGRESS (end) ===================== */
+/* ===================== v258 · PROJECT KNOWLEDGE – AI reads drawings, documents and the BoQ of every project =====================
+   1. Every readable document uploaded to a project (PDF, photo/scan of a drawing, text) is read once by NEXUS AI and kept as a
+      short technical digest (projfiles.ai_digest): drawings → elements, dimensions, specs; specifications → materials and
+      workmanship; contract / letters / instructions → scope and obligations. New uploads and new versions are read automatically.
+   2. The BoQ of the project + those digests + site reports + programme form the "project knowledge" that the AI review, the
+      advice on what to do next, the progress estimate and the site-report summary now use:
+        – compare what the site reports say was done with what the BoQ and drawings require (spec, quantity, sequence)
+        – explain technical points step by step, with the manpower and equipment needed
+        – advise only what complies with the BoQ and the drawings, list the materials (BoQ quantities) and the nearest
+          suppliers / manufacturers to the site
+        – weigh the % complete per BoQ bill by the value of each bill. */
+const PK={busy:{},bg:false,ran:0};
+const PK_ORD=['drawings','specs','boq','instructions','contract','programme','minutes','letters','hse','approvals','handover','other','photos'];
+const pkReadable=f=>{ const n=String(f.name||'').toLowerCase(), t=String(f.type||''); if(!f.path||f.deleted) return false; if(+f.size>25*1048576) return false;
+  return /pdf/.test(t)||/^image\/(jpe?g|png|webp|heic|heif)/.test(t)||/^text\//.test(t)||/\.(pdf|jpe?g|png|webp|heic|heif|txt|csv)$/.test(n); };
+const pkMime=f=>{ const n=String(f.name||'').toLowerCase(); return f.type||(/\.pdf$/.test(n)?'application/pdf':/\.png$/.test(n)?'image/png':/\.webp$/.test(n)?'image/webp':/\.(heic|heif)$/.test(n)?'image/heic':/\.(txt|csv)$/.test(n)?'text/plain':'image/jpeg'); };
+// site photos are many and already described in the site reports – only photos of drawings / documents are read
+const pkWanted=f=>pkReadable(f)&&(f.cat!=='photos'||/drawing|plan|detail|section|elevation|spec|boq|letter|instruction|sketch/i.test(f.name+' '+(f.note||'')));
+const pkFresh=f=>!!(f.ai_digest&&f.ai_digest.path===f.path&&f.ai_digest.text);
+const pkFailedRecently=f=>!!(f.ai_digest_err&&f.ai_digest_err.path===f.path&&Date.now()-Date.parse(f.ai_digest_err.at||0)<3*864e5);
+async function pkDigest(fid,{quiet=true}={}){ const f=byId('projfiles',fid); if(!f||!pkWanted(f)||PK.busy[fid]||typeof sample==='undefined'||!sample||!window.NX_PF||!window.NX_ASKF) return null;
+  const p=byId('projects',f.project_id)||{}; PK.busy[fid]=true; let ap='';
+  try{ const blob=await window.NX_PF.blob(f.path); const mime=pkMime(f); ap=(await window.NX_ASKF.upload(blob,f.name,mime)).path;
+    const cat=pfCat(f.cat)[1];
+    const r=await sample.json(`You are the senior site engineer and quantity surveyor of Nordic Construction (Tanzania). Read this project document carefully – every page, title block, notes, schedules and dimensions.
+Project: ${p.name||''}${p.type?' ('+p.type+')':''}${p.location?' · '+p.location:''}. File: "${f.name}" – filed under "${cat}"${f.note?' – note: '+f.note:''}.
+Extract what the site team, the QS and the planner need to build, measure and check the work. Be specific: element names, grid lines / room names, dimensions (mm/m), levels, member sizes, concrete grades, bar sizes and spacing, block types, finishes, fixtures, MEP items, quantities shown, specification clauses, standards, tolerances, sequence notes, approvals required, dates and obligations. Do not invent anything that is not in the document.
+Reply JSON only: {"kind":"drawing | specification | contract | boq | instruction | letter | minutes | programme | report | photo | other","title":"title / drawing no. and revision","discipline":"architectural | structural | MEP | civil | general","summary":"3-5 sentences: what this document defines","elements":[{"el":"element / area","spec":"materials, grades, sizes, finishes","dims":"key dimensions / levels / quantities"}],"materials":["main materials with grade / size"],"requirements":["workmanship, testing, approvals, sequence or contract obligations"],"dates":["dates or deadlines"],"unclear":["what could not be read"]}`,{files:[{path:ap,mime,name:f.name}],max_tokens:4000,panel:false});
+    const L=(a,n)=>(Array.isArray(a)?a:[]).slice(0,n).map(x=>typeof x==='string'?x:[x.el,x.spec,x.dims].filter(Boolean).join(' – ')).filter(Boolean);
+    const el=L(r.elements,30), mat=L(r.materials,20), req=L(r.requirements,15), dt=L(r.dates,8);
+    const text=[`${r.title||f.name} [${r.kind||'document'}${r.discipline?', '+r.discipline:''}]`,String(r.summary||''),el.length?'Elements: '+el.join('; '):'',mat.length?'Materials: '+mat.join('; '):'',req.length?'Requirements: '+req.join('; '):'',dt.length?'Dates: '+dt.join('; '):''].filter(Boolean).join('\n').slice(0,4500);
+    if(!text.trim()) throw new Error('nothing readable');
+    await patch('projfiles',fid,{ai_digest:{text,kind:String(r.kind||''),title:String(r.title||'').slice(0,160),unclear:L(r.unclear,5),path:f.path,at:new Date().toISOString(),by:me.name||''},ai_digest_err:null});
+    logAct(`AI read the project document "${f.name}" (${p.name||''})`); if(!quiet) toast(`AI read “${f.name}”.`); return text; }
+  catch(e){ console.warn('pk digest',e); try{ await patch('projfiles',fid,{ai_digest_err:{path:f.path,at:new Date().toISOString(),msg:String(e?.message||e).slice(0,160)}}); }catch(_){} if(!quiet) toast('AI could not read the document: '+(e?.message||e)); return null; }
+  finally{ PK.busy[fid]=false; if(ap) window.NX_ASKF.remove([ap]).catch(()=>{}); if(typeof renderView==='function') renderView(true); } }
+// background: read every new / changed document of the live projects (one at a time, claimed so two computers do not repeat it)
+async function pkBackground(){ if(PK.bg||!canWrite||typeof sample==='undefined'||!sample||!window.NX_PF) return; PK.bg=true;
+  try{ const live=new Set(S.projects.filter(p=>!p.deleted&&!p.example&&!/complet/i.test(p.status||'')).map(p=>p.id));
+    const todo=(S.projfiles||[]).filter(f=>live.has(f.project_id)&&pkWanted(f)&&!pkFresh(f)&&!pkFailedRecently(f)).sort((a,b)=>PK_ORD.indexOf(a.cat)-PK_ORD.indexOf(b.cat));
+    for(const f of todo){ if(PK.ran>=12) break; const run=f.ai_digest_run; if(run&&run.at&&Date.now()-Date.parse(run.at)<6*60e3&&run.by!==me.id) continue;
+      try{ await patch('projfiles',f.id,{ai_digest_run:{by:me.id||'',at:new Date().toISOString()}}); }catch(_){ continue; }
+      PK.ran++; await pkDigest(f.id); await new Promise(r=>setTimeout(r,6000)); } }
+  finally{ PK.bg=false; } }
+setTimeout(function pkTick(){ try{ if(typeof loaded!=='undefined'&&loaded.has&&loaded.has('projfiles')&&loaded.has('projects')&&!document.hidden) pkBackground(); }catch(_){} setTimeout(pkTick,8*60e3); },35e3);
+function pkDocChip(f){ if(!pkWanted(f)) return /\.(dwg|dxf|rvt|skp)$/i.test(f.name||'')?' · <span class="sub" title="AI cannot open CAD files – upload a PDF of the drawing too">CAD – add a PDF for AI</span>':'';
+  if(pkFresh(f)) return ` · <span class="chip blue" style="font-size:10px" title="${esc(f.ai_digest.text.slice(0,900))}">🤖 read by AI</span>`;
+  if(PK.busy[f.id]) return ' · <span class="sub"><span class="spin"></span> AI reading…</span>';
+  return canWrite?` · <a href="#" data-pk="read:${esc(f.id)}" title="${esc(f.ai_digest_err?'AI could not read it: '+f.ai_digest_err.msg:'AI reads it automatically – or now')}">🤖 ${f.ai_digest_err?'read again':'read now'}</a>`:''; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-pk]'); if(!b) return; e.preventDefault(); e.stopPropagation(); const [a,id]=b.dataset.pk.split(':'); if(a==='read') pkDigest(id,{quiet:false}); },true);
+
+/* ---------- the knowledge pack ---------- */
+function pkBoqOf(pid){ const L=(S.boqs||[]).filter(b=>b.project_id===pid&&!b.past&&!b.deleted); if(!L.length) return null;
+  const sz=b=>(b.bills||[]).reduce((a,bl)=>a+(bl.items||[]).length,0);
+  return L.sort((a,b)=>(/contract|priced|final/i.test(b.title||'')-/contract|priced|final/i.test(a.title||''))||sz(b)-sz(a))[0]; }
+function pkBills(b){ const bills=(b.bills||[]).map((bl,i)=>{ const items=(bl.items||[]).filter(it=>(it.desc||'').trim()); const amt=items.reduce((a,it)=>a+(+it.qty||0)*(+it.rate||0),0); return {i,name:bl.name||`Bill ${i+1}`,items,amt}; });
+  const tot=bills.reduce((a,x)=>a+x.amt,0); bills.forEach(x=>{ x.share=tot?x.amt/tot*100:0; }); return {bills,tot}; }
+// BoQ as text: bills with their share of the value, items with unit and quantity (rates only when money is allowed)
+function pkBoqText(b,{money=false,max=26000}={}){ if(!b) return ''; const {bills,tot}=pkBills(b); const n=bills.reduce((a,x)=>a+x.items.length,0);
+  const per=Math.max(6,Math.floor((max/Math.max(1,bills.length))/95));
+  const out=[`BoQ "${b.title||''}" – ${bills.length} bills, ${n} items${tot?'':' (not priced)'}`];
+  bills.forEach((x,k)=>{ out.push(`BILL ${k+1}: ${x.name}${tot?` – ${x.share.toFixed(1)}% of the works value`:''}`);
+    const its=x.items.length>per?[...x.items].sort((a,c)=>(+c.qty||0)*(+c.rate||0)-(+a.qty||0)*(+a.rate||0)).slice(0,per):x.items;
+    its.forEach(it=>{ const u=String(it.unit||'').trim(); out.push(`  - ${String(it.desc).replace(/\s+/g,' ').slice(0,140)}${u?` | ${it.qty??''} ${u}`:' (heading)'}${money&&+it.rate?` | rate ${Math.round(+it.rate)}`:''}`); });
+    if(x.items.length>per) out.push(`  … ${x.items.length-per} smaller items not listed`); });
+  return out.join('\n').slice(0,max); }
+function pkDocsText(pid,max=14000){ const F=pfFiles(pid).filter(pkFresh).sort((a,b)=>PK_ORD.indexOf(a.cat)-PK_ORD.indexOf(b.cat)); if(!F.length) return '';
+  let s='', n=0; for(const f of F){ const t=`DOCUMENT "${f.name}" (${pfCat(f.cat)[1]}):\n${f.ai_digest.text}\n`; if(s.length+t.length>max){ s+=`… ${F.length-n} more documents read but not listed\n`; break; } s+=t; n++; }
+  const cad=pfFiles(pid).filter(f=>/\.(dwg|dxf|rvt|skp)$/i.test(f.name||'')).map(f=>f.name); if(cad.length) s+=`(CAD files not readable by AI: ${cad.slice(0,6).join(', ')})\n`;
+  return s; }
+function pkContext(p,{money=false,boqMax=26000,docMax=14000}={}){ const b=pkBoqOf(p.id), bt=pkBoqText(b,{money,max:boqMax}), dt=pkDocsText(p.id,docMax);
+  return {b,text:`${bt?'PROJECT BILL OF QUANTITIES:\n'+bt+'\n':'BoQ: none linked to this project in NEXUS.\n'}${dt?'\nPROJECT DOCUMENTS READ BY AI (drawings, specifications, contract, instructions…):\n'+dt:'\nProject documents: none read yet.\n'}`}; }
+const pkReps=(pid,n=10)=>S.reports.filter(r=>r.project_id===pid&&!r.example).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,n)
+  .map(r=>`${r.date}: ${r.workforce||'?'} workers${r.weather?' · '+r.weather:''}; done: ${String(r.work_done||'').slice(0,500)}${r.materials?'; materials: '+String(r.materials).slice(0,200):''}${r.plant?'; plant: '+String(r.plant).slice(0,150):''}${r.issues?'; issues: '+String(r.issues).slice(0,250):''}${r.next_day?'; next: '+String(r.next_day).slice(0,150):''}`).join('\n');
+const pkTown=p=>{ const s=String((p&&p.location)||''); const m=s.match(/\b(dar[\s-]*es[\s-]*salaam|arusha|mwanza|dodoma|mbeya|tanga|moshi|morogoro|zanzibar|iringa|kigoma|mtwara|tabora|geita|musoma|bukoba|songea|singida|shinyanga|njombe|sumbawanga|lindi|kahama|babati|kibaha|bagamoyo)\b/i); return m?m[1].replace(/[\s-]+/g,' ').replace(/^dar es salaam$/i,'Dar es Salaam'):''; };
+
+/* ---------- 1 + 2 · AI REVIEW: BoQ & drawing compliance, stepwise technical guidance, manpower & equipment ---------- */
+async function pkReview(p){ if(!p) return;
+  const F=projectFacts(p), K=pkContext(p,{money:false});
+  const acts=S.milestones.filter(m=>m.project_id===p.id).map(m=>`${m.name} | ${m.planned_start||'?'}→${m.planned_finish||'?'} | ${msPg(m)}%${m.weight?' | w'+m.weight:''}`).join('\n');
+  const vos=F.vos.map(v=>`${v.ref||''} ${v.description||''} (${v.status||''})`).join('; '), risks=F.risks.map(r=>`${r.title} (score ${(+r.likelihood||0)*(+r.impact||0)})`).join('; ');
+  const prompt=`You are the senior construction manager and quantity surveyor of Nordic Construction (Tanzania) reviewing a project for management and the site team. Today is ${new Date().toDateString()}. Site staff read this, so never write money amounts.
+PROJECT: ${p.name} · ${p.type||''} · client ${p.client||'?'} · ${p.location||''} · status ${p.status||'?'} · period ${p.start||'?'} → ${F.revEnd||p.end||'?'}${F.eot?` (EOT ${F.eot} days)`:''}
+PROGRAMME: ${F.prog?`actual ${F.prog.actual.toFixed(0)}% vs planned ${F.prog.planned.toFixed(0)}%`:'no weighted programme'}${acts?'\n'+acts:''}
+OVERALL PROGRESS (AI estimate): ${+p.progress||0}%
+VARIATIONS: ${vos||'none'} · RISKS: ${risks||'none'} · OPEN SNAGS: ${F.openSn.length}
+${K.text}
+SITE REPORTS (newest first):
+${pkReps(p.id,12)||'none'}
+
+Write the review in this order, plain text, '- ' for lists, brief but technical and specific to THIS BoQ and these drawings:
+Status: RED / AMBER / GREEN – one-sentence reason.
+1. WORK DONE vs BoQ & DRAWINGS: for each element the reports mention, say whether it matches the BoQ item and the drawing/specification (material, grade, size, thickness, sequence, quantity so far) – "complies", "check" or "does not comply" with the reason. Name BoQ bill/item and drawing. Point out work reported that is NOT in the BoQ (possible variation) and BoQ items that should have started.
+2. TECHNICAL GUIDANCE: for the 2–4 most important current or next activities, explain the correct method step by step as the BoQ and drawings require (numbered steps, key checks/tests/hold points, curing or striking times, tolerances).
+3. MANPOWER & EQUIPMENT: for those activities, the gang (trades and numbers) and the plant/tools needed, with a realistic daily output.
+4. TOP ACTIONS THIS WEEK: 3–5 numbered actions, each with who acts (PM, site engineer, QS, foreman, MD).
+If the BoQ or drawings are missing, say so and what to upload. Max 450 words.`;
+  const r=await ai('proj',()=>sample(prompt,{modelTier:'default',panel:prompt.length<38000?undefined:false}));
+  if(r){ await patch('projects',p.id,{ai_health:{text:r.text,at:new Date().toISOString(),boq:K.b?K.b.title||'':'',docs:pfFiles(p.id).filter(pkFresh).length,...(r.panel?{panel:r.panel}:{})}}); logAct(`AI review (BoQ & drawings) for ${p.name}`); } }
+
+/* ---------- 2 + 5 · WHAT TO DO NEXT: programme priorities + BoQ-compliant method + materials and nearest suppliers ---------- */
+async function pkSuppliers(p,mats){ const town=pkTown(p), out=[];
+  const own=(S.suppliers||[]).filter(s=>!s.deleted);
+  for(const m of mats.slice(0,4)){ const w=String(m).toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>3);
+    const mine=own.filter(s=>w.some(x=>String((s.products||'')+' '+(s.category||'')+' '+(s.name||'')).toLowerCase().includes(x)))
+      .sort((a,b)=>((town&&String(b.city||b.region||b.address||'').toLowerCase().includes(town.toLowerCase()))-(town&&String(a.city||a.region||a.address||'').toLowerCase().includes(town.toLowerCase())))).slice(0,3)
+      .map(s=>`${s.name}${s.city||s.region?' ('+(s.city||s.region)+')':''}${s.phone?' '+s.phone:''} [our supplier list]`);
+    let web=[]; try{ const r=await supAICall({q:`${m} ${town||'Dar es Salaam'}`,origin:'Tanzania',category:''}); web=(r.items||[]).slice(0,4).map(s=>`${s.name}${s.city||s.region?' ('+(s.city||s.region)+')':''}${s.type?' – '+s.type:''}${s.phone?' '+s.phone:''}${s.website?' '+s.website:''}`); }catch(_){ }
+    out.push(`${m}: ${[...mine,...web].join('; ')||'no supplier found'}`); }
+  return out.join('\n'); }
+async function pkAdvise(pid){ const p=byId('projects',pid); if(!p||PA.busy['a'+pid]) return; PA.busy['a'+pid]=true; renderView(true);
+  try{ const N=paNext(pid).slice(0,12), pr=programme(pid), f=pmForecast(p), K=pkContext(p,{money:false,boqMax:22000,docMax:12000});
+    // a) the advice (BoQ + drawings + programme) with the materials to order
+    const plan=await sample.json(`You are the planning manager and senior site engineer of Nordic Construction (Tanzania). Advise the site team what to do NEXT so the project finishes on time, STRICTLY as required by the BoQ and the drawings/specifications below (never suggest a material, size, grade or method that differs from them; if they are silent, say "confirm with the consultant").
+PROJECT: ${p.name} · ${p.type||''} · ${p.location||''} · progress ${pr?pr.actual.toFixed(0)+'% vs '+pr.planned.toFixed(0)+'% planned':(+p.progress||0)+'% (AI estimate)'} · forecast finish ${f?ymd(f.fc):'?'} · contract completion ${f&&f.contract?ymd(f.contract):p.end||'?'}
+PRIORITY ACTIVITIES FROM THE PROGRAMME (ranked by NEXUS – critical path, late, behind):
+${N.map((x,i)=>`${i+1}. ${x.m.name} – ${x.why}; ${x.pg}% done; finish by ${x.lf?ymd(x.lf):'?'}${x.need!=null?`; needs ${x.need.toFixed(1)}%/day`:''}${x.crit?'; CRITICAL':''}`).join('\n')||'no programme in NEXUS – use the BoQ order of works and the site reports'}
+${K.text}
+LAST SITE REPORTS:
+${pkReps(pid,7)||'none'}
+Reply JSON only: {"tasks":[{"task":"activity to do now (BoQ bill/item ref)","why":"programme / critical reason","steps":["brief technical steps as per BoQ & drawing"],"crew":"trades × numbers","plant":"equipment","output":"realistic daily output","materials":[{"m":"material with grade/size as in BoQ","qty":"quantity for this task with unit (from BoQ)"}],"check":"hold point / test / approval"}],"order_now":["the 3-5 key materials to order this week, short names"],"parallel":"what can run in parallel","ask_consultant":"drawings, approvals or instructions to request","verdict":"Finish on time: likely / at risk / not without recovery"}`,{max_tokens:5000});
+    const tasks=(plan&&Array.isArray(plan.tasks)?plan.tasks:[]).slice(0,6);
+    // b) nearest suppliers / manufacturers for the materials to order (company list first, then the web)
+    const mats=(Array.isArray(plan?.order_now)&&plan.order_now.length?plan.order_now:tasks.flatMap(t=>(t.materials||[]).map(x=>x.m))).filter(Boolean).slice(0,4);
+    const sup=mats.length?await pkSuppliers(p,mats):'';
+    const txt=[...tasks.map((t,i)=>`${i+1}. ${t.task}${t.why?' – '+t.why:''}\n${(t.steps||[]).map((s,k)=>`   ${k+1}) ${s}`).join('\n')}${t.crew?`\n   Crew: ${t.crew}`:''}${t.plant?`\n   Plant: ${t.plant}`:''}${t.output?`\n   Output: ${t.output}`:''}${(t.materials||[]).length?`\n   Materials: ${t.materials.map(x=>`${x.m}${x.qty?' – '+x.qty:''}`).join('; ')}`:''}${t.check?`\n   Check: ${t.check}`:''}`),
+      plan?.parallel?`In parallel: ${plan.parallel}`:'', plan?.ask_consultant?`Ask the consultant / client: ${plan.ask_consultant}`:'',
+      sup?`Materials to order now – nearest suppliers / manufacturers${pkTown(p)?' to '+pkTown(p):''}:\n${sup}`:'', plan?.verdict||''].filter(Boolean).join('\n\n');
+    if(!txt.trim()) throw new Error('no answer');
+    const a={text:txt,at:new Date().toISOString(),by:me.name||'',boq:K.b?K.b.title||'':'',docs:pfFiles(pid).filter(pkFresh).length}; PA.adv[pid]=a; try{ await patch('projects',pid,{ai_next:a}); }catch(_){ } }
+  catch(e){ toast('AI advice failed: '+(e.message||e)); }
+  finally{ PA.busy['a'+pid]=false; renderView(true); } }
+
+/* ---------- 4 · PROGRESS weighted by the BoQ: % per bill × the bill's share of the works value ---------- */
+async function pkBillPct(p,E){ const b=pkBoqOf(p.id); if(!b) return null; const {bills,tot}=pkBills(b); if(!tot||bills.length<2) return null;
+  const docs=pkDocsText(p.id,9000);
+  const r=await sample.json(`You are the QS of Nordic Construction (Tanzania) valuing work done for an interim valuation. From the site reports, the programme and the documents, estimate the % COMPLETE of EACH BILL of the BoQ (0 = not started, 100 = finished). Use the BoQ items under each bill to judge how much of that bill the reported work represents. Be realistic and conservative; never guess progress for work the reports do not mention.
+PROJECT: ${p.name} · ${p.type||''} · period ${p.start||'?'} → ${E.end||'?'}
+BILLS (index | name | share of value):
+${bills.map((x,i)=>`${i} | ${x.name} | ${x.share.toFixed(1)}%`).join('\n')}
+${pkBoqText(b,{money:false,max:18000})}
+${E.pr?`PROGRAMME: weighted actual ${E.pr.actual.toFixed(0)}%`:''}
+${E.acts.length?'ACTIVITIES: '+E.acts.slice(0,40).map(m=>`${m.name} ${msPg(m)}%`).join('; '):''}
+${docs?'DOCUMENTS:\n'+docs:''}
+SITE REPORTS (newest first):
+${pkReps(p.id,20)||'none'}
+Reply JSON only: {"bills":[{"i":0,"pct":0,"why":"evidence, max 12 words"}]}`,{max_tokens:3000,panel:false});
+  const got=new Map((r&&Array.isArray(r.bills)?r.bills:[]).map(x=>[+x.i,x]));
+  const rows=bills.map((x,i)=>{ const g=got.get(i); const pct=Math.max(0,Math.min(100,Math.round(+g?.pct||0))); return {name:x.name.slice(0,80),share:+x.share.toFixed(1),pct,why:String(g?.why||'').slice(0,120)}; });
+  const w=rows.reduce((a,x)=>a+x.share*x.pct/100,0);
+  return {pct:Math.round(w*10)/10,rows,boq:b.title||''}; }
+/* ===================== PROJECT KNOWLEDGE (end) ===================== */
+
 
 /* ===================== PLANT & EQUIPMENT ===================== */
 /* ===================== PHASE 5 · VEHICLE LOG (v111): trips, fuel, service, defects =====================
@@ -21720,7 +21938,7 @@ document.addEventListener('click', async e=>{
     case 'newReport': openDrawer('report-form',null,{proj:el.dataset.proj||(UI.rproj!=='All'?UI.rproj:'')}); break;
     case 'editReport': openDrawer('report-form',drawer.id); break;
     case 'saveReport': saveReport(); break;
-    case 'aiReport': { const r=byId('reports',drawer.id); const out=await ai('report',()=>sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Plain text.\nProject: ${projName(r.project_id)}\n${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'})); if(out){ await patch('reports',r.id,{ai_summary:out.text,...(out.panel?{ai_panel:out.panel}:{})}); } } break;
+    case 'aiReport': { const r=byId('reports',drawer.id); const pj=byId('projects',r.project_id), K=pj?pkContext(pj,{money:false,boqMax:12000,docMax:6000}):null; const out=await ai('report',()=>sample(`Summarise this construction site daily report for Nordic Construction management in max 70 words, then list any delay, cost, quality or safety risks as short bullet lines starting with "⚠". If none, write "No risks flagged." Then "BoQ & drawing check:" – 1-4 short lines saying whether the work reported matches the BoQ items and drawings below (material, size, grade, sequence) and anything that looks like a variation; skip it if there is no BoQ or drawing. Plain text.\nProject: ${projName(r.project_id)}\n${K?K.text+'\n':''}${JSON.stringify({date:r.date,weather:r.weather,workforce:r.workforce,work_done:r.work_done,materials:r.materials,plant:r.plant,issues:r.issues,hse:r.hse,next_day:r.next_day})}`,{modelTier:'quick'})); if(out){ await patch('reports',r.id,{ai_summary:out.text,...(out.panel?{ai_panel:out.panel}:{})}); } } break;
     case 'delReport': { const r=byId('reports',drawer.id); if(await confirmBox('Delete this site report?','Delete',true)){ await remove('reports',r.id); logAct(`Deleted site report ${projName(r.project_id)} ${r.date}`); closeDrawer(); } } break;
     case 'newBoq': { const id=await put('boqs',null,{title:'New BoQ',bills:[{name:'Preliminaries',items:[]}],vat:18,contingency:0,owner:me.name||'',owner_uid:me.id||''}); if(id) go('qs',id); } break;
     case 'addBill': { const b=curBoq(); await patch('boqs',b.id,{title:b.title,contingency:b.contingency,vat:b.vat,bills:[...(b.bills||[]),{name:'New bill',items:[]}]}); } break;
@@ -21785,7 +22003,7 @@ document.addEventListener('click', async e=>{
     case 'addPlant': formDrawer('Add plant or equipment',PLANT_FIELDS.map(f=>f.k==='project_id'?{...f,options:projOpts('Yard / store')}:f),{ownership:'Owned',status:'Working'},async v=>{ await put('plant',null,v); logAct(`Plant added: ${v.name}`); },{sub:'Plant & equipment'}); break;
     case 'editProjectWs': { const p=byId('projects',routeArg); formDrawer('Edit project',projFields().map(f=>['manager','reporter'].includes(f.k)?{...f,options:staffOpts()}:f),p,async v=>{ await patch('projects',p.id,v); logAct(`Updated project ${v.name}`); }); } break;
     case 'useProgress': { const pr=programme(routeArg); if(pr){ await patch('projects',routeArg,{progress:Math.round(pr.actual),progress_src:'programme',progress_at:new Date().toISOString()}); toast(`Project progress set to ${Math.round(pr.actual)}%.`); } } break;
-    case 'aiProject': aiProject(byId('projects',routeArg)); break;
+    case 'aiProject': pkReview(byId('projects',routeArg)); break;   // v258 BoQ & drawings
     case 'delForm': if(drawer?.onDelete && await confirmBox(drawer.delMsg||'Delete this record? This cannot be undone.',drawer.delLabel||'Delete',true)){ const lbl=drawer.delLabel; if(await drawer.onDelete()!==false){ closeDrawer(); toast(lbl==='Remove'?'Removed.':'Deleted.'); } } break;
     case 'downloadWeekly': downloadWeekly(); break;
   }
